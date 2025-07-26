@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/wtStudentsFragment"
+        android:icon="@drawable/ic_students"
+        android:title="@string/title_students" />
+    <item
+        android:id="@+id/wtRegisterFragment"
+        android:icon="@drawable/ic_wt"
+        android:title="@string/title_register" />
+    <item
+        android:id="@+id/wtLessonsFragment"
+        android:icon="@drawable/ic_lessons"
+        android:title="@string/title_lesson_schedule" />
+    <item
+        android:id="@+id/wtSeminarsFragment"
+        android:icon="@drawable/ic_calendar"
+        android:title="@string/title_seminars" />
+</menu> 
