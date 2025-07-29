@@ -1,0 +1,5 @@
+---
+description: code-style-guideline
+alwaysApply: false
+---
+**Remember**: Code style guidelines are not just about aesthetics—they improve code readability, maintainability, and team collaboration. Consistent code style reduces cognitive load and makes it easier for developers to work with unfamiliar parts of the codebase. 

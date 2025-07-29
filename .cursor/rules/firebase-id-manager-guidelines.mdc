@@ -1,0 +1,5 @@
+---
+description: firebase-id-manager
+alwaysApply: false
+---
+**Remember**: The Firebase ID Manager ensures data consistency across the AllInOne app by providing atomic, sequential ID generation. Always use it for new document creation to maintain compatibility with the Kotlin app. 
