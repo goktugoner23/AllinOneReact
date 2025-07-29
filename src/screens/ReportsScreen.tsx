@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Card, Text, Button, Menu, Divider } from 'react-native-paper';
 import { fetchTransactions } from '../data/transactions';
 import { Transaction } from '../types/Transaction';
-import { LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
-import * as shape from 'd3-shape';
+import { LineChart } from 'react-native-chart-kit';
 import { format, subDays, startOfYear, isAfter, parseISO } from 'date-fns';
 
 const dateRanges = [
@@ -67,19 +66,21 @@ export const ReportsScreen: React.FC = () => {
   const chartData = (() => {
     const map: { [date: string]: number } = {};
     filteredTransactions.forEach(t => {
-      const d = format(parseISO(t.date), 'yyyy-MM-dd');
+      const d = format(parseISO(t.date), 'MM-dd');
       map[d] = (map[d] || 0) + (t.type === 'expense' ? t.amount : 0);
     });
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
-    return sorted.map(([_, value]) => value);
-  })();
-  const chartLabels = (() => {
-    const map: { [date: string]: number } = {};
-    filteredTransactions.forEach(t => {
-      const d = format(parseISO(t.date), 'yyyy-MM-dd');
-      map[d] = (map[d] || 0) + (t.type === 'expense' ? t.amount : 0);
-    });
-    return Object.keys(map).sort();
+    const labels = sorted.map(([date]) => date);
+    const data = sorted.map(([_, value]) => value);
+    
+    return {
+      labels: labels.length > 0 ? labels : ['No Data'],
+      datasets: [{
+        data: data.length > 0 ? data : [0],
+        color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
+        strokeWidth: 2
+      }]
+    };
   })();
 
   // Category breakdown
@@ -163,36 +164,33 @@ export const ReportsScreen: React.FC = () => {
       <Card style={styles.card}>
         <Card.Title title="Spending Trends" />
         <Card.Content>
-          {chartData.length > 1 ? (
-            <View style={styles.chartRow}>
-              <YAxis
-                data={chartData}
-                contentInset={{ top: 20, bottom: 20 }}
-                svg={{ fontSize: 10, fill: 'grey' }}
-                numberOfTicks={5}
-                formatLabel={(value: number) => value.toFixed(0)}
-              />
-              <View style={styles.flex1MarginLeft10}>
-                <LineChart
-                  style={styles.flex1}
-                  data={chartData}
-                  svg={{ stroke: '#e74c3c', strokeWidth: 2 }}
-                  contentInset={{ top: 20, bottom: 20 }}
-                  curve={shape.curveMonotoneX}
-                >
-                  <Grid />
-                </LineChart>
-                <XAxis
-                  style={styles.marginTop8}
-                  data={chartData}
-                  formatLabel={(_: number, i: number) =>
-                    chartLabels[i]?.slice(5) || ''
-                  }
-                  contentInset={{ left: 10, right: 10 }}
-                  svg={{ fontSize: 10, fill: 'grey' }}
-                />
-              </View>
-            </View>
+          {chartData.datasets[0].data.length > 1 && chartData.datasets[0].data[0] !== 0 ? (
+            <LineChart
+              data={chartData}
+              width={Dimensions.get('window').width - 64}
+              height={220}
+              chartConfig={{
+                backgroundColor: '#ffffff',
+                backgroundGradientFrom: '#ffffff',
+                backgroundGradientTo: '#ffffff',
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: {
+                  borderRadius: 16
+                },
+                propsForDots: {
+                  r: '4',
+                  strokeWidth: '2',
+                  stroke: '#e74c3c'
+                }
+              }}
+              bezier
+              style={{
+                marginVertical: 8,
+                borderRadius: 16
+              }}
+            />
           ) : (
             <Text>No data for chart.</Text>
           )}
@@ -249,20 +247,7 @@ const styles = StyleSheet.create({
   marginLeft8: {
     marginLeft: 8,
   },
-  chartRow: {
-    height: 200,
-    flexDirection: 'row',
-  },
-  flex1MarginLeft10: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  flex1: {
-    flex: 1,
-  },
-  marginTop8: {
-    marginTop: 8,
-  },
+
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',

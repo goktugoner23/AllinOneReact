@@ -13,6 +13,7 @@ import {
   DrawerContentScrollView,
   DrawerItem,
   DrawerItemList,
+  DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { Provider } from 'react-redux';
 import store from './src/store';
@@ -21,7 +22,7 @@ import { InvestmentsScreen } from './src/screens/InvestmentsScreen';
 import { ReportsScreen } from './src/screens/ReportsScreen';
 import { WTRegistryScreen } from './src/screens/WTRegistryScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Provider as PaperProvider,
@@ -29,6 +30,7 @@ import {
   Switch,
   MD3DarkTheme,
   MD3LightTheme,
+  Divider,
 } from 'react-native-paper';
 
 const Tab = createBottomTabNavigator();
@@ -44,9 +46,9 @@ function BottomTabs() {
           let iconName = '';
           if (route.name === 'Home') {
             iconName = 'home-outline';
-          } else if (route.name === 'Investments') {
+          } else if (route.name === 'Portfolio') {
             iconName = 'trending-up-outline';
-          } else if (route.name === 'Reports') {
+          } else if (route.name === 'Analytics') {
             iconName = 'bar-chart-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -56,34 +58,44 @@ function BottomTabs() {
       })}
     >
       <Tab.Screen name="Home" component={TransactionHomeScreen} />
-      <Tab.Screen name="Investments" component={InvestmentsScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
+      <Tab.Screen name="Portfolio" component={InvestmentsScreen} />
+      <Tab.Screen name="Analytics" component={ReportsScreen} />
     </Tab.Navigator>
   );
 }
 
-function CustomDrawerContent(props: any) {
-  const { dark, toggleTheme } = props;
+interface CustomDrawerContentProps extends DrawerContentComponentProps {
+  dark: boolean;
+  toggleTheme: () => void;
+}
+
+function CustomDrawerContent(props: CustomDrawerContentProps) {
+  const { dark, toggleTheme, ...drawerProps } = props;
+  const theme = useTheme();
+  
   return (
-    <DrawerContentScrollView {...props}>
-      <DrawerItemList {...props} />
+    <DrawerContentScrollView {...drawerProps} style={styles.drawerContent}>
+      <View style={styles.drawerHeader}>
+        <Text style={[styles.drawerTitle, { color: theme.colors.onSurface }]}>
+          AllInOne App
+        </Text>
+      </View>
+      <Divider />
+      <DrawerItemList {...drawerProps} />
+      <Divider style={styles.divider} />
       <DrawerItem
-        label={() => (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-            }}
-          >
-            <Text>Dark Mode</Text>
-            <Switch value={dark} onValueChange={toggleTheme} />
-          </View>
+        label="Settings"
+        icon={({ color, size }) => (
+          <Ionicons name="settings-outline" size={size} color={color} />
         )}
         onPress={() => {}}
-        style={{ marginTop: 32, borderTopWidth: 1, borderColor: '#eee' }}
       />
+      <View style={styles.themeToggle}>
+        <Text style={[styles.themeLabel, { color: theme.colors.onSurface }]}>
+          Dark Mode
+        </Text>
+        <Switch value={dark} onValueChange={toggleTheme} />
+      </View>
     </DrawerContentScrollView>
   );
 }
@@ -97,26 +109,52 @@ export default function App() {
       <PaperProvider theme={theme}>
         <NavigationContainer>
           <Drawer.Navigator
-            drawerContent={props => (
+            initialRouteName="Transactions"
+            drawerContent={(props) => (
               <CustomDrawerContent
                 {...props}
                 dark={dark}
                 toggleTheme={() => setDark(d => !d)}
               />
             )}
+            screenOptions={{
+              drawerStyle: {
+                backgroundColor: theme.colors.surface,
+                width: 280,
+              },
+              headerStyle: {
+                backgroundColor: theme.colors.primary,
+              },
+              headerTintColor: theme.colors.onPrimary,
+              drawerActiveTintColor: theme.colors.primary,
+              drawerInactiveTintColor: theme.colors.onSurface,
+            }}
           >
             <Drawer.Screen
-              name="Main"
+              name="Dashboard"
               component={BottomTabs}
-              options={{ headerShown: false }}
+              options={{
+                title: 'Dashboard',
+                drawerIcon: ({ color, size }) => (
+                  <Ionicons name="grid-outline" size={size} color={color} />
+                ),
+              }}
             />
-            <Drawer.Screen name="Home" component={TransactionHomeScreen} />
-            <Drawer.Screen name="Investments" component={InvestmentsScreen} />
-            <Drawer.Screen name="Reports" component={ReportsScreen} />
+            <Drawer.Screen 
+              name="Transactions" 
+              component={TransactionHomeScreen}
+              options={{
+                title: 'Transactions',
+                drawerIcon: ({ color, size }) => (
+                  <Ionicons name="card-outline" size={size} color={color} />
+                ),
+              }}
+            />
             <Drawer.Screen 
               name="WT Registry" 
               component={WTRegistryScreen}
               options={{
+                title: 'Wing Tsun Registry',
                 drawerIcon: ({ color, size }) => (
                   <Ionicons name="people-outline" size={size} color={color} />
                 ),
@@ -126,6 +164,7 @@ export default function App() {
               name="Calendar" 
               component={CalendarScreen}
               options={{
+                title: 'Calendar',
                 drawerIcon: ({ color, size }) => (
                   <Ionicons name="calendar-outline" size={size} color={color} />
                 ),
@@ -137,3 +176,31 @@ export default function App() {
     </Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  drawerContent: {
+    flex: 1,
+  },
+  drawerHeader: {
+    padding: 20,
+    paddingBottom: 10,
+  },
+  drawerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  divider: {
+    marginVertical: 10,
+  },
+  themeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  themeLabel: {
+    fontSize: 16,
+  },
+});
