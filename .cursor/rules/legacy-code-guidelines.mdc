@@ -1,0 +1,9 @@
+---
+description: legacy-code-guideline
+alwaysApply: false
+---
+**Remember**: Legacy code handling is about maintaining stability while evolving the system. Always prioritize data integrity and user experience during transitions.
+description:
+globs:
+alwaysApply: false
+---

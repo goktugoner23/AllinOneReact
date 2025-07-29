@@ -1,0 +1,5 @@
+---
+description: kotlin-migration-guide
+alwaysApply: false
+---
+**Remember**: The goal is not just to recreate the Kotlin app's appearance, but to achieve complete functional parity ensuring users have an identical experience regardless of which app they use. 

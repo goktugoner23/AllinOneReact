@@ -1,0 +1,5 @@
+---
+description: testing-guidelines
+alwaysApply: false
+---
+**Remember**: Good tests are an investment in your codebase's future. They enable confident refactoring, catch regressions early, and serve as living documentation of your application's behavior. 

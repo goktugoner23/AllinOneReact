@@ -1,0 +1,1117 @@
+---
+description: react-native-guideline
+alwaysApply: false
+---
+# ⚛️ React Native Best Practices Guidelines
+
+This document outlines best practices for React Native development in the AllInOne project, focusing on performance, maintainability, and user experience.
+
+## 📱 Core React Native Principles
+
+### 1. Performance-First Development
+React Native apps should feel native and perform at 60fps consistently across devices.
+
+### 2. Platform-Specific Considerations
+Always consider iOS and Android differences in behavior, design, and performance.
+
+### 3. JavaScript Thread Management
+Keep the JavaScript thread responsive by avoiding blocking operations.
+
+## 🚀 Performance Optimization
+
+### Avoid Inline Functions and Objects
+**❌ Bad:**
+```typescript
+// Creates new function on every render
+<TouchableOpacity onPress={() => handlePress(item.id)}>
+  <Text style={{ color: 'red', fontSize: 16 }}>Press me</Text>
+</TouchableOpacity>
+```
+
+**✅ Good:**
+```typescript
+// Define functions outside component or use useCallback
+const handlePress = useCallback((id: string) => {
+  // Handle press logic
+}, []);
+
+const textStyle = useMemo(() => ({
+  color: 'red',
+  fontSize: 16,
+}), []);
+
+<TouchableOpacity onPress={() => handlePress(item.id)}>
+  <Text style={textStyle}>Press me</Text>
+</TouchableOpacity>
+```
+
+### Use React.memo, useMemo, and useCallback Strategically
+```typescript
+// Memoize expensive calculations
+const expensiveValue = useMemo(() => {
+  return heavyCalculation(data);
+}, [data]);
+
+// Memoize callback functions
+const handleItemPress = useCallback((item: Item) => {
+  onItemSelect(item);
+}, [onItemSelect]);
+
+// Memoize components that render frequently
+const ListItem = React.memo<ListItemProps>(({ item, onPress }) => {
+  return (
+    <TouchableOpacity onPress={() => onPress(item)}>
+      <Text>{item.title}</Text>
+    </TouchableOpacity>
+  );
+});
+```
+
+### Optimize Lists with FlatList/SectionList
+**❌ Bad:**
+```typescript
+// Don't use ScrollView for large lists
+<ScrollView>
+  {data.map(item => <Item key={item.id} data={item} />)}
+</ScrollView>
+```
+
+**✅ Good:**
+```typescript
+<FlatList
+  data={data}
+  renderItem={({ item }) => <Item data={item} />}
+  keyExtractor={(item) => item.id}
+  initialNumToRender={10}
+  maxToRenderPerBatch={5}
+  windowSize={10}
+  removeClippedSubviews={true}
+  getItemLayout={(data, index) => ({ // If item height is known
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  })}
+/>
+```
+
+### Image Optimization
+```typescript
+// Use FastImage for better performance
+import FastImage from 'react-native-fast-image';
+
+<FastImage
+  style={styles.image}
+  source={{
+    uri: imageUrl,
+    priority: FastImage.priority.normal,
+  }}
+  resizeMode={FastImage.resizeMode.contain}
+/>
+
+// For local images, use appropriate sizes
+const getImageSource = (size: 'small' | 'medium' | 'large') => {
+  switch (size) {
+    case 'small': return require('../assets/image-small.png');
+    case 'medium': return require('../assets/image-medium.png');
+    case 'large': return require('../assets/image-large.png');
+  }
+};
+```
+
+### Animation Best Practices
+```typescript
+// Always use native driver when possible
+Animated.timing(animatedValue, {
+  toValue: 1,
+  duration: 300,
+  useNativeDriver: true, // This is crucial
+}).start();
+
+// For complex animations, consider react-native-reanimated
+import Animated, { useSharedValue, withSpring } from 'react-native-reanimated';
+
+const scale = useSharedValue(1);
+const handlePress = () => {
+  scale.value = withSpring(1.2);
+};
+```
+
+## 🧱 Component Architecture
+
+### Component Structure
+```typescript
+interface ComponentProps {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+const MyComponent: React.FC<ComponentProps> = ({ 
+  title, 
+  onPress, 
+  disabled = false 
+}) => {
+  // Hooks first
+  const [loading, setLoading] = useState(false);
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  
+  // Effects
+  useEffect(() => {
+    // Component did mount logic
+    return () => {
+      // Cleanup
+    };
+  }, []);
+  
+  // Handlers
+  const handlePress = useCallback(() => {
+    if (!disabled && !loading) {
+      onPress();
+    }
+  }, [disabled, loading, onPress]);
+  
+  // Render
+  return (
+    <TouchableOpacity 
+      style={[styles.container, disabled && styles.disabled]}
+      onPress={handlePress}
+      disabled={disabled || loading}
+    >
+      <Text style={styles.title}>{title}</Text>
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  title: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});
+```
+
+### Custom Hooks Pattern
+```typescript
+// Extract complex logic into custom hooks
+const useAsyncOperation = <T>(
+  asyncFunction: () => Promise<T>,
+  dependencies: any[] = []
+) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
+  const execute = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await asyncFunction();
+      setData(result);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, dependencies);
+  
+  return { data, loading, error, execute };
+};
+```
+
+## 📱 Platform-Specific Code
+
+### Platform-Specific Styling
+```typescript
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 44 : 0, // iOS status bar
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+});
+```
+
+### Platform-Specific Components
+```typescript
+// Use Platform.select for different components
+const PlatformButton = Platform.select({
+  ios: () => require('./IOSButton').default,
+  android: () => require('./AndroidButton').default,
+})();
+
+// Or conditional rendering
+const MyComponent = () => (
+  <View>
+    {Platform.OS === 'ios' && <IOSSpecificComponent />}
+    {Platform.OS === 'android' && <AndroidSpecificComponent />}
+  </View>
+);
+```
+
+## 🔄 State Management Best Practices
+
+### Local State vs Global State
+```typescript
+// Use local state for component-specific data
+const [isVisible, setIsVisible] = useState(false);
+
+// Use global state (Redux/Context) for shared data
+const user = useSelector((state: RootState) => state.auth.user);
+const dispatch = useDispatch();
+```
+
+### Safe State Updates
+```typescript
+// Custom hook to prevent state updates on unmounted components
+const useSafeState = <T>(initialValue: T) => {
+  const [value, setValue] = useState(initialValue);
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  
+  const safeSetValue = useCallback((newValue: T | ((prev: T) => T)) => {
+    if (isMountedRef.current) {
+      setValue(newValue);
+    }
+  }, []);
+  
+  return [value, safeSetValue] as const;
+};
+```
+
+## 🧪 Error Handling
+
+### Error Boundaries
+```typescript
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
+  
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log error to crash reporting service
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text>Something went wrong. Please try again.</Text>
+        </View>
+      );
+    }
+    
+    return this.props.children;
+  }
+}
+```
+
+### Async Error Handling
+```typescript
+const handleAsyncOperation = async () => {
+  try {
+    setLoading(true);
+    const result = await riskyOperation();
+    setData(result);
+  } catch (error) {
+    console.error('Operation failed:', error);
+    setError(error.message);
+    // Optionally report to crash analytics
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+## 📐 Styling Best Practices
+
+### StyleSheet Organization
+```typescript
+// Organize styles at the bottom of the file
+const styles = StyleSheet.create({
+  // Container styles first
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  
+  // Layout styles
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  
+  // Text styles
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  
+  // Interactive elements
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+});
+```
+
+### Responsive Design
+```typescript
+import { Dimensions, PixelRatio } from 'react-native';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Create responsive dimensions
+const responsiveWidth = (percentage: number) => {
+  return (percentage * screenWidth) / 100;
+};
+
+const responsiveFontSize = (size: number) => {
+  return size * PixelRatio.getFontScale();
+};
+```
+
+## 🔧 Development Tools & Debugging
+
+### Performance Monitoring
+```typescript
+// Enable performance monitor in development
+if (__DEV__) {
+  require('react-native').unstable_enableLogBox();
+}
+
+// Use Flipper for debugging
+import { logger } from 'react-native-logs';
+
+const log = logger.createLogger({
+  severity: __DEV__ ? logger.levels.DEBUG : logger.levels.ERROR,
+  transport: __DEV__ ? logger.chromeConsoleTransport : undefined,
+});
+```
+
+### Memory Leak Prevention
+```typescript
+const MyComponent = () => {
+  useEffect(() => {
+    const subscription = someEventEmitter.addListener('event', handler);
+    const timer = setInterval(() => {
+      // Some periodic task
+    }, 1000);
+    
+    // Always cleanup
+    return () => {
+      subscription.remove();
+      clearInterval(timer);
+    };
+  }, []);
+};
+```
+
+## 📱 Navigation Best Practices
+
+### Navigation Structure
+```typescript
+// Use proper typing for navigation
+type RootStackParamList = {
+  Home: undefined;
+  Profile: { userId: string };
+  Settings: undefined;
+};
+
+type NavigationProps = NavigationProp<RootStackParamList>;
+
+// Use navigation hooks
+const navigation = useNavigation<NavigationProps>();
+const route = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
+```
+
+### Deep Linking
+```typescript
+const linking = {
+  prefixes: ['allinone://'],
+  config: {
+    screens: {
+      Home: 'home',
+      Profile: 'profile/:userId',
+    },
+  },
+};
+```
+
+## 🔒 Security Best Practices
+
+### Secure Storage
+```typescript
+// Use react-native-keychain for sensitive data
+import * as Keychain from 'react-native-keychain';
+
+const storeSecureData = async (key: string, value: string) => {
+  try {
+    await Keychain.setInternetCredentials(key, key, value);
+  } catch (error) {
+    console.error('Failed to store secure data:', error);
+  }
+};
+```
+
+### API Security
+```typescript
+// Don't store API keys in JavaScript code
+// Use environment variables or secure native modules
+const API_BASE_URL = process.env.API_BASE_URL || 'https://api.example.com';
+```
+
+## 🏗️ Build Optimization
+
+### Bundle Size Optimization
+```typescript
+// Use dynamic imports for large libraries
+const heavyLibrary = React.lazy(() => import('./HeavyComponent'));
+
+// Tree shake unused code
+import { specificFunction } from 'large-library/specific-module';
+```
+
+### Development vs Production
+```typescript
+// Remove console.logs in production
+if (__DEV__) {
+  console.log('Development log');
+}
+
+// Use different configurations
+const config = __DEV__ ? developmentConfig : productionConfig;
+```
+
+## ⚡ Common Anti-Patterns to Avoid
+
+### ❌ Don't Do These:
+1. **Using ScrollView for large lists**
+2. **Creating objects/functions in render**
+3. **Not cleaning up subscriptions**
+4. **Blocking the JavaScript thread**
+5. **Not using keys in lists**
+6. **Mutating state directly**
+7. **Not handling loading/error states**
+8. **Using unnecessary re-renders**
+
+### ✅ Do These Instead:
+1. **Use FlatList/SectionList for lists**
+2. **Memoize expensive operations**
+3. **Always cleanup in useEffect**
+4. **Use async operations**
+5. **Provide unique keys**
+6. **Use immutable updates**
+7. **Handle all async states**
+8. **Optimize with React.memo**
+
+## 📊 Performance Monitoring
+
+### Key Metrics to Track
+- **JavaScript thread FPS**: Should stay at 60fps
+- **UI thread FPS**: Should stay at 60fps
+- **Memory usage**: Monitor for leaks
+- **Bundle size**: Keep it optimized
+- **Startup time**: Minimize initial load
+
+### Monitoring Tools
+- **Flipper**: Development debugging
+- **Reactotron**: State and API monitoring
+- **React DevTools**: Component profiling
+- **Firebase Performance**: Production monitoring
+
+---
+
+**Remember**: These guidelines should be followed consistently across the AllInOne project to ensure optimal performance, maintainability, and user experience. # ⚛️ React Native Best Practices Guidelines
+
+This document outlines best practices for React Native development in the AllInOne project, focusing on performance, maintainability, and user experience.
+
+## 📱 Core React Native Principles
+
+### 1. Performance-First Development
+React Native apps should feel native and perform at 60fps consistently across devices.
+
+### 2. Platform-Specific Considerations
+Always consider iOS and Android differences in behavior, design, and performance.
+
+### 3. JavaScript Thread Management
+Keep the JavaScript thread responsive by avoiding blocking operations.
+
+## 🚀 Performance Optimization
+
+### Avoid Inline Functions and Objects
+**❌ Bad:**
+```typescript
+// Creates new function on every render
+<TouchableOpacity onPress={() => handlePress(item.id)}>
+  <Text style={{ color: 'red', fontSize: 16 }}>Press me</Text>
+</TouchableOpacity>
+```
+
+**✅ Good:**
+```typescript
+// Define functions outside component or use useCallback
+const handlePress = useCallback((id: string) => {
+  // Handle press logic
+}, []);
+
+const textStyle = useMemo(() => ({
+  color: 'red',
+  fontSize: 16,
+}), []);
+
+<TouchableOpacity onPress={() => handlePress(item.id)}>
+  <Text style={textStyle}>Press me</Text>
+</TouchableOpacity>
+```
+
+### Use React.memo, useMemo, and useCallback Strategically
+```typescript
+// Memoize expensive calculations
+const expensiveValue = useMemo(() => {
+  return heavyCalculation(data);
+}, [data]);
+
+// Memoize callback functions
+const handleItemPress = useCallback((item: Item) => {
+  onItemSelect(item);
+}, [onItemSelect]);
+
+// Memoize components that render frequently
+const ListItem = React.memo<ListItemProps>(({ item, onPress }) => {
+  return (
+    <TouchableOpacity onPress={() => onPress(item)}>
+      <Text>{item.title}</Text>
+    </TouchableOpacity>
+  );
+});
+```
+
+### Optimize Lists with FlatList/SectionList
+**❌ Bad:**
+```typescript
+// Don't use ScrollView for large lists
+<ScrollView>
+  {data.map(item => <Item key={item.id} data={item} />)}
+</ScrollView>
+```
+
+**✅ Good:**
+```typescript
+<FlatList
+  data={data}
+  renderItem={({ item }) => <Item data={item} />}
+  keyExtractor={(item) => item.id}
+  initialNumToRender={10}
+  maxToRenderPerBatch={5}
+  windowSize={10}
+  removeClippedSubviews={true}
+  getItemLayout={(data, index) => ({ // If item height is known
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  })}
+/>
+```
+
+### Image Optimization
+```typescript
+// Use FastImage for better performance
+import FastImage from 'react-native-fast-image';
+
+<FastImage
+  style={styles.image}
+  source={{
+    uri: imageUrl,
+    priority: FastImage.priority.normal,
+  }}
+  resizeMode={FastImage.resizeMode.contain}
+/>
+
+// For local images, use appropriate sizes
+const getImageSource = (size: 'small' | 'medium' | 'large') => {
+  switch (size) {
+    case 'small': return require('../assets/image-small.png');
+    case 'medium': return require('../assets/image-medium.png');
+    case 'large': return require('../assets/image-large.png');
+  }
+};
+```
+
+### Animation Best Practices
+```typescript
+// Always use native driver when possible
+Animated.timing(animatedValue, {
+  toValue: 1,
+  duration: 300,
+  useNativeDriver: true, // This is crucial
+}).start();
+
+// For complex animations, consider react-native-reanimated
+import Animated, { useSharedValue, withSpring } from 'react-native-reanimated';
+
+const scale = useSharedValue(1);
+const handlePress = () => {
+  scale.value = withSpring(1.2);
+};
+```
+
+## 🧱 Component Architecture
+
+### Component Structure
+```typescript
+interface ComponentProps {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+const MyComponent: React.FC<ComponentProps> = ({ 
+  title, 
+  onPress, 
+  disabled = false 
+}) => {
+  // Hooks first
+  const [loading, setLoading] = useState(false);
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  
+  // Effects
+  useEffect(() => {
+    // Component did mount logic
+    return () => {
+      // Cleanup
+    };
+  }, []);
+  
+  // Handlers
+  const handlePress = useCallback(() => {
+    if (!disabled && !loading) {
+      onPress();
+    }
+  }, [disabled, loading, onPress]);
+  
+  // Render
+  return (
+    <TouchableOpacity 
+      style={[styles.container, disabled && styles.disabled]}
+      onPress={handlePress}
+      disabled={disabled || loading}
+    >
+      <Text style={styles.title}>{title}</Text>
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  title: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});
+```
+
+### Custom Hooks Pattern
+```typescript
+// Extract complex logic into custom hooks
+const useAsyncOperation = <T>(
+  asyncFunction: () => Promise<T>,
+  dependencies: any[] = []
+) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
+  const execute = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await asyncFunction();
+      setData(result);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, dependencies);
+  
+  return { data, loading, error, execute };
+};
+```
+
+## 📱 Platform-Specific Code
+
+### Platform-Specific Styling
+```typescript
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 44 : 0, // iOS status bar
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+});
+```
+
+### Platform-Specific Components
+```typescript
+// Use Platform.select for different components
+const PlatformButton = Platform.select({
+  ios: () => require('./IOSButton').default,
+  android: () => require('./AndroidButton').default,
+})();
+
+// Or conditional rendering
+const MyComponent = () => (
+  <View>
+    {Platform.OS === 'ios' && <IOSSpecificComponent />}
+    {Platform.OS === 'android' && <AndroidSpecificComponent />}
+  </View>
+);
+```
+
+## 🔄 State Management Best Practices
+
+### Local State vs Global State
+```typescript
+// Use local state for component-specific data
+const [isVisible, setIsVisible] = useState(false);
+
+// Use global state (Redux/Context) for shared data
+const user = useSelector((state: RootState) => state.auth.user);
+const dispatch = useDispatch();
+```
+
+### Safe State Updates
+```typescript
+// Custom hook to prevent state updates on unmounted components
+const useSafeState = <T>(initialValue: T) => {
+  const [value, setValue] = useState(initialValue);
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  
+  const safeSetValue = useCallback((newValue: T | ((prev: T) => T)) => {
+    if (isMountedRef.current) {
+      setValue(newValue);
+    }
+  }, []);
+  
+  return [value, safeSetValue] as const;
+};
+```
+
+## 🧪 Error Handling
+
+### Error Boundaries
+```typescript
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
+  
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log error to crash reporting service
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text>Something went wrong. Please try again.</Text>
+        </View>
+      );
+    }
+    
+    return this.props.children;
+  }
+}
+```
+
+### Async Error Handling
+```typescript
+const handleAsyncOperation = async () => {
+  try {
+    setLoading(true);
+    const result = await riskyOperation();
+    setData(result);
+  } catch (error) {
+    console.error('Operation failed:', error);
+    setError(error.message);
+    // Optionally report to crash analytics
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+## 📐 Styling Best Practices
+
+### StyleSheet Organization
+```typescript
+// Organize styles at the bottom of the file
+const styles = StyleSheet.create({
+  // Container styles first
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  
+  // Layout styles
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  
+  // Text styles
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  
+  // Interactive elements
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+});
+```
+
+### Responsive Design
+```typescript
+import { Dimensions, PixelRatio } from 'react-native';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Create responsive dimensions
+const responsiveWidth = (percentage: number) => {
+  return (percentage * screenWidth) / 100;
+};
+
+const responsiveFontSize = (size: number) => {
+  return size * PixelRatio.getFontScale();
+};
+```
+
+## 🔧 Development Tools & Debugging
+
+### Performance Monitoring
+```typescript
+// Enable performance monitor in development
+if (__DEV__) {
+  require('react-native').unstable_enableLogBox();
+}
+
+// Use Flipper for debugging
+import { logger } from 'react-native-logs';
+
+const log = logger.createLogger({
+  severity: __DEV__ ? logger.levels.DEBUG : logger.levels.ERROR,
+  transport: __DEV__ ? logger.chromeConsoleTransport : undefined,
+});
+```
+
+### Memory Leak Prevention
+```typescript
+const MyComponent = () => {
+  useEffect(() => {
+    const subscription = someEventEmitter.addListener('event', handler);
+    const timer = setInterval(() => {
+      // Some periodic task
+    }, 1000);
+    
+    // Always cleanup
+    return () => {
+      subscription.remove();
+      clearInterval(timer);
+    };
+  }, []);
+};
+```
+
+## 📱 Navigation Best Practices
+
+### Navigation Structure
+```typescript
+// Use proper typing for navigation
+type RootStackParamList = {
+  Home: undefined;
+  Profile: { userId: string };
+  Settings: undefined;
+};
+
+type NavigationProps = NavigationProp<RootStackParamList>;
+
+// Use navigation hooks
+const navigation = useNavigation<NavigationProps>();
+const route = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
+```
+
+### Deep Linking
+```typescript
+const linking = {
+  prefixes: ['allinone://'],
+  config: {
+    screens: {
+      Home: 'home',
+      Profile: 'profile/:userId',
+    },
+  },
+};
+```
+
+## 🔒 Security Best Practices
+
+### Secure Storage
+```typescript
+// Use react-native-keychain for sensitive data
+import * as Keychain from 'react-native-keychain';
+
+const storeSecureData = async (key: string, value: string) => {
+  try {
+    await Keychain.setInternetCredentials(key, key, value);
+  } catch (error) {
+    console.error('Failed to store secure data:', error);
+  }
+};
+```
+
+### API Security
+```typescript
+// Don't store API keys in JavaScript code
+// Use environment variables or secure native modules
+const API_BASE_URL = process.env.API_BASE_URL || 'https://api.example.com';
+```
+
+## 🏗️ Build Optimization
+
+### Bundle Size Optimization
+```typescript
+// Use dynamic imports for large libraries
+const heavyLibrary = React.lazy(() => import('./HeavyComponent'));
+
+// Tree shake unused code
+import { specificFunction } from 'large-library/specific-module';
+```
+
+### Development vs Production
+```typescript
+// Remove console.logs in production
+if (__DEV__) {
+  console.log('Development log');
+}
+
+// Use different configurations
+const config = __DEV__ ? developmentConfig : productionConfig;
+```
+
+## ⚡ Common Anti-Patterns to Avoid
+
+### ❌ Don't Do These:
+1. **Using ScrollView for large lists**
+2. **Creating objects/functions in render**
+3. **Not cleaning up subscriptions**
+4. **Blocking the JavaScript thread**
+5. **Not using keys in lists**
+6. **Mutating state directly**
+7. **Not handling loading/error states**
+8. **Using unnecessary re-renders**
+
+### ✅ Do These Instead:
+1. **Use FlatList/SectionList for lists**
+2. **Memoize expensive operations**
+3. **Always cleanup in useEffect**
+4. **Use async operations**
+5. **Provide unique keys**
+6. **Use immutable updates**
+7. **Handle all async states**
+8. **Optimize with React.memo**
+
+## 📊 Performance Monitoring
+
+### Key Metrics to Track
+- **JavaScript thread FPS**: Should stay at 60fps
+- **UI thread FPS**: Should stay at 60fps
+- **Memory usage**: Monitor for leaks
+- **Bundle size**: Keep it optimized
+- **Startup time**: Minimize initial load
+
+### Monitoring Tools
+- **Flipper**: Development debugging
+- **Reactotron**: State and API monitoring
+- **React DevTools**: Component profiling
+- **Firebase Performance**: Production monitoring
+
+---
+
+**Remember**: These guidelines should be followed consistently across the AllInOne project to ensure optimal performance, maintainability, and user experience. 

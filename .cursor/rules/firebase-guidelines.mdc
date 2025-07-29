@@ -1,0 +1,5 @@
+---
+description: firebase-guidelines
+alwaysApply: false
+---
+**Remember**: Always prioritize data consistency, implement proper error handling, and optimize for performance when working with Firebase in the AllInOne project. 

@@ -1,0 +1,5 @@
+---
+description: component-architecture-guideline
+alwaysApply: false
+---
+**Remember**: Components are the building blocks of your application. Design them to be reusable, testable, and maintainable from the start. Focus on clear interfaces and single responsibilities. 

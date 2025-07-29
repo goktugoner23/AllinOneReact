@@ -1,0 +1,274 @@
+---
+alwaysApply: true
+---
+
+# 📋 AllInOne React Native Development Guidelines
+
+This directory contains comprehensive guidelines for developing and maintaining the AllInOne React Native application. These guidelines ensure code quality, performance, and consistency across the project.
+
+## 📁 Guidelines Index
+
+### 🚀 Core Development Guidelines
+- **[React Native Best Practices](./react-native-guidelines.mdc)** - Performance, components, navigation, and mobile-specific best practices
+- **[TypeScript Guidelines](./typescript-guidelines.mdc)** - Type safety, interfaces, utility types, and code organization
+- **[State Management](./state-management-guidelines.mdc)** - Redux Toolkit patterns, async state, and performance optimization
+- **[Navigation Guidelines](./navigation-guidelines.mdc)** - React Navigation best practices and patterns
+
+### 🔧 Technical Stack Guidelines
+- **[Firebase Integration](./firebase-guidelines.mdc)** - Firestore, Storage, ID management, and security rules
+- **[Firebase ID Manager](./firebase-id-manager-guidelines.mdc)** - Sequential ID generation and best practices
+- **[Performance Optimization](./performance-guidelines.mdc)** - Memory management, rendering optimization, and profiling
+- **[Testing Guidelines](./testing-guidelines.mdc)** - Unit tests, integration tests, and testing patterns
+
+### 🎨 UI/UX Guidelines
+- **[Component Architecture](./component-guidelines.mdc)** - Reusable components, styling, and theming
+- **[React Native Paper](./react-native-paper-guidelines.mdc)** - Material Design implementation and customization
+- **[Icons & Assets](./icons-assets-guidelines.mdc)** - SVG icons, image optimization, and asset management
+
+### 🔄 Migration & Compatibility
+- **[Kotlin Migration Rules](./kotlin-migration-guidelines.mdc)** - Preserving functionality when migrating from Android Kotlin app
+- **[Legacy Code Handling](./legacy-code-guidelines.mdc)** - Maintaining compatibility and gradual migration strategies
+
+### 🛠️ Development Workflow
+- **[Code Style & Formatting](./code-style-guidelines.md)** - ESLint, Prettier, and naming conventions
+
+## 🎯 Quick Reference
+
+### 📊 For Performance Issues
+1. Check [Performance Guidelines](./performance-guidelines.mdc#common-performance-issues)
+2. Review [React Native Guidelines](./react-native-guidelines.mdc#performance-optimization)
+3. Validate [Firebase usage](./firebase-guidelines.mdc#performance-best-practices)
+
+### 🔄 For Kotlin Migration
+1. Follow [Kotlin Migration Rules](./kotlin-migration-guidelines.mdc)
+2. Check [Firebase ID Manager](./firebase-id-manager-guidelines.mdc) for data consistency
+3. Ensure [Component parity](./component-guidelines.mdc#kotlin-to-react-native-mapping)
+
+### 🐛 For Debugging
+1. Review [Testing Guidelines](./testing-guidelines.mdc#debugging-strategies)
+2. Check [TypeScript Guidelines](./typescript-guidelines.mdc#error-handling)
+3. Follow [Performance profiling](./performance-guidelines.mdc#debugging-tools)
+
+### 🎨 For UI Development
+1. Follow [Component Guidelines](./component-guidelines.mdc)
+2. Check [React Native Paper](./react-native-paper-guidelines.mdc) patterns
+3. Implement [Icons & Assets](./icons-assets-guidelines.mdc) best practices
+
+## 🔍 How to Use These Guidelines
+
+### For New Developers
+1. Start with [React Native Guidelines](./react-native-guidelines.mdc) for framework basics
+2. Read [TypeScript Guidelines](./typescript-guidelines.mdc) for type safety
+3. Understand [Firebase Integration](./firebase-guidelines.mdc) for data management
+4. Follow [Component Guidelines](./component-guidelines.mdc) for UI development
+
+### For Feature Development
+1. Review relevant technical guidelines before starting
+2. Follow [Testing Guidelines](./testing-guidelines.mdc) for quality assurance
+3. Check [Performance Guidelines](./performance-guidelines.mdc) during development
+4. Validate against [Kotlin Migration Rules](./kotlin-migration-guidelines.mdc) if applicable
+
+### For Code Reviews
+1. Validate against [Code Style Guidelines](./code-style-guidelines.md)
+2. Check [TypeScript Guidelines](./typescript-guidelines.mdc) compliance
+3. Verify [Performance best practices](./performance-guidelines.mdc)
+4. Ensure [Testing coverage](./testing-guidelines.mdc#coverage-requirements)
+
+## 🎓 Learning Path
+
+### Beginner Level
+1. **Week 1**: React Native fundamentals and project structure
+2. **Week 2**: TypeScript integration and type safety
+3. **Week 3**: Firebase setup and basic operations
+4. **Week 4**: Component development and UI patterns
+
+### Intermediate Level
+1. **Month 2**: Advanced state management and performance optimization
+2. **Month 3**: Complex navigation patterns and animations
+3. **Month 4**: Testing strategies and debugging techniques
+4. **Month 5**: Build optimization and deployment
+
+### Advanced Level
+1. **Quarter 2**: Architecture patterns and scalability
+2. **Quarter 3**: Performance profiling and optimization
+3. **Quarter 4**: Advanced Firebase patterns and security
+4. **Ongoing**: Kotlin migration and legacy system integration
+
+## 📚 Additional Resources
+
+### External Documentation
+- [React Native Official Docs](https://reactnative.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [React Navigation Docs](https://reactnavigation.org/)
+
+### Community Resources
+- [React Native Community](https://github.com/react-native-community)
+- [Awesome React Native](https://github.com/jondot/awesome-react-native)
+- [React Native Directory](https://reactnative.directory/)
+
+### Tools & Libraries
+- [React Native Debugger](https://github.com/jhen0409/react-native-debugger)
+- [Flipper](https://fbflipper.com/)
+- [React Native CLI](https://github.com/react-native-community/cli)
+
+## 🔄 Guidelines Maintenance
+
+These guidelines are living documents that should be updated as:
+- New best practices emerge
+- Framework versions are updated
+- Project requirements change
+- Team experience grows
+
+### Update Process
+1. Propose changes via pull request
+2. Review with the development team
+3. Update relevant guidelines
+4. Communicate changes to all developers
+5. Update this index if structure changes
+
+---
+
+**Last Updated**: January 2025
+**Version**: 1.0.0
+**Maintained By**: AllInOne Development Team
+
+For questions or suggestions about these guidelines, please create an issue in the project repository or contact the development team. 
+**Maintained By**: AllInOne Development Team
+
+For questions or suggestions about these guidelines, please create an issue in the project repository or contact the development team. # 📋 AllInOne React Native Development Guidelines
+
+This directory contains comprehensive guidelines for developing and maintaining the AllInOne React Native application. These guidelines ensure code quality, performance, and consistency across the project.
+
+## 📁 Guidelines Index
+
+### 🚀 Core Development Guidelines
+- **[React Native Best Practices](./react-native-guidelines.mdc)** - Performance, components, navigation, and mobile-specific best practices
+- **[TypeScript Guidelines](./typescript-guidelines.mdc)** - Type safety, interfaces, utility types, and code organization
+- **[State Management](./state-management-guidelines.mdc)** - Redux Toolkit patterns, async state, and performance optimization
+- **[Navigation Guidelines](./navigation-guidelines.mdc)** - React Navigation best practices and patterns
+
+### 🔧 Technical Stack Guidelines
+- **[Firebase Integration](./firebase-guidelines.mdc)** - Firestore, Storage, ID management, and security rules
+- **[Firebase ID Manager](./firebase-id-manager-guidelines.mdc)** - Sequential ID generation and best practices
+- **[Performance Optimization](./performance-guidelines.mdc)** - Memory management, rendering optimization, and profiling
+- **[Testing Guidelines](./testing-guidelines.mdc)** - Unit tests, integration tests, and testing patterns
+
+### 🎨 UI/UX Guidelines
+- **[Component Architecture](./component-guidelines.mdc)** - Reusable components, styling, and theming
+- **[React Native Paper](./react-native-paper-guidelines.mdc)** - Material Design implementation and customization
+- **[Icons & Assets](./icons-assets-guidelines.mdc)** - SVG icons, image optimization, and asset management
+
+### 🔄 Migration & Compatibility
+- **[Kotlin Migration Rules](./kotlin-migration-guidelines.mdc)** - Preserving functionality when migrating from Android Kotlin app
+- **[Legacy Code Handling](./legacy-code-guidelines.mdc)** - Maintaining compatibility and gradual migration strategies
+
+### 🛠️ Development Workflow
+- **[Code Style & Formatting](./code-style-guidelines.md)** - ESLint, Prettier, and naming conventions
+- **[Build & Deployment](./build-deployment-guidelines.mdc)** - CI/CD, environment management, and release procedures
+
+## 🎯 Quick Reference
+
+### 📊 For Performance Issues
+1. Check [Performance Guidelines](./performance-guidelines.mdc#common-performance-issues)
+2. Review [React Native Guidelines](./react-native-guidelines.mdc#performance-optimization)
+3. Validate [Firebase usage](./firebase-guidelines.mdc#performance-best-practices)
+
+### 🔄 For Kotlin Migration
+1. Follow [Kotlin Migration Rules](./kotlin-migration-guidelines.mdc)
+2. Check [Firebase ID Manager](./firebase-id-manager-guidelines.mdc) for data consistency
+3. Ensure [Component parity](./component-guidelines.mdc#kotlin-to-react-native-mapping)
+
+### 🐛 For Debugging
+1. Review [Testing Guidelines](./testing-guidelines.mdc#debugging-strategies)
+2. Check [TypeScript Guidelines](./typescript-guidelines.mdc#error-handling)
+3. Follow [Performance profiling](./performance-guidelines.mdc#debugging-tools)
+
+### 🎨 For UI Development
+1. Follow [Component Guidelines](./component-guidelines.mdc)
+2. Check [React Native Paper](./react-native-paper-guidelines.mdc) patterns
+3. Implement [Icons & Assets](./icons-assets-guidelines.mdc) best practices
+
+## 🔍 How to Use These Guidelines
+
+### For New Developers
+1. Start with [React Native Guidelines](./react-native-guidelines.mdc) for framework basics
+2. Read [TypeScript Guidelines](./typescript-guidelines.mdc) for type safety
+3. Understand [Firebase Integration](./firebase-guidelines.mdc) for data management
+4. Follow [Component Guidelines](./component-guidelines.mdc) for UI development
+
+### For Feature Development
+1. Review relevant technical guidelines before starting
+2. Follow [Testing Guidelines](./testing-guidelines.mdc) for quality assurance
+3. Check [Performance Guidelines](./performance-guidelines.mdc) during development
+4. Validate against [Kotlin Migration Rules](./kotlin-migration-guidelines.mdc) if applicable
+
+### For Code Reviews
+1. Validate against [Code Style Guidelines](./code-style-guidelines.md)
+2. Check [TypeScript Guidelines](./typescript-guidelines.mdc) compliance
+3. Verify [Performance best practices](./performance-guidelines.mdc)
+4. Ensure [Testing coverage](./testing-guidelines.mdc#coverage-requirements)
+
+## 🎓 Learning Path
+
+### Beginner Level
+1. **Week 1**: React Native fundamentals and project structure
+2. **Week 2**: TypeScript integration and type safety
+3. **Week 3**: Firebase setup and basic operations
+4. **Week 4**: Component development and UI patterns
+
+### Intermediate Level
+1. **Month 2**: Advanced state management and performance optimization
+2. **Month 3**: Complex navigation patterns and animations
+3. **Month 4**: Testing strategies and debugging techniques
+4. **Month 5**: Build optimization and deployment
+
+### Advanced Level
+1. **Quarter 2**: Architecture patterns and scalability
+2. **Quarter 3**: Performance profiling and optimization
+3. **Quarter 4**: Advanced Firebase patterns and security
+4. **Ongoing**: Kotlin migration and legacy system integration
+
+## 📚 Additional Resources
+
+### External Documentation
+- [React Native Official Docs](https://reactnative.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [React Navigation Docs](https://reactnavigation.org/)
+
+### Community Resources
+- [React Native Community](https://github.com/react-native-community)
+- [Awesome React Native](https://github.com/jondot/awesome-react-native)
+- [React Native Directory](https://reactnative.directory/)
+
+### Tools & Libraries
+- [React Native Debugger](https://github.com/jhen0409/react-native-debugger)
+- [Flipper](https://fbflipper.com/)
+- [React Native CLI](https://github.com/react-native-community/cli)
+
+## 🔄 Guidelines Maintenance
+
+These guidelines are living documents that should be updated as:
+- New best practices emerge
+- Framework versions are updated
+- Project requirements change
+- Team experience grows
+
+### Update Process
+1. Propose changes via pull request
+2. Review with the development team
+3. Update relevant guidelines
+4. Communicate changes to all developers
+5. Update this index if structure changes
+
+---
+
+**Last Updated**: January 2025
+**Version**: 1.0.0
+**Maintained By**: AllInOne Development Team
+
+For questions or suggestions about these guidelines, please create an issue in the project repository or contact the development team. 
+**Maintained By**: AllInOne Development Team
+
+For questions or suggestions about these guidelines, please create an issue in the project repository or contact the development team. 

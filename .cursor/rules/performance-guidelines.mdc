@@ -1,0 +1,1451 @@
+---
+description: performance-guideline
+alwaysApply: false
+---
+# ⚡ Performance Optimization Guidelines
+
+This document outlines performance best practices and optimization strategies for the AllInOne React Native project, ensuring smooth 60fps performance across all devices.
+
+## 🎯 Performance Goals
+
+### Target Metrics
+- **60fps** consistent frame rate on both JS and UI threads
+- **< 3 seconds** app startup time
+- **< 500ms** screen transition time
+- **< 100MB** memory usage on average
+- **Smooth scrolling** in all lists and scrollable content
+
+### Device Support
+- **Primary**: Android 8+ and iOS 12+
+- **Secondary**: Android 6+ and iOS 10+
+- **Test Devices**: Range from budget to flagship devices
+
+## 🚀 JavaScript Thread Optimization
+
+### 1. Avoid Blocking Operations
+
+```typescript
+// ❌ Bad: Blocking the JS thread
+const processLargeDataset = (data: any[]) => {
+  for (let i = 0; i < data.length; i++) {
+    // Heavy computation
+    complexCalculation(data[i]);
+  }
+};
+
+// ✅ Good: Use async processing
+const processLargeDatasetAsync = async (data: any[]) => {
+  for (let i = 0; i < data.length; i++) {
+    await new Promise(resolve => {
+      complexCalculation(data[i]);
+      // Yield control back to JS thread
+      setTimeout(resolve, 0);
+    });
+  }
+};
+
+// ✅ Better: Use batch processing
+const processLargeDatasetBatched = async (data: any[], batchSize = 10) => {
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    batch.forEach(item => complexCalculation(item));
+    
+    // Yield control after each batch
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+};
+```
+
+### 2. Optimize State Updates
+
+```typescript
+// ❌ Bad: Multiple state updates
+const updateMultipleStates = () => {
+  setLoading(true);
+  setError(null);
+  setData(newData);
+  setTimestamp(Date.now());
+};
+
+// ✅ Good: Batch state updates
+const updateMultipleStatesBatched = () => {
+  setBatchedState(prevState => ({
+    ...prevState,
+    loading: true,
+    error: null,
+    data: newData,
+    timestamp: Date.now(),
+  }));
+};
+
+// ✅ Best: Use reducer for complex state
+const dataReducer = (state: DataState, action: DataAction): DataState => {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, loading: true, error: null };
+    case 'FETCH_SUCCESS':
+      return { 
+        ...state, 
+        loading: false, 
+        data: action.payload,
+        timestamp: Date.now(),
+      };
+    case 'FETCH_ERROR':
+      return { ...state, loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+```
+
+### 3. Memoization Strategies
+
+```typescript
+// Component memoization
+const TransactionCard = React.memo<TransactionCardProps>(({ 
+  transaction, 
+  onPress 
+}) => {
+  return (
+    <TouchableOpacity onPress={() => onPress(transaction)}>
+      <Text>{transaction.description}</Text>
+      <Text>{transaction.amount}</Text>
+    </TouchableOpacity>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for better control
+  return (
+    prevProps.transaction.id === nextProps.transaction.id &&
+    prevProps.transaction.amount === nextProps.transaction.amount &&
+    prevProps.onPress === nextProps.onPress
+  );
+});
+
+// Value memoization
+const TransactionList = ({ transactions, filters }) => {
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(transaction => {
+      if (filters.category && transaction.category !== filters.category) {
+        return false;
+      }
+      if (filters.dateRange) {
+        const transactionDate = new Date(transaction.date);
+        return transactionDate >= filters.dateRange.start && 
+               transactionDate <= filters.dateRange.end;
+      }
+      return true;
+    });
+  }, [transactions, filters.category, filters.dateRange]);
+
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [filteredTransactions]);
+
+  return (
+    <FlatList
+      data={sortedTransactions}
+      renderItem={({ item }) => <TransactionCard transaction={item} />}
+    />
+  );
+};
+```
+
+## 🎨 UI Thread Optimization
+
+### 1. Animation Performance
+
+```typescript
+// ✅ Always use native driver when possible
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  withTiming 
+} from 'react-native-reanimated';
+
+const AnimatedButton = () => {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95);
+    opacity.value = withTiming(0.8, { duration: 150 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+    opacity.value = withTiming(1, { duration: 150 });
+  };
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1} // Disable default opacity animation
+      >
+        <Text>Animated Button</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// For legacy Animated API
+const legacyAnimation = () => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const fadeIn = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true, // Essential for performance
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <Text>Fading content</Text>
+    </Animated.View>
+  );
+};
+```
+
+### 2. Image Optimization
+
+```typescript
+import FastImage from 'react-native-fast-image';
+
+// ✅ Use FastImage for better performance
+const OptimizedImageComponent = ({ imageUrl, size }) => (
+  <FastImage
+    style={{ width: size, height: size }}
+    source={{
+      uri: imageUrl,
+      priority: FastImage.priority.normal,
+      cache: FastImage.cacheControl.immutable,
+    }}
+    resizeMode={FastImage.resizeMode.cover}
+    onLoad={() => console.log('Image loaded')}
+    onError={() => console.log('Image failed to load')}
+  />
+);
+
+// ✅ Preload critical images
+const preloadImages = () => {
+  const imagesToPreload = [
+    { uri: 'https://example.com/critical-image1.jpg' },
+    { uri: 'https://example.com/critical-image2.jpg' },
+  ];
+
+  FastImage.preload(imagesToPreload);
+};
+
+// ✅ Use appropriate image sizes
+const getImageSource = (size: 'thumbnail' | 'medium' | 'full') => {
+  const baseUrl = 'https://example.com/image';
+  switch (size) {
+    case 'thumbnail':
+      return `${baseUrl}_150x150.jpg`;
+    case 'medium':
+      return `${baseUrl}_400x400.jpg`;
+    case 'full':
+      return `${baseUrl}_1200x1200.jpg`;
+  }
+};
+```
+
+### 3. List Performance
+
+```typescript
+// ✅ Optimized FlatList implementation
+const OptimizedTransactionList = ({ transactions }) => {
+  const renderTransaction = useCallback(({ item }: { item: Transaction }) => (
+    <TransactionCard transaction={item} />
+  ), []);
+
+  const keyExtractor = useCallback((item: Transaction) => item.id, []);
+
+  const getItemLayout = useCallback((data, index) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  return (
+    <FlatList
+      data={transactions}
+      renderItem={renderTransaction}
+      keyExtractor={keyExtractor}
+      getItemLayout={getItemLayout} // Crucial for performance
+      initialNumToRender={10}
+      maxToRenderPerBatch={5}
+      windowSize={10}
+      removeClippedSubviews={true}
+      updateCellsBatchingPeriod={50}
+      onEndReachedThreshold={0.5}
+      // Optimize scrolling performance
+      scrollEventThrottle={16}
+      showsVerticalScrollIndicator={false}
+    />
+  );
+};
+
+// ✅ For dynamic heights, use FlashList
+import { FlashList } from '@shopify/flash-list';
+
+const DynamicHeightList = ({ data }) => (
+  <FlashList
+    data={data}
+    renderItem={({ item }) => <DynamicHeightItem item={item} />}
+    estimatedItemSize={100} // Provide estimate for better performance
+    keyExtractor={(item) => item.id}
+  />
+);
+```
+
+## 💾 Memory Management
+
+### 1. Prevent Memory Leaks
+
+```typescript
+// ✅ Proper cleanup in useEffect
+const ComponentWithSubscription = () => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const subscription = dataService.subscribe((newData) => {
+      setData(newData);
+    });
+
+    const timer = setInterval(() => {
+      // Periodic task
+    }, 1000);
+
+    const listener = AppState.addEventListener('change', handleAppStateChange);
+
+    // Cleanup function
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(timer);
+      listener?.remove();
+    };
+  }, []);
+
+  return <View>{/* Component content */}</View>;
+};
+
+// ✅ Safe state updates with cleanup
+const useSafeState = <T>(initialValue: T) => {
+  const [value, setValue] = useState(initialValue);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const safeSetValue = useCallback((newValue: T | ((prev: T) => T)) => {
+    if (isMountedRef.current) {
+      setValue(newValue);
+    }
+  }, []);
+
+  return [value, safeSetValue] as const;
+};
+```
+
+### 2. Image Memory Management
+
+```typescript
+// ✅ Clear image cache when needed
+import FastImage from 'react-native-fast-image';
+
+const clearImageCache = () => {
+  FastImage.clearMemoryCache();
+  FastImage.clearDiskCache();
+};
+
+// ✅ Monitor memory usage
+const useMemoryMonitor = () => {
+  useEffect(() => {
+    if (__DEV__) {
+      const interval = setInterval(() => {
+        // Monitor memory usage in development
+        console.log('Memory info:', performance.memory);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+};
+```
+
+## 🌐 Network Optimization
+
+### 1. Request Optimization
+
+```typescript
+// ✅ Implement request deduplication
+class RequestDeduplicator {
+  private pendingRequests = new Map<string, Promise<any>>();
+
+  async request<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
+    if (this.pendingRequests.has(key)) {
+      return this.pendingRequests.get(key);
+    }
+
+    const promise = requestFn().finally(() => {
+      this.pendingRequests.delete(key);
+    });
+
+    this.pendingRequests.set(key, promise);
+    return promise;
+  }
+}
+
+// ✅ Implement request caching
+const useOptimizedFetch = <T>(url: string, options?: RequestInit) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    const cacheKey = `${url}_${JSON.stringify(options)}`;
+    
+    // Check cache first
+    const cachedData = await cache.get(cacheKey);
+    if (cachedData) {
+      setData(cachedData);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(url, options);
+      const result = await response.json();
+      
+      setData(result);
+      await cache.set(cacheKey, result);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [url, options]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+};
+```
+
+### 2. Background Sync
+
+```typescript
+// ✅ Queue operations for offline/background sync
+class OperationQueue {
+  private queue: Operation[] = [];
+  private processing = false;
+
+  addOperation(operation: Operation) {
+    this.queue.push(operation);
+    this.processQueue();
+  }
+
+  private async processQueue() {
+    if (this.processing) return;
+    
+    this.processing = true;
+    
+    while (this.queue.length > 0) {
+      const operation = this.queue.shift();
+      try {
+        await operation.execute();
+      } catch (error) {
+        console.error('Operation failed:', error);
+        // Re-queue operation with exponential backoff
+        this.scheduleRetry(operation);
+      }
+    }
+    
+    this.processing = false;
+  }
+
+  private scheduleRetry(operation: Operation) {
+    const delay = Math.min(1000 * Math.pow(2, operation.retryCount), 30000);
+    setTimeout(() => {
+      operation.retryCount++;
+      this.addOperation(operation);
+    }, delay);
+  }
+}
+```
+
+## 🔧 Development Tools
+
+### 1. Performance Monitoring
+
+```typescript
+// ✅ Performance monitoring wrapper
+class PerformanceMonitor {
+  static measureAsyncOperation = async <T>(
+    name: string,
+    operation: () => Promise<T>
+  ): Promise<T> => {
+    const startTime = performance.now();
+    
+    try {
+      const result = await operation();
+      const duration = performance.now() - startTime;
+      
+      console.log(`⚡ ${name} completed in ${duration.toFixed(2)}ms`);
+      
+      // Report to analytics in production
+      if (!__DEV__) {
+        analytics.time(name, duration);
+      }
+      
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      console.error(`❌ ${name} failed after ${duration.toFixed(2)}ms:`, error);
+      throw error;
+    }
+  };
+
+  static measureSyncOperation = <T>(
+    name: string,
+    operation: () => T
+  ): T => {
+    const startTime = performance.now();
+    
+    try {
+      const result = operation();
+      const duration = performance.now() - startTime;
+      
+      console.log(`⚡ ${name} completed in ${duration.toFixed(2)}ms`);
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      console.error(`❌ ${name} failed after ${duration.toFixed(2)}ms:`, error);
+      throw error;
+    }
+  };
+}
+
+// Usage
+const fetchTransactions = () =>
+  PerformanceMonitor.measureAsyncOperation(
+    'fetchTransactions',
+    () => transactionRepository.getAll()
+  );
+```
+
+### 2. Bundle Analysis
+
+```typescript
+// ✅ Dynamic imports for code splitting
+const LazyReportsScreen = React.lazy(() => 
+  import('../screens/ReportsScreen').then(module => ({
+    default: module.ReportsScreen
+  }))
+);
+
+const ConditionalReportsScreen = () => (
+  <Suspense fallback={<LoadingSpinner />}>
+    <LazyReportsScreen />
+  </Suspense>
+);
+
+// ✅ Conditional library loading
+const loadChartLibrary = async () => {
+  if (Platform.OS === 'ios') {
+    return await import('react-native-chart-kit');
+  } else {
+    return await import('react-native-svg-charts');
+  }
+};
+```
+
+## 🧪 Performance Testing
+
+### 1. Automated Performance Tests
+
+```typescript
+// Performance test utilities
+const performanceTest = async (testName: string, testFn: () => Promise<void>) => {
+  const startTime = performance.now();
+  const startMemory = performance.memory?.usedJSHeapSize || 0;
+  
+  await testFn();
+  
+  const endTime = performance.now();
+  const endMemory = performance.memory?.usedJSHeapSize || 0;
+  
+  const duration = endTime - startTime;
+  const memoryUsed = endMemory - startMemory;
+  
+  console.log(`📊 Performance Test: ${testName}`);
+  console.log(`⏱️  Duration: ${duration.toFixed(2)}ms`);
+  console.log(`💾 Memory: ${(memoryUsed / 1024 / 1024).toFixed(2)}MB`);
+  
+  // Assert performance thresholds
+  expect(duration).toBeLessThan(1000); // 1 second max
+  expect(memoryUsed).toBeLessThan(10 * 1024 * 1024); // 10MB max
+};
+
+// Example performance tests
+describe('Performance Tests', () => {
+  it('should load transactions quickly', async () => {
+    await performanceTest('Load Transactions', async () => {
+      const transactions = await fetchTransactions();
+      expect(transactions).toBeDefined();
+    });
+  });
+
+  it('should render large list efficiently', async () => {
+    await performanceTest('Render Large List', async () => {
+      const { getByTestId } = render(
+        <TransactionList transactions={largeDataset} />
+      );
+      expect(getByTestId('transaction-list')).toBeDefined();
+    });
+  });
+});
+```
+
+### 2. Real Device Testing
+
+```typescript
+// Device capability detection
+const getDeviceCapabilities = () => {
+  const deviceInfo = {
+    platform: Platform.OS,
+    version: Platform.Version,
+    isPad: Platform.isPad,
+    constants: Platform.constants,
+  };
+
+  // Adjust performance settings based on device
+  if (Platform.OS === 'android' && Platform.Version < 24) {
+    return {
+      ...deviceInfo,
+      shouldUseSimpleAnimations: true,
+      shouldReduceMotion: true,
+      maxConcurrentRequests: 2,
+    };
+  }
+
+  return {
+    ...deviceInfo,
+    shouldUseSimpleAnimations: false,
+    shouldReduceMotion: false,
+    maxConcurrentRequests: 4,
+  };
+};
+```
+
+## 🎯 Common Performance Issues
+
+### Issues to Avoid
+
+1. **Inline functions in render** - Creates new functions on every render
+2. **Unnecessary re-renders** - Missing memoization
+3. **Heavy calculations in render** - Should be memoized or moved to effects
+4. **Large images** - Use appropriate sizes and compression
+5. **Blocking animations** - Not using native driver
+6. **Memory leaks** - Missing cleanup in effects
+7. **Inefficient lists** - Not using FlatList properly
+8. **Console.log in production** - Remove before release
+
+### Quick Fixes
+
+```typescript
+// ✅ Before optimization
+const BadComponent = ({ items, onItemPress }) => {
+  return (
+    <ScrollView>
+      {items.map(item => (
+        <TouchableOpacity
+          key={item.id}
+          onPress={() => onItemPress(item)} // Inline function
+          style={{ padding: 10 }} // Inline style
+        >
+          <Text>{item.name.toUpperCase()}</Text> {/* Calculation in render */}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+};
+
+// ✅ After optimization
+const GoodComponent = React.memo(({ items, onItemPress }) => {
+  const handleItemPress = useCallback((item) => {
+    onItemPress(item);
+  }, [onItemPress]);
+
+  const renderItem = useCallback(({ item }) => (
+    <OptimizedItem item={item} onPress={handleItemPress} />
+  ), [handleItemPress]);
+
+  return (
+    <FlatList
+      data={items}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id}
+      initialNumToRender={10}
+      removeClippedSubviews={true}
+    />
+  );
+});
+
+const OptimizedItem = React.memo(({ item, onPress }) => {
+  const displayName = useMemo(() => item.name.toUpperCase(), [item.name]);
+  const itemStyle = useMemo(() => ({ padding: 10 }), []);
+
+  return (
+    <TouchableOpacity onPress={() => onPress(item)} style={itemStyle}>
+      <Text>{displayName}</Text>
+    </TouchableOpacity>
+  );
+});
+```
+
+---
+
+**Remember**: Performance optimization should be data-driven. Always measure before and after optimization to ensure improvements are real and meaningful. # ⚡ Performance Optimization Guidelines
+
+This document outlines performance best practices and optimization strategies for the AllInOne React Native project, ensuring smooth 60fps performance across all devices.
+
+## 🎯 Performance Goals
+
+### Target Metrics
+- **60fps** consistent frame rate on both JS and UI threads
+- **< 3 seconds** app startup time
+- **< 500ms** screen transition time
+- **< 100MB** memory usage on average
+- **Smooth scrolling** in all lists and scrollable content
+
+### Device Support
+- **Primary**: Android 8+ and iOS 12+
+- **Secondary**: Android 6+ and iOS 10+
+- **Test Devices**: Range from budget to flagship devices
+
+## 🚀 JavaScript Thread Optimization
+
+### 1. Avoid Blocking Operations
+
+```typescript
+// ❌ Bad: Blocking the JS thread
+const processLargeDataset = (data: any[]) => {
+  for (let i = 0; i < data.length; i++) {
+    // Heavy computation
+    complexCalculation(data[i]);
+  }
+};
+
+// ✅ Good: Use async processing
+const processLargeDatasetAsync = async (data: any[]) => {
+  for (let i = 0; i < data.length; i++) {
+    await new Promise(resolve => {
+      complexCalculation(data[i]);
+      // Yield control back to JS thread
+      setTimeout(resolve, 0);
+    });
+  }
+};
+
+// ✅ Better: Use batch processing
+const processLargeDatasetBatched = async (data: any[], batchSize = 10) => {
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    batch.forEach(item => complexCalculation(item));
+    
+    // Yield control after each batch
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+};
+```
+
+### 2. Optimize State Updates
+
+```typescript
+// ❌ Bad: Multiple state updates
+const updateMultipleStates = () => {
+  setLoading(true);
+  setError(null);
+  setData(newData);
+  setTimestamp(Date.now());
+};
+
+// ✅ Good: Batch state updates
+const updateMultipleStatesBatched = () => {
+  setBatchedState(prevState => ({
+    ...prevState,
+    loading: true,
+    error: null,
+    data: newData,
+    timestamp: Date.now(),
+  }));
+};
+
+// ✅ Best: Use reducer for complex state
+const dataReducer = (state: DataState, action: DataAction): DataState => {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, loading: true, error: null };
+    case 'FETCH_SUCCESS':
+      return { 
+        ...state, 
+        loading: false, 
+        data: action.payload,
+        timestamp: Date.now(),
+      };
+    case 'FETCH_ERROR':
+      return { ...state, loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+```
+
+### 3. Memoization Strategies
+
+```typescript
+// Component memoization
+const TransactionCard = React.memo<TransactionCardProps>(({ 
+  transaction, 
+  onPress 
+}) => {
+  return (
+    <TouchableOpacity onPress={() => onPress(transaction)}>
+      <Text>{transaction.description}</Text>
+      <Text>{transaction.amount}</Text>
+    </TouchableOpacity>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for better control
+  return (
+    prevProps.transaction.id === nextProps.transaction.id &&
+    prevProps.transaction.amount === nextProps.transaction.amount &&
+    prevProps.onPress === nextProps.onPress
+  );
+});
+
+// Value memoization
+const TransactionList = ({ transactions, filters }) => {
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(transaction => {
+      if (filters.category && transaction.category !== filters.category) {
+        return false;
+      }
+      if (filters.dateRange) {
+        const transactionDate = new Date(transaction.date);
+        return transactionDate >= filters.dateRange.start && 
+               transactionDate <= filters.dateRange.end;
+      }
+      return true;
+    });
+  }, [transactions, filters.category, filters.dateRange]);
+
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [filteredTransactions]);
+
+  return (
+    <FlatList
+      data={sortedTransactions}
+      renderItem={({ item }) => <TransactionCard transaction={item} />}
+    />
+  );
+};
+```
+
+## 🎨 UI Thread Optimization
+
+### 1. Animation Performance
+
+```typescript
+// ✅ Always use native driver when possible
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  withTiming 
+} from 'react-native-reanimated';
+
+const AnimatedButton = () => {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95);
+    opacity.value = withTiming(0.8, { duration: 150 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+    opacity.value = withTiming(1, { duration: 150 });
+  };
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1} // Disable default opacity animation
+      >
+        <Text>Animated Button</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// For legacy Animated API
+const legacyAnimation = () => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const fadeIn = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true, // Essential for performance
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <Text>Fading content</Text>
+    </Animated.View>
+  );
+};
+```
+
+### 2. Image Optimization
+
+```typescript
+import FastImage from 'react-native-fast-image';
+
+// ✅ Use FastImage for better performance
+const OptimizedImageComponent = ({ imageUrl, size }) => (
+  <FastImage
+    style={{ width: size, height: size }}
+    source={{
+      uri: imageUrl,
+      priority: FastImage.priority.normal,
+      cache: FastImage.cacheControl.immutable,
+    }}
+    resizeMode={FastImage.resizeMode.cover}
+    onLoad={() => console.log('Image loaded')}
+    onError={() => console.log('Image failed to load')}
+  />
+);
+
+// ✅ Preload critical images
+const preloadImages = () => {
+  const imagesToPreload = [
+    { uri: 'https://example.com/critical-image1.jpg' },
+    { uri: 'https://example.com/critical-image2.jpg' },
+  ];
+
+  FastImage.preload(imagesToPreload);
+};
+
+// ✅ Use appropriate image sizes
+const getImageSource = (size: 'thumbnail' | 'medium' | 'full') => {
+  const baseUrl = 'https://example.com/image';
+  switch (size) {
+    case 'thumbnail':
+      return `${baseUrl}_150x150.jpg`;
+    case 'medium':
+      return `${baseUrl}_400x400.jpg`;
+    case 'full':
+      return `${baseUrl}_1200x1200.jpg`;
+  }
+};
+```
+
+### 3. List Performance
+
+```typescript
+// ✅ Optimized FlatList implementation
+const OptimizedTransactionList = ({ transactions }) => {
+  const renderTransaction = useCallback(({ item }: { item: Transaction }) => (
+    <TransactionCard transaction={item} />
+  ), []);
+
+  const keyExtractor = useCallback((item: Transaction) => item.id, []);
+
+  const getItemLayout = useCallback((data, index) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  return (
+    <FlatList
+      data={transactions}
+      renderItem={renderTransaction}
+      keyExtractor={keyExtractor}
+      getItemLayout={getItemLayout} // Crucial for performance
+      initialNumToRender={10}
+      maxToRenderPerBatch={5}
+      windowSize={10}
+      removeClippedSubviews={true}
+      updateCellsBatchingPeriod={50}
+      onEndReachedThreshold={0.5}
+      // Optimize scrolling performance
+      scrollEventThrottle={16}
+      showsVerticalScrollIndicator={false}
+    />
+  );
+};
+
+// ✅ For dynamic heights, use FlashList
+import { FlashList } from '@shopify/flash-list';
+
+const DynamicHeightList = ({ data }) => (
+  <FlashList
+    data={data}
+    renderItem={({ item }) => <DynamicHeightItem item={item} />}
+    estimatedItemSize={100} // Provide estimate for better performance
+    keyExtractor={(item) => item.id}
+  />
+);
+```
+
+## 💾 Memory Management
+
+### 1. Prevent Memory Leaks
+
+```typescript
+// ✅ Proper cleanup in useEffect
+const ComponentWithSubscription = () => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const subscription = dataService.subscribe((newData) => {
+      setData(newData);
+    });
+
+    const timer = setInterval(() => {
+      // Periodic task
+    }, 1000);
+
+    const listener = AppState.addEventListener('change', handleAppStateChange);
+
+    // Cleanup function
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(timer);
+      listener?.remove();
+    };
+  }, []);
+
+  return <View>{/* Component content */}</View>;
+};
+
+// ✅ Safe state updates with cleanup
+const useSafeState = <T>(initialValue: T) => {
+  const [value, setValue] = useState(initialValue);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const safeSetValue = useCallback((newValue: T | ((prev: T) => T)) => {
+    if (isMountedRef.current) {
+      setValue(newValue);
+    }
+  }, []);
+
+  return [value, safeSetValue] as const;
+};
+```
+
+### 2. Image Memory Management
+
+```typescript
+// ✅ Clear image cache when needed
+import FastImage from 'react-native-fast-image';
+
+const clearImageCache = () => {
+  FastImage.clearMemoryCache();
+  FastImage.clearDiskCache();
+};
+
+// ✅ Monitor memory usage
+const useMemoryMonitor = () => {
+  useEffect(() => {
+    if (__DEV__) {
+      const interval = setInterval(() => {
+        // Monitor memory usage in development
+        console.log('Memory info:', performance.memory);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+};
+```
+
+## 🌐 Network Optimization
+
+### 1. Request Optimization
+
+```typescript
+// ✅ Implement request deduplication
+class RequestDeduplicator {
+  private pendingRequests = new Map<string, Promise<any>>();
+
+  async request<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
+    if (this.pendingRequests.has(key)) {
+      return this.pendingRequests.get(key);
+    }
+
+    const promise = requestFn().finally(() => {
+      this.pendingRequests.delete(key);
+    });
+
+    this.pendingRequests.set(key, promise);
+    return promise;
+  }
+}
+
+// ✅ Implement request caching
+const useOptimizedFetch = <T>(url: string, options?: RequestInit) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    const cacheKey = `${url}_${JSON.stringify(options)}`;
+    
+    // Check cache first
+    const cachedData = await cache.get(cacheKey);
+    if (cachedData) {
+      setData(cachedData);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(url, options);
+      const result = await response.json();
+      
+      setData(result);
+      await cache.set(cacheKey, result);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [url, options]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+};
+```
+
+### 2. Background Sync
+
+```typescript
+// ✅ Queue operations for offline/background sync
+class OperationQueue {
+  private queue: Operation[] = [];
+  private processing = false;
+
+  addOperation(operation: Operation) {
+    this.queue.push(operation);
+    this.processQueue();
+  }
+
+  private async processQueue() {
+    if (this.processing) return;
+    
+    this.processing = true;
+    
+    while (this.queue.length > 0) {
+      const operation = this.queue.shift();
+      try {
+        await operation.execute();
+      } catch (error) {
+        console.error('Operation failed:', error);
+        // Re-queue operation with exponential backoff
+        this.scheduleRetry(operation);
+      }
+    }
+    
+    this.processing = false;
+  }
+
+  private scheduleRetry(operation: Operation) {
+    const delay = Math.min(1000 * Math.pow(2, operation.retryCount), 30000);
+    setTimeout(() => {
+      operation.retryCount++;
+      this.addOperation(operation);
+    }, delay);
+  }
+}
+```
+
+## 🔧 Development Tools
+
+### 1. Performance Monitoring
+
+```typescript
+// ✅ Performance monitoring wrapper
+class PerformanceMonitor {
+  static measureAsyncOperation = async <T>(
+    name: string,
+    operation: () => Promise<T>
+  ): Promise<T> => {
+    const startTime = performance.now();
+    
+    try {
+      const result = await operation();
+      const duration = performance.now() - startTime;
+      
+      console.log(`⚡ ${name} completed in ${duration.toFixed(2)}ms`);
+      
+      // Report to analytics in production
+      if (!__DEV__) {
+        analytics.time(name, duration);
+      }
+      
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      console.error(`❌ ${name} failed after ${duration.toFixed(2)}ms:`, error);
+      throw error;
+    }
+  };
+
+  static measureSyncOperation = <T>(
+    name: string,
+    operation: () => T
+  ): T => {
+    const startTime = performance.now();
+    
+    try {
+      const result = operation();
+      const duration = performance.now() - startTime;
+      
+      console.log(`⚡ ${name} completed in ${duration.toFixed(2)}ms`);
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      console.error(`❌ ${name} failed after ${duration.toFixed(2)}ms:`, error);
+      throw error;
+    }
+  };
+}
+
+// Usage
+const fetchTransactions = () =>
+  PerformanceMonitor.measureAsyncOperation(
+    'fetchTransactions',
+    () => transactionRepository.getAll()
+  );
+```
+
+### 2. Bundle Analysis
+
+```typescript
+// ✅ Dynamic imports for code splitting
+const LazyReportsScreen = React.lazy(() => 
+  import('../screens/ReportsScreen').then(module => ({
+    default: module.ReportsScreen
+  }))
+);
+
+const ConditionalReportsScreen = () => (
+  <Suspense fallback={<LoadingSpinner />}>
+    <LazyReportsScreen />
+  </Suspense>
+);
+
+// ✅ Conditional library loading
+const loadChartLibrary = async () => {
+  if (Platform.OS === 'ios') {
+    return await import('react-native-chart-kit');
+  } else {
+    return await import('react-native-svg-charts');
+  }
+};
+```
+
+## 🧪 Performance Testing
+
+### 1. Automated Performance Tests
+
+```typescript
+// Performance test utilities
+const performanceTest = async (testName: string, testFn: () => Promise<void>) => {
+  const startTime = performance.now();
+  const startMemory = performance.memory?.usedJSHeapSize || 0;
+  
+  await testFn();
+  
+  const endTime = performance.now();
+  const endMemory = performance.memory?.usedJSHeapSize || 0;
+  
+  const duration = endTime - startTime;
+  const memoryUsed = endMemory - startMemory;
+  
+  console.log(`📊 Performance Test: ${testName}`);
+  console.log(`⏱️  Duration: ${duration.toFixed(2)}ms`);
+  console.log(`💾 Memory: ${(memoryUsed / 1024 / 1024).toFixed(2)}MB`);
+  
+  // Assert performance thresholds
+  expect(duration).toBeLessThan(1000); // 1 second max
+  expect(memoryUsed).toBeLessThan(10 * 1024 * 1024); // 10MB max
+};
+
+// Example performance tests
+describe('Performance Tests', () => {
+  it('should load transactions quickly', async () => {
+    await performanceTest('Load Transactions', async () => {
+      const transactions = await fetchTransactions();
+      expect(transactions).toBeDefined();
+    });
+  });
+
+  it('should render large list efficiently', async () => {
+    await performanceTest('Render Large List', async () => {
+      const { getByTestId } = render(
+        <TransactionList transactions={largeDataset} />
+      );
+      expect(getByTestId('transaction-list')).toBeDefined();
+    });
+  });
+});
+```
+
+### 2. Real Device Testing
+
+```typescript
+// Device capability detection
+const getDeviceCapabilities = () => {
+  const deviceInfo = {
+    platform: Platform.OS,
+    version: Platform.Version,
+    isPad: Platform.isPad,
+    constants: Platform.constants,
+  };
+
+  // Adjust performance settings based on device
+  if (Platform.OS === 'android' && Platform.Version < 24) {
+    return {
+      ...deviceInfo,
+      shouldUseSimpleAnimations: true,
+      shouldReduceMotion: true,
+      maxConcurrentRequests: 2,
+    };
+  }
+
+  return {
+    ...deviceInfo,
+    shouldUseSimpleAnimations: false,
+    shouldReduceMotion: false,
+    maxConcurrentRequests: 4,
+  };
+};
+```
+
+## 🎯 Common Performance Issues
+
+### Issues to Avoid
+
+1. **Inline functions in render** - Creates new functions on every render
+2. **Unnecessary re-renders** - Missing memoization
+3. **Heavy calculations in render** - Should be memoized or moved to effects
+4. **Large images** - Use appropriate sizes and compression
+5. **Blocking animations** - Not using native driver
+6. **Memory leaks** - Missing cleanup in effects
+7. **Inefficient lists** - Not using FlatList properly
+8. **Console.log in production** - Remove before release
+
+### Quick Fixes
+
+```typescript
+// ✅ Before optimization
+const BadComponent = ({ items, onItemPress }) => {
+  return (
+    <ScrollView>
+      {items.map(item => (
+        <TouchableOpacity
+          key={item.id}
+          onPress={() => onItemPress(item)} // Inline function
+          style={{ padding: 10 }} // Inline style
+        >
+          <Text>{item.name.toUpperCase()}</Text> {/* Calculation in render */}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+};
+
+// ✅ After optimization
+const GoodComponent = React.memo(({ items, onItemPress }) => {
+  const handleItemPress = useCallback((item) => {
+    onItemPress(item);
+  }, [onItemPress]);
+
+  const renderItem = useCallback(({ item }) => (
+    <OptimizedItem item={item} onPress={handleItemPress} />
+  ), [handleItemPress]);
+
+  return (
+    <FlatList
+      data={items}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id}
+      initialNumToRender={10}
+      removeClippedSubviews={true}
+    />
+  );
+});
+
+const OptimizedItem = React.memo(({ item, onPress }) => {
+  const displayName = useMemo(() => item.name.toUpperCase(), [item.name]);
+  const itemStyle = useMemo(() => ({ padding: 10 }), []);
+
+  return (
+    <TouchableOpacity onPress={() => onPress(item)} style={itemStyle}>
+      <Text>{displayName}</Text>
+    </TouchableOpacity>
+  );
+});
+```
+
+---
+
+**Remember**: Performance optimization should be data-driven. Always measure before and after optimization to ensure improvements are real and meaningful. 
