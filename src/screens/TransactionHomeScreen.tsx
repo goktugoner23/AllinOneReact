@@ -7,7 +7,7 @@ import {
   RefreshControl,
   Button,
 } from 'react-native';
-import { fetchTransactions } from '../data/transactions';
+import { fetchTransactions, deleteTransaction } from '../data/transactions';
 import { Transaction } from '../types/Transaction';
 import { BalanceCard } from '../components/BalanceCard';
 import { TransactionCard } from '../components/TransactionCard';
@@ -51,10 +51,16 @@ export const TransactionHomeScreen: React.FC = () => {
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
-  const handleDelete = (transaction: Transaction) => {
-    // TODO: Implement delete logic (Firestore)
-    // For now, just filter out locally
-    setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+  const handleDelete = async (transaction: Transaction) => {
+    try {
+      await deleteTransaction(transaction.id);
+      // Refresh the transactions list
+      await loadTransactions();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      // For now, just filter out locally as fallback
+      setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+    }
   };
 
   return (
