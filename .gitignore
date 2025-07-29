@@ -201,3 +201,5 @@ my-release-key.jks
 
 # Firebase rules (if they contain sensitive data)
 firebase_rules/
+
+android/google-services.json

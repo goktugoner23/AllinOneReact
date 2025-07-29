@@ -1,71 +1,41 @@
-import { 
-  collection, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  query, 
-  where, 
-  orderBy, 
-  setDoc
-} from 'firebase/firestore';
-import { getDb } from './firestore';
-import { getDeviceId } from './deviceId';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { getDb, getDeviceId } from './firebase';
+import { firebaseIdManager } from './firebaseIdManager';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '../types/WTRegistry';
 
-let nextStudentId = 1;
-let nextRegistrationId = 1;
-let nextLessonId = 1;
-let nextSeminarId = 1;
 
-// Get next sequential ID for students
-async function getNextStudentId(): Promise<number> {
-  const db = getDb();
-  
-  try {
-    const q = query(
-      collection(db, 'students'),
-      orderBy('id', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    if (!snapshot.empty) {
-      const lastDoc = snapshot.docs[0];
-      const lastId = lastDoc.data().id || 0;
-      nextStudentId = lastId + 1;
-    }
-  } catch (error) {
-    console.warn('Failed to get last student ID, using fallback:', error);
-  }
-  
-  return nextStudentId++;
-}
 
 // Students
 export async function fetchStudents(): Promise<WTStudent[]> {
   try {
     const db = getDb();
+    const deviceId = await getDeviceId();
     
+    // Simple query without ordering to avoid index requirements
     const q = query(
       collection(db, 'students'),
-      orderBy('name', 'asc')
+      where('deviceId', '==', deviceId)
     );
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => {
+    // Sort in memory instead of in the query
+    const students = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: data.id || parseInt(doc.id),
         name: data.name || '',
-        phoneNumber: data.phoneNumber || undefined,
+        phoneNumber: data.phoneNumber || '',
         email: data.email || undefined,
         instagram: data.instagram || undefined,
-        isActive: data.isActive !== false, // Default to true
-        deviceId: data.deviceId || undefined,
+        isActive: data.isActive !== false,
         notes: data.notes || undefined,
         photoUri: data.photoUri || undefined,
       };
     });
+    
+    // Sort by name ascending in memory
+    return students.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.error('Error fetching students:', error);
     return [];
@@ -75,7 +45,8 @@ export async function fetchStudents(): Promise<WTStudent[]> {
 export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> {
   try {
     const db = getDb();
-    const studentId = await getNextStudentId();
+    const deviceId = await getDeviceId();
+    const studentId = await firebaseIdManager.getNextId('students');
     
     const studentData = {
       id: studentId,
@@ -85,7 +56,8 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> 
       instagram: student.instagram || '',
       isActive: student.isActive !== false,
       notes: student.notes || '',
-      photoUri: student.photoUri || ''
+      photoUri: student.photoUri || '',
+      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'students', studentId.toString()), studentData);
@@ -98,6 +70,7 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> 
 export async function updateStudent(student: WTStudent): Promise<void> {
   try {
     const db = getDb();
+    const deviceId = await getDeviceId();
     
     const studentData = {
       id: student.id,
@@ -107,7 +80,8 @@ export async function updateStudent(student: WTStudent): Promise<void> {
       instagram: student.instagram || '',
       isActive: student.isActive !== false,
       notes: student.notes || '',
-      photoUri: student.photoUri || ''
+      photoUri: student.photoUri || '',
+      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'students', student.id.toString()), studentData);
@@ -133,15 +107,16 @@ export async function fetchRegistrations(): Promise<WTRegistration[]> {
     const db = getDb();
     const deviceId = await getDeviceId();
     
+    // Simple query without ordering to avoid index requirements
     const q = query(
       collection(db, 'registrations'),
-      where('deviceId', '==', deviceId),
-      orderBy('paymentDate', 'desc')
+      where('deviceId', '==', deviceId)
     );
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => {
+    // Sort in memory instead of in the query
+    const registrations = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: data.id || parseInt(doc.id),
@@ -156,9 +131,75 @@ export async function fetchRegistrations(): Promise<WTRegistration[]> {
         studentName: data.studentName || undefined,
       };
     });
+    
+    // Sort by paymentDate descending in memory
+    return registrations.sort((a, b) => 
+      new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+    );
   } catch (error) {
     console.error('Error fetching registrations:', error);
     return [];
+  }
+}
+
+export async function addRegistration(registration: Omit<WTRegistration, 'id'>): Promise<void> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    const registrationId = await firebaseIdManager.getNextId('registrations');
+    
+    const registrationData = {
+      id: registrationId,
+      studentId: registration.studentId,
+      amount: registration.amount,
+      attachmentUri: registration.attachmentUri || '',
+      startDate: registration.startDate,
+      endDate: registration.endDate,
+      paymentDate: registration.paymentDate,
+      notes: registration.notes || '',
+      isPaid: registration.isPaid,
+      deviceId: deviceId
+    };
+    
+    await setDoc(doc(db, 'registrations', registrationId.toString()), registrationData);
+  } catch (error) {
+    console.error('Error adding registration:', error);
+    throw error;
+  }
+}
+
+export async function updateRegistration(registration: WTRegistration): Promise<void> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    
+    const registrationData = {
+      id: registration.id,
+      studentId: registration.studentId,
+      amount: registration.amount,
+      attachmentUri: registration.attachmentUri || '',
+      startDate: registration.startDate,
+      endDate: registration.endDate,
+      paymentDate: registration.paymentDate,
+      notes: registration.notes || '',
+      isPaid: registration.isPaid,
+      deviceId: deviceId
+    };
+    
+    await setDoc(doc(db, 'registrations', registration.id.toString()), registrationData);
+  } catch (error) {
+    console.error('Error updating registration:', error);
+    throw error;
+  }
+}
+
+export async function deleteRegistration(registrationId: number): Promise<void> {
+  try {
+    const db = getDb();
+    await deleteDoc(doc(db, 'registrations', registrationId.toString()));
+  } catch (error) {
+    console.error('Error deleting registration:', error);
+    throw error;
   }
 }
 
@@ -168,15 +209,16 @@ export async function fetchLessons(): Promise<WTLesson[]> {
     const db = getDb();
     const deviceId = await getDeviceId();
     
+    // Simple query without ordering to avoid index requirements
     const q = query(
       collection(db, 'wtLessons'),
-      where('deviceId', '==', deviceId),
-      orderBy('dayOfWeek', 'asc')
+      where('deviceId', '==', deviceId)
     );
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => {
+    // Sort in memory instead of in the query
+    const lessons = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: data.id || parseInt(doc.id),
@@ -187,9 +229,67 @@ export async function fetchLessons(): Promise<WTLesson[]> {
         endMinute: data.endMinute || 0,
       };
     });
+    
+    // Sort by dayOfWeek ascending in memory
+    return lessons.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
   } catch (error) {
     console.error('Error fetching lessons:', error);
     return [];
+  }
+}
+
+export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<void> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    const lessonId = await firebaseIdManager.getNextId('wtLessons');
+    
+    const lessonData = {
+      id: lessonId,
+      dayOfWeek: lesson.dayOfWeek,
+      startHour: lesson.startHour,
+      startMinute: lesson.startMinute,
+      endHour: lesson.endHour,
+      endMinute: lesson.endMinute,
+      deviceId: deviceId
+    };
+    
+    await setDoc(doc(db, 'wtLessons', lessonId.toString()), lessonData);
+  } catch (error) {
+    console.error('Error adding lesson:', error);
+    throw error;
+  }
+}
+
+export async function updateLesson(lesson: WTLesson): Promise<void> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    
+    const lessonData = {
+      id: lesson.id,
+      dayOfWeek: lesson.dayOfWeek,
+      startHour: lesson.startHour,
+      startMinute: lesson.startMinute,
+      endHour: lesson.endHour,
+      endMinute: lesson.endMinute,
+      deviceId: deviceId
+    };
+    
+    await setDoc(doc(db, 'wtLessons', lesson.id.toString()), lessonData);
+  } catch (error) {
+    console.error('Error updating lesson:', error);
+    throw error;
+  }
+}
+
+export async function deleteLesson(lessonId: number): Promise<void> {
+  try {
+    const db = getDb();
+    await deleteDoc(doc(db, 'wtLessons', lessonId.toString()));
+  } catch (error) {
+    console.error('Error deleting lesson:', error);
+    throw error;
   }
 }
 
@@ -199,15 +299,16 @@ export async function fetchSeminars(): Promise<WTSeminar[]> {
     const db = getDb();
     const deviceId = await getDeviceId();
     
+    // Simple query without ordering to avoid index requirements
     const q = query(
       collection(db, 'seminars'),
-      where('deviceId', '==', deviceId),
-      orderBy('date', 'desc')
+      where('deviceId', '==', deviceId)
     );
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => {
+    // Sort in memory instead of in the query
+    const seminars = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: data.id || parseInt(doc.id),
@@ -221,8 +322,75 @@ export async function fetchSeminars(): Promise<WTSeminar[]> {
         location: data.location || undefined,
       };
     });
+    
+    // Sort by date descending in memory
+    return seminars.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
   } catch (error) {
     console.error('Error fetching seminars:', error);
     return [];
   }
 }
+
+export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<void> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    const seminarId = await firebaseIdManager.getNextId('seminars');
+    
+    const seminarData = {
+      id: seminarId,
+      name: seminar.name,
+      date: seminar.date,
+      startHour: seminar.startHour,
+      startMinute: seminar.startMinute,
+      endHour: seminar.endHour,
+      endMinute: seminar.endMinute,
+      description: seminar.description || '',
+      location: seminar.location || '',
+      deviceId: deviceId
+    };
+    
+    await setDoc(doc(db, 'seminars', seminarId.toString()), seminarData);
+  } catch (error) {
+    console.error('Error adding seminar:', error);
+    throw error;
+  }
+}
+
+export async function updateSeminar(seminar: WTSeminar): Promise<void> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    
+    const seminarData = {
+      id: seminar.id,
+      name: seminar.name,
+      date: seminar.date,
+      startHour: seminar.startHour,
+      startMinute: seminar.startMinute,
+      endHour: seminar.endHour,
+      endMinute: seminar.endMinute,
+      description: seminar.description || '',
+      location: seminar.location || '',
+      deviceId: deviceId
+    };
+    
+    await setDoc(doc(db, 'seminars', seminar.id.toString()), seminarData);
+  } catch (error) {
+    console.error('Error updating seminar:', error);
+    throw error;
+  }
+}
+
+export async function deleteSeminar(seminarId: number): Promise<void> {
+  try {
+    const db = getDb();
+    await deleteDoc(doc(db, 'seminars', seminarId.toString()));
+  } catch (error) {
+    console.error('Error deleting seminar:', error);
+    throw error;
+  }
+}
+
