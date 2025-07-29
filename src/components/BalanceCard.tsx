@@ -11,70 +11,97 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   totalIncome,
   totalExpense,
   balance,
-}) => (
-  <View style={styles.card}>
-    <Text style={styles.title}>Balance Overview</Text>
-    <View style={styles.row}>
-      <View style={styles.column}>
-        <Text style={styles.label}>Income</Text>
-        <Text style={[styles.amount, { color: '#2ecc71' }]}>
-          {totalIncome.toFixed(2)}
-        </Text>
-      </View>
-      <View style={styles.column}>
-        <Text style={styles.label}>Expense</Text>
-        <Text style={[styles.amount, { color: '#e74c3c' }]}>
-          {totalExpense.toFixed(2)}
-        </Text>
-      </View>
-      <View style={styles.column}>
-        <Text style={styles.label}>Balance</Text>
-        <Text
-          style={[
-            styles.amount,
-            { color: balance >= 0 ? '#2ecc71' : '#e74c3c' },
-          ]}
-        >
-          {balance.toFixed(2)}
-        </Text>
+}) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Balance Overview</Text>
+      
+      <View style={styles.balanceRow}>
+        <BalanceItem
+          label="Income"
+          amount={totalIncome}
+          color="#4CAF50"
+        />
+        
+        <BalanceItem
+          label="Expense"
+          amount={totalExpense}
+          color="#F44336"
+        />
+        
+        <BalanceItem
+          label="Balance"
+          amount={balance}
+          color={balance >= 0 ? '#4CAF50' : '#F44336'}
+        />
       </View>
     </View>
-  </View>
-);
+  );
+};
+
+interface BalanceItemProps {
+  label: string;
+  amount: number;
+  color: string;
+}
+
+const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, color }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  return (
+    <View style={styles.balanceItem}>
+      <Text style={styles.balanceLabel}>{label}</Text>
+      <Text style={[styles.balanceAmount, { color }]}>
+        {formatCurrency(amount)}
+      </Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginVertical: 8,
     elevation: 2,
     shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#333',
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+  },
+  balanceItem: {
+    alignItems: 'center',
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  balanceAmount: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  column: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  label: {
-    fontSize: 14,
-    color: '#888',
-  },
-  amount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 4,
   },
 });

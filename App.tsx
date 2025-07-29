@@ -33,10 +33,14 @@ import {
   Divider,
 } from 'react-native-paper';
 
+// Initialize Firebase
+import './src/config/firebase';
+
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
-function BottomTabs() {
+// Transactions Dashboard with bottom tabs (Home, Investments, Reports)
+function TransactionsDashboard() {
   const theme = useTheme();
   return (
     <Tab.Navigator
@@ -46,9 +50,9 @@ function BottomTabs() {
           let iconName = '';
           if (route.name === 'Home') {
             iconName = 'home-outline';
-          } else if (route.name === 'Portfolio') {
+          } else if (route.name === 'Investments') {
             iconName = 'trending-up-outline';
-          } else if (route.name === 'Analytics') {
+          } else if (route.name === 'Reports') {
             iconName = 'bar-chart-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -58,8 +62,8 @@ function BottomTabs() {
       })}
     >
       <Tab.Screen name="Home" component={TransactionHomeScreen} />
-      <Tab.Screen name="Portfolio" component={InvestmentsScreen} />
-      <Tab.Screen name="Analytics" component={ReportsScreen} />
+      <Tab.Screen name="Investments" component={InvestmentsScreen} />
+      <Tab.Screen name="Reports" component={ReportsScreen} />
     </Tab.Navigator>
   );
 }
@@ -131,18 +135,8 @@ export default function App() {
             }}
           >
             <Drawer.Screen
-              name="Dashboard"
-              component={BottomTabs}
-              options={{
-                title: 'Dashboard',
-                drawerIcon: ({ color, size }) => (
-                  <Ionicons name="grid-outline" size={size} color={color} />
-                ),
-              }}
-            />
-            <Drawer.Screen 
-              name="Transactions" 
-              component={TransactionHomeScreen}
+              name="Transactions"
+              component={TransactionsDashboard}
               options={{
                 title: 'Transactions',
                 drawerIcon: ({ color, size }) => (
@@ -154,9 +148,9 @@ export default function App() {
               name="WT Registry" 
               component={WTRegistryScreen}
               options={{
-                title: 'Wing Tsun Registry',
+                title: 'WT Registry',
                 drawerIcon: ({ color, size }) => (
-                  <Ionicons name="people-outline" size={size} color={color} />
+                  <Ionicons name="school-outline" size={size} color={color} />
                 ),
               }}
             />

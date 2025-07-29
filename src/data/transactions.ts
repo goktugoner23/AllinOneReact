@@ -1,95 +1,26 @@
-import { 
-  collection, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  query, 
-  where, 
-  orderBy, 
-  Timestamp,
-  setDoc
-} from 'firebase/firestore';
-import { getDb } from './firestore';
-import { getDeviceId } from './deviceId';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { getDb, getDeviceId } from './firebase';
+import { firebaseIdManager } from './firebaseIdManager';
 import { Transaction } from '../types/Transaction';
-
-let nextTransactionId = 1;
-
-// Get next sequential ID for transactions
-async function getNextTransactionId(): Promise<number> {
-  const db = getDb();
-  const deviceId = await getDeviceId();
-  
-  try {
-    const q = query(
-      collection(db, 'transactions'),
-      where('deviceId', '==', deviceId),
-      orderBy('id', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    if (!snapshot.empty) {
-      const lastDoc = snapshot.docs[0];
-      const lastId = lastDoc.data().id || 0;
-      nextTransactionId = lastId + 1;
-    }
-  } catch (error) {
-    console.warn('Failed to get last transaction ID, using fallback:', error);
-  }
-  
-  return nextTransactionId++;
-}
-
-export async function fetchTransactions(): Promise<Transaction[]> {
-  try {
-    const db = getDb();
-    const deviceId = await getDeviceId();
-    
-    const q = query(
-      collection(db, 'transactions'),
-      where('deviceId', '==', deviceId),
-      orderBy('date', 'desc')
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: data.id?.toString() ?? doc.id,
-        amount: data.amount ?? 0,
-        description: data.description ?? '',
-        category: data.category ?? '',
-        date: data.date instanceof Timestamp 
-          ? data.date.toDate().toISOString() 
-          : (data.date?.toDate?.() ? data.date.toDate().toISOString() : new Date().toISOString()),
-        type: data.isIncome ? 'income' : 'expense',
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching transactions:', error);
-    return [];
-  }
-}
 
 export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<void> {
   try {
     const db = getDb();
     const deviceId = await getDeviceId();
-    const transactionId = await getNextTransactionId();
-    
+    const transactionId = await firebaseIdManager.getNextId('transactions');
+
     const transactionData = {
       id: transactionId,
       amount: transaction.amount,
-      type: transaction.category, // Using category as type for compatibility
+      type: transaction.type, // Category name (same as category)
+      description: transaction.description || '', // Ensure not null like Kotlin
+      isIncome: transaction.isIncome,
+      date: transaction.date,
       category: transaction.category,
-      description: transaction.description,
-      isIncome: transaction.type === 'income',
-      date: new Date(transaction.date),
-      deviceId: deviceId,
-      relatedRegistrationId: null
+      relatedRegistrationId: transaction.relatedRegistrationId,
+      deviceId: deviceId
     };
-    
+
     await setDoc(doc(db, 'transactions', transactionId.toString()), transactionData);
   } catch (error) {
     console.error('Error adding transaction:', error);
@@ -101,19 +32,19 @@ export async function updateTransaction(transaction: Transaction): Promise<void>
   try {
     const db = getDb();
     const deviceId = await getDeviceId();
-    
+
     const transactionData = {
-      id: parseInt(transaction.id),
+      id: transaction.id,
       amount: transaction.amount,
-      type: transaction.category,
+      type: transaction.type, // Category name (same as category)
+      description: transaction.description || '', // Ensure not null like Kotlin
+      isIncome: transaction.isIncome,
+      date: transaction.date,
       category: transaction.category,
-      description: transaction.description,
-      isIncome: transaction.type === 'income',
-      date: new Date(transaction.date),
-      deviceId: deviceId,
-      relatedRegistrationId: null
+      relatedRegistrationId: transaction.relatedRegistrationId,
+      deviceId: deviceId
     };
-    
+
     await setDoc(doc(db, 'transactions', transaction.id), transactionData);
   } catch (error) {
     console.error('Error updating transaction:', error);
@@ -128,5 +59,95 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
   } catch (error) {
     console.error('Error deleting transaction:', error);
     throw error;
+  }
+}
+
+export async function fetchTransactions(): Promise<Transaction[]> {
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    
+    console.log('Fetching transactions with deviceId:', deviceId);
+    
+    // First, let's try to get ALL transactions to see what's in the database
+    const allTransactionsQuery = query(collection(db, 'transactions'));
+    const allSnapshot = await getDocs(allTransactionsQuery);
+    
+    console.log('Total transactions in database:', allSnapshot.docs.length);
+    
+    // Log all transactions to see their structure
+    allSnapshot.docs.forEach((doc, index) => {
+      const data = doc.data();
+      console.log(`Transaction ${index + 1}:`, {
+        id: doc.id,
+        deviceId: data.deviceId,
+        amount: data.amount,
+        type: data.type,
+        isIncome: data.isIncome,
+        date: data.date
+      });
+    });
+    
+    // Now try to get transactions for this device
+    const q = query(
+      collection(db, 'transactions'),
+      where('deviceId', '==', deviceId)
+    );
+    
+    const snapshot = await getDocs(q);
+    console.log('Transactions for this device:', snapshot.docs.length);
+    
+    let transactions: Transaction[] = [];
+    
+    // If no transactions found for this device, try to get all transactions (fallback)
+    if (snapshot.docs.length === 0) {
+      console.log('No transactions found for device, trying to fetch all transactions...');
+      const allTransactions = allSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: data.id?.toString() ?? doc.id,
+          amount: data.amount ?? 0,
+          type: data.type ?? '', // Category name
+          description: data.description ?? '', // Ensure not null like Kotlin
+          isIncome: data.isIncome ?? false,
+          date: data.date instanceof Timestamp 
+            ? data.date.toDate().toISOString() 
+            : (data.date?.toDate?.() ? data.date.toDate().toISOString() : new Date().toISOString()),
+          category: data.category ?? '',
+          relatedRegistrationId: data.relatedRegistrationId,
+        };
+      });
+      transactions = allTransactions;
+    } else {
+      // Map data exactly like Kotlin app
+      transactions = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: data.id?.toString() ?? doc.id,
+          amount: data.amount ?? 0,
+          type: data.type ?? '', // Category name
+          description: data.description ?? '', // Ensure not null like Kotlin
+          isIncome: data.isIncome ?? false,
+          date: data.date instanceof Timestamp 
+            ? data.date.toDate().toISOString() 
+            : (data.date?.toDate?.() ? data.date.toDate().toISOString() : new Date().toISOString()),
+          category: data.category ?? '',
+          relatedRegistrationId: data.relatedRegistrationId,
+        };
+      });
+    }
+    
+    console.log('Mapped transactions:', transactions.length);
+    
+    // Sort by date descending in memory (like Kotlin app)
+    const sortedTransactions = transactions.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    console.log('Final sorted transactions:', sortedTransactions.length);
+    return sortedTransactions;
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    return [];
   }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Transaction } from '../types/Transaction';
 
 interface TransactionCardProps {
@@ -11,6 +11,21 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   transaction,
   onLongPress,
 }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -18,52 +33,77 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
       delayLongPress={500}
     >
       <View style={styles.row}>
-        <Text
-          style={[
-            styles.amount,
-            { color: transaction.type === 'income' ? '#2ecc71' : '#e74c3c' },
-          ]}
-        >
-          ${transaction.amount.toFixed(2)}
-        </Text>
-        <Text style={styles.category}>{transaction.category}</Text>
-        <Text style={styles.date}>
-          {new Date(transaction.date).toLocaleDateString()}
-        </Text>
+        <View style={styles.leftColumn}>
+          <Text style={styles.typeText}>{transaction.type}</Text>
+          {transaction.description && (
+            <Text style={styles.descriptionText}>{transaction.description}</Text>
+          )}
+          <Text style={styles.dateText}>{formatDate(transaction.date)}</Text>
+        </View>
+        
+        <View style={styles.rightColumn}>
+          <Text
+            style={[
+              styles.amountText,
+              { color: transaction.isIncome ? '#4CAF50' : '#F44336' },
+            ]}
+          >
+            {transaction.isIncome ? '+' : '-'}{formatCurrency(transaction.amount)}
+          </Text>
+          <Text style={styles.trendIcon}>
+            {transaction.isIncome ? '↗' : '↘'}
+          </Text>
+        </View>
       </View>
-      <Text style={styles.description}>{transaction.description}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    elevation: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  amount: {
+  leftColumn: {
+    flex: 1,
+  },
+  rightColumn: {
+    alignItems: 'flex-end',
+  },
+  typeText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  amountText: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  category: {
-    fontSize: 14,
-    color: '#888',
-  },
-  date: {
-    fontSize: 12,
-    color: '#bbb',
-  },
-  description: {
-    marginTop: 4,
-    fontSize: 13,
-    color: '#444',
+  trendIcon: {
+    fontSize: 16,
+    color: '#666',
   },
 });

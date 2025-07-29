@@ -53,21 +53,21 @@ export const ReportsScreen: React.FC = () => {
     return filterByDateRange([t], dateRange).length > 0;
   });
 
-  // Summary statistics
+  // Summary statistics - updated to use isIncome field
   const totalIncome = filteredTransactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = filteredTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => !t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
-  // Chart data: spending per day
+  // Chart data: spending per day - updated to use isIncome field
   const chartData = (() => {
     const map: { [date: string]: number } = {};
     filteredTransactions.forEach(t => {
       const d = format(parseISO(t.date), 'MM-dd');
-      map[d] = (map[d] || 0) + (t.type === 'expense' ? t.amount : 0);
+      map[d] = (map[d] || 0) + (!t.isIncome ? t.amount : 0);
     });
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
     const labels = sorted.map(([date]) => date);
@@ -83,11 +83,11 @@ export const ReportsScreen: React.FC = () => {
     };
   })();
 
-  // Category breakdown
+  // Category breakdown - updated to use isIncome field
   const categorySpending = (() => {
     const map: { [cat: string]: number } = {};
     filteredTransactions.forEach(t => {
-      if (t.type === 'expense')
+      if (!t.isIncome)
         map[t.category] = (map[t.category] || 0) + t.amount;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
@@ -247,11 +247,13 @@ const styles = StyleSheet.create({
   marginLeft8: {
     marginLeft: 8,
   },
-
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 2,
+  },
+  flex1: {
+    flex: 1,
   },
   expenseRedBold: {
     color: '#e74c3c',

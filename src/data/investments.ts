@@ -1,15 +1,6 @@
-import { getDb } from './firestore';
-import { getDeviceId } from './deviceId';
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  Timestamp,
-  deleteDoc,
-  doc,
-  setDoc,
-} from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { getDb, getDeviceId } from './firebase';
+import { firebaseIdManager } from './firebaseIdManager';
 import { Investment } from '../types/Investment';
 
 let nextInvestmentId = 1;
@@ -42,14 +33,13 @@ export async function fetchInvestments(): Promise<Investment[]> {
     const db = getDb();
 
     // Get all investments (not filtered by deviceId like in Kotlin app)
-    const q = query(
-      collection(db, 'investments'),
-      orderBy('date', 'desc')
-    );
+    // Simple query without ordering to avoid index requirements
+    const q = query(collection(db, 'investments'));
 
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => {
+    // Sort in memory instead of in the query
+    const investments = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: data.id?.toString() ?? doc.id,
@@ -66,34 +56,37 @@ export async function fetchInvestments(): Promise<Investment[]> {
         currentValue: data.currentValue ?? data.amount ?? 0,
       };
     });
+    
+    // Sort by date descending in memory
+    return investments.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
   } catch (error) {
     console.error('Error fetching investments:', error);
     return [];
   }
 }
 
-export async function addInvestment(
-  investment: Omit<Investment, 'id'>,
-): Promise<void> {
+export async function addInvestment(investment: Omit<Investment, 'id'>): Promise<void> {
   try {
     const db = getDb();
     const deviceId = await getDeviceId();
-    const investmentId = await getNextInvestmentId();
-
+    const investmentId = await firebaseIdManager.getNextId('investments');
+    
     const investmentData = {
       id: investmentId,
       name: investment.name,
-      type: investment.type,
       amount: investment.amount,
+      type: investment.type,
       description: investment.description || '',
-      date: new Date(investment.date),
       imageUri: investment.imageUri || '',
-      isPast: investment.isPast || false,
-      profitLoss: investment.profitLoss || 0,
-      currentValue: investment.currentValue || investment.amount,
+      date: investment.date,
+      isPast: investment.isPast,
+      profitLoss: investment.profitLoss,
+      currentValue: investment.currentValue,
       deviceId: deviceId
     };
-
+    
     await setDoc(doc(db, 'investments', investmentId.toString()), investmentData);
   } catch (error) {
     console.error('Error adding investment:', error);
