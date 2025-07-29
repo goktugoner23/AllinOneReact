@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,23 +7,41 @@ import {
   RefreshControl,
   Button,
   Alert,
-} from 'react-native';
-import { fetchTransactions, deleteTransaction } from '../data/transactions';
-import { Transaction } from '../types/Transaction';
-import { BalanceCard } from '../components/BalanceCard';
-import { TransactionCard } from '../components/TransactionCard';
-import { TransactionForm } from '../components/TransactionForm';
-import { SpendingPieChart } from '../components/SpendingPieChart';
+} from "react-native";
+import { fetchTransactions, deleteTransaction } from "../data/transactions";
+import { Transaction } from "../types/Transaction";
+import { BalanceCard } from "../components/BalanceCard";
+import { TransactionCard } from "../components/TransactionCard";
+import { TransactionForm } from "../components/TransactionForm";
+import { SpendingPieChart } from "../components/SpendingPieChart";
+import { logger } from "../utils/logger";
 
 const PAGE_SIZE = 5;
 
-type ListItem = 
-  | { type: 'balance'; data: { totalIncome: number; totalExpense: number; balance: number } }
-  | { type: 'chart'; data: { transactions: Transaction[] } }
-  | { type: 'form'; data: { onTransactionAdded: () => void } }
-  | { type: 'transactions-header'; data: {} }
-  | { type: 'transactions'; data: { transactions: Transaction[]; onDelete: (transaction: Transaction) => void } }
-  | { type: 'pagination'; data: { currentPage: number; totalPages: number; onPrevious: () => void; onNext: () => void } };
+type ListItem =
+  | {
+      type: "balance";
+      data: { totalIncome: number; totalExpense: number; balance: number };
+    }
+  | { type: "chart"; data: { transactions: Transaction[] } }
+  | { type: "form"; data: { onTransactionAdded: () => void } }
+  | { type: "transactions-header"; data: {} }
+  | {
+      type: "transactions";
+      data: {
+        transactions: Transaction[];
+        onDelete: (transaction: Transaction) => void;
+      };
+    }
+  | {
+      type: "pagination";
+      data: {
+        currentPage: number;
+        totalPages: number;
+        onPrevious: () => void;
+        onNext: () => void;
+      };
+    };
 
 export const TransactionHomeScreen: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -36,20 +54,28 @@ export const TransactionHomeScreen: React.FC = () => {
   }, []);
 
   const forceRefreshTransactions = useCallback(async () => {
-    console.log('Force refreshing transactions...');
+    logger.debug("Force refreshing transactions", {}, "TransactionHomeScreen");
     setRefreshing(true);
     try {
       const txs = await fetchTransactions();
       // Sort by date descending like Kotlin app
-      const sortedTransactions = txs.sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
+      const sortedTransactions = txs.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
       setTransactions(sortedTransactions);
       setCurrentPage(0);
-      console.log('Force refresh completed');
+      logger.debug(
+        "Force refresh completed",
+        { count: sortedTransactions.length },
+        "TransactionHomeScreen",
+      );
     } catch (error) {
-      console.error('Error force refreshing transactions:', error);
-      Alert.alert('Error', 'Failed to load transactions');
+      logger.error(
+        "Error force refreshing transactions",
+        error,
+        "TransactionHomeScreen",
+      );
+      Alert.alert("Error", "Failed to load transactions");
     } finally {
       setRefreshing(false);
     }
@@ -60,42 +86,48 @@ export const TransactionHomeScreen: React.FC = () => {
   }, [forceRefreshTransactions]);
 
   // Pagination logic - exactly like Kotlin app
-  const totalPages = transactions.length === 0 ? 0 : Math.ceil(transactions.length / PAGE_SIZE);
+  const totalPages =
+    transactions.length === 0 ? 0 : Math.ceil(transactions.length / PAGE_SIZE);
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = Math.min(startIndex + PAGE_SIZE, transactions.length);
-  const pagedTransactions = startIndex < transactions.length 
-    ? transactions.slice(startIndex, endIndex)
-    : [];
+  const pagedTransactions =
+    startIndex < transactions.length
+      ? transactions.slice(startIndex, endIndex)
+      : [];
 
   // Balance calculation - updated to use isIncome field
   const totalIncome = transactions
-    .filter(t => t.isIncome)
+    .filter((t) => t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = transactions
-    .filter(t => !t.isIncome)
+    .filter((t) => !t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
   const handleDelete = async (transaction: Transaction) => {
     Alert.alert(
-      'Delete Transaction',
-      `Are you sure you want to delete this ${transaction.isIncome ? 'income' : 'expense'}?`,
+      "Delete Transaction",
+      `Are you sure you want to delete this ${transaction.isIncome ? "income" : "expense"}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               await deleteTransaction(transaction.id);
               await forceRefreshTransactions(); // Force refresh like Kotlin app
             } catch (error) {
-              console.error('Error deleting transaction:', error);
-              Alert.alert('Error', 'Failed to delete transaction');
+              logger.error(
+                "Error deleting transaction",
+                error,
+                "TransactionHomeScreen",
+              );
+              Alert.alert("Error", "Failed to delete transaction");
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -117,17 +149,20 @@ export const TransactionHomeScreen: React.FC = () => {
   };
 
   const listData: ListItem[] = [
-    { type: 'balance', data: { totalIncome, totalExpense, balance } },
-    { type: 'chart', data: { transactions } },
-    { type: 'form', data: { onTransactionAdded: handleTransactionAdded } },
-    { type: 'transactions-header', data: {} },
-    { type: 'transactions', data: { transactions: pagedTransactions, onDelete: handleDelete } },
+    { type: "balance", data: { totalIncome, totalExpense, balance } },
+    { type: "chart", data: { transactions } },
+    { type: "form", data: { onTransactionAdded: handleTransactionAdded } },
+    { type: "transactions-header", data: {} },
+    {
+      type: "transactions",
+      data: { transactions: pagedTransactions, onDelete: handleDelete },
+    },
   ];
 
   // Add pagination if needed - exactly like Kotlin app
   if (totalPages > 1) {
     listData.push({
-      type: 'pagination',
+      type: "pagination",
       data: {
         currentPage,
         totalPages,
@@ -144,7 +179,7 @@ export const TransactionHomeScreen: React.FC = () => {
         keyExtractor={(item, index) => `${item.type}-${index}`}
         renderItem={({ item }) => {
           switch (item.type) {
-            case 'balance':
+            case "balance":
               return (
                 <BalanceCard
                   totalIncome={item.data.totalIncome}
@@ -152,17 +187,21 @@ export const TransactionHomeScreen: React.FC = () => {
                   balance={item.data.balance}
                 />
               );
-            case 'chart':
+            case "chart":
               return <SpendingPieChart transactions={item.data.transactions} />;
-            case 'form':
-              return <TransactionForm onTransactionAdded={item.data.onTransactionAdded} />;
-            case 'transactions-header':
+            case "form":
+              return (
+                <TransactionForm
+                  onTransactionAdded={item.data.onTransactionAdded}
+                />
+              );
+            case "transactions-header":
               return (
                 <View style={styles.transactionsHeader}>
                   <Text style={styles.sectionTitle}>Transactions</Text>
                 </View>
               );
-            case 'transactions':
+            case "transactions":
               return (
                 <View style={styles.transactionsSection}>
                   {item.data.transactions.length === 0 ? (
@@ -180,7 +219,7 @@ export const TransactionHomeScreen: React.FC = () => {
                   )}
                 </View>
               );
-            case 'pagination':
+            case "pagination":
               return (
                 <View style={styles.pagination}>
                   <Button
@@ -194,7 +233,9 @@ export const TransactionHomeScreen: React.FC = () => {
                   <Button
                     title="Next"
                     onPress={item.data.onNext}
-                    disabled={item.data.currentPage === item.data.totalPages - 1}
+                    disabled={
+                      item.data.currentPage === item.data.totalPages - 1
+                    }
                   />
                 </View>
               );
@@ -216,7 +257,7 @@ export const TransactionHomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 16,
   },
   transactionsHeader: {
@@ -224,33 +265,33 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    color: '#333',
+    color: "#333",
   },
   transactionsSection: {
     marginTop: 8,
   },
   emptyContainer: {
     height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   empty: {
-    textAlign: 'center',
-    color: '#888',
+    textAlign: "center",
+    color: "#888",
     fontSize: 16,
   },
   pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 12,
     gap: 12,
   },
   pageText: {
     marginHorizontal: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
 });
