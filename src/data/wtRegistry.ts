@@ -1,5 +1,5 @@
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
-import { getDb, getDeviceId } from './firebase';
+import { getDb } from './firebase';
 import { firebaseIdManager } from './firebaseIdManager';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '../types/WTRegistry';
 import { addTransaction, fetchTransactions, deleteTransaction } from './transactions';
@@ -9,14 +9,9 @@ import { addTransaction, fetchTransactions, deleteTransaction } from './transact
 export async function fetchStudents(): Promise<WTStudent[]> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
-    // Simple query without ordering to avoid index requirements
-    const q = query(
-      collection(db, 'students'),
-      where('deviceId', '==', deviceId)
-    );
-    
+    // Get all students without device filtering
+    const q = query(collection(db, 'students'));
     const snapshot = await getDocs(q);
     
     // Sort in memory instead of in the query
@@ -45,7 +40,6 @@ export async function fetchStudents(): Promise<WTStudent[]> {
 export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     const studentId = await firebaseIdManager.getNextId('students');
     
     const studentData = {
@@ -57,7 +51,6 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> 
       isActive: student.isActive !== false,
       notes: student.notes || '',
       photoUri: student.photoUri || '',
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'students', studentId.toString()), studentData);
@@ -70,7 +63,6 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> 
 export async function updateStudent(student: WTStudent): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
     const studentData = {
       id: student.id,
@@ -81,7 +73,6 @@ export async function updateStudent(student: WTStudent): Promise<void> {
       isActive: student.isActive !== false,
       notes: student.notes || '',
       photoUri: student.photoUri || '',
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'students', student.id.toString()), studentData);
@@ -105,14 +96,9 @@ export async function deleteStudent(studentId: number): Promise<void> {
 export async function fetchRegistrations(): Promise<WTRegistration[]> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
-    // Simple query without ordering to avoid index requirements
-    const q = query(
-      collection(db, 'registrations'),
-      where('deviceId', '==', deviceId)
-    );
-    
+    // Simple query without device filtering
+    const q = query(collection(db, 'registrations'));
     const snapshot = await getDocs(q);
     
     // Sort in memory instead of in the query
@@ -145,7 +131,6 @@ export async function fetchRegistrations(): Promise<WTRegistration[]> {
 export async function addRegistration(registration: Omit<WTRegistration, 'id'>): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     const registrationId = await firebaseIdManager.getNextId('registrations');
     
     const registrationData = {
@@ -158,7 +143,6 @@ export async function addRegistration(registration: Omit<WTRegistration, 'id'>):
       paymentDate: registration.paymentDate,
       notes: registration.notes || '',
       isPaid: registration.isPaid,
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'registrations', registrationId.toString()), registrationData);
@@ -171,7 +155,6 @@ export async function addRegistration(registration: Omit<WTRegistration, 'id'>):
 export async function updateRegistration(registration: WTRegistration): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
     const registrationData = {
       id: registration.id,
@@ -183,7 +166,6 @@ export async function updateRegistration(registration: WTRegistration): Promise<
       paymentDate: registration.paymentDate,
       notes: registration.notes || '',
       isPaid: registration.isPaid,
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'registrations', registration.id.toString()), registrationData);
@@ -252,13 +234,9 @@ export async function deleteRegistrationWithTransactions(registrationId: number)
 export async function fetchLessons(): Promise<WTLesson[]> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
-    // Simple query without ordering to avoid index requirements
-    const q = query(
-      collection(db, 'wtLessons'),
-      where('deviceId', '==', deviceId)
-    );
+    // Simple query without device filtering
+    const q = query(collection(db, 'wtLessons'));
     
     const snapshot = await getDocs(q);
     
@@ -286,7 +264,6 @@ export async function fetchLessons(): Promise<WTLesson[]> {
 export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     const lessonId = await firebaseIdManager.getNextId('wtLessons');
     
     const lessonData = {
@@ -296,7 +273,6 @@ export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<void> {
       startMinute: lesson.startMinute,
       endHour: lesson.endHour,
       endMinute: lesson.endMinute,
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'wtLessons', lessonId.toString()), lessonData);
@@ -309,7 +285,6 @@ export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<void> {
 export async function updateLesson(lesson: WTLesson): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
     const lessonData = {
       id: lesson.id,
@@ -318,7 +293,6 @@ export async function updateLesson(lesson: WTLesson): Promise<void> {
       startMinute: lesson.startMinute,
       endHour: lesson.endHour,
       endMinute: lesson.endMinute,
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'wtLessons', lesson.id.toString()), lessonData);
@@ -342,13 +316,9 @@ export async function deleteLesson(lessonId: number): Promise<void> {
 export async function fetchSeminars(): Promise<WTSeminar[]> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
-    // Simple query without ordering to avoid index requirements
-    const q = query(
-      collection(db, 'seminars'),
-      where('deviceId', '==', deviceId)
-    );
+    // Simple query without device filtering
+    const q = query(collection(db, 'seminars'));
     
     const snapshot = await getDocs(q);
     
@@ -381,7 +351,6 @@ export async function fetchSeminars(): Promise<WTSeminar[]> {
 export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     const seminarId = await firebaseIdManager.getNextId('seminars');
     
     const seminarData = {
@@ -394,7 +363,6 @@ export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<void> 
       endMinute: seminar.endMinute,
       description: seminar.description || '',
       location: seminar.location || '',
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'seminars', seminarId.toString()), seminarData);
@@ -407,7 +375,6 @@ export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<void> 
 export async function updateSeminar(seminar: WTSeminar): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
     const seminarData = {
       id: seminar.id,
@@ -419,7 +386,6 @@ export async function updateSeminar(seminar: WTSeminar): Promise<void> {
       endMinute: seminar.endMinute,
       description: seminar.description || '',
       location: seminar.location || '',
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'seminars', seminar.id.toString()), seminarData);
