@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,11 @@ import {
   ScrollView,
   Image,
   Platform,
+  Linking,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
-import { Card, Button, Chip, Divider, FAB, Portal, Dialog } from 'react-native-paper';
+import { Card, Button, Chip, Divider, FAB, Portal, Dialog, useTheme, Switch } from 'react-native-paper';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '../data/wtRegistry';
 import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration } from '../data/wtRegistry';
@@ -24,6 +27,108 @@ import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Tab = createBottomTabNavigator();
+
+// Zoomable Fullscreen Image Component
+interface FullscreenImageProps {
+  uri: string;
+  onClose: () => void;
+}
+
+const FullscreenImage: React.FC<FullscreenImageProps> = ({ uri, onClose }) => {
+  const [scale, setScale] = useState(1);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [initialDistance, setInitialDistance] = useState(0);
+  const [isPinching, setIsPinching] = useState(false);
+
+  // Removed complex pan responder - keeping it simple with just pinch to zoom
+
+  const handleTouch = (evt: any) => {
+    const touches = evt.nativeEvent.touches;
+    
+    if (touches.length === 2) {
+      // Two finger pinch
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      
+      const distance = Math.sqrt(
+        Math.pow(touch2.pageX - touch1.pageX, 2) + 
+        Math.pow(touch2.pageY - touch1.pageY, 2)
+      );
+      
+      if (!isPinching) {
+        // Start of pinch gesture
+        setInitialDistance(distance);
+        setIsPinching(true);
+      } else if (initialDistance > 0) {
+        // During pinch gesture - calculate scale based on distance change
+        const scaleChange = distance / initialDistance;
+        const newScale = Math.max(1, Math.min(3, scaleChange));
+        setScale(newScale);
+        setIsZoomed(newScale > 1);
+        
+        // No position reset needed since we removed panning
+      }
+    } else if (touches.length === 1) {
+      // End of pinch gesture or single finger touch
+      setIsPinching(false);
+      setInitialDistance(0);
+    }
+  };
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      {/* Close button */}
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          top: 50,
+          right: 20,
+          zIndex: 1000,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        onPress={onClose}
+      >
+        <Ionicons name="close" size={24} color="white" />
+      </TouchableOpacity>
+      <View
+        onTouchMove={handleTouch}
+        onTouchEnd={handleTouch}
+        onTouchStart={(evt) => {
+          evt.stopPropagation();
+        }}
+      >
+        <View
+          style={{
+            transform: [
+              { scale },
+            ],
+          }}
+        >
+                      <Image
+              source={{ uri }}
+              style={{
+                width: Dimensions.get('window').width * 0.9,
+                height: Dimensions.get('window').height * 0.8,
+                resizeMode: 'contain',
+              }}
+            />
+          </View>
+      </View>
+    </View>
+  );
+};
 
 // Utility function to safely get URI from image picker result
 const getSafeUri = (result: ImagePickerResponse): string | null => {
@@ -36,11 +141,16 @@ const getSafeUri = (result: ImagePickerResponse): string | null => {
 
 // Students Tab with Profile Photos
 const StudentsTab: React.FC = () => {
+  const theme = useTheme();
   const [students, setStudents] = useState<WTStudent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<WTStudent | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
+  const [showFullscreenPhoto, setShowFullscreenPhoto] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
 
   const loadStudents = async () => {
     try {
@@ -48,7 +158,7 @@ const StudentsTab: React.FC = () => {
       setStudents(data);
     } catch (error) {
       console.error('Error loading students:', error);
-      Alert.alert('Error', `Failed to load students: ${error.message}`);
+      Alert.alert('Error', `Failed to load students: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -59,7 +169,7 @@ const StudentsTab: React.FC = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadStudents();
-      setRefreshing(false);
+    setRefreshing(false);
   };
 
   const handleAddStudent = async (studentData: Omit<WTStudent, 'id'>) => {
@@ -108,45 +218,109 @@ const StudentsTab: React.FC = () => {
     );
   };
 
+  // Contact action handlers
+  const handleCall = (phoneNumber: string) => {
+    Linking.openURL(`tel:${phoneNumber}`);
+  };
+
+  const handleWhatsApp = (phoneNumber: string) => {
+    const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
+    Linking.openURL(`https://wa.me/${cleanPhone}`);
+  };
+
+  const handleInstagram = (instagram: string) => {
+    Linking.openURL(`https://www.instagram.com/${instagram}`);
+  };
+
+  // Photo handling
+  const handlePhotoOptions = () => {
+    setShowPhotoOptions(true);
+  };
+
+  const handleViewPhoto = () => {
+    setShowPhotoOptions(false);
+    setShowFullscreenPhoto(true);
+  };
+
+  const handleDetailViewPhoto = () => {
+    setShowDetailModal(false);
+    setShowFullscreenPhoto(true);
+  };
+
+  const handleChangePhoto = async () => {
+    setShowPhotoOptions(false);
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        includeBase64: false,
+        maxHeight: 800,
+        maxWidth: 800,
+        quality: 0.8,
+      });
+
+      if (result.assets && result.assets[0]) {
+        // Update the selected student's photo
+        if (selectedStudent) {
+          const updatedStudent = { ...selectedStudent, photoUri: result.assets[0].uri || '' };
+          setSelectedStudent(updatedStudent);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setShowPhotoOptions(false);
+    if (selectedStudent) {
+      const updatedStudent = { ...selectedStudent, photoUri: '' };
+      setSelectedStudent(updatedStudent);
+    }
+  };
+
   const renderStudent = ({ item }: { item: WTStudent }) => (
-    <Card style={styles.card} mode="outlined">
-      <Card.Content>
-        <View style={styles.studentHeader}>
-          <View style={styles.studentPhotoContainer}>
-            {item.photoUri ? (
-              <Image source={{ uri: item.photoUri }} style={styles.studentPhoto} />
-            ) : (
-              <View style={styles.defaultPhoto}>
-                <Ionicons name="person" size={40} color="#666" />
-              </View>
-            )}
+    <TouchableOpacity
+      onPress={() => {
+        setSelectedStudent(item);
+        setShowDetailModal(true);
+      }}
+      onLongPress={() => {
+        setSelectedStudent(item);
+        setShowOptionsModal(true);
+      }}
+      activeOpacity={0.7}
+    >
+      <Card style={styles.card} mode="outlined">
+        <Card.Content style={{ padding: 8 }}>
+          <View style={styles.studentHeader}>
+                            <View style={styles.studentPhotoContainer}>
+                  {item.photoUri ? (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedStudent(item);
+                        setShowFullscreenPhoto(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Image source={{ uri: item.photoUri }} style={styles.studentPhoto} />
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.defaultPhoto}>
+                      <Ionicons name="person" size={24} color="#666" />
+                    </View>
+                  )}
+                </View>
+            <View style={styles.studentInfo}>
+              <Text style={styles.studentName}>{item.name}</Text>
+              {item.phoneNumber && (
+                <Text style={styles.studentDetail}>{item.phoneNumber}</Text>
+              )}
+            </View>
+            <View style={[styles.statusIndicator, { backgroundColor: item.isActive ? '#4CAF50' : '#F44336' }]} />
           </View>
-          <View style={styles.studentInfo}>
-            <Text style={styles.studentName}>{item.name}</Text>
-            <Text style={styles.studentDetail}>{item.phoneNumber}</Text>
-            {item.email && <Text style={styles.studentDetail}>{item.email}</Text>}
-            {item.instagram && <Text style={styles.studentDetail}>@{item.instagram}</Text>}
-            <Chip 
-              mode="outlined" 
-              compact 
-              style={[styles.statusChip, { backgroundColor: item.isActive ? '#4CAF50' : '#F44336' }]}
-            >
-              {item.isActive ? 'Active' : 'Inactive'}
-            </Chip>
-          </View>
-        </View>
-        {item.notes && (
-          <Text style={styles.studentNotes}>{item.notes}</Text>
-        )}
-      </Card.Content>
-      <Card.Actions>
-        <Button onPress={() => {
-          setSelectedStudent(item);
-          setShowEditDialog(true);
-        }}>Edit</Button>
-        <Button onPress={() => handleDeleteStudent(item)}>Delete</Button>
-      </Card.Actions>
-    </Card>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
   );
 
   return (
@@ -191,6 +365,174 @@ const StudentsTab: React.FC = () => {
           onSave={handleUpdateStudent}
         />
       )}
+
+      {/* Detailed Student Modal */}
+      <Portal>
+        <Dialog 
+          visible={showDetailModal} 
+          onDismiss={() => setShowDetailModal(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          <Dialog.Content>
+            {selectedStudent && (
+              <View style={{ alignItems: 'center' }}>
+                {/* Photo */}
+                <TouchableOpacity
+                  onPress={() => {
+                    if (selectedStudent.photoUri) {
+                      setShowFullscreenPhoto(true);
+                    }
+                  }}
+                  style={{ marginBottom: 16 }}
+                >
+                  {selectedStudent.photoUri ? (
+                    <Image source={{ uri: selectedStudent.photoUri }} style={{ width: 100, height: 100, borderRadius: 50 }} />
+                  ) : (
+                    <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="person" size={60} color="#666" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Name */}
+                <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>
+                  {selectedStudent.name}
+                </Text>
+
+                {/* Contact Info */}
+                <View style={{ width: '100%', marginBottom: 20 }}>
+                  {selectedStudent.phoneNumber && (
+                    <Text style={{ marginBottom: 8 }}>Phone: {selectedStudent.phoneNumber}</Text>
+                  )}
+                  {selectedStudent.instagram && (
+                    <Text style={{ marginBottom: 8 }}>Instagram: @{selectedStudent.instagram}</Text>
+                  )}
+                  <Text style={{ marginBottom: 8 }}>
+                    Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
+                  </Text>
+                  <Text style={{ marginBottom: 8 }}>
+                    Registration: Registered
+                  </Text>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+                  {selectedStudent.phoneNumber && (
+                    <TouchableOpacity
+                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#4CAF50', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => handleCall(selectedStudent.phoneNumber!)}
+                    >
+                      <Ionicons name="call" size={24} color="white" />
+                    </TouchableOpacity>
+                  )}
+                  {selectedStudent.phoneNumber && (
+                    <TouchableOpacity
+                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#25D366', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
+                    >
+                      <Ionicons name="logo-whatsapp" size={24} color="white" />
+                    </TouchableOpacity>
+                  )}
+                  {selectedStudent.instagram && (
+                    <TouchableOpacity
+                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#E4405F', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => handleInstagram(selectedStudent.instagram!)}
+                    >
+                      <Ionicons name="logo-instagram" size={24} color="white" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
+
+      {/* Photo Options Dialog */}
+      <Portal>
+        <Dialog 
+          visible={showPhotoOptions} 
+          onDismiss={() => setShowPhotoOptions(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          <Dialog.Title>Photo Options</Dialog.Title>
+          <Dialog.Content>
+            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+              <TouchableOpacity 
+                style={styles.photoOptionButton}
+                onPress={handleViewPhoto}
+              >
+                <Text style={styles.photoOptionText}>View Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.photoOptionButton}
+                onPress={handleChangePhoto}
+              >
+                <Text style={styles.photoOptionText}>Change Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.photoOptionButton}
+                onPress={handleRemovePhoto}
+              >
+                <Text style={[styles.photoOptionText, { color: theme.colors.error }]}>Remove Photo</Text>
+              </TouchableOpacity>
+            </View>
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
+
+      {/* Fullscreen Photo Modal */}
+      <Modal
+        visible={showFullscreenPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullscreenPhoto(false)}
+      >
+        <FullscreenImage uri={selectedStudent?.photoUri || ''} onClose={() => setShowFullscreenPhoto(false)} />
+      </Modal>
+
+      {/* Student Options Modal */}
+      <Portal>
+        <Dialog 
+          visible={showOptionsModal} 
+          onDismiss={() => setShowOptionsModal(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          <Dialog.Title>Student Options</Dialog.Title>
+          <Dialog.Content>
+            <Text>What would you like to do with {selectedStudent?.name}?</Text>
+          </Dialog.Content>
+          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <Button 
+              onPress={() => {
+                setShowOptionsModal(false);
+                setShowEditDialog(true);
+              }}
+              style={{ marginBottom: 8 }}
+            >
+              Edit
+            </Button>
+            <Button 
+              onPress={() => {
+                setShowOptionsModal(false);
+                if (selectedStudent) {
+                  handleDeleteStudent(selectedStudent);
+                }
+              }}
+              textColor="red"
+              style={{ marginBottom: 8 }}
+            >
+              Delete
+            </Button>
+            <Button 
+              onPress={() => setShowOptionsModal(false)}
+              textColor="red"
+            >
+              Cancel
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
@@ -529,6 +871,7 @@ interface AddStudentDialogProps {
 }
 
 const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss, onSave }) => {
+  const theme = useTheme();
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -576,7 +919,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface }}>
         <Dialog.Title>Add Student</Dialog.Title>
         <Dialog.Content>
           <ScrollView>
@@ -597,12 +940,14 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
             <TextInput
               style={styles.input}
               placeholder="Name *"
+              placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
             />
             <TextInput
               style={styles.input}
               placeholder="Phone Number *"
+              placeholderTextColor="#999"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
@@ -610,6 +955,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -617,12 +963,14 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
             <TextInput
               style={styles.input}
               placeholder="Instagram"
+              placeholderTextColor="#999"
               value={instagram}
               onChangeText={setInstagram}
             />
             <TextInput
               style={styles.input}
               placeholder="Notes"
+              placeholderTextColor="#999"
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -632,7 +980,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleSave}>Save</Button>
+          <Button onPress={handleSave}>Add</Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>
@@ -647,6 +995,7 @@ interface EditStudentDialogProps {
 }
 
 const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student, onDismiss, onSave }) => {
+  const theme = useTheme();
   const [name, setName] = useState(student.name);
   const [phoneNumber, setPhoneNumber] = useState(student.phoneNumber || '');
   const [email, setEmail] = useState(student.email || '');
@@ -654,16 +1003,51 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
   const [notes, setNotes] = useState(student.notes || '');
   const [photoUri, setPhotoUri] = useState<string | null>(student.photoUri || null);
   const [isActive, setIsActive] = useState(student.isActive);
+  const [showEditPhotoOptions, setShowEditPhotoOptions] = useState(false);
+  const [showEditFullscreenPhoto, setShowEditFullscreenPhoto] = useState(false);
 
-  const pickImage = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      maxWidth: 500,
-      maxHeight: 500,
-      quality: 0.8,
-    });
+  // Reset form when student changes
+  useEffect(() => {
+    setName(student.name);
+    setPhoneNumber(student.phoneNumber || '');
+    setEmail(student.email || '');
+    setInstagram(student.instagram || '');
+    setNotes(student.notes || '');
+    setPhotoUri(student.photoUri || null);
+    setIsActive(student.isActive);
+  }, [student]);
 
-    setPhotoUri(getSafeUri(result));
+  const handleEditPhotoOptions = () => {
+    setShowEditPhotoOptions(true);
+  };
+
+  const handleEditViewPhoto = () => {
+    setShowEditPhotoOptions(false);
+    setShowEditFullscreenPhoto(true);
+  };
+
+  const handleEditChangePhoto = async () => {
+    setShowEditPhotoOptions(false);
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        includeBase64: false,
+        maxHeight: 800,
+        maxWidth: 800,
+        quality: 0.8,
+      });
+
+      if (result.assets && result.assets[0]) {
+        setPhotoUri(result.assets[0].uri || null);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleEditRemovePhoto = () => {
+    setShowEditPhotoOptions(false);
+    setPhotoUri(null);
   };
 
   const handleSave = () => {
@@ -684,15 +1068,23 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
     });
   };
 
-  return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
+      return (
+      <Portal>
+        <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface }}>
         <Dialog.Title>Edit Student</Dialog.Title>
         <Dialog.Content>
           <ScrollView>
             {/* Photo Section */}
             <View style={styles.photoSection}>
-              <TouchableOpacity onPress={pickImage} style={styles.photoButton}>
+              <TouchableOpacity 
+                onPress={() => {
+                  if (photoUri) {
+                    setShowEditFullscreenPhoto(true);
+                  }
+                }}
+                onLongPress={handleEditPhotoOptions}
+                style={styles.photoButton}
+              >
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} style={styles.photoPreview} />
                 ) : (
@@ -702,17 +1094,22 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
                   </View>
                 )}
               </TouchableOpacity>
+              <Text style={styles.photoHint}>
+                {photoUri ? 'Tap to view, long press for options' : 'Tap to add photo'}
+              </Text>
             </View>
 
             <TextInput
               style={styles.input}
               placeholder="Name *"
+              placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
             />
             <TextInput
               style={styles.input}
               placeholder="Phone Number *"
+              placeholderTextColor="#999"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
@@ -720,6 +1117,7 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -727,17 +1125,28 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
             <TextInput
               style={styles.input}
               placeholder="Instagram"
+              placeholderTextColor="#999"
               value={instagram}
               onChangeText={setInstagram}
             />
             <TextInput
               style={styles.input}
               placeholder="Notes"
+              placeholderTextColor="#999"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={3}
             />
+            
+            {/* Active Status */}
+            <View style={styles.switchContainer}>
+              <Text style={styles.switchLabel}>Active</Text>
+              <Switch
+                value={isActive}
+                onValueChange={setIsActive}
+              />
+            </View>
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
@@ -745,6 +1154,47 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
           <Button onPress={handleSave}>Save</Button>
         </Dialog.Actions>
       </Dialog>
+
+      {/* Edit Photo Options Dialog */}
+      <Dialog 
+        visible={showEditPhotoOptions} 
+        onDismiss={() => setShowEditPhotoOptions(false)}
+        style={{ backgroundColor: theme.colors.surface }}
+      >
+        <Dialog.Title>Photo Options</Dialog.Title>
+        <Dialog.Content>
+          <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+            <TouchableOpacity 
+              style={styles.photoOptionButton}
+              onPress={handleEditViewPhoto}
+            >
+              <Text style={styles.photoOptionText}>View Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.photoOptionButton}
+              onPress={handleEditChangePhoto}
+            >
+              <Text style={styles.photoOptionText}>Change Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.photoOptionButton}
+              onPress={handleEditRemovePhoto}
+            >
+              <Text style={[styles.photoOptionText, { color: theme.colors.error }]}>Remove Photo</Text>
+            </TouchableOpacity>
+          </View>
+        </Dialog.Content>
+      </Dialog>
+
+      {/* Edit Fullscreen Photo Modal */}
+      <Modal
+        visible={showEditFullscreenPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowEditFullscreenPhoto(false)}
+      >
+                 <FullscreenImage uri={photoUri || ''} onClose={() => setShowEditFullscreenPhoto(false)} />
+      </Modal>
     </Portal>
   );
 };
@@ -996,8 +1446,33 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
 };
 
 export function WTRegistryScreen() {
+  const theme = useTheme();
+  
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: string;
+
+          if (route.name === 'Students') {
+            iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Register') {
+            iconName = focused ? 'create' : 'create-outline';
+          } else if (route.name === 'Lessons') {
+            iconName = focused ? 'time' : 'time-outline';
+          } else if (route.name === 'Seminars') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
+          } else {
+            iconName = 'help-outline';
+          }
+
+          return <Ionicons name={iconName as any} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceDisabled,
+        headerShown: false,
+      })}
+    >
       <Tab.Screen name="Students" component={StudentsTab} />
       <Tab.Screen name="Register" component={RegisterTab} />
       <Tab.Screen name="Lessons" component={LessonsTab} />
@@ -1012,7 +1487,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   card: {
-    margin: 8,
+    margin: 4,
+    marginBottom: 2,
     elevation: 4,
   },
   emptyState: {
@@ -1042,25 +1518,27 @@ const styles = StyleSheet.create({
   studentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   studentPhotoContainer: {
     marginRight: 16,
   },
   studentPhoto: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   defaultPhoto: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   studentInfo: {
     flex: 1,
+    marginRight: 8,
   },
   studentName: {
     fontSize: 18,
@@ -1081,6 +1559,12 @@ const styles = StyleSheet.create({
   statusChip: {
     alignSelf: 'flex-start',
     marginTop: 4,
+  },
+  statusIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginLeft: 8,
   },
   // Registration styles
   registrationHeader: {
@@ -1197,6 +1681,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#666',
+  },
+  photoHint: {
+    color: '#666',
+    fontStyle: 'italic',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  switchLabel: {
+    fontSize: 16,
+    color: '#333',
+  },
+  photoOptionButton: {
+    width: '100%',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  photoOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   attachmentSection: {
     marginBottom: 16,
