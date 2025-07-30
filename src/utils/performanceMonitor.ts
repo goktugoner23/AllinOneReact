@@ -1,318 +1,104 @@
-/**
- * Performance monitoring utility
- * Following performance guidelines for tracking and optimization
- */
+import { logger } from './logger';
 
-interface PerformanceMetrics {
-  name: string;
-  duration: number;
-  timestamp: number;
-  type: "async" | "sync";
-  memoryUsage?: number;
-  context?: string;
+interface PerformanceMetric {
+  operation: string;
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  success?: boolean;
+  error?: string;
 }
 
 class PerformanceMonitor {
-  private static metrics: PerformanceMetrics[] = [];
-  private static readonly MAX_METRICS = 100; // Keep only last 100 metrics
+  private static instance: PerformanceMonitor;
+  private metrics: Map<string, PerformanceMetric> = new Map();
+  private isEnabled = __DEV__; // Only enable in development
+
+  private constructor() {}
+
+  static getInstance(): PerformanceMonitor {
+    if (!PerformanceMonitor.instance) {
+      PerformanceMonitor.instance = new PerformanceMonitor();
+    }
+    return PerformanceMonitor.instance;
+  }
 
   /**
-   * Measure async operations
+   * Start timing an operation
    */
-  static async measureAsyncOperation<T>(
-    name: string,
-    operation: () => Promise<T>,
-    context?: string,
-  ): Promise<T> {
-    const startTime = performance.now();
-    const startMemory = this.getMemoryUsage();
+  startTimer(operation: string): void {
+    if (!this.isEnabled) return;
 
-    try {
-      const result = await operation();
-      const duration = performance.now() - startTime;
-      const endMemory = this.getMemoryUsage();
+    this.metrics.set(operation, {
+      operation,
+      startTime: performance.now(),
+    });
 
-      this.recordMetric({
-        name,
-        duration,
-        timestamp: Date.now(),
-        type: "async",
-        memoryUsage: endMemory - startMemory,
-        context,
-      });
+    logger.debug(`Performance: Started timing ${operation}`, {}, 'PerformanceMonitor');
+  }
 
-      if (__DEV__) {
-        console.log(`⚡ ${name} completed in ${duration.toFixed(2)}ms`);
-        if (endMemory - startMemory > 0) {
-          console.log(
-            `💾 Memory delta: ${((endMemory - startMemory) / 1024 / 1024).toFixed(2)}MB`,
-          );
-        }
-      }
+  /**
+   * End timing an operation
+   */
+  endTimer(operation: string, success: boolean = true, error?: string): void {
+    if (!this.isEnabled) return;
 
-      // Report to analytics in production
-      if (!__DEV__ && this.shouldReportMetric(duration)) {
-        this.reportToAnalytics(name, duration, context);
-      }
+    const metric = this.metrics.get(operation);
+    if (!metric) {
+      logger.warn(`Performance: No timer found for operation ${operation}`, {}, 'PerformanceMonitor');
+      return;
+    }
 
-      return result;
-    } catch (error) {
-      const duration = performance.now() - startTime;
+    metric.endTime = performance.now();
+    metric.duration = metric.endTime - metric.startTime;
+    metric.success = success;
+    metric.error = error;
 
-      if (__DEV__) {
-        console.error(
-          `❌ ${name} failed after ${duration.toFixed(2)}ms:`,
-          error,
-        );
-      }
+    logger.debug(`Performance: ${operation} completed in ${metric.duration.toFixed(2)}ms`, {
+      duration: metric.duration,
+      success,
+      error,
+    }, 'PerformanceMonitor');
 
-      this.recordMetric({
-        name: `${name}_error`,
-        duration,
-        timestamp: Date.now(),
-        type: "async",
-        context: `Error: ${(error as Error).message}`,
-      });
-
-      throw error;
+    // Log warning for slow operations
+    if (metric.duration > 1000) {
+      logger.warn(`Performance: Slow operation detected - ${operation} took ${metric.duration.toFixed(2)}ms`, {
+        duration: metric.duration,
+      }, 'PerformanceMonitor');
     }
   }
 
   /**
-   * Measure synchronous operations
+   * Get performance metrics
    */
-  static measureSyncOperation<T>(
-    name: string,
-    operation: () => T,
-    context?: string,
-  ): T {
-    const startTime = performance.now();
-    const startMemory = this.getMemoryUsage();
-
-    try {
-      const result = operation();
-      const duration = performance.now() - startTime;
-      const endMemory = this.getMemoryUsage();
-
-      this.recordMetric({
-        name,
-        duration,
-        timestamp: Date.now(),
-        type: "sync",
-        memoryUsage: endMemory - startMemory,
-        context,
-      });
-
-      if (__DEV__ && duration > 16) {
-        // Warn if blocking for more than one frame
-        console.warn(
-          `🐌 ${name} blocked JS thread for ${duration.toFixed(2)}ms`,
-        );
-      }
-
-      return result;
-    } catch (error) {
-      const duration = performance.now() - startTime;
-
-      if (__DEV__) {
-        console.error(
-          `❌ ${name} failed after ${duration.toFixed(2)}ms:`,
-          error,
-        );
-      }
-
-      this.recordMetric({
-        name: `${name}_error`,
-        duration,
-        timestamp: Date.now(),
-        type: "sync",
-        context: `Error: ${(error as Error).message}`,
-      });
-
-      throw error;
-    }
-  }
-
-  /**
-   * Start a manual timing measurement
-   */
-  static startTiming(name: string): () => void {
-    const startTime = performance.now();
-    const startMemory = this.getMemoryUsage();
-
-    return () => {
-      const duration = performance.now() - startTime;
-      const endMemory = this.getMemoryUsage();
-
-      this.recordMetric({
-        name,
-        duration,
-        timestamp: Date.now(),
-        type: "async",
-        memoryUsage: endMemory - startMemory,
-      });
-
-      if (__DEV__) {
-        console.log(`⏱️ ${name}: ${duration.toFixed(2)}ms`);
-      }
-    };
-  }
-
-  /**
-   * Get current memory usage
-   */
-  private static getMemoryUsage(): number {
-    if (typeof performance !== "undefined" && (performance as any).memory) {
-      return (performance as any).memory.usedJSHeapSize || 0;
-    }
-    return 0;
-  }
-
-  /**
-   * Record performance metric
-   */
-  private static recordMetric(metric: PerformanceMetrics): void {
-    this.metrics.push(metric);
-
-    // Keep only the last MAX_METRICS entries
-    if (this.metrics.length > this.MAX_METRICS) {
-      this.metrics = this.metrics.slice(-this.MAX_METRICS);
-    }
-  }
-
-  /**
-   * Check if metric should be reported to analytics
-   */
-  private static shouldReportMetric(duration: number): boolean {
-    // Report slow operations (> 1 second) or random sampling
-    return duration > 1000 || Math.random() < 0.01; // 1% sampling
-  }
-
-  /**
-   * Report metric to analytics service
-   */
-  private static reportToAnalytics(
-    name: string,
-    duration: number,
-    context?: string,
-  ): void {
-    // In a real app, you would send this to your analytics service
-    // Example: Firebase Analytics, Crashlytics, etc.
-    try {
-      // Example implementation:
-      // analytics.time(name, duration, { context });
-      console.log("Analytics:", { name, duration, context });
-    } catch (error) {
-      console.error("Failed to report analytics:", error);
-    }
-  }
-
-  /**
-   * Get performance summary
-   */
-  static getPerformanceSummary(): {
-    averageAsyncDuration: number;
-    averageSyncDuration: number;
-    slowestOperations: PerformanceMetrics[];
-    totalMemoryUsage: number;
-    operationCounts: Record<string, number>;
-  } {
-    const asyncMetrics = this.metrics.filter((m) => m.type === "async");
-    const syncMetrics = this.metrics.filter((m) => m.type === "sync");
-
-    const averageAsyncDuration =
-      asyncMetrics.length > 0
-        ? asyncMetrics.reduce((sum, m) => sum + m.duration, 0) /
-          asyncMetrics.length
-        : 0;
-
-    const averageSyncDuration =
-      syncMetrics.length > 0
-        ? syncMetrics.reduce((sum, m) => sum + m.duration, 0) /
-          syncMetrics.length
-        : 0;
-
-    const slowestOperations = [...this.metrics]
-      .sort((a, b) => b.duration - a.duration)
-      .slice(0, 10);
-
-    const totalMemoryUsage = this.metrics.reduce(
-      (sum, m) => sum + (m.memoryUsage || 0),
-      0,
-    );
-
-    const operationCounts = this.metrics.reduce(
-      (counts, m) => {
-        counts[m.name] = (counts[m.name] || 0) + 1;
-        return counts;
-      },
-      {} as Record<string, number>,
-    );
-
-    return {
-      averageAsyncDuration,
-      averageSyncDuration,
-      slowestOperations,
-      totalMemoryUsage,
-      operationCounts,
-    };
+  getMetrics(): PerformanceMetric[] {
+    return Array.from(this.metrics.values());
   }
 
   /**
    * Clear all metrics
    */
-  static clearMetrics(): void {
-    this.metrics = [];
+  clearMetrics(): void {
+    this.metrics.clear();
   }
 
   /**
-   * Log performance summary to console
+   * Get average duration for an operation
    */
-  static logSummary(): void {
-    if (!__DEV__) return;
+  getAverageDuration(operation: string): number {
+    const metrics = this.getMetrics().filter(m => m.operation === operation && m.duration);
+    if (metrics.length === 0) return 0;
 
-    const summary = this.getPerformanceSummary();
+    const totalDuration = metrics.reduce((sum, m) => sum + (m.duration || 0), 0);
+    return totalDuration / metrics.length;
+  }
 
-    console.group("📊 Performance Summary");
-    console.log(
-      `Average Async Duration: ${summary.averageAsyncDuration.toFixed(2)}ms`,
-    );
-    console.log(
-      `Average Sync Duration: ${summary.averageSyncDuration.toFixed(2)}ms`,
-    );
-    console.log(
-      `Total Memory Usage: ${(summary.totalMemoryUsage / 1024 / 1024).toFixed(2)}MB`,
-    );
-    console.log("Operation Counts:", summary.operationCounts);
-    console.log("Slowest Operations:", summary.slowestOperations.slice(0, 5));
-    console.groupEnd();
+  /**
+   * Enable/disable performance monitoring
+   */
+  setEnabled(enabled: boolean): void {
+    this.isEnabled = enabled;
   }
 }
 
-// Custom hook for component performance monitoring
-export const usePerformanceMonitor = (componentName: string) => {
-  const measureRender = (renderName?: string) => {
-    return PerformanceMonitor.startTiming(
-      `${componentName}_${renderName || "render"}`,
-    );
-  };
-
-  const measureAsyncAction = async <T>(
-    actionName: string,
-    action: () => Promise<T>,
-  ): Promise<T> => {
-    return PerformanceMonitor.measureAsyncOperation(
-      `${componentName}_${actionName}`,
-      action,
-      componentName,
-    );
-  };
-
-  return {
-    measureRender,
-    measureAsyncAction,
-  };
-};
-
-// Export the performance monitor
-export { PerformanceMonitor };
+export default PerformanceMonitor;

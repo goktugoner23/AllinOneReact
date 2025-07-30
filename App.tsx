@@ -36,6 +36,9 @@ import {
 // Initialize Firebase
 import './src/config/firebase';
 
+// Initialize balance preloader
+import BalancePreloader from './src/services/BalancePreloader';
+
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -107,6 +110,12 @@ function CustomDrawerContent(props: CustomDrawerContentProps) {
 export default function App() {
   const [dark, setDark] = useState(false);
   const theme = useMemo(() => (dark ? MD3DarkTheme : MD3LightTheme), [dark]);
+
+  // Start balance preloader when app launches
+  React.useEffect(() => {
+    const preloader = BalancePreloader.getInstance();
+    preloader.preloadBalance().catch(console.error);
+  }, []);
 
   return (
     <Provider store={store}>
