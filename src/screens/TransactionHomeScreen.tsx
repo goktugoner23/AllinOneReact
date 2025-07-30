@@ -8,20 +8,22 @@ import {
   Button,
   Alert,
 } from "react-native";
-import { fetchTransactions, deleteTransaction } from "../data/transactions";
+import { fetchTransactions } from "../data/transactions";
+import { TransactionService } from "../data/transactionService";
 import { Transaction } from "../types/Transaction";
 import { BalanceCard } from "../components/BalanceCard";
 import { TransactionCard } from "../components/TransactionCard";
 import { TransactionForm } from "../components/TransactionForm";
 import { SpendingPieChart } from "../components/SpendingPieChart";
 import { logger } from "../utils/logger";
+import { useBalance } from "../store/balanceHooks";
 
 const PAGE_SIZE = 5;
 
 type ListItem =
   | {
       type: "balance";
-      data: { totalIncome: number; totalExpense: number; balance: number };
+      data: { showLoading?: boolean };
     }
   | { type: "chart"; data: { transactions: Transaction[] } }
   | { type: "form"; data: { onTransactionAdded: () => void } }
@@ -48,6 +50,9 @@ export const TransactionHomeScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
 
+  // Use the new balance system
+  const { refreshBalance, updateBalance, markStale } = useBalance();
+
   // Force refresh transactions when this screen is first displayed (like Kotlin app)
   useEffect(() => {
     forceRefreshTransactions();
@@ -64,6 +69,10 @@ export const TransactionHomeScreen: React.FC = () => {
       );
       setTransactions(sortedTransactions);
       setCurrentPage(0);
+      
+      // Update balance after refreshing transactions
+      refreshBalance();
+      
       logger.debug(
         "Force refresh completed",
         { count: sortedTransactions.length },
@@ -79,7 +88,7 @@ export const TransactionHomeScreen: React.FC = () => {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [refreshBalance]);
 
   const loadTransactions = useCallback(async () => {
     await forceRefreshTransactions();
@@ -95,7 +104,8 @@ export const TransactionHomeScreen: React.FC = () => {
       ? transactions.slice(startIndex, endIndex)
       : [];
 
-  // Balance calculation - updated to use isIncome field
+  // Balance calculation - now handled by Redux store with caching
+  // These are fallback calculations if Redux store is not available
   const totalIncome = transactions
     .filter((t) => t.isIncome)
     .reduce((sum, t) => sum + t.amount, 0);
@@ -115,7 +125,7 @@ export const TransactionHomeScreen: React.FC = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteTransaction(transaction.id);
+              await TransactionService.deleteTransaction(transaction.id);
               await forceRefreshTransactions(); // Force refresh like Kotlin app
             } catch (error) {
               logger.error(
@@ -132,6 +142,8 @@ export const TransactionHomeScreen: React.FC = () => {
   };
 
   const handleTransactionAdded = () => {
+    // Mark balance as stale when new transaction is added
+    markStale();
     // Force refresh like Kotlin app to ensure UI consistency
     forceRefreshTransactions();
   };
@@ -149,7 +161,7 @@ export const TransactionHomeScreen: React.FC = () => {
   };
 
   const listData: ListItem[] = [
-    { type: "balance", data: { totalIncome, totalExpense, balance } },
+    { type: "balance", data: { showLoading: refreshing } },
     { type: "chart", data: { transactions } },
     { type: "form", data: { onTransactionAdded: handleTransactionAdded } },
     { type: "transactions-header", data: {} },
@@ -182,9 +194,7 @@ export const TransactionHomeScreen: React.FC = () => {
             case "balance":
               return (
                 <BalanceCard
-                  totalIncome={item.data.totalIncome}
-                  totalExpense={item.data.totalExpense}
-                  balance={item.data.balance}
+                  showLoading={item.data.showLoading}
                 />
               );
             case "chart":

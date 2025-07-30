@@ -1,17 +1,37 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useBalance } from '../store/balanceHooks';
 
 interface BalanceCardProps {
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
+  totalIncome?: number;
+  totalExpense?: number;
+  balance?: number;
+  showLoading?: boolean;
 }
 
 export const BalanceCard: React.FC<BalanceCardProps> = ({
-  totalIncome,
-  totalExpense,
-  balance,
+  totalIncome: propTotalIncome,
+  totalExpense: propTotalExpense,
+  balance: propBalance,
+  showLoading = false,
 }) => {
+  // Use cached balance from Redux store
+  const {
+    totalIncome: cachedIncome,
+    totalExpense: cachedExpense,
+    balance: cachedBalance,
+    isLoading,
+    isStale,
+    lastUpdated,
+  } = useBalance();
+
+  // Use props if provided (for backward compatibility), otherwise use cached values
+  const totalIncome = propTotalIncome ?? cachedIncome;
+  const totalExpense = propTotalExpense ?? cachedExpense;
+  const balance = propBalance ?? cachedBalance;
+
+  // Show loading indicator if explicitly requested or if balance is loading
+  const shouldShowLoading = showLoading || isLoading;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -21,27 +41,44 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Balance Overview</Text>
-      
-      <View style={styles.balanceRow}>
-        <BalanceItem
-          label="Income"
-          amount={totalIncome}
-          color="#4CAF50"
-        />
-        
-        <BalanceItem
-          label="Expense"
-          amount={totalExpense}
-          color="#F44336"
-        />
-        
-        <BalanceItem
-          label="Balance"
-          amount={balance}
-          color={balance >= 0 ? '#4CAF50' : '#F44336'}
-        />
+      <View style={styles.header}>
+        <Text style={styles.title}>Balance Overview</Text>
+        {isStale && (
+          <Text style={styles.staleIndicator}>⚠️ Stale</Text>
+        )}
+        {lastUpdated && (
+          <Text style={styles.lastUpdated}>
+            Updated: {new Date(lastUpdated).toLocaleTimeString()}
+          </Text>
+        )}
       </View>
+      
+      {shouldShowLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>Loading balance...</Text>
+        </View>
+      ) : (
+        <View style={styles.balanceRow}>
+          <BalanceItem
+            label="Income"
+            amount={totalIncome}
+            color="#4CAF50"
+          />
+          
+          <BalanceItem
+            label="Expense"
+            amount={totalExpense}
+            color="#F44336"
+          />
+          
+          <BalanceItem
+            label="Balance"
+            amount={balance}
+            color={balance >= 0 ? '#4CAF50' : '#F44336'}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -82,11 +119,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
     color: '#333',
+    flex: 1,
+  },
+  staleIndicator: {
+    fontSize: 12,
+    color: '#FF9800',
+    fontWeight: 'bold',
+  },
+  lastUpdated: {
+    fontSize: 10,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
   },
   balanceRow: {
     flexDirection: 'row',

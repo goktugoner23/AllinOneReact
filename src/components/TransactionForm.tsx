@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { TransactionCategories } from "../config/TransactionCategories";
-import { addTransaction } from "../data/transactions";
+import { TransactionService } from "../data/transactionService";
 import { YinYangIcon } from "./YinYangIcon";
 import { logger } from "../utils/logger";
 
@@ -53,7 +53,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await addTransaction({
+      await TransactionService.addTransaction({
         amount: amountValue,
         type: selectedCategory,
         description: description.trim() || "", // Handle empty description like Kotlin app
