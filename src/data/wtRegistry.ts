@@ -2,7 +2,7 @@ import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Tim
 import { getDb, getDeviceId } from './firebase';
 import { firebaseIdManager } from './firebaseIdManager';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '../types/WTRegistry';
-
+import { addTransaction, fetchTransactions, deleteTransaction } from './transactions';
 
 
 // Students
@@ -200,6 +200,51 @@ export async function deleteRegistration(registrationId: number): Promise<void> 
   } catch (error) {
     console.error('Error deleting registration:', error);
     throw error;
+  }
+}
+
+export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, 'id'>, isPaid: boolean) {
+  const db = getDb();
+  const deviceId = await getDeviceId();
+  // Get next registration ID
+  const regId = await firebaseIdManager.getNextId('registrations');
+  const registration: WTRegistration = {
+    ...reg,
+    id: regId,
+    deviceId,
+  };
+  // Save registration
+  await setDoc(doc(db, 'registrations', regId.toString()), {
+    ...registration,
+    startDate: registration.startDate instanceof Date ? Timestamp.fromDate(registration.startDate) : registration.startDate,
+    endDate: registration.endDate instanceof Date ? Timestamp.fromDate(registration.endDate) : registration.endDate,
+    paymentDate: registration.paymentDate instanceof Date ? Timestamp.fromDate(registration.paymentDate) : registration.paymentDate,
+  });
+  // If paid, add a transaction
+  if (isPaid && registration.amount > 0) {
+    const txId = await firebaseIdManager.getNextId('transactions');
+    await addTransaction({
+      id: txId.toString(),
+      amount: registration.amount,
+      type: 'Registration',
+      description: 'Course Registration',
+      isIncome: true,
+      date: new Date().toISOString(),
+      category: 'Wing Tzun',
+      relatedRegistrationId: regId,
+    });
+  }
+}
+
+export async function deleteRegistrationWithTransactions(registrationId: number) {
+  const db = getDb();
+  // Delete registration
+  await deleteDoc(doc(db, 'registrations', registrationId.toString()));
+  // Delete all transactions with relatedRegistrationId == registrationId
+  const transactions = await fetchTransactions();
+  const related = transactions.filter(t => t.relatedRegistrationId === registrationId);
+  for (const tx of related) {
+    await deleteTransaction(tx.id);
   }
 }
 
