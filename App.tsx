@@ -50,6 +50,7 @@ function TransactionsDashboard() {
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
+        headerShown: false,
         tabBarIcon: ({ color, size }) => {
           let iconName = '';
           if (route.name === 'Home') {
@@ -225,16 +226,6 @@ export default function App() {
                 }}
               />
               <Drawer.Screen
-                name="History"
-                component={HistoryScreen}
-                options={{
-                  title: 'History',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="time-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
                 name="WT Registry"
                 component={WTRegistryScreen}
                 options={{
@@ -251,6 +242,16 @@ export default function App() {
                   title: 'Calendar',
                   drawerIcon: ({ color, size }) => (
                     <Ionicons name="calendar-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="History"
+                component={HistoryScreen}
+                options={{
+                  title: 'History',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="time-outline" size={size} color={color} />
                   ),
                 }}
               />
