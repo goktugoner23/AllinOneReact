@@ -34,15 +34,20 @@ export const getDeviceId = async (): Promise<string> => {
       deviceId = `device_${timestamp}_${modelHash}`;
       await AsyncStorage.setItem("device_id", deviceId);
       logger.debug("Generated new device ID", { deviceId }, "getDeviceId");
+      console.log("🆔 Generated new device ID:", deviceId);
     } else {
       logger.debug("Using existing device ID", { deviceId }, "getDeviceId");
+      console.log("🆔 Using existing device ID:", deviceId);
     }
     return deviceId;
   } catch (error) {
     logger.error("Error getting device ID", error, "getDeviceId");
+    console.error("❌ Error getting device ID:", error);
     // Fallback device ID matching Kotlin format
     const timestamp = Date.now();
-    return `device_${timestamp}`;
+    const fallbackId = `device_${timestamp}`;
+    console.log("🆔 Using fallback device ID:", fallbackId);
+    return fallbackId;
   }
 };
 

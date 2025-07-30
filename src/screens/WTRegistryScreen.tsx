@@ -48,6 +48,7 @@ const StudentsTab: React.FC = () => {
       setStudents(data);
     } catch (error) {
       console.error('Error loading students:', error);
+      Alert.alert('Error', `Failed to load students: ${error.message}`);
     }
   };
 

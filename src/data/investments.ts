@@ -1,5 +1,5 @@
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
-import { getDb, getDeviceId } from './firebase';
+import { getDb } from './firebase';
 import { firebaseIdManager } from './firebaseIdManager';
 import { Investment } from '../types/Investment';
 
@@ -70,7 +70,6 @@ export async function fetchInvestments(): Promise<Investment[]> {
 export async function addInvestment(investment: Omit<Investment, 'id'>): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     const investmentId = await firebaseIdManager.getNextId('investments');
     
     const investmentData = {
@@ -84,7 +83,6 @@ export async function addInvestment(investment: Omit<Investment, 'id'>): Promise
       isPast: investment.isPast,
       profitLoss: investment.profitLoss,
       currentValue: investment.currentValue,
-      deviceId: deviceId
     };
     
     await setDoc(doc(db, 'investments', investmentId.toString()), investmentData);
@@ -97,7 +95,6 @@ export async function addInvestment(investment: Omit<Investment, 'id'>): Promise
 export async function updateInvestment(investment: Investment): Promise<void> {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
 
     const investmentData = {
       id: parseInt(investment.id),
@@ -110,7 +107,6 @@ export async function updateInvestment(investment: Investment): Promise<void> {
       isPast: investment.isPast || false,
       profitLoss: investment.profitLoss || 0,
       currentValue: investment.currentValue || investment.amount,
-      deviceId: deviceId
     };
 
     await setDoc(doc(db, 'investments', investment.id), investmentData);
