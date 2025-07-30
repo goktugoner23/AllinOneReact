@@ -1,5 +1,5 @@
-import { store } from '../store';
-import { updateBalanceIncrementally, markStale } from '../store/balanceSlice';
+import store from '../store';
+import { updateBalanceIncrementally, setStale } from '../store/balanceSlice';
 import { addTransaction as addTransactionToFirebase, deleteTransaction as deleteTransactionFromFirebase, updateTransaction as updateTransactionInFirebase } from './transactions';
 import { Transaction } from '../types';
 import { logger } from '../utils/logger';
@@ -23,7 +23,7 @@ export class TransactionService {
       };
       
       // Mark balance as stale and update incrementally
-      store.dispatch(markStale());
+      store.dispatch(setStale());
       store.dispatch(updateBalanceIncrementally(newTransaction));
       
       logger.debug('Transaction added and balance updated', {
@@ -64,7 +64,7 @@ export class TransactionService {
         };
         
         // Mark balance as stale and update incrementally
-        store.dispatch(markStale());
+        store.dispatch(setStale());
         store.dispatch(updateBalanceIncrementally(balanceUpdateTransaction));
       }
       
@@ -98,7 +98,7 @@ export class TransactionService {
         };
         
         // Mark balance as stale and update incrementally
-        store.dispatch(markStale());
+        store.dispatch(setStale());
         store.dispatch(updateBalanceIncrementally(reverseTransaction));
         
         logger.debug('Transaction deleted and balance updated', {

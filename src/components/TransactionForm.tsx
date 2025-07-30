@@ -70,12 +70,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
       // Notify parent to refresh transactions
       onTransactionAdded();
-
-      // Success message like Kotlin app
-      Alert.alert(
-        "Success",
-        `${isIncome ? "Income" : "Expense"} added successfully`,
-      );
     } catch (error) {
       logger.error("Error adding transaction", error, "TransactionForm");
       Alert.alert("Error", "Failed to add transaction");
