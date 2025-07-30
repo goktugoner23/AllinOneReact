@@ -16,6 +16,7 @@ import { HistoryItem, HistoryItemType } from '../types/HistoryItem';
 import { Transaction } from '../types/Transaction';
 import { WTRegistration, WTStudent } from '../types/WTRegistry';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAppTheme } from '../App';
 
 const FILTERS: { label: string; type: HistoryItemType }[] = [
   { label: 'Income', type: 'TRANSACTION_INCOME' },
@@ -63,6 +64,7 @@ function investmentToHistoryItem(inv: any): HistoryItem {
 }
 
 export const HistoryScreen: React.FC = () => {
+  const { theme } = useAppTheme();
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<HistoryItemType[]>([]);
@@ -150,9 +152,9 @@ export const HistoryScreen: React.FC = () => {
 
   const renderItem = ({ item }: { item: HistoryItem }) => (
     <TouchableOpacity onLongPress={() => handleDelete(item)} activeOpacity={0.9}>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.card }]}>
         <View style={styles.cardHeader}>
-          <View style={styles.iconCircle}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.chip }]}>
             <MaterialIcons
               name={
                 item.itemType === 'TRANSACTION_INCOME'
@@ -166,30 +168,30 @@ export const HistoryScreen: React.FC = () => {
               size={24}
               color={
                 item.itemType === 'TRANSACTION_INCOME'
-                  ? '#4CAF50'
+                  ? theme.income
                   : item.itemType === 'TRANSACTION_EXPENSE'
-                  ? '#F44336'
+                  ? theme.expense
                   : item.itemType === 'INVESTMENT'
-                  ? '#FF9800'
-                  : '#2196F3'
+                  ? theme.investment
+                  : theme.registration
               }
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.description}>{item.description}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{item.title}</Text>
+            <Text style={[styles.description, { color: theme.text }]}>{item.description}</Text>
           </View>
           {item.amount !== undefined && (
             <Text
               style={[
                 styles.amount,
                 item.itemType === 'TRANSACTION_INCOME'
-                  ? styles.income
+                  ? { color: theme.income }
                   : item.itemType === 'TRANSACTION_EXPENSE'
-                  ? styles.expense
+                  ? { color: theme.expense }
                   : item.itemType === 'INVESTMENT'
-                  ? styles.investment
-                  : styles.registration,
+                  ? { color: theme.investment }
+                  : { color: theme.registration },
               ]}
             >
               {item.amount.toLocaleString(undefined, {
@@ -200,29 +202,30 @@ export const HistoryScreen: React.FC = () => {
             </Text>
           )}
         </View>
-        <Text style={styles.date}>{new Date(item.date).toLocaleString()}</Text>
+        <Text style={[styles.date, { color: theme.placeholder }]}>{new Date(item.date).toLocaleString()}</Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Top Bar */}
-      <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>History</Text>
+      <View style={[styles.topBar, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
+        <Text style={[styles.topBarTitle, { color: theme.text }]}>History</Text>
       </View>
       {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <MaterialIcons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
+      <View style={[styles.searchBar, { backgroundColor: theme.searchBar }]}>
+        <MaterialIcons name="search" size={20} color={theme.placeholder} style={{ marginRight: 8 }} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.text }]}
           placeholder="Search history..."
+          placeholderTextColor={theme.placeholder}
           value={search}
           onChangeText={setSearch}
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <MaterialIcons name="close" size={20} color="#888" />
+            <MaterialIcons name="close" size={20} color={theme.placeholder} />
           </TouchableOpacity>
         )}
       </View>
@@ -231,10 +234,10 @@ export const HistoryScreen: React.FC = () => {
         {FILTERS.map(f => (
           <TouchableOpacity
             key={f.type}
-            style={[styles.chip, selectedFilters.includes(f.type) && styles.chipSelected]}
+            style={[styles.chip, { backgroundColor: selectedFilters.includes(f.type) ? theme.primary : theme.chip }]}
             onPress={() => toggleFilter(f.type)}
           >
-            <Text style={[styles.chipText, selectedFilters.includes(f.type) && styles.chipTextSelected]}>
+            <Text style={[styles.chipText, { color: selectedFilters.includes(f.type) ? theme.onPrimary : theme.chipText }]}>
               {f.label}
             </Text>
           </TouchableOpacity>
@@ -248,8 +251,8 @@ export const HistoryScreen: React.FC = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadHistory} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialIcons name="history" size={64} color="#bbb" />
-            <Text style={styles.emptyText}>No history yet</Text>
+            <MaterialIcons name="history" size={64} color={theme.divider} />
+            <Text style={[styles.emptyText, { color: theme.divider }]}>No history yet</Text>
           </View>
         }
         contentContainerStyle={{ flexGrow: 1 }}
