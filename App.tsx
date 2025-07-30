@@ -22,6 +22,7 @@ import { InvestmentsScreen } from './src/screens/InvestmentsScreen';
 import { ReportsScreen } from './src/screens/ReportsScreen';
 import { WTRegistryScreen } from './src/screens/WTRegistryScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
+import { HistoryScreen } from './src/screens/HistoryScreen';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -153,8 +154,18 @@ export default function App() {
                 ),
               }}
             />
-            <Drawer.Screen 
-              name="WT Registry" 
+            <Drawer.Screen
+              name="History"
+              component={HistoryScreen}
+              options={{
+                title: 'History',
+                drawerIcon: ({ color, size }) => (
+                  <Ionicons name="time-outline" size={size} color={color} />
+                ),
+              }}
+            />
+            <Drawer.Screen
+              name="WT Registry"
               component={WTRegistryScreen}
               options={{
                 title: 'WT Registry',
@@ -163,8 +174,8 @@ export default function App() {
                 ),
               }}
             />
-            <Drawer.Screen 
-              name="Calendar" 
+            <Drawer.Screen
+              name="Calendar"
               component={CalendarScreen}
               options={{
                 title: 'Calendar',
