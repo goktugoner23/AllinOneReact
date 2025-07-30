@@ -29,7 +29,9 @@ export async function addTransaction(
       isIncome: transaction.isIncome,
       date: transaction.date,
       category: transaction.category,
-      relatedRegistrationId: transaction.relatedRegistrationId,
+      ...(transaction.relatedRegistrationId !== undefined && {
+        relatedRegistrationId: transaction.relatedRegistrationId,
+      }),
     };
 
     await setDoc(
