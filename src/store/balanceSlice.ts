@@ -78,20 +78,47 @@ export const calculateBalance = createAsyncThunk(
     performanceMonitor.startTimer('calculateBalance');
     
     try {
+      // Check if we have cached data that's not stale
+      const state = getState() as { balance: BalanceState };
+      const currentBalance = state.balance;
+      
+      // If we have recent cached data and it's not stale, use it
+      if (currentBalance.lastUpdated && !currentBalance.isStale) {
+        const lastUpdated = new Date(currentBalance.lastUpdated);
+        const now = new Date();
+        const timeDiff = now.getTime() - lastUpdated.getTime();
+        const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+        
+        if (timeDiff < fiveMinutes) {
+          performanceMonitor.endTimer('calculateBalance', true);
+          return {
+            totalIncome: currentBalance.totalIncome,
+            totalExpense: currentBalance.totalExpense,
+            balance: currentBalance.balance,
+            lastUpdated: currentBalance.lastUpdated,
+            isStale: false,
+          };
+        }
+      }
+
       // Fetch both transactions and investments in parallel
       const [transactions, investments] = await Promise.all([
         fetchTransactions(),
         fetchInvestments(),
       ]);
 
-      // Calculate totals
-      const totalIncome = transactions
-        .filter((t: Transaction) => t.isIncome)
-        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-
-      const totalExpense = transactions
-        .filter((t: Transaction) => !t.isIncome)
-        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+      // Calculate totals using more efficient methods
+      let totalIncome = 0;
+      let totalExpense = 0;
+      
+      // Single pass through transactions
+      for (const transaction of transactions) {
+        if (transaction.isIncome) {
+          totalIncome += transaction.amount;
+        } else {
+          totalExpense += transaction.amount;
+        }
+      }
 
       // Add investment profits/losses
       const investmentProfit = investments.reduce(

@@ -56,7 +56,9 @@ export async function updateTransaction(
       isIncome: transaction.isIncome,
       date: transaction.date,
       category: transaction.category,
-      relatedRegistrationId: transaction.relatedRegistrationId,
+      ...(transaction.relatedRegistrationId !== undefined && {
+        relatedRegistrationId: transaction.relatedRegistrationId,
+      }),
     };
 
     await setDoc(doc(db, "transactions", transaction.id), transactionData);

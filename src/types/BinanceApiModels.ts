@@ -33,6 +33,20 @@ export interface PositionData {
   marginType: string;
   isolatedMargin: number;
   isAutoAddMargin: boolean;
+  // Additional fields for enhanced calculations
+  liquidationPrice?: number;
+  notional?: number;
+  bidNotional?: number;
+  askNotional?: number;
+  updateTime?: number;
+  // Calculated fields
+  marginRatio?: number;
+  roi?: number;
+  roe?: number;
+  distanceToLiquidation?: number;
+  marginBalance?: number;
+  maintMargin?: number;
+  initialMargin?: number;
 }
 
 export interface OrderData {
@@ -48,4 +62,24 @@ export interface OrderData {
   timeInForce: string;
   type: string;
   reduceOnly: boolean;
+}
+
+// New interfaces for TP/SL orders
+export interface TakeProfitStopLossData {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  takeProfitPrice: number;
+  stopLossPrice: number;
+  quantity: number;
+}
+
+export interface PositionCalculations {
+  liquidationPrice: number;
+  marginRatio: number;
+  roi: number;
+  roe: number;
+  distanceToLiquidation: number;
+  notionalValue: number;
+  initialMargin: number;
+  maintMargin: number;
 }
