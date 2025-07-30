@@ -111,7 +111,6 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         relatedRegistrationId: data.relatedRegistrationId,
       };
     });
-    }
 
     logger.debug(
       "Mapped transactions",
