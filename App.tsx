@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, createContext, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -33,6 +33,7 @@ import {
   MD3LightTheme,
   Divider,
 } from 'react-native-paper';
+import { lightTheme, darkTheme } from './src/theme';
 
 // Initialize Firebase
 import './src/config/firebase';
@@ -108,9 +109,18 @@ function CustomDrawerContent(props: CustomDrawerContentProps) {
   );
 }
 
+export const ThemeContext = createContext({
+  theme: lightTheme,
+  setTheme: (theme: typeof lightTheme) => {},
+});
+
+export function useAppTheme() {
+  return useContext(ThemeContext);
+}
+
 export default function App() {
-  const [dark, setDark] = useState(false);
-  const theme = useMemo(() => (dark ? MD3DarkTheme : MD3LightTheme), [dark]);
+  const [isDark, setIsDark] = useState(false);
+  const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
 
   // Start balance preloader when app launches
   React.useEffect(() => {
@@ -120,73 +130,75 @@ export default function App() {
 
   return (
     <Provider store={store}>
-      <PaperProvider theme={theme}>
-        <NavigationContainer>
-          <Drawer.Navigator
-            initialRouteName="Transactions"
-            drawerContent={(props) => (
-              <CustomDrawerContent
-                {...props}
-                dark={dark}
-                toggleTheme={() => setDark(d => !d)}
+      <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
+        <PaperProvider theme={{ colors: { ...theme } }}>
+          <NavigationContainer theme={{ colors: { background: theme.background, card: theme.surface, text: theme.text, border: theme.border, primary: theme.primary, notification: theme.accent } }}>
+            <Drawer.Navigator
+              initialRouteName="Transactions"
+              drawerContent={(props) => (
+                <CustomDrawerContent
+                  {...props}
+                  dark={isDark}
+                  toggleTheme={() => setIsDark(d => !d)}
+                />
+              )}
+              screenOptions={{
+                drawerStyle: {
+                  backgroundColor: theme.surface,
+                  width: 280,
+                },
+                headerStyle: {
+                  backgroundColor: theme.primary,
+                },
+                headerTintColor: theme.onPrimary,
+                drawerActiveTintColor: theme.primary,
+                drawerInactiveTintColor: theme.onSurface,
+              }}
+            >
+              <Drawer.Screen
+                name="Transactions"
+                component={TransactionsDashboard}
+                options={{
+                  title: 'Transactions',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="card-outline" size={size} color={color} />
+                  ),
+                }}
               />
-            )}
-            screenOptions={{
-              drawerStyle: {
-                backgroundColor: theme.colors.surface,
-                width: 280,
-              },
-              headerStyle: {
-                backgroundColor: theme.colors.primary,
-              },
-              headerTintColor: theme.colors.onPrimary,
-              drawerActiveTintColor: theme.colors.primary,
-              drawerInactiveTintColor: theme.colors.onSurface,
-            }}
-          >
-            <Drawer.Screen
-              name="Transactions"
-              component={TransactionsDashboard}
-              options={{
-                title: 'Transactions',
-                drawerIcon: ({ color, size }) => (
-                  <Ionicons name="card-outline" size={size} color={color} />
-                ),
-              }}
-            />
-            <Drawer.Screen
-              name="History"
-              component={HistoryScreen}
-              options={{
-                title: 'History',
-                drawerIcon: ({ color, size }) => (
-                  <Ionicons name="time-outline" size={size} color={color} />
-                ),
-              }}
-            />
-            <Drawer.Screen
-              name="WT Registry"
-              component={WTRegistryScreen}
-              options={{
-                title: 'WT Registry',
-                drawerIcon: ({ color, size }) => (
-                  <Ionicons name="school-outline" size={size} color={color} />
-                ),
-              }}
-            />
-            <Drawer.Screen
-              name="Calendar"
-              component={CalendarScreen}
-              options={{
-                title: 'Calendar',
-                drawerIcon: ({ color, size }) => (
-                  <Ionicons name="calendar-outline" size={size} color={color} />
-                ),
-              }}
-            />
-          </Drawer.Navigator>
-        </NavigationContainer>
-      </PaperProvider>
+              <Drawer.Screen
+                name="History"
+                component={HistoryScreen}
+                options={{
+                  title: 'History',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="time-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="WT Registry"
+                component={WTRegistryScreen}
+                options={{
+                  title: 'WT Registry',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="school-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="Calendar"
+                component={CalendarScreen}
+                options={{
+                  title: 'Calendar',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="calendar-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+            </Drawer.Navigator>
+          </NavigationContainer>
+        </PaperProvider>
+      </ThemeContext.Provider>
     </Provider>
   );
 }
