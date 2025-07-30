@@ -12,8 +12,8 @@ import {
   TextInput,
 } from 'react-native';
 import { Card, Button, Chip, Divider } from 'react-native-paper';
-import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment } from '../data/investments';
-import { Investment } from '../types/Investment';
+import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment } from '../../data/investments';
+import { Investment } from '../../types/Investment';
 
 // Binance API types
 interface BinancePosition {

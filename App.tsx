@@ -18,8 +18,8 @@ import {
 import { Provider } from 'react-redux';
 import store from './src/store';
 import { TransactionHomeScreen } from './src/screens/TransactionHomeScreen';
-import { InvestmentsScreen } from './src/screens/InvestmentsScreen';
-import { ReportsScreen } from './src/screens/ReportsScreen';
+import { InvestmentsScreen } from './src/screens/transactions/InvestmentsScreen';
+import { ReportsScreen } from './src/screens/transactions/ReportsScreen';
 import { WTRegistryScreen } from './src/screens/WTRegistryScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';

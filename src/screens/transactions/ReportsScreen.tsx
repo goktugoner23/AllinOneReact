@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Card, Text, Button, Menu, Divider } from 'react-native-paper';
-import { fetchTransactions } from '../data/transactions';
-import { Transaction } from '../types/Transaction';
+import { fetchTransactions } from '../../data/transactions';
+import { Transaction } from '../../types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
 import { format, subDays, startOfYear, isAfter, parseISO } from 'date-fns';
 

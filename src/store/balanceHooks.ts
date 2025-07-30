@@ -18,18 +18,29 @@ export const useBalance = () => {
       // First, try to load from cache (fast)
       const cachedResult = await dispatch(loadCachedBalance());
       
-      // If no cache or cache is stale, calculate fresh balance
+      // Only calculate fresh balance if no cache or cache is stale
       if (!cachedResult.payload || cachedResult.payload.isStale) {
-        dispatch(calculateBalance());
+        // Add a small delay to prevent rapid successive calls
+        setTimeout(() => {
+          dispatch(calculateBalance());
+        }, 100);
       }
     };
 
     initializeBalance();
   }, [dispatch]);
 
-  // Function to refresh balance (force recalculation)
+  // Function to refresh balance (force recalculation) with debouncing
   const refreshBalance = useCallback(() => {
-    dispatch(calculateBalance());
+    // Clear any pending timeout to prevent multiple rapid calls
+    if ((refreshBalance as any).timeoutId) {
+      clearTimeout((refreshBalance as any).timeoutId);
+    }
+    
+    // Set a new timeout to debounce the call
+    (refreshBalance as any).timeoutId = setTimeout(() => {
+      dispatch(calculateBalance());
+    }, 200);
   }, [dispatch]);
 
   // Function to update balance incrementally (for new transactions)
