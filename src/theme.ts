@@ -20,6 +20,15 @@ export const lightTheme = {
   registration: '#2196F3',
   searchBar: '#F5F5F5',
   placeholder: '#888888',
+  // React Native Paper elevation properties
+  elevation: {
+    level0: 'transparent',
+    level1: 'rgb(245, 247, 250)',
+    level2: 'rgb(237, 242, 247)',
+    level3: 'rgb(226, 232, 240)',
+    level4: 'rgb(202, 213, 225)',
+    level5: 'rgb(148, 163, 184)',
+  },
 };
 
 export const darkTheme = {
@@ -44,4 +53,13 @@ export const darkTheme = {
   registration: '#2196F3',
   searchBar: '#232136',
   placeholder: '#BBBBBB',
+  // React Native Paper elevation properties
+  elevation: {
+    level0: 'transparent',
+    level1: 'rgb(20, 20, 20)',
+    level2: 'rgb(28, 28, 30)',
+    level3: 'rgb(44, 44, 46)',
+    level4: 'rgb(58, 58, 60)',
+    level5: 'rgb(72, 72, 74)',
+  },
 };

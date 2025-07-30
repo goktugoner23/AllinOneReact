@@ -38,8 +38,7 @@ import { lightTheme, darkTheme } from './src/theme';
 // Initialize Firebase
 import './src/config/firebase';
 
-// Initialize balance preloader
-import BalancePreloader from './src/services/BalancePreloader';
+// Balance preloader removed to avoid initialization issues
 
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
@@ -122,17 +121,77 @@ export default function App() {
   const [isDark, setIsDark] = useState(false);
   const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
 
-  // Start balance preloader when app launches
-  React.useEffect(() => {
-    const preloader = BalancePreloader.getInstance();
-    preloader.preloadBalance().catch(console.error);
-  }, []);
+  // Balance preloading removed - will load when needed
 
   return (
     <Provider store={store}>
       <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
-        <PaperProvider theme={{ colors: { ...theme } }}>
-          <NavigationContainer theme={{ colors: { background: theme.background, card: theme.surface, text: theme.text, border: theme.border, primary: theme.primary, notification: theme.accent } }}>
+        <PaperProvider theme={{
+          colors: {
+            primary: theme.primary,
+            onPrimary: theme.onPrimary,
+            primaryContainer: theme.primary,
+            onPrimaryContainer: theme.onPrimary,
+            secondary: theme.accent,
+            onSecondary: theme.onPrimary,
+            secondaryContainer: theme.accent,
+            onSecondaryContainer: theme.onPrimary,
+            tertiary: theme.accent,
+            onTertiary: theme.onPrimary,
+            tertiaryContainer: theme.accent,
+            onTertiaryContainer: theme.onPrimary,
+            error: theme.expense,
+            onError: theme.onPrimary,
+            errorContainer: theme.expense,
+            onErrorContainer: theme.onPrimary,
+            background: theme.background,
+            onBackground: theme.text,
+            surface: theme.surface,
+            onSurface: theme.text,
+            surfaceVariant: theme.chip,
+            onSurfaceVariant: theme.chipText,
+            outline: theme.border,
+            outlineVariant: theme.divider,
+            shadow: theme.border,
+            scrim: theme.border,
+            inverseSurface: theme.surface,
+            inverseOnSurface: theme.text,
+            inversePrimary: theme.primary,
+            elevation: theme.elevation,
+            surfaceDisabled: theme.divider,
+            onSurfaceDisabled: theme.placeholder,
+            backdrop: 'rgba(0, 0, 0, 0.5)',
+          },
+          elevation: theme.elevation,
+        }}>
+          <NavigationContainer theme={{
+            colors: {
+              background: theme.background,
+              card: theme.surface,
+              text: theme.text,
+              border: theme.border,
+              primary: theme.primary,
+              notification: theme.accent
+            },
+            fonts: {
+              regular: {
+                fontFamily: 'System',
+                fontWeight: '400',
+              },
+              medium: {
+                fontFamily: 'System',
+                fontWeight: '500',
+              },
+              bold: {
+                fontFamily: 'System',
+                fontWeight: '700',
+              },
+              heavy: {
+                fontFamily: 'System',
+                fontWeight: '900',
+              },
+            },
+          }}>
             <Drawer.Navigator
               initialRouteName="Transactions"
               drawerContent={(props) => (

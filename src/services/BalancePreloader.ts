@@ -41,6 +41,12 @@ class BalancePreloader {
     try {
       logger.debug('Starting balance preload', {}, 'BalancePreloader');
 
+      // Check if store is available
+      if (!store || !store.dispatch) {
+        logger.debug('Store not available yet, skipping preload', {}, 'BalancePreloader');
+        return;
+      }
+
       // First, try to load from cache (fast)
       const cachedResult = await store.dispatch(loadCachedBalance());
       

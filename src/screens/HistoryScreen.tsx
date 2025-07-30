@@ -15,8 +15,8 @@ import { fetchInvestments, deleteInvestment } from '../data/investments';
 import { HistoryItem, HistoryItemType } from '../types/HistoryItem';
 import { Transaction } from '../types/Transaction';
 import { WTRegistration, WTStudent } from '../types/WTRegistry';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useAppTheme } from '../App';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAppTheme } from '../../App';
 
 const FILTERS: { label: string; type: HistoryItemType }[] = [
   { label: 'Income', type: 'TRANSACTION_INCOME' },
@@ -155,12 +155,12 @@ export const HistoryScreen: React.FC = () => {
       <View style={[styles.card, { backgroundColor: theme.card }]}>
         <View style={styles.cardHeader}>
           <View style={[styles.iconCircle, { backgroundColor: theme.chip }]}>
-            <MaterialIcons
+            <Ionicons
               name={
                 item.itemType === 'TRANSACTION_INCOME'
-                  ? 'arrow-downward'
+                  ? 'arrow-down'
                   : item.itemType === 'TRANSACTION_EXPENSE'
-                  ? 'arrow-upward'
+                  ? 'arrow-up'
                   : item.itemType === 'INVESTMENT'
                   ? 'trending-up'
                   : 'school'
@@ -215,7 +215,7 @@ export const HistoryScreen: React.FC = () => {
       </View>
       {/* Search Bar */}
       <View style={[styles.searchBar, { backgroundColor: theme.searchBar }]}>
-        <MaterialIcons name="search" size={20} color={theme.placeholder} style={{ marginRight: 8 }} />
+        <Ionicons name="search" size={20} color={theme.placeholder} style={{ marginRight: 8 }} />
         <TextInput
           style={[styles.searchInput, { color: theme.text }]}
           placeholder="Search history..."
@@ -225,7 +225,7 @@ export const HistoryScreen: React.FC = () => {
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <MaterialIcons name="close" size={20} color={theme.placeholder} />
+            <Ionicons name="close" size={20} color={theme.placeholder} />
           </TouchableOpacity>
         )}
       </View>
@@ -251,7 +251,7 @@ export const HistoryScreen: React.FC = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadHistory} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialIcons name="history" size={64} color={theme.divider} />
+            <Ionicons name="time" size={64} color={theme.divider} />
             <Text style={[styles.emptyText, { color: theme.divider }]}>No history yet</Text>
           </View>
         }
