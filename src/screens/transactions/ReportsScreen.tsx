@@ -37,6 +37,7 @@ export const ReportsScreen: React.FC = () => {
   const [dateRange, setDateRange] = useState('30d');
   const [category, setCategory] = useState('All');
   const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
+  const [dateRangeMenuVisible, setDateRangeMenuVisible] = useState(false);
   const [categories, setCategories] = useState<string[]>(['All']);
 
   useEffect(() => {
@@ -108,9 +109,6 @@ export const ReportsScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
-        Transaction Reports
-      </Text>
       <Card style={styles.card}>
         <Card.Title title="Filters" />
         <Card.Content>
@@ -138,17 +136,30 @@ export const ReportsScreen: React.FC = () => {
                 />
               ))}
             </Menu>
-            <Button
-              mode="outlined"
-              style={styles.marginLeft8}
-              onPress={() => {
-                // Cycle through date ranges
-                const idx = dateRanges.findIndex(r => r.value === dateRange);
-                setDateRange(dateRanges[(idx + 1) % dateRanges.length].value);
-              }}
+            <Menu
+              visible={dateRangeMenuVisible}
+              onDismiss={() => setDateRangeMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="outlined"
+                  style={styles.marginLeft8}
+                  onPress={() => setDateRangeMenuVisible(true)}
+                >
+                  {dateRanges.find(r => r.value === dateRange)?.label}
+                </Button>
+              }
             >
-              {dateRanges.find(r => r.value === dateRange)?.label}
-            </Button>
+              {dateRanges.map(range => (
+                <Menu.Item
+                  key={range.value}
+                  onPress={() => {
+                    setDateRange(range.value);
+                    setDateRangeMenuVisible(false);
+                  }}
+                  title={range.label}
+                />
+              ))}
+            </Menu>
           </View>
         </Card.Content>
       </Card>

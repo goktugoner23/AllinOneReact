@@ -334,7 +334,6 @@ function UsdMFuturesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text variant="titleLarge">USD-M Futures</Text>
         <Button
           mode="outlined"
           onPress={loadData}
@@ -445,7 +444,6 @@ function CoinMFuturesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text variant="titleLarge">COIN-M Futures</Text>
         <Button
           mode="outlined"
           onPress={loadData}
@@ -497,7 +495,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     marginBottom: 8,
   },
   accountCard: {

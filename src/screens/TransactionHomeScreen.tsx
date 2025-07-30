@@ -164,7 +164,6 @@ export const TransactionHomeScreen: React.FC = () => {
     { type: "balance", data: { showLoading: refreshing } },
     { type: "chart", data: { transactions } },
     { type: "form", data: { onTransactionAdded: handleTransactionAdded } },
-    { type: "transactions-header", data: {} },
     {
       type: "transactions",
       data: { transactions: pagedTransactions, onDelete: handleDelete },
@@ -205,12 +204,7 @@ export const TransactionHomeScreen: React.FC = () => {
                   onTransactionAdded={item.data.onTransactionAdded}
                 />
               );
-            case "transactions-header":
-              return (
-                <View style={styles.transactionsHeader}>
-                  <Text style={styles.sectionTitle}>Transactions</Text>
-                </View>
-              );
+
             case "transactions":
               return (
                 <View style={styles.transactionsSection}>
