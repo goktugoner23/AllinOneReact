@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -552,7 +552,15 @@ const RegisterTab: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const { refreshBalance } = useBalance();
+
+  // Month names array like in Kotlin app
+  const monthNames = [
+    "All Months", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   const loadData = async () => {
     try {
@@ -570,6 +578,25 @@ const RegisterTab: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Filter registrations by month like in Kotlin app
+  const filteredRegistrations = useMemo(() => {
+    if (selectedMonth === null) {
+      return registrations;
+    } else {
+      return registrations.filter(registration => {
+        if (registration.startDate) {
+          const startDate = new Date(registration.startDate);
+          // selectedMonth is 1-based (1 = January), getMonth() is 0-based (0 = January)
+          return startDate.getMonth() + 1 === selectedMonth;
+        }
+        return false;
+      });
+    }
+  }, [registrations, selectedMonth]);
+
+  // Calculate total amount for filtered registrations
+  const totalAmount = filteredRegistrations.reduce((sum: number, reg: WTRegistration) => sum + reg.amount, 0);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -742,8 +769,50 @@ const RegisterTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Filter Section */}
+      <Card style={{ margin: 16, marginBottom: 8 }}>
+        <Card.Content>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>Filters</Text>
+          
+          {/* Month Filter Dropdown */}
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#ddd',
+              borderRadius: 4,
+              padding: 12,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'white'
+            }}
+            onPress={() => setShowMonthPicker(true)}
+          >
+            <Text style={{ color: '#333' }}>
+              {monthNames[selectedMonth || 0]}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
+          
+          {/* Total Amount Display */}
+          <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#7C3AED' }}>
+              Total Amount: 
+            </Text>
+            <Text style={{ 
+              fontSize: 18, 
+              fontWeight: 'bold', 
+              color: totalAmount < 10000 ? '#B71C1C' : 
+                     totalAmount < 20000 ? '#FF9800' : '#2E7D32'
+            }}>
+              ${totalAmount.toFixed(2)}
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+
       <FlatList
-        data={registrations}
+        data={filteredRegistrations}
         renderItem={renderRegistration}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
@@ -751,8 +820,12 @@ const RegisterTab: React.FC = () => {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No registrations yet</Text>
-            <Text style={styles.emptySubtext}>Add your first registration to get started</Text>
+            <Text style={styles.emptyText}>
+              {selectedMonth ? `No registrations in ${monthNames[selectedMonth]}` : 'No registrations yet'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {selectedMonth ? 'Try selecting a different month or add a new registration' : 'Add your first registration to get started'}
+            </Text>
           </View>
         }
       />
@@ -894,6 +967,43 @@ const RegisterTab: React.FC = () => {
           onSave={handleUpdateRegistration}
         />
       )}
+
+      {/* Month Picker Dialog */}
+      <Portal>
+        <Dialog visible={showMonthPicker} onDismiss={() => setShowMonthPicker(false)} style={{ backgroundColor: 'white' }}>
+          <Dialog.Title>Select Month</Dialog.Title>
+          <Dialog.Content>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {monthNames.map((month, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={{
+                    padding: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                    backgroundColor: selectedMonth === index ? '#e3f2fd' : 'transparent'
+                  }}
+                  onPress={() => {
+                    setSelectedMonth(index === 0 ? null : index);
+                    setShowMonthPicker(false);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: selectedMonth === index ? 'bold' : 'normal',
+                    color: selectedMonth === index ? '#1976d2' : '#000'
+                  }}>
+                    {month}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowMonthPicker(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
