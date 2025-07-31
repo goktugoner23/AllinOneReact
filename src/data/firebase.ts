@@ -1,4 +1,4 @@
-import { db } from "../config/firebase";
+import { db, storage } from "../config/firebase";
 import {
   collection,
   doc,
@@ -16,6 +16,9 @@ import { logger } from "../utils/logger";
 
 // Get Firestore database instance
 export const getDb = () => db;
+
+// Get Firebase Storage instance
+export const getStorage = () => storage;
 
 // Get device ID for data isolation - matches Kotlin app format
 export const getDeviceId = async (): Promise<string> => {

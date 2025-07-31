@@ -19,12 +19,14 @@ import {
 import { Card, Button, Chip, Divider, FAB, Portal, Dialog, useTheme, Switch } from 'react-native-paper';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '../data/wtRegistry';
-import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration } from '../data/wtRegistry';
+import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration, deleteRegistrationWithTransactions, updateRegistrationPaymentStatus, addRegistrationWithTransaction } from '../data/wtRegistry';
 import { fetchLessons, addLesson, updateLesson, deleteLesson } from '../data/wtRegistry';
 import { fetchSeminars, addSeminar, updateSeminar, deleteSeminar } from '../data/wtRegistry';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '../types/WTRegistry';
-import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
+import { launchImageLibrary, ImagePickerResponse, MediaType, ImageLibraryOptions } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useBalance } from '../store/balanceHooks';
 // import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../utils/fileUtils';
 
 const Tab = createBottomTabNavigator();
@@ -550,6 +552,7 @@ const RegisterTab: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const { refreshBalance } = useBalance();
 
   const loadData = async () => {
     try {
@@ -576,7 +579,7 @@ const RegisterTab: React.FC = () => {
 
   const handleAddRegistration = async (registrationData: Omit<WTRegistration, 'id'>) => {
     try {
-      await addRegistration(registrationData);
+      await addRegistrationWithTransaction(registrationData, registrationData.isPaid);
       setShowAddDialog(false);
       loadData();
     } catch (error) {
@@ -606,7 +609,7 @@ const RegisterTab: React.FC = () => {
     if (!selectedRegistration) return;
     
     try {
-      await deleteRegistration(selectedRegistration.id);
+      await deleteRegistrationWithTransactions(selectedRegistration.id);
       setShowDeleteDialog(false);
       setSelectedRegistration(null);
       loadData();
@@ -640,6 +643,18 @@ const RegisterTab: React.FC = () => {
     }
   };
 
+  const handlePaymentStatusToggle = async (registration: WTRegistration) => {
+    try {
+      const newIsPaid = !registration.isPaid;
+      await updateRegistrationPaymentStatus(registration, newIsPaid, registration.isPaid);
+      await loadData(); // Reload data to reflect changes
+      refreshBalance(); // Refresh balance to reflect transaction changes
+    } catch (error) {
+      console.error('Error toggling payment status:', error);
+      Alert.alert('Error', 'Failed to update payment status');
+    }
+  };
+
   const renderRegistration = ({ item }: { item: WTRegistration }) => (
     <Card 
       style={styles.card} 
@@ -659,16 +674,24 @@ const RegisterTab: React.FC = () => {
           <Text style={{ fontSize: 18, fontWeight: 'bold', marginRight: 8 }}>
             {getStudentName(item.studentId)}
           </Text>
-          <Chip
-            mode="outlined"
-            compact
+          <TouchableOpacity
+            onPress={() => handlePaymentStatusToggle(item)}
             style={{ 
               backgroundColor: item.isPaid ? '#4CAF50' : '#FF9800',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
               alignSelf: 'flex-start'
             }}
           >
-            {item.isPaid ? 'Paid' : 'Unpaid'}
-          </Chip>
+            <Text style={{ 
+              color: 'white', 
+              fontSize: 12, 
+              fontWeight: 'bold' 
+            }}>
+              {item.isPaid ? 'Paid' : 'Unpaid'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Amount */}
@@ -756,12 +779,6 @@ const RegisterTab: React.FC = () => {
               setShowContextMenu(false);
               handleDeleteRegistration(selectedRegistration!);
             }} textColor="red">Delete</Button>
-            {selectedRegistration?.attachmentUri && (
-              <Button onPress={() => {
-                setShowContextMenu(false);
-                handleViewAttachment(selectedRegistration.attachmentUri!);
-              }}>View Attachment</Button>
-            )}
             <Button onPress={() => setShowContextMenu(false)}>Cancel</Button>
           </Dialog.Actions>
         </Dialog>
@@ -1382,6 +1399,55 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
   const [notes, setNotes] = useState('');
   const [attachmentUri, setAttachmentUri] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showStudentPicker, setShowStudentPicker] = useState(false);
+
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      setStartDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      setEndDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handlePickAttachment = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        includeBase64: false,
+        maxHeight: 2000,
+        maxWidth: 2000,
+        quality: 1,
+        selectionLimit: 1,
+        includeExtra: true,
+        presentationStyle: 'fullScreen',
+      });
+
+      if (result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const fileName = asset.fileName || asset.uri?.split('/').pop() || '';
+        const fileExtension = fileName.toLowerCase().split('.').pop();
+        
+        // Check if file is PDF or image
+        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'webp'];
+        if (fileExtension && allowedExtensions.includes(fileExtension)) {
+          setAttachmentUri(asset.uri || null);
+        } else {
+          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking attachment:', error);
+      Alert.alert('Error', 'Failed to pick attachment');
+    }
+  };
 
   const handleSave = () => {
     if (!studentId || !amount.trim()) {
@@ -1418,71 +1484,93 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white' }}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white', maxHeight: '80%' }}>
         <Dialog.Title>Add Registration</Dialog.Title>
         <Dialog.Content>
-          <ScrollView>
+          <ScrollView style={{ maxHeight: 400 }}>
             {/* Student Selection */}
             <Text style={styles.label}>Student *</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.studentPicker}>
-              {students.map(student => (
-                <TouchableOpacity
-                  key={student.id}
-                  style={[styles.studentOption, studentId === student.id && styles.selectedStudent]}
-                  onPress={() => setStudentId(student.id)}
-                >
-                  <Text style={[styles.studentOptionText, studentId === student.id && styles.selectedStudentText]}>
-                    {student.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowStudentPicker(true)}
+            >
+              <Text style={{ color: studentId ? '#000' : '#999' }}>
+                {studentId ? students.find(s => s.id === studentId)?.name || 'Unknown Student' : 'Select Student'}
+              </Text>
+            </TouchableOpacity>
 
+            {/* Amount Field */}
+            <Text style={styles.label}>Amount *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Amount *"
+              placeholder="Enter amount"
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
             />
 
+            {/* Start Date */}
             <Text style={styles.label}>Start Date</Text>
-            <TextInput
+            <TouchableOpacity
               style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={startDate}
-              onChangeText={setStartDate}
-            />
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text style={{ color: startDate ? '#000' : '#999' }}>
+                {startDate || 'Select Start Date'}
+              </Text>
+            </TouchableOpacity>
 
+            {/* End Date */}
             <Text style={styles.label}>End Date</Text>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Text style={{ color: endDate ? '#000' : '#999' }}>
+                {endDate || 'Select End Date'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Notes */}
+            <Text style={styles.label}>Notes</Text>
             <TextInput
               style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={endDate}
-              onChangeText={setEndDate}
-            />
-
-            {/* File Attachment */}
-            <View style={styles.attachmentSection}>
-              <TouchableOpacity onPress={() => Alert.alert('File Attachment', 'File attachment functionality is not yet implemented.')} style={styles.attachmentButton}>
-                <Ionicons name="document" size={24} color="#2196F3" />
-                <Text style={styles.attachmentText}>
-                  {attachmentUri ? 'Document Selected' : 'Attach Document'}
-                </Text>
-              </TouchableOpacity>
-              {attachmentUri && (
-                <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>
-              )}
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Notes"
+              placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={3}
             />
+
+            {/* Payment Status */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+              <Switch
+                value={isPaid}
+                onValueChange={setIsPaid}
+              />
+              <Text style={{ marginLeft: 8 }}>Paid</Text>
+            </View>
+
+            {/* File Attachment - only show if paid */}
+            {isPaid && (
+              <View style={styles.attachmentSection}>
+                <Text style={styles.label}>Receipt</Text>
+                <TouchableOpacity onPress={handlePickAttachment} style={styles.attachmentButton}>
+                  <Ionicons name="document" size={24} color="#2196F3" />
+                  <Text style={styles.attachmentText}>
+                    {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
+                  </Text>
+                </TouchableOpacity>
+                {attachmentUri && (
+                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: 8 }}>
+                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  </TouchableOpacity>
+                )}
+                {attachmentUri && (
+                  <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>
+                )}
+              </View>
+            )}
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
@@ -1490,6 +1578,63 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
           <Button onPress={handleSave}>Save</Button>
         </Dialog.Actions>
       </Dialog>
+
+      {/* Date Pickers */}
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={startDate ? new Date(startDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleStartDateChange}
+        />
+      )}
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={endDate ? new Date(endDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleEndDateChange}
+        />
+      )}
+
+      {/* Student Picker */}
+      {showStudentPicker && (
+        <Portal>
+          <Dialog visible={showStudentPicker} onDismiss={() => setShowStudentPicker(false)} style={{ backgroundColor: 'white' }}>
+            <Dialog.Title>Select Student</Dialog.Title>
+            <Dialog.Content>
+              <ScrollView style={{ maxHeight: 300 }}>
+                {students.map(student => (
+                  <TouchableOpacity
+                    key={student.id}
+                    style={{
+                      padding: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#eee',
+                      backgroundColor: studentId === student.id ? '#e3f2fd' : 'transparent'
+                    }}
+                    onPress={() => {
+                      setStudentId(student.id);
+                      setShowStudentPicker(false);
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 16,
+                      fontWeight: studentId === student.id ? 'bold' : 'normal',
+                      color: studentId === student.id ? '#1976d2' : '#000'
+                    }}>
+                      {student.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowStudentPicker(false)}>Cancel</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+      )}
     </Portal>
   );
 };
@@ -1510,8 +1655,56 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
   const [notes, setNotes] = useState(registration.notes || '');
   const [attachmentUri, setAttachmentUri] = useState<string | null>(registration.attachmentUri || null);
   const [isPaid, setIsPaid] = useState(registration.isPaid);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  const handleSave = () => {
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      setStartDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      setEndDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handlePickAttachment = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        includeBase64: false,
+        maxHeight: 2000,
+        maxWidth: 2000,
+        quality: 1,
+        selectionLimit: 1,
+        includeExtra: true,
+        presentationStyle: 'fullScreen',
+      });
+
+      if (result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const fileName = asset.fileName || asset.uri?.split('/').pop() || '';
+        const fileExtension = fileName.toLowerCase().split('.').pop();
+        
+        // Check if file is PDF or image
+        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'webp'];
+        if (fileExtension && allowedExtensions.includes(fileExtension)) {
+          setAttachmentUri(asset.uri || null);
+        } else {
+          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking attachment:', error);
+      Alert.alert('Error', 'Failed to pick attachment');
+    }
+  };
+
+  const handleSave = async () => {
     if (!studentId || !amount.trim()) {
       Alert.alert('Error', 'Student and amount are required');
       return;
@@ -1523,16 +1716,45 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
       return;
     }
 
-    onSave({
-      ...registration,
-      studentId,
-      amount: amountValue,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-      notes: notes.trim() || undefined,
-      attachmentUri: attachmentUri || undefined,
-      isPaid,
-    });
+    try {
+      // Check if payment status changed
+      const paymentStatusChanged = registration.isPaid !== isPaid;
+      
+      if (paymentStatusChanged) {
+        // Use the new function to handle payment status change
+        await updateRegistrationPaymentStatus(
+          {
+            ...registration,
+            studentId,
+            amount: amountValue,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            notes: notes.trim() || undefined,
+            attachmentUri: attachmentUri || undefined,
+            isPaid,
+          },
+          isPaid,
+          registration.isPaid
+        );
+        // Close dialog and reload data after payment status change
+        onDismiss();
+      } else {
+        // Regular update without payment status change
+        onSave({
+          ...registration,
+          studentId,
+          amount: amountValue,
+          startDate: startDate ? new Date(startDate) : undefined,
+          endDate: endDate ? new Date(endDate) : undefined,
+          notes: notes.trim() || undefined,
+          attachmentUri: attachmentUri || undefined,
+          isPaid,
+        });
+      }
+    } catch (error) {
+      console.error('Error saving registration:', error);
+      Alert.alert('Error', 'Failed to save registration');
+    }
   };
 
   return (
@@ -1541,21 +1763,11 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
         <Dialog.Title>Edit Registration</Dialog.Title>
         <Dialog.Content>
           <ScrollView>
-            {/* Student Selection */}
+            {/* Student Display (Read-only) */}
             <Text style={styles.label}>Student *</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.studentPicker}>
-              {students.map(student => (
-                <TouchableOpacity
-                  key={student.id}
-                  style={[styles.studentOption, studentId === student.id && styles.selectedStudent]}
-                  onPress={() => setStudentId(student.id)}
-                >
-                  <Text style={[styles.studentOptionText, studentId === student.id && styles.selectedStudentText]}>
-                    {student.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <Text style={[styles.input, { color: '#666', backgroundColor: '#f5f5f5' }]}>
+              {students.find(s => s.id === studentId)?.name || 'Unknown Student'}
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -1566,42 +1778,63 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
             />
 
             <Text style={styles.label}>Start Date</Text>
-            <TextInput
+            <TouchableOpacity
               style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={startDate}
-              onChangeText={setStartDate}
-            />
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text style={{ color: startDate ? '#000' : '#999' }}>
+                {startDate || 'Select Start Date'}
+              </Text>
+            </TouchableOpacity>
 
             <Text style={styles.label}>End Date</Text>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Text style={{ color: endDate ? '#000' : '#999' }}>
+                {endDate || 'Select End Date'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Notes</Text>
             <TextInput
               style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={endDate}
-              onChangeText={setEndDate}
-            />
-
-            {/* File Attachment */}
-            <View style={styles.attachmentSection}>
-              <TouchableOpacity onPress={() => Alert.alert('File Attachment', 'File attachment functionality is not yet implemented.')} style={styles.attachmentButton}>
-                <Ionicons name="document" size={24} color="#2196F3" />
-                <Text style={styles.attachmentText}>
-                  {attachmentUri ? 'Document Selected' : 'Attach Document'}
-                </Text>
-              </TouchableOpacity>
-              {attachmentUri && (
-                <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>
-              )}
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Notes"
+              placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={3}
             />
+
+            {/* Payment Status */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+              <Switch
+                value={isPaid}
+                onValueChange={setIsPaid}
+              />
+              <Text style={{ marginLeft: 8 }}>Paid</Text>
+            </View>
+
+            {/* File Attachment - only show if paid */}
+            {isPaid && (
+              <View style={styles.attachmentSection}>
+                <TouchableOpacity onPress={handlePickAttachment} style={styles.attachmentButton}>
+                  <Ionicons name="document" size={24} color="#2196F3" />
+                  <Text style={styles.attachmentText}>
+                    {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
+                  </Text>
+                </TouchableOpacity>
+                {attachmentUri && (
+                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: 8 }}>
+                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  </TouchableOpacity>
+                )}
+                {attachmentUri && (
+                  <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>
+                )}
+              </View>
+            )}
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
@@ -1609,6 +1842,24 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
           <Button onPress={handleSave}>Save</Button>
         </Dialog.Actions>
       </Dialog>
+
+      {/* Date Pickers */}
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={startDate ? new Date(startDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleStartDateChange}
+        />
+      )}
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={endDate ? new Date(endDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleEndDateChange}
+        />
+      )}
     </Portal>
   );
 };

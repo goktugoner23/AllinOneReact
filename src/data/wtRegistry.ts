@@ -7,6 +7,7 @@ import { addTransaction, fetchTransactions, deleteTransaction } from './transact
 import { getDeviceId } from './firebase';
 
 
+
 // Students
 export async function fetchStudents(): Promise<WTStudent[]> {
   try {
@@ -47,12 +48,12 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<void> 
     const studentData = {
       id: studentId,
       name: student.name,
-      phoneNumber: student.phoneNumber || '',
-      email: student.email || '',
-      instagram: student.instagram || '',
+      phoneNumber: student.phoneNumber || null,
+      email: student.email || null,
+      instagram: student.instagram || null,
       isActive: student.isActive !== false,
-      notes: student.notes || '',
-      photoUri: student.photoUri || '',
+      notes: student.notes || null,
+      photoUri: student.photoUri || null,
     };
     
     await setDoc(doc(db, 'students', studentId.toString()), studentData);
@@ -69,12 +70,12 @@ export async function updateStudent(student: WTStudent): Promise<void> {
     const studentData = {
       id: student.id,
       name: student.name,
-      phoneNumber: student.phoneNumber || '',
-      email: student.email || '',
-      instagram: student.instagram || '',
+      phoneNumber: student.phoneNumber || null,
+      email: student.email || null,
+      instagram: student.instagram || null,
       isActive: student.isActive !== false,
-      notes: student.notes || '',
-      photoUri: student.photoUri || '',
+      notes: student.notes || null,
+      photoUri: student.photoUri || null,
     };
     
     await setDoc(doc(db, 'students', student.id.toString()), studentData);
@@ -208,11 +209,11 @@ export async function addRegistration(registration: Omit<WTRegistration, 'id'>):
       id: registrationId,
       studentId: registration.studentId,
       amount: registration.amount,
-      attachmentUri: cloudAttachmentUrl || '',
+      attachmentUri: cloudAttachmentUrl || null,
       startDate: registration.startDate ? Timestamp.fromDate(registration.startDate) : null,
       endDate: finalEndDate ? Timestamp.fromDate(finalEndDate) : null,
       paymentDate: Timestamp.fromDate(registration.paymentDate),
-      notes: registration.notes || '',
+      notes: registration.notes || null,
       isPaid: registration.isPaid,
     };
     
@@ -355,6 +356,57 @@ export async function updateRegistration(registration: WTRegistration): Promise<
   }
 }
 
+export async function updateRegistrationPaymentStatus(
+  registration: WTRegistration,
+  newIsPaid: boolean,
+  oldIsPaid: boolean
+): Promise<void> {
+  try {
+    const db = getDb();
+    
+    // If payment status didn't change, do nothing
+    if (newIsPaid === oldIsPaid) {
+      return;
+    }
+    
+    // Update the registration
+    await updateRegistration({
+      ...registration,
+      isPaid: newIsPaid,
+    });
+    
+    // Handle transaction changes
+    if (newIsPaid && !oldIsPaid) {
+      // Changed from unpaid to paid - add transaction
+      if (registration.amount > 0) {
+        const txId = await firebaseIdManager.getNextId('transactions');
+        await addTransaction({
+          id: txId.toString(),
+          amount: registration.amount,
+          type: 'Registration',
+          description: 'Course Registration',
+          isIncome: true,
+          date: new Date().toISOString(),
+          category: 'Wing Tzun',
+          relatedRegistrationId: registration.id,
+        });
+
+      }
+    } else if (!newIsPaid && oldIsPaid) {
+      // Changed from paid to unpaid - remove transaction
+      const transactions = await fetchTransactions();
+      const relatedTransaction = transactions.find(t => t.relatedRegistrationId === registration.id);
+      if (relatedTransaction) {
+        await deleteTransaction(relatedTransaction.id);
+
+      }
+    }
+  } catch (error) {
+    console.error('Error updating registration payment status:', error);
+    throw error;
+  }
+}
+
 export async function deleteRegistration(registrationId: number): Promise<void> {
   try {
     const db = getDb();
@@ -387,47 +439,102 @@ export async function deleteRegistration(registrationId: number): Promise<void> 
 }
 
 export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, 'id'>, isPaid: boolean) {
-  const db = getDb();
-  const deviceId = await getDeviceId();
-  // Get next registration ID
-  const regId = await firebaseIdManager.getNextId('registrations');
-  const registration: WTRegistration = {
-    ...reg,
-    id: regId,
-    deviceId,
-  };
-  // Save registration
-  await setDoc(doc(db, 'registrations', regId.toString()), {
-    ...registration,
-    startDate: registration.startDate instanceof Date ? Timestamp.fromDate(registration.startDate) : registration.startDate,
-    endDate: registration.endDate instanceof Date ? Timestamp.fromDate(registration.endDate) : registration.endDate,
-    paymentDate: registration.paymentDate instanceof Date ? Timestamp.fromDate(registration.paymentDate) : registration.paymentDate,
-  });
-  // If paid, add a transaction
-  if (isPaid && registration.amount > 0) {
-    const txId = await firebaseIdManager.getNextId('transactions');
-    await addTransaction({
-      id: txId.toString(),
-      amount: registration.amount,
-      type: 'Registration',
-      description: 'Course Registration',
-      isIncome: true,
-      date: new Date().toISOString(),
-      category: 'Wing Tzun',
-      relatedRegistrationId: regId,
-    });
+  try {
+    const db = getDb();
+    const deviceId = await getDeviceId();
+    
+    // Get next registration ID using Firebase ID manager
+    const regId = await firebaseIdManager.getNextId('registrations');
+    
+    // Ensure end date has time set to 22:00 (10pm) like Kotlin app
+    let finalEndDate = reg.endDate;
+    if (finalEndDate) {
+      const calendar = new Date(finalEndDate);
+      calendar.setHours(22, 0, 0, 0);
+      finalEndDate = calendar;
+    }
+    
+    // Handle file upload if there's an attachment
+    let cloudAttachmentUrl: string | null = null;
+    if (reg.attachmentUri && !reg.attachmentUri.startsWith('https://')) {
+      // Upload the file to Firebase Storage using registration ID for subfolder
+      cloudAttachmentUrl = await uploadFileToStorage(
+        reg.attachmentUri,
+        'registrations',
+        `${regId}.${reg.attachmentUri.split('.').pop() || 'file'}`
+      );
+      
+      if (cloudAttachmentUrl === null) {
+        console.warn('Failed to upload attachment, but registration will be saved');
+      }
+    } else {
+      cloudAttachmentUrl = reg.attachmentUri || null;
+    }
+    
+    const registrationData = {
+      id: regId,
+      studentId: reg.studentId,
+      amount: reg.amount,
+      attachmentUri: cloudAttachmentUrl || null,
+      startDate: reg.startDate ? Timestamp.fromDate(reg.startDate) : null,
+      endDate: finalEndDate ? Timestamp.fromDate(finalEndDate) : null,
+      paymentDate: Timestamp.fromDate(reg.paymentDate),
+      notes: reg.notes || null,
+      isPaid: reg.isPaid,
+      deviceId,
+    };
+    
+    // Save registration
+    await setDoc(doc(db, 'registrations', regId.toString()), registrationData);
+    
+    // If paid, add a transaction
+    if (isPaid && reg.amount > 0) {
+      const txId = await firebaseIdManager.getNextId('transactions');
+      await addTransaction({
+        id: txId.toString(),
+        amount: reg.amount,
+        type: 'Registration',
+        description: 'Course Registration',
+        isIncome: true,
+        date: new Date().toISOString(),
+        category: 'Wing Tzun',
+        relatedRegistrationId: regId,
+      });
+    }
+  } catch (error) {
+    console.error('Error adding registration with transaction:', error);
+    throw error;
   }
 }
 
 export async function deleteRegistrationWithTransactions(registrationId: number) {
-  const db = getDb();
-  // Delete registration
-  await deleteDoc(doc(db, 'registrations', registrationId.toString()));
-  // Delete all transactions with relatedRegistrationId == registrationId
-  const transactions = await fetchTransactions();
-  const related = transactions.filter(t => t.relatedRegistrationId === registrationId);
-  for (const tx of related) {
-    await deleteTransaction(tx.id);
+  try {
+    const db = getDb();
+    
+    // First, get the registration to check if it was paid
+    const registrations = await fetchRegistrations();
+    const registration = registrations.find(r => r.id === registrationId);
+    
+    // Delete all transactions with relatedRegistrationId == registrationId FIRST
+    const transactions = await fetchTransactions();
+    const related = transactions.filter(t => t.relatedRegistrationId === registrationId);
+    
+    for (const tx of related) {
+      await deleteTransaction(tx.id);
+    }
+    
+    // Delete attachment from Firebase Storage if it exists
+    if (registration?.attachmentUri && registration.attachmentUri.startsWith('https://')) {
+      await deleteFileFromStorage(registration.attachmentUri);
+    }
+    
+    // Finally, delete the registration
+    await deleteDoc(doc(db, 'registrations', registrationId.toString()));
+    
+
+  } catch (error) {
+    console.error('Error deleting registration with transactions:', error);
+    throw error;
   }
 }
 
