@@ -15,12 +15,15 @@ import {
   useTheme,
   Surface,
   SegmentedButtons,
+  ActivityIndicator,
 } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { addRegistration, updateRegistration, deleteRegistration } from '../../store/wtRegistrySlice';
 import { WTRegistration, WTStudent } from '../../types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as DocumentPicker from 'expo-document-picker';
+import { Image as ExpoImage } from 'expo-image';
 
 export function RegisterTab() {
   const dispatch = useDispatch<AppDispatch>();
@@ -33,6 +36,12 @@ export function RegisterTab() {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [showMonthMenu, setShowMonthMenu] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [selectedRegistration, setSelectedRegistration] = useState<WTRegistration | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -42,6 +51,7 @@ export function RegisterTab() {
     endDate: new Date(),
     notes: '',
     isPaid: false,
+    attachmentUri: '',
   });
 
   const monthNames = [
@@ -76,6 +86,7 @@ export function RegisterTab() {
         endDate: registration.endDate || new Date(),
         notes: registration.notes || '',
         isPaid: registration.isPaid,
+        attachmentUri: registration.attachmentUri || '',
       });
     } else {
       setEditingRegistration(null);
@@ -88,6 +99,7 @@ export function RegisterTab() {
         endDate: nextMonth,
         notes: '',
         isPaid: false,
+        attachmentUri: '',
       });
     }
     setShowDialog(true);
@@ -97,6 +109,24 @@ export function RegisterTab() {
     setShowDialog(false);
     setEditingRegistration(null);
     setShowDatePicker(null);
+  };
+
+  const handlePickAttachment = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setFormData({
+          ...formData,
+          attachmentUri: result.assets[0].uri,
+        });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick attachment');
+    }
   };
 
   const handleSave = async () => {
@@ -117,6 +147,7 @@ export function RegisterTab() {
         endDate: formData.endDate,
         notes: formData.notes,
         isPaid: formData.isPaid,
+        attachmentUri: formData.attachmentUri,
       };
 
       if (editingRegistration) {
@@ -134,24 +165,20 @@ export function RegisterTab() {
   };
 
   const handleDelete = (registration: WTRegistration) => {
-    Alert.alert(
-      'Delete Registration',
-      `Are you sure you want to delete this registration for ${registration.studentName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteRegistration(registration.id)).unwrap();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete registration');
-            }
-          },
-        },
-      ]
-    );
+    setSelectedRegistration(registration);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedRegistration) return;
+    
+    try {
+      await dispatch(deleteRegistration(selectedRegistration.id)).unwrap();
+      setShowDeleteDialog(false);
+      setSelectedRegistration(null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete registration');
+    }
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -164,62 +191,104 @@ export function RegisterTab() {
     setShowDatePicker(null);
   };
 
-  const renderRegistrationCard = ({ item: registration }: { item: WTRegistration & { studentName: string } }) => (
-    <Card style={[styles.registrationCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
-      <Card.Content>
-        <View style={styles.registrationHeader}>
-          <View style={styles.registrationInfo}>
+  const handleLongPress = (registration: WTRegistration) => {
+    setSelectedRegistration(registration);
+    setShowContextMenu(true);
+  };
+
+  const handleCardPress = (registration: WTRegistration) => {
+    setSelectedRegistration(registration);
+    setShowDetailsDialog(true);
+  };
+
+  const renderRegistrationCard = ({ item: registration }: { item: WTRegistration & { studentName: string } }) => {
+    return (
+      <Card 
+        style={[styles.registrationCard, { backgroundColor: theme.colors.surface }]} 
+        mode="outlined"
+        onPress={() => handleCardPress(registration)}
+        onLongPress={() => handleLongPress(registration)}
+      >
+        <Card.Content style={styles.cardContent}>
+          {/* Header Row: Student Name and Status Chip */}
+          <View style={styles.cardHeader}>
             <Text variant="titleMedium" style={styles.studentName}>
               {registration.studentName}
             </Text>
-            <Text variant="bodyLarge" style={styles.amount}>
-              ${registration.amount.toFixed(2)}
-            </Text>
-            <View style={styles.statusContainer}>
-              <Chip
-                mode="outlined"
-                compact
-                style={[
-                  styles.statusChip,
-                  { backgroundColor: registration.isPaid ? theme.colors.primaryContainer : theme.colors.errorContainer }
-                ]}
-                textStyle={{ color: registration.isPaid ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer }}
-              >
-                {registration.isPaid ? 'Paid' : 'Unpaid'}
-              </Chip>
-            </View>
+            <Chip
+              mode="outlined"
+              compact
+              style={[
+                styles.statusChip,
+                { 
+                  backgroundColor: registration.isPaid 
+                    ? theme.colors.primaryContainer 
+                    : theme.colors.errorContainer 
+                }
+              ]}
+              textStyle={{ 
+                color: registration.isPaid 
+                  ? theme.colors.onPrimaryContainer 
+                  : theme.colors.onErrorContainer 
+              }}
+            >
+              {registration.isPaid ? 'Paid' : 'Unpaid'}
+            </Chip>
           </View>
-          <View style={styles.registrationActions}>
-            <IconButton
-              icon="pencil"
-              size={20}
-              onPress={() => handleOpenDialog(registration)}
-            />
-            <IconButton
-              icon="delete"
-              size={20}
-              iconColor={theme.colors.error}
-              onPress={() => handleDelete(registration)}
-            />
-          </View>
-        </View>
 
-        <Text variant="bodyMedium" style={styles.dateInfo}>
-          Payment Date: {registration.paymentDate.toLocaleDateString()}
-        </Text>
-        {registration.startDate && (
-          <Text variant="bodyMedium" style={styles.dateInfo}>
-            Period: {registration.startDate.toLocaleDateString()} - {registration.endDate?.toLocaleDateString() || 'N/A'}
+          {/* Amount */}
+          <Text variant="bodyLarge" style={styles.amount}>
+            Amount: ${registration.amount.toFixed(2)}
           </Text>
-        )}
-        {registration.notes && (
-          <Text variant="bodySmall" style={styles.notes}>
-            💬 {registration.notes}
-          </Text>
-        )}
-      </Card.Content>
-    </Card>
-  );
+
+          {/* Date Information */}
+          {registration.startDate && (
+            <Text variant="bodyMedium" style={styles.dateInfo}>
+              Start: {registration.startDate.toLocaleDateString()}
+            </Text>
+          )}
+          {registration.endDate && (
+            <Text variant="bodyMedium" style={styles.dateInfo}>
+              End: {registration.endDate.toLocaleDateString()}
+            </Text>
+          )}
+
+          {/* Notes */}
+          {registration.notes && (
+            <Text variant="bodySmall" style={styles.notes}>
+              {registration.notes}
+            </Text>
+          )}
+
+          {/* Attachment Indicator */}
+          {registration.attachmentUri && (
+            <View style={styles.attachmentIndicator}>
+              <IconButton
+                icon="attachment"
+                size={16}
+                onPress={() => {
+                  setSelectedAttachment(registration.attachmentUri!);
+                  setShowAttachmentPreview(true);
+                }}
+              />
+              <Text variant="bodySmall" style={styles.attachmentText}>
+                Receipt attached
+              </Text>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Loading registrations...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -277,6 +346,16 @@ export function RegisterTab() {
         renderItem={renderRegistrationCard}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              No registrations found for {monthNames[filterMonth]} {filterYear}
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptySubtext}>
+              Tap the + button to add a new registration
+            </Text>
+          </View>
+        }
       />
 
       <FAB
@@ -285,91 +364,110 @@ export function RegisterTab() {
         onPress={() => handleOpenDialog()}
       />
 
+      {/* Add/Edit Registration Dialog */}
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
+        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={styles.dialog}>
           <Dialog.Title>{editingRegistration ? 'Edit Registration' : 'Add Registration'}</Dialog.Title>
           <Dialog.Content>
-            <Menu
-              visible={false}
-              onDismiss={() => {}}
-              anchor={
-                <TextInput
-                  label="Student *"
-                  value={students.find(s => s.id === formData.studentId)?.name || 'Select student...'}
-                  onTouchStart={() => {}}
-                  style={styles.input}
-                  mode="outlined"
-                  right={<TextInput.Icon icon="chevron-down" />}
-                  editable={false}
-                />
-              }
-            >
-              {students.filter(s => s.isActive).map(student => (
-                <Menu.Item
-                  key={student.id}
-                  onPress={() => setFormData({ ...formData, studentId: student.id })}
-                  title={student.name}
-                />
-              ))}
-            </Menu>
+            <View style={styles.dialogContent}>
+              {/* Student Selection */}
+              <Text variant="bodyMedium" style={styles.sectionTitle}>Student *</Text>
+              <View style={styles.studentSelector}>
+                {students.filter(s => s.isActive).map(student => (
+                  <Chip
+                    key={student.id}
+                    mode={formData.studentId === student.id ? 'flat' : 'outlined'}
+                    selected={formData.studentId === student.id}
+                    onPress={() => setFormData({ ...formData, studentId: student.id })}
+                    style={styles.studentChip}
+                  >
+                    {student.name}
+                  </Chip>
+                ))}
+              </View>
 
-            <View style={styles.studentSelector}>
-              {students.filter(s => s.isActive).map(student => (
-                <Chip
-                  key={student.id}
-                  mode={formData.studentId === student.id ? 'flat' : 'outlined'}
-                  selected={formData.studentId === student.id}
-                  onPress={() => setFormData({ ...formData, studentId: student.id })}
-                  style={styles.studentChip}
-                >
-                  {student.name}
-                </Chip>
-              ))}
-            </View>
-
-            <TextInput
-              label="Amount *"
-              value={formData.amount}
-              onChangeText={(text) => setFormData({ ...formData, amount: text })}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="numeric"
-              left={<TextInput.Icon icon="currency-usd" />}
-            />
-
-            <View style={styles.dateContainer}>
-              <Button
+              {/* Amount */}
+              <TextInput
+                label="Amount *"
+                value={formData.amount}
+                onChangeText={(text) => setFormData({ ...formData, amount: text })}
+                style={styles.input}
                 mode="outlined"
-                onPress={() => setShowDatePicker('start')}
-                style={styles.dateButton}
-              >
-                Start: {formData.startDate.toLocaleDateString()}
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => setShowDatePicker('end')}
-                style={styles.dateButton}
-              >
-                End: {formData.endDate.toLocaleDateString()}
-              </Button>
-            </View>
-
-            <TextInput
-              label="Notes"
-              value={formData.notes}
-              onChangeText={(text) => setFormData({ ...formData, notes: text })}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-            />
-
-            <View style={styles.switchContainer}>
-              <Text variant="bodyMedium">Paid</Text>
-              <Switch
-                value={formData.isPaid}
-                onValueChange={(value) => setFormData({ ...formData, isPaid: value })}
+                keyboardType="numeric"
+                left={<TextInput.Icon icon="currency-usd" />}
               />
+
+              {/* Date Selection */}
+              <Text variant="bodyMedium" style={styles.sectionTitle}>Registration Period</Text>
+              <View style={styles.dateContainer}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowDatePicker('start')}
+                  style={styles.dateButton}
+                  icon="calendar"
+                >
+                  Start: {formData.startDate.toLocaleDateString()}
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowDatePicker('end')}
+                  style={styles.dateButton}
+                  icon="calendar"
+                >
+                  End: {formData.endDate.toLocaleDateString()}
+                </Button>
+              </View>
+
+              {/* Notes */}
+              <TextInput
+                label="Notes"
+                value={formData.notes}
+                onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                style={styles.input}
+                mode="outlined"
+                multiline
+                numberOfLines={3}
+              />
+
+              {/* Payment Status */}
+              <View style={styles.switchContainer}>
+                <Text variant="bodyMedium">Paid</Text>
+                <Switch
+                  value={formData.isPaid}
+                  onValueChange={(value) => setFormData({ ...formData, isPaid: value })}
+                />
+              </View>
+
+              {/* Receipt/Attachment section (only show if paid) */}
+              {formData.isPaid && (
+                <>
+                  <Text variant="bodyMedium" style={styles.sectionTitle}>Receipt/Attachment</Text>
+                  <View style={styles.attachmentContainer}>
+                    <Button
+                      mode="outlined"
+                      onPress={handlePickAttachment}
+                      icon="attachment"
+                      style={styles.attachmentButton}
+                    >
+                      {formData.attachmentUri ? 'Change Receipt' : 'Add Receipt'}
+                    </Button>
+                    
+                    {formData.attachmentUri && (
+                      <IconButton
+                        icon="close"
+                        size={20}
+                        onPress={() => setFormData({ ...formData, attachmentUri: '' })}
+                      />
+                    )}
+                  </View>
+                  
+                  {formData.attachmentUri && (
+                    <Text variant="bodySmall" style={styles.attachmentTextDialog}>
+                      File selected: {formData.attachmentUri.split('/').pop() || 'Unknown'}
+                    </Text>
+                  )}
+                </>
+              )}
             </View>
           </Dialog.Content>
           <Dialog.Actions>
@@ -381,6 +479,167 @@ export function RegisterTab() {
         </Dialog>
       </Portal>
 
+      {/* Context Menu */}
+      <Portal>
+        <Menu
+          visible={showContextMenu}
+          onDismiss={() => setShowContextMenu(false)}
+          anchor={{ x: 0, y: 0 }}
+        >
+          {selectedRegistration && (
+            <>
+              <Menu.Item
+                onPress={() => {
+                  setShowContextMenu(false);
+                  handleOpenDialog(selectedRegistration);
+                }}
+                title="Edit"
+                leadingIcon="pencil"
+              />
+              <Menu.Item
+                onPress={() => {
+                  setShowContextMenu(false);
+                  handleDelete(selectedRegistration);
+                }}
+                title="Delete"
+                leadingIcon="delete"
+              />
+              {selectedRegistration.attachmentUri && (
+                <Menu.Item
+                  onPress={() => {
+                    setShowContextMenu(false);
+                    setSelectedAttachment(selectedRegistration.attachmentUri!);
+                    setShowAttachmentPreview(true);
+                  }}
+                  title="View Attachment"
+                  leadingIcon="attachment"
+                />
+              )}
+            </>
+          )}
+        </Menu>
+      </Portal>
+
+      {/* Delete Confirmation Dialog */}
+      <Portal>
+        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)}>
+          <Dialog.Title>Delete Registration</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              Are you sure you want to delete this registration for {selectedRegistration?.studentName}? 
+              This will also delete any related transactions.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button onPress={confirmDelete} textColor={theme.colors.error}>
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Details Dialog */}
+      <Portal>
+        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)}>
+          <Dialog.Title>Registration Details</Dialog.Title>
+          <Dialog.Content>
+            {selectedRegistration && (
+              <View>
+                <Text variant="titleMedium" style={styles.detailTitle}>
+                  {selectedRegistration.studentName}
+                </Text>
+                <Text variant="bodyLarge" style={styles.detailAmount}>
+                  Amount: ${selectedRegistration.amount.toFixed(2)}
+                </Text>
+                <Text variant="bodyMedium" style={styles.detailText}>
+                  Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
+                </Text>
+                <Text variant="bodyMedium" style={styles.detailText}>
+                  Payment Date: {selectedRegistration.paymentDate.toLocaleDateString()}
+                </Text>
+                {selectedRegistration.startDate && (
+                  <Text variant="bodyMedium" style={styles.detailText}>
+                    Start: {selectedRegistration.startDate.toLocaleDateString()}
+                  </Text>
+                )}
+                {selectedRegistration.endDate && (
+                  <Text variant="bodyMedium" style={styles.detailText}>
+                    End: {selectedRegistration.endDate.toLocaleDateString()}
+                  </Text>
+                )}
+                {selectedRegistration.notes && (
+                  <Text variant="bodyMedium" style={styles.detailText}>
+                    Notes: {selectedRegistration.notes}
+                  </Text>
+                )}
+                {selectedRegistration.attachmentUri && (
+                  <View style={styles.detailAttachment}>
+                    <Text variant="bodyMedium" style={styles.detailText}>
+                      Receipt: Attached
+                    </Text>
+                    <Button
+                      mode="outlined"
+                      onPress={() => {
+                        setSelectedAttachment(selectedRegistration.attachmentUri!);
+                        setShowAttachmentPreview(true);
+                        setShowDetailsDialog(false);
+                      }}
+                      icon="attachment"
+                    >
+                      View Receipt
+                    </Button>
+                  </View>
+                )}
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDetailsDialog(false)}>Close</Button>
+            <Button 
+              onPress={() => {
+                setShowDetailsDialog(false);
+                handleOpenDialog(selectedRegistration!);
+              }}
+              mode="contained"
+            >
+              Edit
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Attachment Preview Dialog */}
+      <Portal>
+        <Dialog visible={showAttachmentPreview} onDismiss={() => setShowAttachmentPreview(false)}>
+          <Dialog.Title>Attachment Preview</Dialog.Title>
+          <Dialog.Content>
+            {selectedAttachment && (
+              <View style={styles.previewContainer}>
+                {selectedAttachment.toLowerCase().includes('image') ? (
+                  <ExpoImage
+                    source={{ uri: selectedAttachment }}
+                    style={styles.previewImage}
+                    contentFit="contain"
+                  />
+                ) : (
+                  <View style={styles.filePreview}>
+                    <IconButton icon="file" size={48} />
+                    <Text variant="bodyMedium">
+                      {selectedAttachment.split('/').pop() || 'Unknown file'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowAttachmentPreview(false)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Date Picker */}
       {showDatePicker && (
         <DateTimePicker
           value={showDatePicker === 'start' ? formData.startDate : formData.endDate}
@@ -421,32 +680,25 @@ const styles = StyleSheet.create({
   registrationCard: {
     marginBottom: 12,
   },
-  registrationHeader: {
+  cardContent: {
+    padding: 12,
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 8,
-  },
-  registrationInfo: {
-    flex: 1,
-    marginRight: 8,
   },
   studentName: {
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginRight: 8,
   },
   amount: {
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  statusContainer: {
-    marginBottom: 4,
-  },
   statusChip: {
     alignSelf: 'flex-start',
-  },
-  registrationActions: {
-    flexDirection: 'row',
   },
   dateInfo: {
     marginBottom: 2,
@@ -487,5 +739,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 8,
+  },
+  attachmentIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  attachmentText: {
+    marginLeft: 4,
+    color: '#666',
+  },
+  attachmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  attachmentButton: {
+    flex: 1,
+  },
+  attachmentTextDialog: {
+    marginTop: 8,
+    color: '#666',
+  },
+  previewContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    marginBottom: 16,
+  },
+  filePreview: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  detailTitle: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  detailAmount: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  detailText: {
+    marginBottom: 4,
+  },
+  detailAttachment: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptySubtext: {
+    textAlign: 'center',
+    color: '#888',
+  },
+  dialog: {
+    margin: 16,
+  },
+  dialogContent: {
+    paddingBottom: 16,
+  },
+  sectionTitle: {
+    marginBottom: 8,
+    fontWeight: 'bold',
   },
 }); 
