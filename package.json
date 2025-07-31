@@ -24,6 +24,7 @@
     "d3-shape": "^3.2.0",
     "date-fns": "^4.1.0",
     "expo-document-picker": "^13.1.6",
+    "expo-file-system": "^18.1.11",
     "expo-image": "^2.4.0",
     "expo-intent-launcher": "^12.1.5",
     "expo-sharing": "^13.1.5",

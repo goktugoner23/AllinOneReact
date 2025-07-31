@@ -25,6 +25,7 @@ import { fetchSeminars, addSeminar, updateSeminar, deleteSeminar } from '../data
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '../types/WTRegistry';
 import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+// import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../utils/fileUtils';
 
 const Tab = createBottomTabNavigator();
 
@@ -548,8 +549,7 @@ const RegisterTab: React.FC = () => {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
-  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -621,6 +621,25 @@ const RegisterTab: React.FC = () => {
     return student?.name || 'Unknown Student';
   };
 
+  const handleViewAttachment = async (attachmentUri: string) => {
+    try {
+      setIsDownloading(true);
+      
+      // For now, use a simple approach that works with React Native
+      // This will open the file URL in the device's default browser or app
+      const fileName = attachmentUri.split('/').pop() || 'file';
+      
+      // Open the file directly without any confirmation
+      await Linking.openURL(attachmentUri);
+      
+    } catch (error) {
+      console.error('Error handling attachment:', error);
+      Alert.alert('Error', 'Failed to open file. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const renderRegistration = ({ item }: { item: WTRegistration }) => (
     <Card 
       style={styles.card} 
@@ -680,15 +699,17 @@ const RegisterTab: React.FC = () => {
         {item.attachmentUri && (
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
             <TouchableOpacity
-              onPress={() => {
-                setSelectedAttachment(item.attachmentUri!);
-                setShowAttachmentPreview(true);
-              }}
+              onPress={() => handleViewAttachment(item.attachmentUri!)}
+              disabled={isDownloading}
             >
-              <Ionicons name="document" size={16} color="#2196F3" />
+              <Ionicons 
+                name={isDownloading ? "hourglass" : "document"} 
+                size={16} 
+                color={isDownloading ? "#999" : "#2196F3"} 
+              />
             </TouchableOpacity>
             <Text style={{ fontSize: 12, color: '#666', marginLeft: 4 }}>
-              Receipt attached
+              {isDownloading ? 'Opening...' : 'Receipt attached'}
             </Text>
           </View>
         )}
@@ -721,7 +742,7 @@ const RegisterTab: React.FC = () => {
 
       {/* Context Menu */}
       <Portal>
-        <Dialog visible={showContextMenu} onDismiss={() => setShowContextMenu(false)}>
+        <Dialog visible={showContextMenu} onDismiss={() => setShowContextMenu(false)} style={{ backgroundColor: 'white' }}>
           <Dialog.Title>Registration Options</Dialog.Title>
           <Dialog.Content>
             <Text>What would you like to do with this registration?</Text>
@@ -735,6 +756,12 @@ const RegisterTab: React.FC = () => {
               setShowContextMenu(false);
               handleDeleteRegistration(selectedRegistration!);
             }} textColor="red">Delete</Button>
+            {selectedRegistration?.attachmentUri && (
+              <Button onPress={() => {
+                setShowContextMenu(false);
+                handleViewAttachment(selectedRegistration.attachmentUri!);
+              }}>View Attachment</Button>
+            )}
             <Button onPress={() => setShowContextMenu(false)}>Cancel</Button>
           </Dialog.Actions>
         </Dialog>
@@ -742,7 +769,7 @@ const RegisterTab: React.FC = () => {
 
       {/* Delete Confirmation Dialog */}
       <Portal>
-        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)}>
+        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)} style={{ backgroundColor: 'white' }}>
           <Dialog.Title>Delete Registration</Dialog.Title>
           <Dialog.Content>
             <Text>
@@ -759,7 +786,7 @@ const RegisterTab: React.FC = () => {
 
       {/* Details Dialog */}
       <Portal>
-        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)}>
+        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)} style={{ backgroundColor: 'white' }}>
           <Dialog.Title>Registration Details</Dialog.Title>
           <Dialog.Content>
             {selectedRegistration && (
@@ -799,12 +826,13 @@ const RegisterTab: React.FC = () => {
                     <Button
                       mode="outlined"
                       onPress={() => {
-                        setSelectedAttachment(selectedRegistration.attachmentUri!);
-                        setShowAttachmentPreview(true);
                         setShowDetailsDialog(false);
+                        handleViewAttachment(selectedRegistration.attachmentUri!);
                       }}
+                      loading={isDownloading}
+                      disabled={isDownloading}
                     >
-                      View Receipt
+                      {isDownloading ? 'Opening...' : 'View Receipt'}
                     </Button>
                   </View>
                 )}
@@ -826,25 +854,7 @@ const RegisterTab: React.FC = () => {
         </Dialog>
       </Portal>
 
-      {/* Attachment Preview Dialog */}
-      <Portal>
-        <Dialog visible={showAttachmentPreview} onDismiss={() => setShowAttachmentPreview(false)}>
-          <Dialog.Title>Attachment Preview</Dialog.Title>
-          <Dialog.Content>
-            {selectedAttachment && (
-              <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-                <Ionicons name="document" size={48} color="#2196F3" />
-                <Text style={{ marginTop: 8 }}>
-                  {selectedAttachment.split('/').pop() || 'Unknown file'}
-                </Text>
-              </View>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowAttachmentPreview(false)}>Close</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+
 
       {/* Add Registration Dialog */}
       <AddRegistrationDialog
@@ -1408,7 +1418,7 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white' }}>
         <Dialog.Title>Add Registration</Dialog.Title>
         <Dialog.Content>
           <ScrollView>
@@ -1527,7 +1537,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white' }}>
         <Dialog.Title>Edit Registration</Dialog.Title>
         <Dialog.Content>
           <ScrollView>
