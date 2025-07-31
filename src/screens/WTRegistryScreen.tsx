@@ -1013,6 +1013,15 @@ const LessonsTab: React.FC = () => {
   const [lessons, setLessons] = useState<WTLesson[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState<'start' | 'end' | null>(null);
+  const [formData, setFormData] = useState({
+    dayOfWeek: 1, // Monday
+    startTime: new Date(),
+    endTime: new Date(),
+  });
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayButtons = dayNames.map((day, index) => ({ value: index.toString(), label: day.slice(0, 3) }));
 
   const loadLessons = async () => {
     try {
@@ -1044,15 +1053,60 @@ const LessonsTab: React.FC = () => {
     return days[dayOfWeek] || 'Unknown';
   };
 
+  const handleOpenDialog = () => {
+    const now = new Date();
+    const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
+    
+    setFormData({
+      dayOfWeek: 1, // Monday
+      startTime: now,
+      endTime,
+    });
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setShowAddDialog(false);
+    setShowTimePicker(null);
+  };
+
+  const handleSave = async () => {
+    try {
+      const lessonData = {
+        dayOfWeek: formData.dayOfWeek,
+        startHour: formData.startTime.getHours(),
+        startMinute: formData.startTime.getMinutes(),
+        endHour: formData.endTime.getHours(),
+        endMinute: formData.endTime.getMinutes(),
+      };
+
+      await addLesson(lessonData);
+      await loadLessons(); // Refresh the list
+      handleCloseDialog();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save lesson');
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    if (selectedTime && showTimePicker) {
+      setFormData({
+        ...formData,
+        [showTimePicker === 'start' ? 'startTime' : 'endTime']: selectedTime,
+      });
+    }
+    setShowTimePicker(null);
+  };
+
   const renderLesson = ({ item }: { item: WTLesson }) => (
     <Card style={styles.card} mode="outlined">
-              <Card.Content>
+      <Card.Content>
         <Text style={styles.lessonDay}>{getDayName(item.dayOfWeek)}</Text>
-                <Text style={styles.lessonTime}>
+        <Text style={styles.lessonTime}>
           {formatTime(item.startHour, item.startMinute)} - {formatTime(item.endHour, item.endMinute)}
-                </Text>
-              </Card.Content>
-            </Card>
+        </Text>
+      </Card.Content>
+    </Card>
   );
 
   return (
@@ -1075,8 +1129,101 @@ const LessonsTab: React.FC = () => {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => setShowAddDialog(true)}
+        onPress={handleOpenDialog}
       />
+
+      <Portal>
+        <Dialog visible={showAddDialog} onDismiss={handleCloseDialog}>
+          <Dialog.Title>Add Lesson</Dialog.Title>
+          <Dialog.Content>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8, marginTop: 16 }}>Day of Week</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16 }}>
+              {dayButtons.map((day) => (
+                <TouchableOpacity
+                  key={day.value}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    margin: 2,
+                    borderRadius: 16,
+                    backgroundColor: formData.dayOfWeek === parseInt(day.value) ? '#007AFF' : '#f0f0f0',
+                    minWidth: 40,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setFormData({ ...formData, dayOfWeek: parseInt(day.value) })}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    color: formData.dayOfWeek === parseInt(day.value) ? '#fff' : '#333',
+                    fontWeight: formData.dayOfWeek === parseInt(day.value) ? 'bold' : 'normal',
+                  }}>
+                    {day.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8, marginTop: 16 }}>Start Time</Text>
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderWidth: 1,
+                borderColor: '#ddd',
+                borderRadius: 8,
+                marginBottom: 16,
+                alignSelf: 'flex-start',
+              }}
+              onPress={() => setShowTimePicker('start')}
+            >
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8, marginTop: 16 }}>End Time</Text>
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderWidth: 1,
+                borderColor: '#ddd',
+                borderRadius: 8,
+                marginBottom: 16,
+                alignSelf: 'flex-start',
+              }}
+              onPress={() => setShowTimePicker('end')}
+            >
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{ alignItems: 'center', marginTop: 8 }}>
+              <Text style={{ fontSize: 14, color: '#666', fontStyle: 'italic' }}>
+                Duration: {Math.round(((formData.endTime.getHours() * 60 + formData.endTime.getMinutes()) - 
+                (formData.startTime.getHours() * 60 + formData.startTime.getMinutes())) / 60 * 100) / 100} hours
+              </Text>
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleCloseDialog}>Cancel</Button>
+            <Button onPress={handleSave} mode="contained">
+              Add
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={showTimePicker === 'start' ? formData.startTime : formData.endTime}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={handleTimeChange}
+        />
+      )}
     </View>
   );
 };
@@ -2042,6 +2189,59 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  daySelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  dayButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    margin: 2,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: '#007AFF',
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  dayButtonTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  timeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  timeButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  durationContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  durationText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   // Student styles
   studentHeader: {
