@@ -545,6 +545,11 @@ const RegisterTab: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<WTRegistration | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -593,26 +598,22 @@ const RegisterTab: React.FC = () => {
   };
 
   const handleDeleteRegistration = async (registration: WTRegistration) => {
-    Alert.alert(
-      'Delete Registration',
-      'Are you sure you want to delete this registration?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteRegistration(registration.id);
-              loadData();
-            } catch (error) {
-              console.error('Error deleting registration:', error);
-              Alert.alert('Error', 'Failed to delete registration');
-            }
-          },
-        },
-      ]
-    );
+    setSelectedRegistration(registration);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedRegistration) return;
+    
+    try {
+      await deleteRegistration(selectedRegistration.id);
+      setShowDeleteDialog(false);
+      setSelectedRegistration(null);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting registration:', error);
+      Alert.alert('Error', 'Failed to delete registration');
+    }
   };
 
   const getStudentName = (studentId: number) => {
@@ -621,47 +622,77 @@ const RegisterTab: React.FC = () => {
   };
 
   const renderRegistration = ({ item }: { item: WTRegistration }) => (
-    <Card style={styles.card} mode="outlined">
-              <Card.Content>
-        <View style={styles.registrationHeader}>
-          <View style={styles.registrationInfo}>
-            <Text style={styles.registrationAmount}>${item.amount.toFixed(2)}</Text>
-            <Text style={styles.registrationDate}>
-              {new Date(item.paymentDate).toLocaleDateString()}
-            </Text>
-            <Text style={styles.registrationPeriod}>
-              {item.startDate && item.endDate && 
-                `${new Date(item.startDate).toLocaleDateString()} - ${new Date(item.endDate).toLocaleDateString()}`
-              }
-            </Text>
-            <Text style={styles.studentName}>{getStudentName(item.studentId)}</Text>
-          </View>
-          <View style={styles.registrationStatus}>
-            <Chip 
-              mode="outlined" 
-              compact 
-              style={[styles.statusChip, { backgroundColor: item.isPaid ? '#4CAF50' : '#FF9800' }]}
-            >
-              {item.isPaid ? 'Paid' : 'Unpaid'}
-            </Chip>
-            {item.attachmentUri && (
-              <TouchableOpacity style={styles.attachmentIcon}>
-                <Ionicons name="document" size={24} color="#2196F3" />
-              </TouchableOpacity>
-            )}
-          </View>
+    <Card 
+      style={styles.card} 
+      mode="outlined"
+      onPress={() => {
+        setSelectedRegistration(item);
+        setShowDetailsDialog(true);
+      }}
+      onLongPress={() => {
+        setSelectedRegistration(item);
+        setShowContextMenu(true);
+      }}
+    >
+      <Card.Content style={{ padding: 12 }}>
+        {/* Header Row: Student Name and Status Chip */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginRight: 8 }}>
+            {getStudentName(item.studentId)}
+          </Text>
+          <Chip
+            mode="outlined"
+            compact
+            style={{ 
+              backgroundColor: item.isPaid ? '#4CAF50' : '#FF9800',
+              alignSelf: 'flex-start'
+            }}
+          >
+            {item.isPaid ? 'Paid' : 'Unpaid'}
+          </Chip>
         </View>
+
+        {/* Amount */}
+        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 4 }}>
+          Amount: ${item.amount.toFixed(2)}
+        </Text>
+
+        {/* Date Information */}
+        {item.startDate && (
+          <Text style={{ fontSize: 14, color: '#666', marginBottom: 2 }}>
+            Start: {new Date(item.startDate).toLocaleDateString()}
+          </Text>
+        )}
+        {item.endDate && (
+          <Text style={{ fontSize: 14, color: '#666', marginBottom: 2 }}>
+            End: {new Date(item.endDate).toLocaleDateString()}
+          </Text>
+        )}
+
+        {/* Notes */}
         {item.notes && (
-          <Text style={styles.registrationNotes}>{item.notes}</Text>
+          <Text style={{ fontSize: 12, fontStyle: 'italic', color: '#888', marginTop: 8 }}>
+            {item.notes}
+          </Text>
+        )}
+
+        {/* Attachment Indicator */}
+        {item.attachmentUri && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedAttachment(item.attachmentUri!);
+                setShowAttachmentPreview(true);
+              }}
+            >
+              <Ionicons name="document" size={16} color="#2196F3" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 12, color: '#666', marginLeft: 4 }}>
+              Receipt attached
+            </Text>
+          </View>
         )}
       </Card.Content>
-      <Card.Actions>
-        <Button onPress={() => {
-          setSelectedRegistration(item);
-          setShowEditDialog(true);
-        }}>Edit</Button>
-        <Button onPress={() => handleDeleteRegistration(item)}>Delete</Button>
-      </Card.Actions>
     </Card>
   );
 
@@ -687,6 +718,133 @@ const RegisterTab: React.FC = () => {
         icon="plus"
         onPress={() => setShowAddDialog(true)}
       />
+
+      {/* Context Menu */}
+      <Portal>
+        <Dialog visible={showContextMenu} onDismiss={() => setShowContextMenu(false)}>
+          <Dialog.Title>Registration Options</Dialog.Title>
+          <Dialog.Content>
+            <Text>What would you like to do with this registration?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => {
+              setShowContextMenu(false);
+              setShowEditDialog(true);
+            }}>Edit</Button>
+            <Button onPress={() => {
+              setShowContextMenu(false);
+              handleDeleteRegistration(selectedRegistration!);
+            }} textColor="red">Delete</Button>
+            <Button onPress={() => setShowContextMenu(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Delete Confirmation Dialog */}
+      <Portal>
+        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)}>
+          <Dialog.Title>Delete Registration</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              Are you sure you want to delete this registration for {selectedRegistration?.studentName}? 
+              This will also delete any related transactions.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button onPress={confirmDelete} textColor="red">Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Details Dialog */}
+      <Portal>
+        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)}>
+          <Dialog.Title>Registration Details</Dialog.Title>
+          <Dialog.Content>
+            {selectedRegistration && (
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                  {getStudentName(selectedRegistration.studentId)}
+                </Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
+                  Amount: ${selectedRegistration.amount.toFixed(2)}
+                </Text>
+                <Text style={{ marginBottom: 4 }}>
+                  Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
+                </Text>
+                <Text style={{ marginBottom: 4 }}>
+                  Payment Date: {new Date(selectedRegistration.paymentDate).toLocaleDateString()}
+                </Text>
+                {selectedRegistration.startDate && (
+                  <Text style={{ marginBottom: 4 }}>
+                    Start: {new Date(selectedRegistration.startDate).toLocaleDateString()}
+                  </Text>
+                )}
+                {selectedRegistration.endDate && (
+                  <Text style={{ marginBottom: 4 }}>
+                    End: {new Date(selectedRegistration.endDate).toLocaleDateString()}
+                  </Text>
+                )}
+                {selectedRegistration.notes && (
+                  <Text style={{ marginBottom: 4 }}>
+                    Notes: {selectedRegistration.notes}
+                  </Text>
+                )}
+                {selectedRegistration.attachmentUri && (
+                  <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ marginBottom: 4 }}>
+                      Receipt: Attached
+                    </Text>
+                    <Button
+                      mode="outlined"
+                      onPress={() => {
+                        setSelectedAttachment(selectedRegistration.attachmentUri!);
+                        setShowAttachmentPreview(true);
+                        setShowDetailsDialog(false);
+                      }}
+                    >
+                      View Receipt
+                    </Button>
+                  </View>
+                )}
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowDetailsDialog(false)}>Close</Button>
+            <Button 
+              onPress={() => {
+                setShowDetailsDialog(false);
+                setShowEditDialog(true);
+              }}
+              mode="contained"
+            >
+              Edit
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Attachment Preview Dialog */}
+      <Portal>
+        <Dialog visible={showAttachmentPreview} onDismiss={() => setShowAttachmentPreview(false)}>
+          <Dialog.Title>Attachment Preview</Dialog.Title>
+          <Dialog.Content>
+            {selectedAttachment && (
+              <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+                <Ionicons name="document" size={48} color="#2196F3" />
+                <Text style={{ marginTop: 8 }}>
+                  {selectedAttachment.split('/').pop() || 'Unknown file'}
+                </Text>
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowAttachmentPreview(false)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       {/* Add Registration Dialog */}
       <AddRegistrationDialog

@@ -14,7 +14,7 @@ export interface WTRegistration {
   id: number;
   studentId: number; // Reference to WTStudent id
   amount: number;
-  attachmentUri?: string;
+  attachmentUri?: string; // Can be local URI or Firebase Storage URL
   startDate?: Date;
   endDate?: Date;
   paymentDate: Date;

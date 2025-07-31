@@ -50,7 +50,11 @@ export const loadRegistrations = createAsyncThunk('wtRegistry/loadRegistrations'
 });
 
 export const addRegistration = createAsyncThunk('wtRegistry/addRegistration', async (registration: Omit<WTRegistration, 'id' | 'paymentDate'>) => {
-  return await addRegistrationToFirestore(registration);
+  const newRegistration = await addRegistrationToFirestore({
+    ...registration,
+    paymentDate: new Date(),
+  });
+  return newRegistration;
 });
 
 export const updateRegistration = createAsyncThunk('wtRegistry/updateRegistration', async (registration: WTRegistration) => {
