@@ -23,7 +23,7 @@ import { addRegistration, updateRegistration, deleteRegistration } from '../../s
 import { WTRegistration, WTStudent } from '../../types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
-import { Image as ExpoImage } from 'expo-image';
+import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../../utils/fileUtils';
 
 export function RegisterTab() {
   const dispatch = useDispatch<AppDispatch>();
@@ -39,9 +39,8 @@ export function RegisterTab() {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<WTRegistration | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
-  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -201,6 +200,31 @@ export function RegisterTab() {
     setShowDetailsDialog(true);
   };
 
+  const handleViewAttachment = async (attachmentUri: string) => {
+    try {
+      setIsDownloading(true);
+      
+      // Check if file is already downloaded
+      const isDownloaded = await isFileDownloaded(attachmentUri);
+      
+      if (isDownloaded) {
+        // File is already downloaded, open it directly
+        const localUri = await getLocalFileUri(attachmentUri);
+        if (localUri) {
+          await openFile(localUri, attachmentUri.split('/').pop() || 'file');
+        }
+      } else {
+        // Download and open the file
+        await downloadAndOpenFile(attachmentUri);
+      }
+    } catch (error) {
+      console.error('Error handling attachment:', error);
+      Alert.alert('Error', 'Failed to open file. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const renderRegistrationCard = ({ item: registration }: { item: WTRegistration & { studentName: string } }) => {
     return (
       <Card 
@@ -264,15 +288,13 @@ export function RegisterTab() {
           {registration.attachmentUri && (
             <View style={styles.attachmentIndicator}>
               <IconButton
-                icon="attachment"
+                icon={isDownloading ? "loading" : "attachment"}
                 size={16}
-                onPress={() => {
-                  setSelectedAttachment(registration.attachmentUri!);
-                  setShowAttachmentPreview(true);
-                }}
+                onPress={() => handleViewAttachment(registration.attachmentUri!)}
+                disabled={isDownloading}
               />
               <Text variant="bodySmall" style={styles.attachmentText}>
-                Receipt attached
+                {isDownloading ? 'Opening...' : 'Receipt attached'}
               </Text>
             </View>
           )}
@@ -366,7 +388,7 @@ export function RegisterTab() {
 
       {/* Add/Edit Registration Dialog */}
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={styles.dialog}>
+        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={[styles.dialog, { backgroundColor: 'white' }]}>
           <Dialog.Title>{editingRegistration ? 'Edit Registration' : 'Add Registration'}</Dialog.Title>
           <Dialog.Content>
             <View style={styles.dialogContent}>
@@ -508,8 +530,7 @@ export function RegisterTab() {
                 <Menu.Item
                   onPress={() => {
                     setShowContextMenu(false);
-                    setSelectedAttachment(selectedRegistration.attachmentUri!);
-                    setShowAttachmentPreview(true);
+                    handleViewAttachment(selectedRegistration.attachmentUri!);
                   }}
                   title="View Attachment"
                   leadingIcon="attachment"
@@ -522,7 +543,7 @@ export function RegisterTab() {
 
       {/* Delete Confirmation Dialog */}
       <Portal>
-        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)}>
+        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)} style={{ backgroundColor: 'white' }}>
           <Dialog.Title>Delete Registration</Dialog.Title>
           <Dialog.Content>
             <Text>
@@ -541,7 +562,7 @@ export function RegisterTab() {
 
       {/* Details Dialog */}
       <Portal>
-        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)}>
+        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)} style={{ backgroundColor: 'white' }}>
           <Dialog.Title>Registration Details</Dialog.Title>
           <Dialog.Content>
             {selectedRegistration && (
@@ -581,13 +602,14 @@ export function RegisterTab() {
                     <Button
                       mode="outlined"
                       onPress={() => {
-                        setSelectedAttachment(selectedRegistration.attachmentUri!);
-                        setShowAttachmentPreview(true);
                         setShowDetailsDialog(false);
+                        handleViewAttachment(selectedRegistration.attachmentUri!);
                       }}
                       icon="attachment"
+                      loading={isDownloading}
+                      disabled={isDownloading}
                     >
-                      View Receipt
+                      {isDownloading ? 'Opening...' : 'View Receipt'}
                     </Button>
                   </View>
                 )}
@@ -609,35 +631,7 @@ export function RegisterTab() {
         </Dialog>
       </Portal>
 
-      {/* Attachment Preview Dialog */}
-      <Portal>
-        <Dialog visible={showAttachmentPreview} onDismiss={() => setShowAttachmentPreview(false)}>
-          <Dialog.Title>Attachment Preview</Dialog.Title>
-          <Dialog.Content>
-            {selectedAttachment && (
-              <View style={styles.previewContainer}>
-                {selectedAttachment.toLowerCase().includes('image') ? (
-                  <ExpoImage
-                    source={{ uri: selectedAttachment }}
-                    style={styles.previewImage}
-                    contentFit="contain"
-                  />
-                ) : (
-                  <View style={styles.filePreview}>
-                    <IconButton icon="file" size={48} />
-                    <Text variant="bodyMedium">
-                      {selectedAttachment.split('/').pop() || 'Unknown file'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowAttachmentPreview(false)}>Close</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+
 
       {/* Date Picker */}
       {showDatePicker && (
@@ -763,19 +757,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#666',
   },
-  previewContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  previewImage: {
-    width: '100%',
-    height: 200,
-    marginBottom: 16,
-  },
-  filePreview: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
+
   detailTitle: {
     fontWeight: 'bold',
     marginBottom: 8,
