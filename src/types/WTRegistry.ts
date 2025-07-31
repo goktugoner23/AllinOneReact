@@ -5,7 +5,6 @@ export interface WTStudent {
   email?: string;
   instagram?: string;
   isActive: boolean;
-  deviceId?: string;
   notes?: string;
   photoUri?: string;
 }
@@ -36,7 +35,7 @@ export interface WTLesson {
 export interface WTSeminar {
   id: number;
   name: string;
-  date: Date;
+  date: Date | string; // Can be Date object or ISO string for Redux serialization
   startHour: number;
   startMinute: number;
   endHour: number;

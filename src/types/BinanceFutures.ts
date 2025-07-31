@@ -12,7 +12,6 @@ export interface BinanceFutures {
   isAutoAddMargin: boolean;
   positionSide: string;
   updateTime?: string;
-  deviceId?: string;
   futuresType: 'USD-M' | 'COIN-M';
 }
 
@@ -26,6 +25,5 @@ export interface BinanceBalance {
   maxWithdrawAmount: number;
   marginAvailable: boolean;
   updateTime?: string;
-  deviceId?: string;
   futuresType: 'USD-M' | 'COIN-M';
 }

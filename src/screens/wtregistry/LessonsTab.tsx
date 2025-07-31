@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import {
   Card,
@@ -14,7 +14,7 @@ import {
 } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { addLesson, updateLesson, deleteLesson } from '../../store/wtRegistrySlice';
+import { addLesson, updateLesson, deleteLesson, loadLessons } from '../../store/wtRegistrySlice';
 import { WTLesson } from '../../types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -36,6 +36,12 @@ export function LessonsTab() {
 
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayButtons = dayNames.map((day, index) => ({ value: index.toString(), label: day.slice(0, 3) }));
+
+  // Load lessons when component mounts
+  useEffect(() => {
+    console.log('🔍 Loading lessons from Firebase...');
+    dispatch(loadLessons());
+  }, [dispatch]);
 
   const sortedLessons = [...lessons].sort((a, b) => {
     if (a.dayOfWeek === b.dayOfWeek) {
@@ -78,6 +84,11 @@ export function LessonsTab() {
   };
 
   const handleSave = async () => {
+    if (formData.startTime >= formData.endTime) {
+      Alert.alert('Error', 'End time must be after start time');
+      return;
+    }
+
     try {
       const lessonData = {
         dayOfWeek: formData.dayOfWeek,
@@ -122,12 +133,40 @@ export function LessonsTab() {
     );
   };
 
+
+
   const handleTimeChange = (event: any, selectedTime?: Date) => {
     if (selectedTime && showTimePicker) {
-      setFormData({
-        ...formData,
-        [showTimePicker === 'start' ? 'startTime' : 'endTime']: selectedTime,
-      });
+      const newTime = new Date(selectedTime);
+      
+      if (showTimePicker === 'start') {
+        // Ensure end time is after start time
+        const endTime = new Date(formData.endTime);
+        if (newTime >= endTime) {
+          // Set end time to 1 hour after new start time
+          endTime.setTime(newTime.getTime() + 60 * 60 * 1000);
+          setFormData({
+            ...formData,
+            startTime: newTime,
+            endTime,
+          });
+        } else {
+          setFormData({
+            ...formData,
+            startTime: newTime,
+          });
+        }
+      } else {
+        // Ensure end time is after start time
+        if (newTime > formData.startTime) {
+          setFormData({
+            ...formData,
+            endTime: newTime,
+          });
+        } else {
+          Alert.alert('Error', 'End time must be after start time');
+        }
+      }
     }
     setShowTimePicker(null);
   };
@@ -136,37 +175,53 @@ export function LessonsTab() {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
+  const getDuration = (startHour: number, startMinute: number, endHour: number, endMinute: number) => {
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    const durationMinutes = endMinutes - startMinutes;
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
+
   const renderLessonCard = ({ item: lesson }: { item: WTLesson }) => (
-    <Card style={[styles.lessonCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
-      <Card.Content>
-        <View style={styles.lessonHeader}>
-          <View style={styles.lessonInfo}>
-            <Text variant="titleMedium" style={styles.dayName}>
-              {dayNames[lesson.dayOfWeek]}
-            </Text>
-            <Text variant="bodyLarge" style={styles.timeRange}>
-              {formatTime(lesson.startHour, lesson.startMinute)} - {formatTime(lesson.endHour, lesson.endMinute)}
-            </Text>
-            <Text variant="bodyMedium" style={styles.duration}>
-              Duration: {Math.round(((lesson.endHour * 60 + lesson.endMinute) - (lesson.startHour * 60 + lesson.startMinute)) / 60 * 100) / 100} hours
-            </Text>
+      <Card style={[styles.lessonCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
+        <Card.Content>
+          <View style={styles.lessonHeader}>
+            <View style={styles.lessonInfo}>
+              <Text variant="titleMedium" style={styles.dayName}>
+                {dayNames[lesson.dayOfWeek]}
+              </Text>
+              <Text variant="bodyLarge" style={styles.timeRange}>
+                {formatTime(lesson.startHour, lesson.startMinute)} - {formatTime(lesson.endHour, lesson.endMinute)}
+              </Text>
+              <Text variant="bodyMedium" style={styles.duration}>
+                Duration: {getDuration(lesson.startHour, lesson.startMinute, lesson.endHour, lesson.endMinute)}
+              </Text>
+            </View>
+            <View style={styles.lessonActions}>
+              <IconButton
+                icon="pencil"
+                size={20}
+                onPress={() => handleOpenDialog(lesson)}
+              />
+              <IconButton
+                icon="delete"
+                size={20}
+                iconColor={theme.colors.error}
+                onPress={() => handleDelete(lesson)}
+              />
+            </View>
           </View>
-          <View style={styles.lessonActions}>
-            <IconButton
-              icon="pencil"
-              size={20}
-              onPress={() => handleOpenDialog(lesson)}
-            />
-            <IconButton
-              icon="delete"
-              size={20}
-              iconColor={theme.colors.error}
-              onPress={() => handleDelete(lesson)}
-            />
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
+        </Card.Content>
+      </Card>
   );
 
   return (
@@ -244,14 +299,22 @@ export function LessonsTab() {
 
             <View style={styles.durationContainer}>
               <Text variant="bodySmall" style={styles.durationText}>
-                Duration: {Math.round(((formData.endTime.getHours() * 60 + formData.endTime.getMinutes()) - 
-                (formData.startTime.getHours() * 60 + formData.startTime.getMinutes())) / 60 * 100) / 100} hours
+                Duration: {getDuration(
+                  formData.startTime.getHours(), 
+                  formData.startTime.getMinutes(),
+                  formData.endTime.getHours(), 
+                  formData.endTime.getMinutes()
+                )}
               </Text>
             </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button onPress={handleSave} mode="contained">
+            <Button 
+              onPress={handleSave} 
+              mode="contained"
+              disabled={formData.startTime >= formData.endTime}
+            >
               {editingLesson ? 'Update' : 'Add'}
             </Button>
           </Dialog.Actions>

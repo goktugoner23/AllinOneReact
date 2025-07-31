@@ -4,7 +4,7 @@ import {
   fetchStudents, addStudent as addStudentToFirestore, updateStudent as updateStudentInFirestore, deleteStudent as deleteStudentFromFirestore,
   fetchRegistrations, addRegistration as addRegistrationToFirestore, updateRegistration as updateRegistrationInFirestore, deleteRegistration as deleteRegistrationFromFirestore,
   fetchLessons, addLesson as addLessonToFirestore, updateLesson as updateLessonInFirestore, deleteLesson as deleteLessonFromFirestore,
-  fetchSeminars, addSeminar as addSeminarToFirestore, deleteSeminar as deleteSeminarFromFirestore
+  fetchSeminars, addSeminar as addSeminarToFirestore, updateSeminar as updateSeminarInFirestore, deleteSeminar as deleteSeminarFromFirestore
 } from '../data/wtRegistry';
 
 interface WTRegistryState {
@@ -88,11 +88,30 @@ export const deleteLesson = createAsyncThunk('wtRegistry/deleteLesson', async (l
 
 // Async thunks for Seminars
 export const loadSeminars = createAsyncThunk('wtRegistry/loadSeminars', async () => {
-  return await fetchSeminars();
+  const seminars = await fetchSeminars();
+  // Convert dates to strings for Redux serialization
+  return seminars.map(seminar => ({
+    ...seminar,
+    date: seminar.date.toISOString(),
+  }));
 });
 
 export const addSeminar = createAsyncThunk('wtRegistry/addSeminar', async (seminar: Omit<WTSeminar, 'id'>) => {
-  return await addSeminarToFirestore(seminar);
+  const result = await addSeminarToFirestore(seminar);
+  // Convert date to string for Redux serialization
+  return {
+    ...result,
+    date: result.date.toISOString(),
+  };
+});
+
+export const updateSeminar = createAsyncThunk('wtRegistry/updateSeminar', async (seminar: WTSeminar) => {
+  await updateSeminarInFirestore(seminar);
+  // Convert date to string for Redux serialization
+  return {
+    ...seminar,
+    date: seminar.date.toISOString(),
+  };
 });
 
 export const deleteSeminar = createAsyncThunk('wtRegistry/deleteSeminar', async (seminarId: number) => {
@@ -257,6 +276,12 @@ const wtRegistrySlice = createSlice({
       })
       .addCase(addSeminar.fulfilled, (state, action) => {
         state.seminars.push(action.payload);
+      })
+      .addCase(updateSeminar.fulfilled, (state, action) => {
+        const index = state.seminars.findIndex(s => s.id === action.payload.id);
+        if (index !== -1) {
+          state.seminars[index] = action.payload;
+        }
       })
       .addCase(deleteSeminar.fulfilled, (state, action) => {
         state.seminars = state.seminars.filter(s => s.id !== action.payload);

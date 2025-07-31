@@ -20,39 +20,7 @@ export const getDb = () => db;
 // Get Firebase Storage instance
 export const getStorage = () => storage;
 
-// Get device ID for data isolation - matches Kotlin app format
-export const getDeviceId = async (): Promise<string> => {
-  try {
-    let deviceId = await AsyncStorage.getItem("device_id");
-    if (!deviceId) {
-      // Match Kotlin app format: "device_${System.currentTimeMillis()}_${Math.abs(android.os.Build.MODEL.hashCode())}"
-      const timestamp = Date.now();
-      const deviceModel = Platform.OS === "android" ? "android" : "ios";
-      // Simple hash function to match Kotlin's hashCode behavior
-      const modelHash = Math.abs(
-        deviceModel.split("").reduce((hash, char) => {
-          return ((hash << 5) - hash + char.charCodeAt(0)) & 0xffffffff;
-        }, 0),
-      );
-      deviceId = `device_${timestamp}_${modelHash}`;
-      await AsyncStorage.setItem("device_id", deviceId);
-      logger.debug("Generated new device ID", { deviceId }, "getDeviceId");
-      console.log("🆔 Generated new device ID:", deviceId);
-    } else {
-      logger.debug("Using existing device ID", { deviceId }, "getDeviceId");
-      console.log("🆔 Using existing device ID:", deviceId);
-    }
-    return deviceId;
-  } catch (error) {
-    logger.error("Error getting device ID", error, "getDeviceId");
-    console.error("❌ Error getting device ID:", error);
-    // Fallback device ID matching Kotlin format
-    const timestamp = Date.now();
-    const fallbackId = `device_${timestamp}`;
-    console.log("🆔 Using fallback device ID:", fallbackId);
-    return fallbackId;
-  }
-};
+
 
 // Helper function to convert Date to Firestore Timestamp
 export const dateToTimestamp = (date: Date): Timestamp => {

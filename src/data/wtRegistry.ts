@@ -4,7 +4,7 @@ import { getDb, getStorage } from './firebase';
 import { firebaseIdManager } from './firebaseIdManager';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '../types/WTRegistry';
 import { addTransaction, fetchTransactions, deleteTransaction } from './transactions';
-import { getDeviceId } from './firebase';
+
 
 
 
@@ -221,9 +221,7 @@ export async function addRegistration(registration: Omit<WTRegistration, 'id'>):
     
     // If it's marked as paid, also add a transaction like Kotlin app
     if (registration.isPaid && registration.amount > 0) {
-      const txId = await firebaseIdManager.getNextId('transactions');
       await addTransaction({
-        id: txId.toString(),
         amount: registration.amount,
         type: 'Registration',
         description: 'Course Registration',
@@ -281,7 +279,7 @@ export async function updateRegistration(registration: WTRegistration): Promise<
     }
     
     // Handle file upload if attachment has changed
-    let cloudAttachmentUrl = registration.attachmentUri;
+    let cloudAttachmentUrl: string | undefined = registration.attachmentUri;
     const isNewAttachment = originalRegistration && 
       originalRegistration.attachmentUri !== registration.attachmentUri &&
       registration.attachmentUri &&
@@ -289,16 +287,17 @@ export async function updateRegistration(registration: WTRegistration): Promise<
 
     if (isNewAttachment) {
       // Upload the new file with registration ID for subfolder
-      cloudAttachmentUrl = await uploadFileToStorage(
+      const uploadedUrl = await uploadFileToStorage(
         registration.attachmentUri!,
         'registrations',
         `${registration.id}.${registration.attachmentUri!.split('.').pop() || 'file'}`
       );
 
-      if (cloudAttachmentUrl === null) {
+      if (uploadedUrl === null) {
         console.warn('Failed to upload new attachment, continuing with registration update');
         cloudAttachmentUrl = registration.attachmentUri;
       } else {
+        cloudAttachmentUrl = uploadedUrl;
         // Delete the old file if it was a cloud URL
         if (originalRegistration?.attachmentUri && originalRegistration.attachmentUri.startsWith('https://')) {
           await deleteFileFromStorage(originalRegistration.attachmentUri);
@@ -310,7 +309,7 @@ export async function updateRegistration(registration: WTRegistration): Promise<
       id: registration.id,
       studentId: registration.studentId,
       amount: registration.amount,
-      attachmentUri: cloudAttachmentUrl || '',
+      attachmentUri: cloudAttachmentUrl || undefined,
       startDate: registration.startDate ? Timestamp.fromDate(registration.startDate) : null,
       endDate: finalEndDate ? Timestamp.fromDate(finalEndDate) : null,
       paymentDate: Timestamp.fromDate(registration.paymentDate),
@@ -324,9 +323,7 @@ export async function updateRegistration(registration: WTRegistration): Promise<
     if (originalRegistration) {
       // Payment status changed from unpaid to paid
       if (!originalRegistration.isPaid && registration.isPaid && registration.amount > 0) {
-        const txId = await firebaseIdManager.getNextId('transactions');
         await addTransaction({
-          id: txId.toString(),
           amount: registration.amount,
           type: 'Registration',
           description: 'Course Registration',
@@ -379,9 +376,7 @@ export async function updateRegistrationPaymentStatus(
     if (newIsPaid && !oldIsPaid) {
       // Changed from unpaid to paid - add transaction
       if (registration.amount > 0) {
-        const txId = await firebaseIdManager.getNextId('transactions');
         await addTransaction({
-          id: txId.toString(),
           amount: registration.amount,
           type: 'Registration',
           description: 'Course Registration',
@@ -441,7 +436,6 @@ export async function deleteRegistration(registrationId: number): Promise<void> 
 export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, 'id'>, isPaid: boolean) {
   try {
     const db = getDb();
-    const deviceId = await getDeviceId();
     
     // Get next registration ID using Firebase ID manager
     const regId = await firebaseIdManager.getNextId('registrations');
@@ -481,7 +475,6 @@ export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, '
       paymentDate: Timestamp.fromDate(reg.paymentDate),
       notes: reg.notes || null,
       isPaid: reg.isPaid,
-      deviceId,
     };
     
     // Save registration
@@ -489,9 +482,7 @@ export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, '
     
     // If paid, add a transaction
     if (isPaid && reg.amount > 0) {
-      const txId = await firebaseIdManager.getNextId('transactions');
       await addTransaction({
-        id: txId.toString(),
         amount: reg.amount,
         type: 'Registration',
         description: 'Course Registration',
@@ -569,7 +560,7 @@ export async function fetchLessons(): Promise<WTLesson[]> {
   }
 }
 
-export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<void> {
+export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<WTLesson> {
   try {
     const db = getDb();
     const lessonId = await firebaseIdManager.getNextId('wtLessons');
@@ -584,6 +575,11 @@ export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<void> {
     };
     
     await setDoc(doc(db, 'wtLessons', lessonId.toString()), lessonData);
+    
+    return {
+      ...lesson,
+      id: lessonId,
+    };
   } catch (error) {
     console.error('Error adding lesson:', error);
     throw error;
@@ -656,28 +652,44 @@ export async function fetchSeminars(): Promise<WTSeminar[]> {
   }
 }
 
-export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<void> {
+export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<WTSeminar> {
   try {
     const db = getDb();
     const seminarId = await firebaseIdManager.getNextId('seminars');
     
+    // Create a description that includes time information like Kotlin app
+    const timeInfo = `Time: ${formatTime(seminar.startHour, seminar.startMinute)}-${formatTime(seminar.endHour, seminar.endMinute)}`;
+    const description = seminar.description 
+      ? `${timeInfo}, Description: ${seminar.description}`
+      : timeInfo;
+    
     const seminarData = {
       id: seminarId,
       name: seminar.name,
-      date: seminar.date,
+      date: Timestamp.fromDate(seminar.date),
       startHour: seminar.startHour,
       startMinute: seminar.startMinute,
       endHour: seminar.endHour,
       endMinute: seminar.endMinute,
-      description: seminar.description || '',
-      location: seminar.location || '',
+      description: description,
+      location: seminar.location || null,
     };
     
     await setDoc(doc(db, 'seminars', seminarId.toString()), seminarData);
+    
+    return {
+      ...seminar,
+      id: seminarId,
+    };
   } catch (error) {
     console.error('Error adding seminar:', error);
     throw error;
   }
+}
+
+// Helper function to format time like Kotlin app
+function formatTime(hour: number, minute: number): string {
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 }
 
 export async function updateSeminar(seminar: WTSeminar): Promise<void> {
@@ -687,13 +699,13 @@ export async function updateSeminar(seminar: WTSeminar): Promise<void> {
     const seminarData = {
       id: seminar.id,
       name: seminar.name,
-      date: seminar.date,
+      date: Timestamp.fromDate(seminar.date),
       startHour: seminar.startHour,
       startMinute: seminar.startMinute,
       endHour: seminar.endHour,
       endMinute: seminar.endMinute,
-      description: seminar.description || '',
-      location: seminar.location || '',
+      description: seminar.description || null,
+      location: seminar.location || null,
     };
     
     await setDoc(doc(db, 'seminars', seminar.id.toString()), seminarData);

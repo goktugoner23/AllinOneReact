@@ -18,7 +18,7 @@ import { FuturesTab } from './FuturesTab';
 
 
 
-function InvestmentsTab() {
+function InvestmentsContent() {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
@@ -311,7 +311,7 @@ function InvestmentsTab() {
 
 
 
-export const InvestmentsScreen: React.FC = () => {
+export const InvestmentsTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'investments' | 'futures'>('investments');
 
   return (
@@ -351,7 +351,7 @@ export const InvestmentsScreen: React.FC = () => {
 
       {/* Tab Content */}
       <View style={styles.tabContent}>
-        {activeTab === 'investments' ? <InvestmentsTab /> : <FuturesTab />}
+        {activeTab === 'investments' ? <InvestmentsContent /> : <FuturesTab />}
       </View>
     </View>
   );

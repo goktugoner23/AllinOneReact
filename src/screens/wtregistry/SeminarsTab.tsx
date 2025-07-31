@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import {
   Card,
@@ -15,7 +15,7 @@ import {
 } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { addSeminar, deleteSeminar } from '../../store/wtRegistrySlice';
+import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '../../store/wtRegistrySlice';
 import { WTSeminar } from '../../types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -27,6 +27,7 @@ export function SeminarsTab() {
   const [showDialog, setShowDialog] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<'start' | 'end' | null>(null);
+  const [editingSeminar, setEditingSeminar] = useState<WTSeminar | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -38,25 +39,55 @@ export function SeminarsTab() {
     location: '',
   });
 
-  const sortedSeminars = [...seminars].sort((a, b) => b.date.getTime() - a.date.getTime());
+  // Load seminars when component mounts
+  useEffect(() => {
+    console.log('🔍 Loading seminars from Firebase...');
+    dispatch(loadSeminars());
+  }, [dispatch]);
 
-  const handleOpenDialog = () => {
-    const now = new Date();
-    const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours later (default seminar duration)
-    
-    setFormData({
-      name: '',
-      date: now,
-      startTime: now,
-      endTime,
-      description: '',
-      location: '',
-    });
+  const sortedSeminars = [...seminars].sort((a, b) => {
+    const dateA = typeof a.date === 'string' ? new Date(a.date) : a.date;
+    const dateB = typeof b.date === 'string' ? new Date(b.date) : b.date;
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  const handleOpenDialog = (seminar?: WTSeminar) => {
+    if (seminar) {
+      setEditingSeminar(seminar);
+      const startTime = new Date();
+      startTime.setHours(seminar.startHour, seminar.startMinute, 0, 0);
+      const endTime = new Date();
+      endTime.setHours(seminar.endHour, seminar.endMinute, 0, 0);
+      
+      setFormData({
+        name: seminar.name,
+        date: typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date,
+        startTime,
+        endTime,
+        description: seminar.description || '',
+        location: seminar.location || '',
+      });
+    } else {
+      setEditingSeminar(null);
+      const now = new Date();
+      // Set default end time to 4 hours later (like Kotlin app)
+      const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+      
+      setFormData({
+        name: '',
+        date: now,
+        startTime: now,
+        endTime,
+        description: '',
+        location: '',
+      });
+    }
     setShowDialog(true);
   };
 
   const handleCloseDialog = () => {
     setShowDialog(false);
+    setEditingSeminar(null);
     setShowDatePicker(false);
     setShowTimePicker(null);
   };
@@ -67,19 +98,31 @@ export function SeminarsTab() {
       return;
     }
 
+    if (formData.startTime >= formData.endTime) {
+      Alert.alert('Error', 'End time must be after start time');
+      return;
+    }
+
     try {
       const seminarData = {
-        name: formData.name,
+        name: formData.name.trim(),
         date: formData.date,
         startHour: formData.startTime.getHours(),
         startMinute: formData.startTime.getMinutes(),
         endHour: formData.endTime.getHours(),
         endMinute: formData.endTime.getMinutes(),
-        description: formData.description,
-        location: formData.location,
+        description: formData.description.trim() || undefined,
+        location: formData.location.trim() || undefined,
       };
 
-      await dispatch(addSeminar(seminarData)).unwrap();
+      if (editingSeminar) {
+        await dispatch(updateSeminar({
+          ...editingSeminar,
+          ...seminarData,
+        })).unwrap();
+      } else {
+        await dispatch(addSeminar(seminarData)).unwrap();
+      }
       handleCloseDialog();
     } catch (error) {
       Alert.alert('Error', 'Failed to save seminar');
@@ -107,19 +150,61 @@ export function SeminarsTab() {
     );
   };
 
+
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      setFormData({ ...formData, date: selectedDate });
+      // Update both date and times to maintain consistency
+      const newDate = new Date(selectedDate);
+      const currentStartTime = formData.startTime;
+      const currentEndTime = formData.endTime;
+      
+      newDate.setHours(currentStartTime.getHours(), currentStartTime.getMinutes(), 0, 0);
+      const newEndTime = new Date(newDate);
+      newEndTime.setHours(currentEndTime.getHours(), currentEndTime.getMinutes(), 0, 0);
+      
+      setFormData({
+        ...formData,
+        date: newDate,
+        startTime: newDate,
+        endTime: newEndTime,
+      });
     }
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
     if (selectedTime && showTimePicker) {
-      setFormData({
-        ...formData,
-        [showTimePicker === 'start' ? 'startTime' : 'endTime']: selectedTime,
-      });
+      const newTime = new Date(selectedTime);
+      
+      if (showTimePicker === 'start') {
+        // Ensure end time is after start time
+        const endTime = new Date(formData.endTime);
+        if (newTime >= endTime) {
+          // Set end time to 4 hours after new start time
+          endTime.setTime(newTime.getTime() + 4 * 60 * 60 * 1000);
+          setFormData({
+            ...formData,
+            startTime: newTime,
+            endTime,
+          });
+        } else {
+          setFormData({
+            ...formData,
+            startTime: newTime,
+          });
+        }
+      } else {
+        // Ensure end time is after start time
+        if (newTime > formData.startTime) {
+          setFormData({
+            ...formData,
+            endTime: newTime,
+          });
+        } else {
+          Alert.alert('Error', 'End time must be after start time');
+        }
+      }
     }
     setShowTimePicker(null);
   };
@@ -128,80 +213,106 @@ export function SeminarsTab() {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
-  const isUpcoming = (date: Date) => {
-    return date.getTime() > new Date().getTime();
+  const isUpcoming = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.getTime() > new Date().getTime();
+  };
+
+  const getDuration = (startHour: number, startMinute: number, endHour: number, endMinute: number) => {
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    const durationMinutes = endMinutes - startMinutes;
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${minutes}m`;
+    }
   };
 
   const renderSeminarCard = ({ item: seminar }: { item: WTSeminar }) => (
-    <Card 
-      style={[
-        styles.seminarCard, 
-        { 
-          backgroundColor: theme.colors.surface,
-          borderLeftWidth: 4,
-          borderLeftColor: isUpcoming(seminar.date) ? theme.colors.primary : theme.colors.outline,
-        }
-      ]} 
-      mode="outlined"
-    >
-      <Card.Content>
-        <View style={styles.seminarHeader}>
-          <View style={styles.seminarInfo}>
-            <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={styles.seminarName}>
-                {seminar.name}
+      <Card 
+        style={[
+          styles.seminarCard, 
+          { 
+            backgroundColor: theme.colors.surface,
+            borderLeftWidth: 4,
+            borderLeftColor: isUpcoming(seminar.date) ? theme.colors.primary : theme.colors.outline,
+          }
+        ]} 
+        mode="outlined"
+      >
+        <Card.Content>
+          <View style={styles.seminarHeader}>
+            <View style={styles.seminarInfo}>
+              <View style={styles.titleRow}>
+                <Text variant="titleMedium" style={styles.seminarName}>
+                  {seminar.name}
+                </Text>
+                <Chip
+                  mode="outlined"
+                  compact
+                  style={[
+                    styles.statusChip,
+                    { 
+                      backgroundColor: isUpcoming(seminar.date) 
+                        ? theme.colors.primaryContainer 
+                        : theme.colors.surfaceVariant 
+                    }
+                  ]}
+                  textStyle={{ 
+                    color: isUpcoming(seminar.date) 
+                      ? theme.colors.onPrimaryContainer 
+                      : theme.colors.onSurfaceVariant 
+                  }}
+                >
+                  {isUpcoming(seminar.date) ? 'Upcoming' : 'Past'}
+                </Chip>
+              </View>
+              
+              <Text variant="bodyLarge" style={styles.dateTime}>
+                📅 {(typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date).toLocaleDateString()}
               </Text>
-              <Chip
-                mode="outlined"
-                compact
-                style={[
-                  styles.statusChip,
-                  { 
-                    backgroundColor: isUpcoming(seminar.date) 
-                      ? theme.colors.primaryContainer 
-                      : theme.colors.surfaceVariant 
-                  }
-                ]}
-                textStyle={{ 
-                  color: isUpcoming(seminar.date) 
-                    ? theme.colors.onPrimaryContainer 
-                    : theme.colors.onSurfaceVariant 
-                }}
-              >
-                {isUpcoming(seminar.date) ? 'Upcoming' : 'Past'}
-              </Chip>
+              <Text variant="bodyMedium" style={styles.timeRange}>
+                🕐 {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
+              </Text>
+              
+              <Text variant="bodySmall" style={styles.duration}>
+                Duration: {getDuration(seminar.startHour, seminar.startMinute, seminar.endHour, seminar.endMinute)}
+              </Text>
+              
+              {seminar.location && (
+                <Text variant="bodyMedium" style={styles.location}>
+                  📍 {seminar.location}
+                </Text>
+              )}
+              
+              {seminar.description && (
+                <Text variant="bodySmall" style={styles.description}>
+                  {seminar.description}
+                </Text>
+              )}
             </View>
-            
-            <Text variant="bodyLarge" style={styles.dateTime}>
-              📅 {seminar.date.toLocaleDateString()}
-            </Text>
-            <Text variant="bodyMedium" style={styles.timeRange}>
-              🕐 {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
-            </Text>
-            
-            {seminar.location && (
-              <Text variant="bodyMedium" style={styles.location}>
-                📍 {seminar.location}
-              </Text>
-            )}
-            
-            {seminar.description && (
-              <Text variant="bodySmall" style={styles.description}>
-                {seminar.description}
-              </Text>
-            )}
+            <View style={styles.seminarActions}>
+              <IconButton
+                icon="pencil"
+                size={20}
+                onPress={() => handleOpenDialog(seminar)}
+              />
+              <IconButton
+                icon="delete"
+                size={20}
+                iconColor={theme.colors.error}
+                onPress={() => handleDelete(seminar)}
+              />
+            </View>
           </View>
-          <View style={styles.seminarActions}>
-            <IconButton
-              icon="delete"
-              size={20}
-              iconColor={theme.colors.error}
-              onPress={() => handleDelete(seminar)}
-            />
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
+        </Card.Content>
+      </Card>
   );
 
   return (
@@ -236,12 +347,12 @@ export function SeminarsTab() {
       <FAB
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={handleOpenDialog}
+        onPress={() => handleOpenDialog()}
       />
 
       <Portal>
         <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
-          <Dialog.Title>Add Seminar</Dialog.Title>
+          <Dialog.Title>{editingSeminar ? 'Edit Seminar' : 'Add Seminar'}</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="Seminar Name *"
@@ -249,6 +360,7 @@ export function SeminarsTab() {
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               style={styles.input}
               mode="outlined"
+              autoFocus
             />
 
             <Button
@@ -300,15 +412,23 @@ export function SeminarsTab() {
 
             <View style={styles.durationContainer}>
               <Text variant="bodySmall" style={styles.durationText}>
-                Duration: {Math.round(((formData.endTime.getHours() * 60 + formData.endTime.getMinutes()) - 
-                (formData.startTime.getHours() * 60 + formData.startTime.getMinutes())) / 60 * 100) / 100} hours
+                Duration: {getDuration(
+                  formData.startTime.getHours(), 
+                  formData.startTime.getMinutes(),
+                  formData.endTime.getHours(), 
+                  formData.endTime.getMinutes()
+                )}
               </Text>
             </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button onPress={handleSave} mode="contained">
-              Add Seminar
+            <Button 
+              onPress={handleSave} 
+              mode="contained"
+              disabled={!formData.name.trim()}
+            >
+              {editingSeminar ? 'Update' : 'Add'} Seminar
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -389,6 +509,11 @@ const styles = StyleSheet.create({
   timeRange: {
     marginBottom: 4,
     color: '#666',
+  },
+  duration: {
+    marginBottom: 4,
+    color: '#666',
+    fontStyle: 'italic',
   },
   location: {
     marginBottom: 4,

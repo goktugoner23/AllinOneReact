@@ -32,7 +32,7 @@ function filterByDateRange(transactions: Transaction[], range: string) {
   return transactions;
 }
 
-export const ReportsScreen: React.FC = () => {
+export const ReportsTab: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dateRange, setDateRange] = useState('30d');
   const [category, setCategory] = useState('All');
