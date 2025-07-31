@@ -18,8 +18,8 @@ import {
 import { Provider } from 'react-redux';
 import store from './src/store';
 import { TransactionHomeScreen } from './src/screens/TransactionHomeScreen';
-import { InvestmentsScreen } from './src/screens/transactions/InvestmentsScreen';
-import { ReportsScreen } from './src/screens/transactions/ReportsScreen';
+import { InvestmentsTab } from './src/screens/transactions/InvestmentsTab';
+import { ReportsTab } from './src/screens/transactions/ReportsTab';
 import { WTRegistryScreen } from './src/screens/WTRegistryScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
@@ -67,8 +67,8 @@ function TransactionsDashboard() {
       })}
     >
       <Tab.Screen name="Home" component={TransactionHomeScreen} />
-      <Tab.Screen name="Investments" component={InvestmentsScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
+      <Tab.Screen name="Investments" component={InvestmentsTab} />
+      <Tab.Screen name="Reports" component={ReportsTab} />
     </Tab.Navigator>
   );
 }
