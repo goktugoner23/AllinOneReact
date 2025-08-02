@@ -20,6 +20,7 @@ export const lightTheme = {
   registration: '#2196F3',
   searchBar: '#F5F5F5',
   placeholder: '#888888',
+  modal: '#FFFFFF',
   // React Native Paper elevation properties
   elevation: {
     level0: 'transparent',
@@ -53,6 +54,7 @@ export const darkTheme = {
   registration: '#2196F3',
   searchBar: '#232136',
   placeholder: '#BBBBBB',
+  modal: '#FFFFFF',
   // React Native Paper elevation properties
   elevation: {
     level0: 'transparent',

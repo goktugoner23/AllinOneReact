@@ -1,24 +1,66 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { CalendarEvent } from '../types/WTRegistry';
+import { Event, EventFormData, SerializableEvent, eventToSerializable, serializableToEvent } from '../types/Event';
+import { getEvents, addEvent, updateEvent, deleteEvent } from '../data/events';
 import { RootState } from './index';
 
 interface CalendarState {
   events: CalendarEvent[];
+  firebaseEvents: SerializableEvent[];
   selectedDate: string; // YYYY-MM-DD format
   showEventModal: boolean;
   selectedEvent: CalendarEvent | null;
+  selectedFirebaseEvent: SerializableEvent | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: CalendarState = {
   events: [],
+  firebaseEvents: [],
   selectedDate: new Date().toISOString().split('T')[0],
   showEventModal: false,
   selectedEvent: null,
+  selectedFirebaseEvent: null,
   loading: false,
   error: null,
 };
+
+// Fetch events from Firebase
+export const fetchFirebaseEvents = createAsyncThunk(
+  'calendar/fetchFirebaseEvents',
+  async () => {
+    const events = await getEvents();
+    return events.map(eventToSerializable);
+  }
+);
+
+// Add new event to Firebase
+export const addFirebaseEvent = createAsyncThunk(
+  'calendar/addFirebaseEvent',
+  async (eventData: EventFormData) => {
+    const newEvent = await addEvent(eventData);
+    return eventToSerializable(newEvent);
+  }
+);
+
+// Update existing event in Firebase
+export const updateFirebaseEvent = createAsyncThunk(
+  'calendar/updateFirebaseEvent',
+  async ({ eventId, eventData }: { eventId: number; eventData: Partial<EventFormData> }) => {
+    await updateEvent(eventId, eventData);
+    return { eventId, eventData };
+  }
+);
+
+// Delete event from Firebase
+export const deleteFirebaseEvent = createAsyncThunk(
+  'calendar/deleteFirebaseEvent',
+  async (eventId: number) => {
+    await deleteEvent(eventId);
+    return eventId;
+  }
+);
 
 // Generate calendar events from WTRegistry data
 export const generateCalendarEvents = createAsyncThunk(
@@ -67,8 +109,8 @@ export const generateCalendarEvents = createAsyncThunk(
       const targetYear = currentYear + Math.floor(targetMonth / 12);
       const actualMonth = targetMonth % 12;
       
-             lessons.forEach((lesson: any) => {
-         const daysInMonth = new Date(targetYear, actualMonth + 1, 0).getDate();
+      lessons.forEach((lesson: any) => {
+        const daysInMonth = new Date(targetYear, actualMonth + 1, 0).getDate();
         
         for (let day = 1; day <= daysInMonth; day++) {
           const date = new Date(targetYear, actualMonth, day);
@@ -118,7 +160,7 @@ export const generateCalendarEvents = createAsyncThunk(
   }
 );
 
-// Add custom calendar event
+// Add custom calendar event (legacy - now use addFirebaseEvent)
 export const addCalendarEvent = createAsyncThunk(
   'calendar/addEvent',
   async (event: Omit<CalendarEvent, 'id'>) => {
@@ -144,6 +186,9 @@ const calendarSlice = createSlice({
     setSelectedEvent: (state, action: PayloadAction<CalendarEvent | null>) => {
       state.selectedEvent = action.payload;
     },
+    setSelectedFirebaseEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
+      state.selectedFirebaseEvent = action.payload;
+    },
     addEventLocal: (state, action: PayloadAction<CalendarEvent>) => {
       state.events.push(action.payload);
     },
@@ -165,6 +210,39 @@ const calendarSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Firebase events
+      .addCase(fetchFirebaseEvents.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchFirebaseEvents.fulfilled, (state, action) => {
+        state.loading = false;
+        state.firebaseEvents = action.payload;
+      })
+      .addCase(fetchFirebaseEvents.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch events from Firebase';
+      })
+      .addCase(addFirebaseEvent.fulfilled, (state, action) => {
+        state.firebaseEvents.push(action.payload);
+      })
+      .addCase(updateFirebaseEvent.fulfilled, (state, action) => {
+        const index = state.firebaseEvents.findIndex(e => e.id === action.payload.eventId);
+        if (index !== -1) {
+          // Update the serializable event with new data
+          const updatedEvent = { ...state.firebaseEvents[index] };
+          if (action.payload.eventData.title !== undefined) updatedEvent.title = action.payload.eventData.title;
+          if (action.payload.eventData.description !== undefined) updatedEvent.description = action.payload.eventData.description;
+          if (action.payload.eventData.date !== undefined) updatedEvent.date = action.payload.eventData.date.toISOString();
+          if (action.payload.eventData.endDate !== undefined) updatedEvent.endDate = action.payload.eventData.endDate?.toISOString();
+          if (action.payload.eventData.type !== undefined) updatedEvent.type = action.payload.eventData.type;
+          state.firebaseEvents[index] = updatedEvent;
+        }
+      })
+      .addCase(deleteFirebaseEvent.fulfilled, (state, action) => {
+        state.firebaseEvents = state.firebaseEvents.filter(e => e.id !== action.payload);
+      })
+      // WTRegistry events
       .addCase(generateCalendarEvents.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -187,6 +265,7 @@ export const {
   setSelectedDate,
   setShowEventModal,
   setSelectedEvent,
+  setSelectedFirebaseEvent,
   addEventLocal,
   updateEventLocal,
   deleteEventLocal,

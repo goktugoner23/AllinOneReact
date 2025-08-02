@@ -18,54 +18,92 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import {
   generateCalendarEvents,
-  addCalendarEvent,
+  fetchFirebaseEvents,
+  addFirebaseEvent,
+  updateFirebaseEvent,
+  deleteFirebaseEvent,
   setSelectedDate,
   setShowEventModal,
   setSelectedEvent,
+  setSelectedFirebaseEvent,
 } from '../store/calendarSlice';
 import { CalendarEvent } from '../types/WTRegistry';
+import { Event, EventFormData, SerializableEvent, serializableToEvent } from '../types/Event';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export function CalendarScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const theme = useTheme();
-  const { events, selectedDate, showEventModal, selectedEvent, loading } = useSelector(
-    (state: RootState) => state.calendar
-  );
+  const { 
+    events, 
+    firebaseEvents, 
+    selectedDate, 
+    showEventModal, 
+    selectedEvent, 
+    selectedFirebaseEvent,
+    loading 
+  } = useSelector((state: RootState) => state.calendar);
   const { students, registrations, lessons, seminars } = useSelector(
     (state: RootState) => state.wtRegistry
   );
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<'start' | 'end' | null>(null);
 
-  // Form state for adding new events
-  const [formData, setFormData] = useState({
+  // Form state for adding/editing events
+  const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
     date: new Date(),
     endDate: new Date(),
-    type: 'event' as CalendarEvent['type'],
+    type: 'Event',
   });
 
   useEffect(() => {
-    // Generate calendar events whenever WTRegistry data changes
+    // Fetch Firebase events and generate WTRegistry events on component mount
+    dispatch(fetchFirebaseEvents());
+    dispatch(generateCalendarEvents());
+  }, [dispatch]);
+
+  useEffect(() => {
+    // Regenerate WTRegistry events whenever WTRegistry data changes
     dispatch(generateCalendarEvents());
   }, [dispatch, students, registrations, lessons, seminars]);
 
+  // Convert serializable events to Event objects and combine with WTRegistry events
+  const allEvents = [
+    ...firebaseEvents.map(serializableEvent => {
+      const event = serializableToEvent(serializableEvent);
+      return {
+        id: `firebase-${event.id}`,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        endDate: event.endDate,
+        type: event.type as CalendarEvent['type'],
+        isFirebaseEvent: true,
+        firebaseEvent: event,
+        serializableEvent,
+      };
+    }),
+    ...events.map(event => ({
+      ...event,
+      isFirebaseEvent: false,
+    }))
+  ];
+
   const handleDayPress = (day: DateData) => {
     dispatch(setSelectedDate(day.dateString));
-    const dayEvents = events.filter(event => 
-      event.date.toISOString().split('T')[0] === day.dateString
-    );
-    if (dayEvents.length > 0) {
-      dispatch(setShowEventModal(true));
-    }
   };
 
-  const handleEventPress = (event: CalendarEvent) => {
-    dispatch(setSelectedEvent(event));
+  const handleEventPress = (event: any) => {
+    if (event.isFirebaseEvent) {
+      dispatch(setSelectedFirebaseEvent(event.serializableEvent));
+    } else {
+      dispatch(setSelectedEvent(event));
+    }
     dispatch(setShowEventModal(true));
   };
 
@@ -75,9 +113,20 @@ export function CalendarScreen() {
       description: '',
       date: new Date(selectedDate),
       endDate: new Date(selectedDate),
-      type: 'event',
+      type: 'Event',
     });
     setShowAddDialog(true);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setFormData({
+      title: event.title,
+      description: event.description || '',
+      date: event.date,
+      endDate: event.endDate || event.date,
+      type: event.type,
+    });
+    setShowEditDialog(true);
   };
 
   const handleSaveEvent = async () => {
@@ -87,20 +136,54 @@ export function CalendarScreen() {
     }
 
     try {
-      await dispatch(addCalendarEvent({
-        title: formData.title,
-        description: formData.description,
-        date: formData.date,
-        endDate: formData.endDate,
-        type: formData.type,
-      })).unwrap();
-      
+      await dispatch(addFirebaseEvent(formData)).unwrap();
       setShowAddDialog(false);
-      // Regenerate events to include the new one
-      dispatch(generateCalendarEvents());
     } catch (error) {
       Alert.alert('Error', 'Failed to add event');
     }
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!formData.title.trim()) {
+      Alert.alert('Error', 'Event title is required');
+      return;
+    }
+
+    if (!selectedFirebaseEvent) return;
+
+    try {
+      await dispatch(updateFirebaseEvent({
+        eventId: selectedFirebaseEvent.id,
+        eventData: formData
+      })).unwrap();
+      setShowEditDialog(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update event');
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!selectedFirebaseEvent) return;
+
+    Alert.alert(
+      'Delete Event',
+      'Are you sure you want to delete this event?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(deleteFirebaseEvent(selectedFirebaseEvent.id)).unwrap();
+              dispatch(setShowEventModal(false));
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete event');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -125,7 +208,7 @@ export function CalendarScreen() {
   };
 
   // Prepare calendar marks
-  const markedDates = events.reduce((marks: any, event) => {
+  const markedDates = allEvents.reduce((marks: any, event) => {
     const dateKey = event.date.toISOString().split('T')[0];
     
     if (!marks[dateKey]) {
@@ -168,7 +251,7 @@ export function CalendarScreen() {
     };
   }
 
-  const selectedDateEvents = events.filter(event => 
+  const selectedDateEvents = allEvents.filter(event => 
     event.date.toISOString().split('T')[0] === selectedDate
   );
 
@@ -258,7 +341,7 @@ export function CalendarScreen() {
                   styles.eventCard,
                   { backgroundColor: getEventTypeColor(event.type) }
                 ]}
-                mode="outlined"
+                mode="flat"
                 onPress={() => handleEventPress(event)}
               >
                 <Card.Content>
@@ -267,22 +350,22 @@ export function CalendarScreen() {
                       {getEventTypeIcon(event.type)}
                     </Text>
                     <View style={styles.eventInfo}>
-                      <Text variant="titleSmall" style={styles.eventTitle}>
+                      <Text variant="titleSmall" style={[styles.eventTitle, { color: 'white' }]}>
                         {event.title}
                       </Text>
-                      <Text variant="bodySmall" style={styles.eventTime}>
+                      <Text variant="bodySmall" style={[styles.eventTime, { color: 'white' }]}>
                         {event.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         {event.endDate && event.endDate.getTime() !== event.date.getTime() && 
                           ` - ${event.endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                         }
                       </Text>
                       {event.description && (
-                        <Text variant="bodySmall" style={styles.eventDescription}>
+                        <Text variant="bodySmall" style={[styles.eventDescription, { color: 'white' }]}>
                           {event.description}
                         </Text>
                       )}
                     </View>
-                    <Chip mode="outlined" compact>
+                    <Chip mode="outlined">
                       {event.type.replace('_', ' ')}
                     </Chip>
                   </View>
@@ -295,7 +378,11 @@ export function CalendarScreen() {
 
       {/* Event Details Modal */}
       <Portal>
-        <Dialog visible={showEventModal} onDismiss={() => dispatch(setShowEventModal(false))}>
+        <Dialog 
+          visible={showEventModal} 
+          onDismiss={() => dispatch(setShowEventModal(false))}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
           <Dialog.Title>Event Details</Dialog.Title>
           <Dialog.Content>
             {selectedEvent && (
@@ -321,8 +408,37 @@ export function CalendarScreen() {
                 )}
               </View>
             )}
+            {selectedFirebaseEvent && (
+              <View>
+                <Text variant="titleMedium" style={styles.modalTitle}>
+                  {selectedFirebaseEvent.title}
+                </Text>
+                <Text variant="bodyMedium" style={styles.modalDetail}>
+                  📅 {new Date(selectedFirebaseEvent.date).toLocaleString()}
+                </Text>
+                {selectedFirebaseEvent.endDate && selectedFirebaseEvent.endDate !== selectedFirebaseEvent.date && (
+                  <Text variant="bodyMedium" style={styles.modalDetail}>
+                    ⏰ Until {new Date(selectedFirebaseEvent.endDate).toLocaleString()}
+                  </Text>
+                )}
+                <Text variant="bodyMedium" style={styles.modalDetail}>
+                  🏷️ {selectedFirebaseEvent.type}
+                </Text>
+                {selectedFirebaseEvent.description && (
+                  <Text variant="bodyMedium" style={styles.modalDescription}>
+                    {selectedFirebaseEvent.description}
+                  </Text>
+                )}
+              </View>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
+            {selectedFirebaseEvent && (
+              <>
+                <Button onPress={() => handleEditEvent(serializableToEvent(selectedFirebaseEvent))}>Edit</Button>
+                <Button onPress={handleDeleteEvent} textColor={theme.colors.error}>Delete</Button>
+              </>
+            )}
             <Button onPress={() => dispatch(setShowEventModal(false))}>Close</Button>
           </Dialog.Actions>
         </Dialog>
@@ -330,13 +446,25 @@ export function CalendarScreen() {
 
       {/* Add Event Modal */}
       <Portal>
-        <Dialog visible={showAddDialog} onDismiss={() => setShowAddDialog(false)}>
+        <Dialog 
+          visible={showAddDialog} 
+          onDismiss={() => setShowAddDialog(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
           <Dialog.Title>Add Event</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="Title *"
               value={formData.title}
               onChangeText={(text) => setFormData({ ...formData, title: text })}
+              style={styles.input}
+              mode="outlined"
+            />
+
+            <TextInput
+              label="Type"
+              value={formData.type}
+              onChangeText={(text) => setFormData({ ...formData, type: text })}
               style={styles.input}
               mode="outlined"
             />
@@ -383,6 +511,78 @@ export function CalendarScreen() {
             <Button onPress={() => setShowAddDialog(false)}>Cancel</Button>
             <Button onPress={handleSaveEvent} mode="contained">
               Add Event
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Edit Event Modal */}
+      <Portal>
+        <Dialog 
+          visible={showEditDialog} 
+          onDismiss={() => setShowEditDialog(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          <Dialog.Title>Edit Event</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Title *"
+              value={formData.title}
+              onChangeText={(text) => setFormData({ ...formData, title: text })}
+              style={styles.input}
+              mode="outlined"
+            />
+
+            <TextInput
+              label="Type"
+              value={formData.type}
+              onChangeText={(text) => setFormData({ ...formData, type: text })}
+              style={styles.input}
+              mode="outlined"
+            />
+
+            <Button
+              mode="outlined"
+              onPress={() => setShowDatePicker(true)}
+              style={styles.dateButton}
+              icon="calendar"
+            >
+              Date: {formData.date.toLocaleDateString()}
+            </Button>
+
+            <View style={styles.timeContainer}>
+              <Button
+                mode="outlined"
+                onPress={() => setShowTimePicker('start')}
+                style={styles.timeButton}
+                icon="clock-outline"
+              >
+                Start: {formData.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => setShowTimePicker('end')}
+                style={styles.timeButton}
+                icon="clock-outline"
+              >
+                End: {formData.endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Button>
+            </View>
+
+            <TextInput
+              label="Description"
+              value={formData.description}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              style={styles.input}
+              mode="outlined"
+              multiline
+              numberOfLines={3}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button onPress={handleUpdateEvent} mode="contained">
+              Update Event
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -441,7 +641,8 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   eventCard: {
-    marginBottom: 8,
+    marginBottom: 6,
+    paddingVertical: 4,
   },
   eventHeader: {
     flexDirection: 'row',
@@ -458,14 +659,12 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontWeight: 'bold',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   eventTime: {
-    color: '#666',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   eventDescription: {
-    color: '#888',
     fontStyle: 'italic',
   },
   modalTitle: {
