@@ -188,6 +188,30 @@ export const updateBalanceIncrementally = createAsyncThunk(
   }
 );
 
+// Invalidate cache and force fresh calculation
+export const invalidateBalanceCache = createAsyncThunk(
+  'balance/invalidateCache',
+  async () => {
+    const performanceMonitor = PerformanceMonitor.getInstance();
+    performanceMonitor.startTimer('invalidateBalanceCache');
+    
+    try {
+      // Clear cached data
+      await Promise.all([
+        AsyncStorage.removeItem(BALANCE_CACHE_KEY),
+        AsyncStorage.removeItem(BALANCE_LAST_UPDATED_KEY),
+      ]);
+      
+      performanceMonitor.endTimer('invalidateBalanceCache', true);
+      return true;
+    } catch (error) {
+      performanceMonitor.endTimer('invalidateBalanceCache', false, error.message);
+      console.error('Error invalidating balance cache:', error);
+      throw error;
+    }
+  }
+);
+
 const balanceSlice = createSlice({
   name: 'balance',
   initialState,
@@ -205,6 +229,11 @@ const balanceSlice = createSlice({
       state.lastUpdated = null;
       state.isStale = false;
       state.error = null;
+    },
+    // Force cache invalidation
+    forceInvalidateCache: (state) => {
+      state.isStale = true;
+      state.lastUpdated = null;
     },
   },
   extraReducers: (builder) => {
@@ -252,9 +281,23 @@ const balanceSlice = createSlice({
         state.balance = action.payload.balance;
         state.lastUpdated = action.payload.lastUpdated;
         state.isStale = false;
+      })
+      // Invalidate cache
+      .addCase(invalidateBalanceCache.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(invalidateBalanceCache.fulfilled, (state) => {
+        state.isLoading = false;
+        state.isStale = true;
+        state.lastUpdated = null;
+      })
+      .addCase(invalidateBalanceCache.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to invalidate cache';
       });
   },
 });
 
-export const { setStale, clearError, resetBalance } = balanceSlice.actions;
+export const { setStale, clearError, resetBalance, forceInvalidateCache } = balanceSlice.actions;
 export default balanceSlice.reducer; 

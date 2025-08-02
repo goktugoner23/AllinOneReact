@@ -50,8 +50,8 @@ export const TransactionHomeScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Use the new balance system
-  const { refreshBalance, updateBalance, markStale } = useBalance();
+  // Use the new balance system with enhanced cache invalidation
+  const { forceRefreshBalance, updateBalance, markStale } = useBalance();
 
   // Force refresh transactions when this screen is first displayed (like Kotlin app)
   useEffect(() => {
@@ -62,6 +62,7 @@ export const TransactionHomeScreen: React.FC = () => {
     logger.debug("Force refreshing transactions", {}, "TransactionHomeScreen");
     setRefreshing(true);
     try {
+      // Fetch fresh transactions first
       const txs = await fetchTransactions();
       // Sort by date descending like Kotlin app
       const sortedTransactions = txs.sort(
@@ -70,8 +71,8 @@ export const TransactionHomeScreen: React.FC = () => {
       setTransactions(sortedTransactions);
       setCurrentPage(0);
       
-      // Update balance after refreshing transactions
-      refreshBalance();
+      // Force refresh balance with cache invalidation
+      await forceRefreshBalance();
       
       logger.debug(
         "Force refresh completed",
@@ -88,7 +89,7 @@ export const TransactionHomeScreen: React.FC = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [refreshBalance]);
+  }, [forceRefreshBalance]);
 
   const loadTransactions = useCallback(async () => {
     await forceRefreshTransactions();

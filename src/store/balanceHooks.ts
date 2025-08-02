@@ -6,6 +6,8 @@ import {
   calculateBalance,
   updateBalanceIncrementally,
   setStale,
+  invalidateBalanceCache,
+  forceInvalidateCache,
 } from './balanceSlice';
 
 export const useBalance = () => {
@@ -43,6 +45,20 @@ export const useBalance = () => {
     }, 200);
   }, [dispatch]);
 
+  // Function to force refresh balance by invalidating cache first
+  const forceRefreshBalance = useCallback(async () => {
+    try {
+      // First invalidate the cache
+      await dispatch(invalidateBalanceCache());
+      // Then force a fresh calculation
+      dispatch(calculateBalance());
+    } catch (error) {
+      console.error('Error force refreshing balance:', error);
+      // Fallback to regular refresh if cache invalidation fails
+      dispatch(calculateBalance());
+    }
+  }, [dispatch]);
+
   // Function to update balance incrementally (for new transactions)
   const updateBalance = useCallback((transaction: any) => {
     dispatch(updateBalanceIncrementally(transaction));
@@ -53,11 +69,24 @@ export const useBalance = () => {
     dispatch(setStale());
   }, [dispatch]);
 
+  // Function to invalidate cache only
+  const invalidateCache = useCallback(async () => {
+    try {
+      await dispatch(invalidateBalanceCache());
+    } catch (error) {
+      console.error('Error invalidating cache:', error);
+      // Fallback to marking as stale
+      dispatch(forceInvalidateCache());
+    }
+  }, [dispatch]);
+
   return {
     ...balance,
     refreshBalance,
+    forceRefreshBalance,
     updateBalance,
     markStale,
+    invalidateCache,
   };
 };
 
