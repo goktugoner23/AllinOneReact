@@ -144,7 +144,7 @@ function InvestmentsContent() {
         <Card.Content>
           <View style={styles.headerRow}>
             <Text style={styles.title}>{item.name}</Text>
-            <Chip mode="outlined" compact>
+            <Chip mode="outlined">
               {item.type}
             </Chip>
           </View>

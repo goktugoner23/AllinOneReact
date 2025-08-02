@@ -55,7 +55,6 @@ function FuturesPositionCard({ position, onSetTPSL }: {
             </Text>
             <Chip 
               mode="outlined" 
-              compact
               style={[styles.positionSideChip, { backgroundColor: positionSideColor }]}
               textStyle={{ color: 'white', fontWeight: 'bold' }}
             >
@@ -149,7 +148,6 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               </Text>
               <Chip 
                 mode="outlined" 
-                compact
                 style={[styles.riskChip, { backgroundColor: riskLevel.color }]}
                 textStyle={{ color: 'white', fontSize: 10 }}
               >

@@ -241,7 +241,6 @@ export function RegisterTab() {
             </Text>
             <Chip
               mode="outlined"
-              compact
               style={[
                 styles.statusChip,
                 { 

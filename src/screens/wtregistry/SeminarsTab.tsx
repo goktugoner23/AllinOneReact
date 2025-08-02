@@ -255,7 +255,6 @@ export function SeminarsTab() {
                 </Text>
                 <Chip
                   mode="outlined"
-                  compact
                   style={[
                     styles.statusChip,
                     { 

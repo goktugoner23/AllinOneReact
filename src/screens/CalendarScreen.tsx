@@ -320,6 +320,7 @@ export function CalendarScreen() {
             onPress={handleAddEvent}
             mode="contained"
             containerColor={theme.colors.primaryContainer}
+            iconColor="white"
           />
         </View>
 

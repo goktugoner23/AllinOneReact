@@ -72,7 +72,6 @@ export const TPSLModal: React.FC<TPSLModalProps> = ({
               <Text variant="titleMedium">{position.symbol}</Text>
               <Chip 
                 mode="outlined" 
-                compact
                 style={{ 
                   backgroundColor: isLong ? '#4CAF50' : '#F44336',
                   marginLeft: 8 

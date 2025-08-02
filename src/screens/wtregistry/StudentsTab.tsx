@@ -227,7 +227,6 @@ export function StudentsTab() {
               </Text>
               <Chip
                 mode="outlined"
-                compact
                 style={[
                   styles.statusChip,
                   { backgroundColor: student.isActive ? theme.colors.primaryContainer : theme.colors.errorContainer }
