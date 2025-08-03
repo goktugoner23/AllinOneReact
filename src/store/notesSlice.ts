@@ -97,7 +97,13 @@ const notesSlice = createSlice({
       })
       .addCase(addNoteAsync.fulfilled, (state, action) => {
         state.loading = false;
-        state.notes.unshift(action.payload);
+        // Ensure the note has proper string dates
+        const note = {
+          ...action.payload,
+          date: typeof action.payload.date === 'string' ? action.payload.date : new Date().toISOString(),
+          lastEdited: typeof action.payload.lastEdited === 'string' ? action.payload.lastEdited : new Date().toISOString(),
+        };
+        state.notes.unshift(note);
       })
       .addCase(addNoteAsync.rejected, (state, action) => {
         state.loading = false;
@@ -116,7 +122,7 @@ const notesSlice = createSlice({
           state.notes[index] = {
             ...state.notes[index],
             ...noteData,
-            lastEdited: new Date(),
+            lastEdited: new Date().toISOString(),
           };
         }
       })

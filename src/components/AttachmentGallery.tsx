@@ -7,16 +7,22 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
+  Share,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
+import { Video } from 'react-native-video';
 import {
   IconButton,
   Text,
   Surface,
   Portal,
   Modal,
+  ProgressBar,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AudioPlayer from './AudioPlayer';
+import RNFS from 'react-native-fs';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -38,6 +44,9 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   onClose 
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const currentAttachment = attachments[currentIndex];
@@ -57,9 +66,34 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
         case 'video':
           return (
             <View style={styles.videoContainer}>
-              <Icon name="play-circle-outline" size={80} color="#666" />
-              <Text style={styles.mediaText}>Video</Text>
-              <Text style={styles.mediaSubtext}>Tap to play</Text>
+              {playingVideo === item.uri ? (
+                <Video
+                  source={{ uri: item.uri }}
+                  style={styles.videoPlayer}
+                  resizeMode="contain"
+                  paused={false}
+                  onEnd={() => setPlayingVideo(null)}
+                  repeat={false}
+                  muted={false}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.videoThumbnail}
+                  onPress={() => setPlayingVideo(item.uri)}
+                >
+                  <Video
+                    source={{ uri: item.uri }}
+                    style={styles.videoThumbnailPlayer}
+                    resizeMode="cover"
+                    paused={true}
+                    muted={true}
+                    onLoad={() => {}}
+                  />
+                  <View style={styles.playOverlay}>
+                    <Icon name="play-circle-fill" size={60} color="white" />
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
           );
         
@@ -94,12 +128,54 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
     );
   };
 
-  const handleShare = () => {
-    Alert.alert('Share', 'Share functionality will be implemented later');
-  };
 
-  const handleDownload = () => {
-    Alert.alert('Download', 'Download functionality will be implemented later');
+
+  const handleDownload = async () => {
+    try {
+      const currentAttachment = attachments[currentIndex];
+      if (!currentAttachment) return;
+
+      setDownloading(true);
+      setDownloadProgress(0);
+
+      // Get file extension based on type
+      const getFileExtension = (type: string) => {
+        switch (type) {
+          case 'image': return '.jpg';
+          case 'video': return '.mp4';
+          case 'audio': return '.m4a';
+          default: return '.file';
+        }
+      };
+
+      const fileName = `attachment_${Date.now()}${getFileExtension(currentAttachment.type)}`;
+      const downloadPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+
+      // Download the file
+      const result = await RNFS.downloadFile({
+        fromUrl: currentAttachment.uri,
+        toFile: downloadPath,
+        background: true,
+        discretionary: true,
+        progress: (res) => {
+          const progressPercent = (res.bytesWritten / res.contentLength) * 100;
+          setDownloadProgress(progressPercent);
+          console.log(`Download progress: ${progressPercent}%`);
+        },
+      }).promise;
+
+      if (result.statusCode === 200) {
+        Alert.alert('Success', `File downloaded to Downloads folder as ${fileName}`);
+      } else {
+        throw new Error(`Download failed with status: ${result.statusCode}`);
+      }
+    } catch (error) {
+      console.error('Error downloading:', error);
+      Alert.alert('Error', 'Failed to download attachment');
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(0);
+    }
   };
 
   const handlePrevious = () => {
@@ -147,19 +223,33 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
             </View>
             <View style={styles.headerRight}>
               <IconButton
-                icon="share"
-                size={24}
-                onPress={handleShare}
-                style={styles.headerButton}
-              />
-              <IconButton
                 icon="download"
                 size={24}
                 onPress={handleDownload}
                 style={styles.headerButton}
+                disabled={downloading}
               />
+              {downloading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="small" color="white" />
+                </View>
+              )}
             </View>
           </View>
+          
+          {/* Download Progress */}
+          {downloading && (
+            <View style={styles.progressContainer}>
+              <ProgressBar 
+                progress={downloadProgress / 100} 
+                color="#007AFF"
+                style={styles.progressBar}
+              />
+              <Text style={styles.progressText}>
+                Downloading... {Math.round(downloadProgress)}%
+              </Text>
+            </View>
+          )}
 
           {/* Media Content */}
           <View style={styles.contentContainer}>
@@ -247,6 +337,32 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
+  progressContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  progressBar: {
+    height: 4,
+    borderRadius: 2,
+  },
+  progressText: {
+    color: 'white',
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+  },
   contentContainer: {
     flex: 1,
   },
@@ -265,6 +381,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: screenWidth,
     height: screenHeight * 0.7,
+  },
+  videoPlayer: {
+    width: screenWidth,
+    height: screenHeight * 0.7,
+  },
+  videoThumbnail: {
+    width: screenWidth,
+    height: screenHeight * 0.7,
+    position: 'relative',
+  },
+  videoThumbnailPlayer: {
+    width: '100%',
+    height: '100%',
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   audioContainer: {
     justifyContent: 'center',

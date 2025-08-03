@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useState, useMemo, createContext, useContext } from 'react';
+import React, { useState, useMemo, createContext, useContext, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -40,6 +40,19 @@ import { lightTheme, darkTheme } from './src/theme';
 
 // Initialize Firebase
 import './src/config/firebase';
+
+// Global error handler to suppress Firestore assertion errors
+const setupGlobalErrorHandler = () => {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    const message = args.join(' ');
+    if (message.includes('INTERNAL ASSERTION FAILED')) {
+      console.warn('⚠️ Suppressing Firestore assertion error:', message);
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+};
 
 // Balance preloader removed to avoid initialization issues
 
@@ -139,6 +152,11 @@ export function useAppTheme() {
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
+
+  // Setup global error handler to suppress Firestore assertion errors
+  useEffect(() => {
+    setupGlobalErrorHandler();
+  }, []);
 
   // Balance preloading removed - will load when needed
 

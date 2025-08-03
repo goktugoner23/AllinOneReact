@@ -9,7 +9,9 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Share,
 } from 'react-native';
+import { Video } from 'react-native-video';
 import { useNavigation } from '@react-navigation/native';
 import { FAB, Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -60,6 +62,21 @@ const NotesScreen: React.FC = () => {
         },
       ]
     );
+  };
+
+  const handleShareNote = async (note: Note) => {
+    try {
+      const cleanContent = stripHtmlTags(note.content);
+      const shareContent = `Title: ${note.title}\n\nContent: ${cleanContent}`;
+      
+      await Share.share({
+        message: shareContent,
+        title: note.title,
+      });
+    } catch (error) {
+      console.error('Error sharing note:', error);
+      Alert.alert('Error', 'Failed to share note');
+    }
   };
 
   const handleNotePress = (note: Note) => {
@@ -116,12 +133,20 @@ const NotesScreen: React.FC = () => {
             <Text style={styles.noteTitle} numberOfLines={2}>
               {item.title || 'Untitled Note'}
             </Text>
-            <IconButton
-              icon="delete"
-              size={20}
-              onPress={() => handleDeleteNote(item)}
-              style={styles.deleteButton}
-            />
+            <View style={styles.noteActions}>
+              <IconButton
+                icon="share"
+                size={20}
+                onPress={() => handleShareNote(item)}
+                style={styles.actionButton}
+              />
+              <IconButton
+                icon="delete"
+                size={20}
+                onPress={() => handleDeleteNote(item)}
+                style={styles.deleteButton}
+              />
+            </View>
           </View>
           
           <Text style={styles.noteContent} numberOfLines={3}>
@@ -149,7 +174,16 @@ const NotesScreen: React.FC = () => {
                       <Image source={{ uri }} style={styles.previewImage} />
                     ) : isVideo ? (
                       <View style={styles.previewVideo}>
-                        <Icon name="video" size={20} color="#666" />
+                        <Video
+                          source={{ uri }}
+                          style={styles.previewVideoThumbnail}
+                          resizeMode="cover"
+                          paused={true}
+                          muted={true}
+                        />
+                        <View style={styles.playOverlay}>
+                          <Icon name="play-arrow" size={16} color="white" />
+                        </View>
                       </View>
                     ) : (
                       <View style={styles.previewAudio}>
@@ -291,6 +325,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  noteActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    margin: 0,
+  },
   deleteButton: {
     margin: 0,
   },
@@ -336,6 +377,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#e0e0e0',
+    position: 'relative',
+  },
+  previewVideoThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 8,
   },
   previewAudio: {
     width: '100%',
