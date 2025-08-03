@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { Event, EventFormData } from '../types/Event';
 import { dateToTimestamp, timestampToDate, getDocData } from './firebase';
+import { firebaseIdManager } from './firebaseIdManager';
 import { logger } from '../utils/logger';
 
 const EVENTS_COLLECTION = 'events';
@@ -52,7 +53,7 @@ export const getEvents = async (): Promise<Event[]> => {
 // Add a new event to Firebase
 export const addEvent = async (eventData: EventFormData): Promise<Event> => {
   try {
-    const eventId = Date.now(); // Simple ID generation like in Kotlin
+    const eventId = await firebaseIdManager.getNextId('events');
 
     const eventDoc = {
       id: eventId,

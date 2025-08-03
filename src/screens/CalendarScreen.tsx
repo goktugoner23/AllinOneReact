@@ -27,6 +27,12 @@ import {
   setSelectedEvent,
   setSelectedFirebaseEvent,
 } from '../store/calendarSlice';
+import {
+  loadStudents,
+  loadRegistrations,
+  loadLessons,
+  loadSeminars,
+} from '../store/wtRegistrySlice';
 import { CalendarEvent } from '../types/WTRegistry';
 import { Event, EventFormData, SerializableEvent, serializableToEvent } from '../types/Event';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -47,6 +53,18 @@ export function CalendarScreen() {
     (state: RootState) => state.wtRegistry
   );
 
+  // Temporary debug: Check registration data
+  console.log('Registrations with dates:', registrations.map(r => ({
+    id: r.id,
+    studentName: students.find(s => s.id === r.studentId)?.name,
+    startDate: r.startDate,
+    endDate: r.endDate,
+    hasStartDate: !!r.startDate,
+    hasEndDate: !!r.endDate
+  })));
+
+
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -62,9 +80,12 @@ export function CalendarScreen() {
   });
 
   useEffect(() => {
-    // Fetch Firebase events and generate WTRegistry events on component mount
+    // Load WTRegistry data and Firebase events on component mount
+    dispatch(loadStudents());
+    dispatch(loadRegistrations());
+    dispatch(loadLessons());
+    dispatch(loadSeminars());
     dispatch(fetchFirebaseEvents());
-    dispatch(generateCalendarEvents());
   }, [dispatch]);
 
   useEffect(() => {
@@ -88,21 +109,37 @@ export function CalendarScreen() {
         serializableEvent,
       };
     }),
-    ...events.map(event => ({
-      ...event,
-      isFirebaseEvent: false,
-    }))
+    ...events.map(serializableEvent => {
+      const event = serializableToEvent(serializableEvent);
+      return {
+        id: `wtregistry-${event.id}`,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        endDate: event.endDate,
+        type: event.type as CalendarEvent['type'],
+        isFirebaseEvent: false,
+        serializableEvent,
+      };
+    })
   ];
+
+
+
+
 
   const handleDayPress = (day: DateData) => {
     dispatch(setSelectedDate(day.dateString));
+    // Clear any selected events when date changes
+    dispatch(setSelectedEvent(null));
+    dispatch(setSelectedFirebaseEvent(null));
   };
 
   const handleEventPress = (event: any) => {
     if (event.isFirebaseEvent) {
       dispatch(setSelectedFirebaseEvent(event.serializableEvent));
     } else {
-      dispatch(setSelectedEvent(event));
+      dispatch(setSelectedEvent(event.serializableEvent));
     }
     dispatch(setShowEventModal(true));
   };
@@ -212,28 +249,45 @@ export function CalendarScreen() {
     const dateKey = event.date.toISOString().split('T')[0];
     
     if (!marks[dateKey]) {
-      marks[dateKey] = { dots: [] };
+      marks[dateKey] = { dots: [], colors: [] };
     }
     
-    let color = theme.colors.primary;
-    switch (event.type) {
-      case 'registration_start':
-        color = theme.colors.secondary;
-        break;
-      case 'registration_end':
-        color = theme.colors.error;
-        break;
-      case 'lesson':
-        color = theme.colors.tertiary;
-        break;
-      case 'seminar':
-        color = '#FF9800';
-        break;
-      default:
-        color = theme.colors.primary;
+    let color = '#FFD700'; // yellow for other events (default)
+    
+    // Handle Firebase events (string types) and WTRegistry events (union types)
+    if (typeof event.type === 'string') {
+      // Firebase events and WTRegistry events (now both use string types)
+      if (event.type.includes('Registration Start')) {
+        color = '#4CAF50'; // green for registration start
+      } else if (event.type.includes('Registration End')) {
+        color = '#F44336'; // red for registration end
+      } else if (event.type.includes('lesson')) {
+        color = '#2196F3'; // blue for lessons
+      } else {
+        color = '#FFD700'; // yellow for other events
+      }
+    } else {
+      // Legacy WTRegistry events (union types) - fallback
+      switch (event.type) {
+        case 'registration_start':
+          color = '#4CAF50'; // green for registration start
+          break;
+        case 'registration_end':
+          color = '#F44336'; // red for registration end
+          break;
+        case 'lesson':
+          color = '#2196F3'; // blue for lessons
+          break;
+        case 'seminar':
+          color = '#FFD700'; // yellow for seminars
+          break;
+        default:
+          color = '#FFD700'; // yellow for other events
+      }
     }
     
-    marks[dateKey].dots.push({ color });
+    // Add color to the array for this date
+    marks[dateKey].colors.push(color);
     
     if (dateKey === selectedDate) {
       marks[dateKey].selected = true;
@@ -242,6 +296,29 @@ export function CalendarScreen() {
     
     return marks;
   }, {});
+
+  // Process the colors to show only one dot based on priority
+  Object.keys(markedDates).forEach(dateKey => {
+    const colors = markedDates[dateKey].colors || [];
+    let priorityColor = '#FFD700'; // default yellow
+
+    // Priority: red > green > yellow > blue
+    if (colors.includes('#F44336')) {
+      priorityColor = '#F44336'; // red
+    } else if (colors.includes('#4CAF50')) {
+      priorityColor = '#4CAF50'; // green
+    } else if (colors.includes('#FFD700')) {
+      priorityColor = '#FFD700'; // yellow
+    } else if (colors.includes('#2196F3')) {
+      priorityColor = '#2196F3'; // blue
+    }
+
+    // Set only one dot with the highest priority color
+    markedDates[dateKey].dots = [{ color: priorityColor }];
+    
+    // Remove the temporary colors array
+    delete markedDates[dateKey].colors;
+  });
 
   // Add selected date mark if no events
   if (selectedDate && !markedDates[selectedDate]) {
@@ -255,18 +332,17 @@ export function CalendarScreen() {
     event.date.toISOString().split('T')[0] === selectedDate
   );
 
-  const getEventTypeColor = (type: CalendarEvent['type']) => {
-    switch (type) {
-      case 'registration_start':
-        return theme.colors.secondaryContainer;
-      case 'registration_end':
-        return theme.colors.errorContainer;
-      case 'lesson':
-        return theme.colors.tertiaryContainer;
-      case 'seminar':
-        return '#FFF3E0';
-      default:
-        return theme.colors.primaryContainer;
+  const getEventTypeColor = (type: string) => {
+    if (type === 'Registration Start') {
+      return '#4CAF50'; // green background
+    } else if (type === 'Registration End') {
+      return '#F44336'; // red background
+    } else if (type === 'lesson') {
+      return '#2196F3'; // blue background
+    } else if (type === 'seminar') {
+      return '#FFF3E0';
+    } else {
+      return theme.colors.primaryContainer;
     }
   };
 
@@ -342,7 +418,7 @@ export function CalendarScreen() {
                   styles.eventCard,
                   { backgroundColor: getEventTypeColor(event.type) }
                 ]}
-                mode="flat"
+                mode="elevated"
                 onPress={() => handleEventPress(event)}
               >
                 <Card.Content>
@@ -366,9 +442,18 @@ export function CalendarScreen() {
                         </Text>
                       )}
                     </View>
-                    <Chip mode="outlined">
-                      {event.type.replace('_', ' ')}
-                    </Chip>
+                                <Chip
+              mode="outlined"
+              style={{
+                backgroundColor: getEventTypeColor(event.type),
+                borderColor: getEventTypeColor(event.type)
+              }}
+              textStyle={{
+                color: 'white'
+              }}
+            >
+              {event.type === 'lesson' ? 'Lesson' : event.type.replace('_', ' ')}
+            </Chip>
                   </View>
                 </Card.Content>
               </Card>
@@ -388,25 +473,32 @@ export function CalendarScreen() {
           <Dialog.Content>
             {selectedEvent && (
               <View>
-                <Text variant="titleMedium" style={styles.modalTitle}>
-                  {selectedEvent.title}
-                </Text>
-                <Text variant="bodyMedium" style={styles.modalDetail}>
-                  📅 {selectedEvent.date.toLocaleString()}
-                </Text>
-                {selectedEvent.endDate && selectedEvent.endDate.getTime() !== selectedEvent.date.getTime() && (
-                  <Text variant="bodyMedium" style={styles.modalDetail}>
-                    ⏰ Until {selectedEvent.endDate.toLocaleString()}
-                  </Text>
-                )}
-                <Text variant="bodyMedium" style={styles.modalDetail}>
-                  🏷️ {selectedEvent.type.replace('_', ' ')}
-                </Text>
-                {selectedEvent.description && (
-                  <Text variant="bodyMedium" style={styles.modalDescription}>
-                    {selectedEvent.description}
-                  </Text>
-                )}
+                {(() => {
+                  const event = serializableToEvent(selectedEvent);
+                  return (
+                    <>
+                      <Text variant="titleMedium" style={styles.modalTitle}>
+                        {event.title}
+                      </Text>
+                      <Text variant="bodyMedium" style={styles.modalDetail}>
+                        📅 {event.date.toLocaleString()}
+                      </Text>
+                      {event.endDate && event.endDate.getTime() !== event.date.getTime() && (
+                        <Text variant="bodyMedium" style={styles.modalDetail}>
+                          ⏰ Until {event.endDate.toLocaleString()}
+                        </Text>
+                      )}
+                      <Text variant="bodyMedium" style={styles.modalDetail}>
+                        🏷️ {event.type.replace('_', ' ')}
+                      </Text>
+                      {event.description && (
+                        <Text variant="bodyMedium" style={styles.modalDescription}>
+                          {event.description}
+                        </Text>
+                      )}
+                    </>
+                  );
+                })()}
               </View>
             )}
             {selectedFirebaseEvent && (
@@ -440,7 +532,11 @@ export function CalendarScreen() {
                 <Button onPress={handleDeleteEvent} textColor={theme.colors.error}>Delete</Button>
               </>
             )}
-            <Button onPress={() => dispatch(setShowEventModal(false))}>Close</Button>
+            <Button onPress={() => {
+              dispatch(setShowEventModal(false));
+              dispatch(setSelectedEvent(null));
+              dispatch(setSelectedFirebaseEvent(null));
+            }}>Close</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -494,7 +590,7 @@ export function CalendarScreen() {
                 style={styles.timeButton}
                 icon="clock-outline"
               >
-                End: {formData.endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
               </Button>
             </View>
 
@@ -566,7 +662,7 @@ export function CalendarScreen() {
                 style={styles.timeButton}
                 icon="clock-outline"
               >
-                End: {formData.endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
               </Button>
             </View>
 
@@ -600,7 +696,7 @@ export function CalendarScreen() {
 
       {showTimePicker && (
         <DateTimePicker
-          value={showTimePicker === 'start' ? formData.date : formData.endDate}
+          value={showTimePicker === 'start' ? formData.date : (formData.endDate || formData.date)}
           mode="time"
           is24Hour={true}
           display="default"

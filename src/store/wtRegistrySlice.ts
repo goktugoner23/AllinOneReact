@@ -46,7 +46,14 @@ export const deleteStudent = createAsyncThunk('wtRegistry/deleteStudent', async 
 
 // Async thunks for Registrations
 export const loadRegistrations = createAsyncThunk('wtRegistry/loadRegistrations', async () => {
-  return await fetchRegistrations();
+  const registrations = await fetchRegistrations();
+  // Convert Date objects to ISO strings for Redux serialization
+  return registrations.map(registration => ({
+    ...registration,
+    startDate: registration.startDate?.toISOString(),
+    endDate: registration.endDate?.toISOString(),
+    paymentDate: registration.paymentDate.toISOString(),
+  }));
 });
 
 export const addRegistration = createAsyncThunk('wtRegistry/addRegistration', async (registration: Omit<WTRegistration, 'id' | 'paymentDate'>) => {

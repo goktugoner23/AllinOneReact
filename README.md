@@ -1,6 +1,6 @@
 # AllInOne React Native
 
-A comprehensive personal finance and life management mobile application built with React Native, featuring transaction tracking, investment management, Wing Tsun registry, and real-time cryptocurrency futures data.
+A comprehensive personal finance and life management mobile application built with React Native, featuring transaction tracking, investment management, Wing Tsun registry, calendar events management, and real-time cryptocurrency futures data.
 
 ## 📱 Features
 
@@ -24,6 +24,14 @@ A comprehensive personal finance and life management mobile application built wi
 - **Lesson Scheduling**: Manage Wing Tsun lessons and attendance
 - **Seminar Organization**: Plan and track martial arts seminars
 
+### 📅 Calendar & Events
+- **Event Management**: Create, edit, and delete custom events in Firestore
+- **Smart Calendar Display**: Visual calendar with colored dots indicating event types
+- **Event Type Prioritization**: Red (Registration End) > Green (Registration Start) > Yellow (Other) > Blue (Lessons)
+- **Auto-Generated Events**: Automatic lesson, registration, and seminar events from WT Registry data
+- **Event Details Modal**: Rich event information display with date, time, and descriptions
+- **Firebase Integration**: Persistent event storage with sequential ID management
+
 ### 📊 Reports & Analytics
 - **Financial Reports**: Detailed transaction analysis and summaries
 - **Category Breakdown**: Spending analysis by category
@@ -40,6 +48,8 @@ A comprehensive personal finance and life management mobile application built wi
 - **Storage**: Firebase Storage
 - **Navigation**: React Navigation 7
 - **UI Components**: React Native Paper
+- **Calendar**: React Native Calendars
+- **Date/Time Picker**: React Native Community DateTimePicker
 - **Charts**: React Native Chart Kit
 - **Icons**: React Native Vector Icons + Custom SVG
 - **Image Handling**: React Native Image Picker
@@ -55,10 +65,12 @@ src/
 │   ├── YinYangIcon.tsx
 │   └── ...
 ├── screens/            # Screen components
+│   ├── CalendarScreen.tsx
 │   ├── TransactionHomeScreen.tsx
 │   ├── InvestmentsScreen.tsx
 │   ├── WTRegistryScreen.tsx
 │   ├── ReportsScreen.tsx
+│   ├── transactions/
 │   └── wtregistry/
 ├── config/             # Configuration files
 │   ├── firebase.ts
@@ -66,6 +78,7 @@ src/
 ├── data/              # Data layer
 │   ├── firebase.ts
 │   ├── firebaseIdManager.ts
+│   ├── events.ts
 │   ├── transactions.ts
 │   ├── investments.ts
 │   └── wtRegistry.ts
@@ -74,6 +87,7 @@ src/
 │   ├── calendarSlice.ts
 │   └── wtRegistrySlice.ts
 ├── types/             # TypeScript interfaces
+│   ├── Event.ts
 │   ├── Transaction.ts
 │   ├── Investment.ts
 │   └── WTRegistry.ts
@@ -137,6 +151,7 @@ src/
 The app uses Firebase for data storage and real-time synchronization. Configure your Firebase project:
 
 1. **Firestore Collections**:
+   - `events` - Calendar events and custom events
    - `transactions` - Financial transaction records
    - `investments` - Investment portfolio data
    - `students` - Wing Tsun student information
@@ -174,9 +189,16 @@ The app supports 11 predefined categories with custom icons:
 | Transport | 🚗 | Expense | Purple |
 | Game | 🎮 | Expense | Indigo |
 
+### Calendar Features
+- **Multi-Source Events**: Combines Firebase events with auto-generated WT Registry events
+- **Color-Coded Dots**: Visual priority system with red, green, yellow, and blue indicators
+- **Event Priority System**: Red (Registration End) → Green (Registration Start) → Yellow (Other) → Blue (Lessons)
+- **Modal Event Management**: Create, edit, delete events with rich form interface
+- **Date/Time Selection**: Native date and time pickers for precise scheduling
+
 ### Data Management
 - **Sequential ID Generation**: Atomic ID generation using Firebase transactions
-- **Device-based Data Isolation**: Each device maintains separate data using unique device IDs
+- **Data Serialization**: Redux state optimized with serializable event objects
 - **Offline Support**: Transactions cached locally for offline access
 - **Real-time Sync**: Automatic synchronization across devices
 
@@ -253,6 +275,30 @@ const positions = await BinanceApiClient.getPositions();
 const balance = await BinanceApiClient.getBalance();
 ```
 
+### Calendar Events
+```typescript
+// Add a new event
+await addEvent({
+  title: "Wing Tzun Seminar",
+  description: "Advanced techniques workshop",
+  date: new Date(),
+  endDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours later
+  type: "Event"
+});
+
+// Fetch all events
+const events = await getEvents();
+
+// Update an event
+await updateEvent(eventId, updatedEventData);
+
+// Delete an event
+await deleteEvent(eventId);
+
+// Generate calendar events from WT Registry data
+dispatch(generateCalendarEvents());
+```
+
 ## 🧪 Testing
 
 ### Running Tests
@@ -324,7 +370,15 @@ For support and questions:
 
 ## 🔄 Version History
 
-### v1.0.0 (Current)
+### v1.1.0 (Current)
+- **Calendar & Events System**: Complete calendar implementation with event management
+- **Smart Event Display**: Color-coded calendar dots with priority system
+- **Firebase Events Integration**: Full CRUD operations for custom events
+- **Auto-Generated Events**: Automatic lesson, registration, and seminar events
+- **Redux State Optimization**: Serializable event objects for performance
+- **Enhanced UI**: White modal backgrounds, improved chip styling, and better UX
+
+### v1.0.0
 - Initial release with core functionality
 - Transaction management system
 - Investment portfolio tracking

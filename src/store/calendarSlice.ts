@@ -5,11 +5,11 @@ import { getEvents, addEvent, updateEvent, deleteEvent } from '../data/events';
 import { RootState } from './index';
 
 interface CalendarState {
-  events: CalendarEvent[];
+  events: SerializableEvent[];
   firebaseEvents: SerializableEvent[];
   selectedDate: string; // YYYY-MM-DD format
   showEventModal: boolean;
-  selectedEvent: CalendarEvent | null;
+  selectedEvent: SerializableEvent | null;
   selectedFirebaseEvent: SerializableEvent | null;
   loading: boolean;
   error: string | null;
@@ -68,7 +68,7 @@ export const generateCalendarEvents = createAsyncThunk(
   async (_, { getState }) => {
     const state = getState() as RootState;
     const { students, registrations, lessons, seminars } = state.wtRegistry as any;
-    const events: CalendarEvent[] = [];
+    const events: SerializableEvent[] = [];
 
     // Generate events from registrations (start and end dates)
     registrations.forEach((registration: any) => {
@@ -80,8 +80,8 @@ export const generateCalendarEvents = createAsyncThunk(
           id: `reg-start-${registration.id}`,
           title: `${studentName} - Registration Start`,
           description: `Registration period starts for ${studentName}. Amount: $${registration.amount}`,
-          date: registration.startDate,
-          type: 'registration_start',
+          date: new Date(registration.startDate).toISOString(),
+          type: 'Registration Start',
           relatedId: registration.id,
         });
       }
@@ -91,8 +91,8 @@ export const generateCalendarEvents = createAsyncThunk(
           id: `reg-end-${registration.id}`,
           title: `${studentName} - Registration End`,
           description: `Registration period ends for ${studentName}. Amount: $${registration.amount}`,
-          date: registration.endDate,
-          type: 'registration_end',
+          date: new Date(registration.endDate).toISOString(),
+          type: 'Registration End',
           relatedId: registration.id,
         });
       }
@@ -127,8 +127,8 @@ export const generateCalendarEvents = createAsyncThunk(
               id: `lesson-${lesson.id}-${date.toISOString().split('T')[0]}`,
               title: 'Wing Tzun Lesson',
               description: `Lesson from ${lesson.startHour.toString().padStart(2, '0')}:${lesson.startMinute.toString().padStart(2, '0')} to ${lesson.endHour.toString().padStart(2, '0')}:${lesson.endMinute.toString().padStart(2, '0')}`,
-              date: lessonDate,
-              endDate: endDate,
+              date: lessonDate.toISOString(),
+              endDate: endDate.toISOString(),
               type: 'lesson',
               relatedId: lesson.id,
             });
@@ -149,8 +149,8 @@ export const generateCalendarEvents = createAsyncThunk(
         id: `seminar-${seminar.id}`,
         title: seminar.name,
         description: `${seminar.description || 'Wing Tzun Seminar'} ${seminar.location ? `at ${seminar.location}` : ''}`,
-        date: seminarDate,
-        endDate: endDate,
+        date: seminarDate.toISOString(),
+        endDate: endDate.toISOString(),
         type: 'seminar',
         relatedId: seminar.id,
       });
@@ -165,9 +165,11 @@ export const addCalendarEvent = createAsyncThunk(
   'calendar/addEvent',
   async (event: Omit<CalendarEvent, 'id'>) => {
     // For now, just create a local event. Could be extended to save to Firebase
-    const newEvent: CalendarEvent = {
+    const newEvent: SerializableEvent = {
       ...event,
       id: `custom-${Date.now()}`,
+      date: event.date.toISOString(),
+      endDate: event.endDate?.toISOString(),
     };
     return newEvent;
   }
@@ -183,16 +185,16 @@ const calendarSlice = createSlice({
     setShowEventModal: (state, action: PayloadAction<boolean>) => {
       state.showEventModal = action.payload;
     },
-    setSelectedEvent: (state, action: PayloadAction<CalendarEvent | null>) => {
+    setSelectedEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
       state.selectedEvent = action.payload;
     },
     setSelectedFirebaseEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
       state.selectedFirebaseEvent = action.payload;
     },
-    addEventLocal: (state, action: PayloadAction<CalendarEvent>) => {
+    addEventLocal: (state, action: PayloadAction<SerializableEvent>) => {
       state.events.push(action.payload);
     },
-    updateEventLocal: (state, action: PayloadAction<CalendarEvent>) => {
+    updateEventLocal: (state, action: PayloadAction<SerializableEvent>) => {
       const index = state.events.findIndex(e => e.id === action.payload.id);
       if (index !== -1) {
         state.events[index] = action.payload;
