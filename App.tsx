@@ -8,6 +8,7 @@
 import React, { useState, useMemo, createContext, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
@@ -23,6 +24,8 @@ import { ReportsTab } from './src/screens/transactions/ReportsTab';
 import { WTRegistryScreen } from './src/screens/WTRegistryScreen';
 import { CalendarScreen } from './src/screens/CalendarScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
+import NotesScreen from './src/screens/NotesScreen';
+import EditNoteScreen from './src/screens/EditNoteScreen';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -41,6 +44,7 @@ import './src/config/firebase';
 // Balance preloader removed to avoid initialization issues
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
 // Transactions Dashboard with bottom tabs (Home, Investments, Reports)
@@ -70,6 +74,20 @@ function TransactionsDashboard() {
       <Tab.Screen name="Investments" component={InvestmentsTab} />
       <Tab.Screen name="Reports" component={ReportsTab} />
     </Tab.Navigator>
+  );
+}
+
+// Notes Stack Navigator
+function NotesStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="NotesList" component={NotesScreen} />
+      <Stack.Screen name="EditNote" component={EditNoteScreen} />
+    </Stack.Navigator>
   );
 }
 
@@ -252,6 +270,16 @@ export default function App() {
                   title: 'History',
                   drawerIcon: ({ color, size }) => (
                     <Ionicons name="time-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="Notes"
+                component={NotesStack}
+                options={{
+                  title: 'Notes',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="document-text-outline" size={size} color={color} />
                   ),
                 }}
               />

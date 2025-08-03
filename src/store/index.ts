@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import wtRegistryReducer from './wtRegistrySlice';
 import calendarReducer from './calendarSlice';
 import balanceReducer from './balanceSlice';
+import notesReducer from './notesSlice';
 
 const store = configureStore({
   reducer: {
     wtRegistry: wtRegistryReducer,
     calendar: calendarReducer,
     balance: balanceReducer,
+    notes: notesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
