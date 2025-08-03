@@ -110,3 +110,25 @@ export const formatTime = (
 
   return new Intl.DateTimeFormat(locale, options).format(dateObj);
 };
+
+/**
+ * Strips HTML tags from text content
+ */
+export const stripHtmlTags = (html: string): string => {
+  if (!html) return '';
+  
+  // Remove HTML tags
+  const withoutTags = html.replace(/<[^>]*>/g, '');
+  
+  // Decode common HTML entities
+  const decoded = withoutTags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  
+  // Remove extra whitespace
+  return decoded.replace(/\s+/g, ' ').trim();
+};

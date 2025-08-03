@@ -8,13 +8,15 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FAB, Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNotes } from '../store/notesHooks';
 import { Note } from '../types/Note';
-import { formatDate } from '../utils/formatters';
-import MediaViewer from '../components/MediaViewer';
+import { formatDate, stripHtmlTags } from '../utils/formatters';
+import AttachmentGallery from '../components/AttachmentGallery';
 
 const NotesScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -31,10 +33,9 @@ const NotesScreen: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [showMediaViewer, setShowMediaViewer] = useState(false);
-  const [selectedMediaUri, setSelectedMediaUri] = useState<string | null>(null);
-  const [selectedMediaType, setSelectedMediaType] = useState<string>('');
-  const [selectedMediaName, setSelectedMediaName] = useState<string>('');
+  const [showAttachmentGallery, setShowAttachmentGallery] = useState(false);
+  const [selectedAttachments, setSelectedAttachments] = useState<Array<{ uri: string; type: 'image' | 'video' | 'audio'; name?: string }>>([]);
+  const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
 
   useEffect(() => {
     loadNotes();
@@ -77,6 +78,34 @@ const NotesScreen: React.FC = () => {
       item.voiceNoteUris?.split(',').filter(Boolean).length || 0,
     ].reduce((sum, count) => sum + count, 0);
 
+    // Get attachment previews
+    const imageUris = item.imageUris?.split(',').filter(Boolean) || [];
+    const videoUris = item.videoUris?.split(',').filter(Boolean) || [];
+    const voiceUris = item.voiceNoteUris?.split(',').filter(Boolean) || [];
+    const allAttachments = [...imageUris, ...videoUris, ...voiceUris];
+
+    const handleAttachmentPress = (uri: string, type: 'image' | 'video' | 'audio') => {
+      // Find the index of the clicked attachment
+      const clickedIndex = allAttachments.findIndex(att => att === uri);
+      
+      // Create attachments array for the gallery
+      const attachments = allAttachments.map(att => {
+        const isImage = imageUris.includes(att);
+        const isVideo = videoUris.includes(att);
+        const isAudio = voiceUris.includes(att);
+        
+        return {
+          uri: att,
+          type: (isImage ? 'image' : isVideo ? 'video' : 'audio') as 'image' | 'video' | 'audio',
+          name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`
+        };
+      });
+      
+      setSelectedAttachments(attachments);
+      setSelectedAttachmentIndex(clickedIndex);
+      setShowAttachmentGallery(true);
+    };
+
     return (
       <Card
         style={styles.noteCard}
@@ -96,8 +125,47 @@ const NotesScreen: React.FC = () => {
           </View>
           
           <Text style={styles.noteContent} numberOfLines={3}>
-            {item.content || 'No content'}
+            {stripHtmlTags(item.content) || 'No content'}
           </Text>
+          
+          {/* Attachment Previews */}
+          {allAttachments.length > 0 && (
+            <View style={styles.attachmentPreviews}>
+              {allAttachments.slice(0, 3).map((uri, index) => {
+                const isImage = imageUris.includes(uri);
+                const isVideo = videoUris.includes(uri);
+                const isAudio = voiceUris.includes(uri);
+                
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.attachmentPreview}
+                    onPress={() => handleAttachmentPress(
+                      uri, 
+                      isImage ? 'image' : isVideo ? 'video' : 'audio'
+                    )}
+                  >
+                    {isImage ? (
+                      <Image source={{ uri }} style={styles.previewImage} />
+                    ) : isVideo ? (
+                      <View style={styles.previewVideo}>
+                        <Icon name="video" size={20} color="#666" />
+                      </View>
+                    ) : (
+                      <View style={styles.previewAudio}>
+                        <Icon name="music-note" size={20} color="#666" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+              {allAttachments.length > 3 && (
+                <View style={styles.moreAttachments}>
+                  <Text style={styles.moreAttachmentsText}>+{allAttachments.length - 3}</Text>
+                </View>
+              )}
+            </View>
+          )}
           
           <View style={styles.noteFooter}>
             <Text style={styles.noteDate}>
@@ -182,26 +250,14 @@ const NotesScreen: React.FC = () => {
         />
       </View>
 
-      {/* Media Viewer Modal */}
-      <Portal>
-        <Modal
-          visible={showMediaViewer}
-          onDismiss={() => setShowMediaViewer(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          {selectedMediaUri && (
-            <MediaViewer
-              attachment={{
-                id: 'temp',
-                uri: selectedMediaUri,
-                type: selectedMediaType as any,
-                name: selectedMediaName,
-              }}
-              onClose={() => setShowMediaViewer(false)}
-            />
-          )}
-        </Modal>
-      </Portal>
+      {/* Attachment Gallery */}
+      {showAttachmentGallery && (
+        <AttachmentGallery
+          attachments={selectedAttachments}
+          initialIndex={selectedAttachmentIndex}
+          onClose={() => setShowAttachmentGallery(false)}
+        />
+      )}
     </View>
   );
 };
@@ -255,6 +311,51 @@ const styles = StyleSheet.create({
   },
   attachmentChip: {
     height: 24,
+  },
+  attachmentPreviews: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 8,
+  },
+  attachmentPreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  previewVideo: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e0e0e0',
+  },
+  previewAudio: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e8f4fd',
+  },
+  moreAttachments: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreAttachmentsText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
   },
   emptyState: {
     flex: 1,
