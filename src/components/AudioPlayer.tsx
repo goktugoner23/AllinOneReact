@@ -11,7 +11,7 @@ import {
   ProgressBar,
   Surface,
 } from 'react-native-paper';
-import Sound from 'react-native-sound';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { MediaAttachment, MediaType } from '../types/MediaAttachment';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -38,7 +38,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     error: null,
   });
 
-  const soundRef = useRef<Sound | null>(null);
+  const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     };
   }, [attachment.uri, attachment.type]);
 
-  const loadAudio = () => {
+  const loadAudio = async () => {
     try {
       // Check if URI is valid
       if (!attachment.uri || attachment.uri.trim() === '') {
@@ -62,32 +62,18 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
         return;
       }
 
-      // Release previous sound if exists
-      if (soundRef.current) {
-        soundRef.current.release();
-      }
-
-      // Create new Sound instance
-      soundRef.current = new Sound(attachment.uri, null, (error) => {
-        if (error) {
-          console.error('Audio loading error:', error);
-          setState(prev => ({ 
-            ...prev, 
-            error: 'Failed to load audio file',
-            isLoaded: false 
-          }));
-          return;
-        }
-
-        // Get duration
-        soundRef.current?.getDuration((duration) => {
-          setState(prev => ({ 
-            ...prev, 
-            isLoaded: true, 
-            duration: duration * 1000 // Convert to milliseconds
-          }));
-        });
-      });
+      // Stop any current playback
+      await audioRecorderPlayer.current.stopPlayer();
+      
+      // Get audio info (duration)
+      const audioInfo = await audioRecorderPlayer.current.startPlayer(attachment.uri);
+      await audioRecorderPlayer.current.stopPlayer();
+      
+      setState(prev => ({ 
+        ...prev, 
+        isLoaded: true, 
+        duration: audioInfo.duration * 1000 // Convert to milliseconds
+      }));
     } catch (error) {
       console.error('Audio loading error:', error);
       setState(prev => ({ 
@@ -98,87 +84,103 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     }
   };
 
-  const playAudio = () => {
-    if (!soundRef.current || !state.isLoaded) return;
+  const playAudio = async () => {
+    if (!state.isLoaded) return;
 
     try {
-      soundRef.current.play((success) => {
-        if (success) {
-          setState(prev => ({ ...prev, isPlaying: false }));
-        } else {
-          setState(prev => ({ 
-            ...prev, 
-            isPlaying: false, 
-            error: 'Playback failed' 
-          }));
-        }
-      });
-
       setState(prev => ({ ...prev, isPlaying: true }));
 
+      // Start playback
+      await audioRecorderPlayer.current.startPlayer(attachment.uri);
+      
       // Start progress tracking
-      progressInterval.current = setInterval(() => {
-        soundRef.current?.getCurrentTime((seconds) => {
+      progressInterval.current = setInterval(async () => {
+        try {
+          const currentPosition = await audioRecorderPlayer.current.getCurrentPosition();
           setState(prev => ({
             ...prev,
-            currentTime: seconds * 1000, // Convert to milliseconds
+            currentTime: currentPosition * 1000, // Convert to milliseconds
           }));
-        });
+        } catch (error) {
+          console.error('Progress tracking error:', error);
+        }
       }, 100);
+
+      // Listen for playback completion
+      audioRecorderPlayer.current.addPlayBackListener((e) => {
+        if (e.currentPosition === e.duration) {
+          setState(prev => ({ ...prev, isPlaying: false }));
+          if (progressInterval.current) {
+            clearInterval(progressInterval.current);
+            progressInterval.current = null;
+          }
+        }
+      });
     } catch (error) {
       console.error('Playback error:', error);
       setState(prev => ({ 
         ...prev, 
+        isPlaying: false,
         error: 'Failed to play audio' 
       }));
     }
   };
 
-  const pauseAudio = () => {
-    if (!soundRef.current) return;
-
-    soundRef.current.pause();
-    setState(prev => ({ ...prev, isPlaying: false }));
-    
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-      progressInterval.current = null;
+  const pauseAudio = async () => {
+    try {
+      await audioRecorderPlayer.current.pausePlayer();
+      setState(prev => ({ ...prev, isPlaying: false }));
+      
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    } catch (error) {
+      console.error('Pause error:', error);
     }
   };
 
-  const stopAudio = () => {
-    if (!soundRef.current) return;
-
-    soundRef.current.stop();
-    setState(prev => ({ 
-      ...prev, 
-      isPlaying: false, 
-      currentTime: 0 
-    }));
-    
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-      progressInterval.current = null;
+  const stopAudio = async () => {
+    try {
+      await audioRecorderPlayer.current.stopPlayer();
+      setState(prev => ({ 
+        ...prev, 
+        isPlaying: false, 
+        currentTime: 0 
+      }));
+      
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    } catch (error) {
+      console.error('Stop error:', error);
     }
   };
 
-  const seekTo = (position: number) => {
-    if (!soundRef.current || !state.isLoaded) return;
+  const seekTo = async (position: number) => {
+    if (!state.isLoaded) return;
 
-    const seconds = (position / 100) * (state.duration / 1000);
-    soundRef.current.setCurrentTime(seconds);
-    setState(prev => ({
-      ...prev,
-      currentTime: seconds * 1000,
-    }));
+    try {
+      const seconds = (position / 100) * (state.duration / 1000);
+      await audioRecorderPlayer.current.seekToPlayer(seconds);
+      setState(prev => ({
+        ...prev,
+        currentTime: seconds * 1000,
+      }));
+    } catch (error) {
+      console.error('Seek error:', error);
+    }
   };
 
-  const cleanup = () => {
+  const cleanup = async () => {
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
     }
-    if (soundRef.current) {
-      soundRef.current.release();
+    try {
+      await audioRecorderPlayer.current.stopPlayer();
+    } catch (error) {
+      console.error('Cleanup error:', error);
     }
   };
 

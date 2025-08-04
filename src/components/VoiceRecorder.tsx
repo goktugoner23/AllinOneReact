@@ -12,6 +12,14 @@ import {
   ProgressBar,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import RNFS from 'react-native-fs';
+import AudioRecorderPlayer, {
+  AVEncoderAudioQualityIOSType,
+  AVEncodingOption,
+  AudioEncoderAndroidType,
+  AudioSourceAndroidType,
+  OutputFormatAndroidType,
+} from 'react-native-audio-recorder-player';
 
 interface VoiceRecorderProps {
   onRecordingComplete: (filePath: string, duration: number) => void;
@@ -32,6 +40,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const playingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
 
   useEffect(() => {
     checkPermission();
@@ -42,6 +51,10 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       if (playingTimer.current) {
         clearInterval(playingTimer.current);
       }
+      // Cleanup audio recorder player
+      audioRecorderPlayer.current.stopRecorder();
+      audioRecorderPlayer.current.removeRecordBackListener();
+      audioRecorderPlayer.current.removePlayBackListener();
     };
   }, []);
 
@@ -75,16 +88,29 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
 
     try {
-      // Simulate recording for now
+      // Configure recording settings
+      const audioSet = {
+        AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
+        AudioSourceAndroid: AudioSourceAndroidType.MIC,
+        AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
+        AVNumberOfChannelsKeyIOS: 2,
+        OutputFormatAndroid: OutputFormatAndroidType.AAC_ADTS,
+      };
+
+      const uri = await audioRecorderPlayer.current.startRecorder(
+        `${RNFS.DocumentDirectoryPath}/recording_${Date.now()}.m4a`,
+        audioSet
+      );
+
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Simulate recording timer
+      // Start recording timer
       recordingTimer.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1000);
       }, 1000);
 
-      console.log('Recording started (simulated)');
+      console.log('Recording started:', uri);
     } catch (error) {
       console.error('Error starting recording:', error);
       Alert.alert('Error', 'Failed to start recording. Please try again.');
@@ -100,13 +126,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         recordingTimer.current = null;
       }
 
-      // For now, we'll use a placeholder since we're simulating recording
-      // In a real implementation, this would be the actual recorded file path
-      const simulatedFilePath = `recording_${Date.now()}.m4a`;
-      setRecordedFilePath(simulatedFilePath);
+      // Stop recording and get the file URI
+      const uri = await audioRecorderPlayer.current.stopRecorder();
+      const fileUri = `file://${uri}`;
+      
+      setRecordedFilePath(fileUri);
       setDuration(recordingTime);
 
-      console.log('Recording stopped (simulated):', simulatedFilePath);
+      console.log('Recording stopped:', fileUri);
     } catch (error) {
       console.error('Error stopping recording:', error);
       Alert.alert('Error', 'Failed to stop recording.');
@@ -120,26 +147,32 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       setIsPlaying(true);
       setPlayingTime(0);
 
-      // Simulate playback timer
-      playingTimer.current = setInterval(() => {
-        setPlayingTime((prev) => {
-          const newTime = prev + 1000;
-          if (newTime >= duration) {
+      // Start playback
+      await audioRecorderPlayer.current.startPlayer(recordedFilePath);
+      
+      // Start playback timer
+      playingTimer.current = setInterval(async () => {
+        try {
+          const currentPosition = await audioRecorderPlayer.current.getCurrentPosition();
+          setPlayingTime(currentPosition * 1000); // Convert to milliseconds
+          
+          if (currentPosition >= duration / 1000) {
             setIsPlaying(false);
             if (playingTimer.current) {
               clearInterval(playingTimer.current);
               playingTimer.current = null;
             }
-            return 0;
           }
-          return newTime;
-        });
+        } catch (error) {
+          console.error('Playback timer error:', error);
+        }
       }, 1000);
 
-      console.log('Playing recording (simulated)');
+      console.log('Playing recording:', recordedFilePath);
     } catch (error) {
       console.error('Error playing recording:', error);
       Alert.alert('Error', 'Failed to play recording.');
+      setIsPlaying(false);
     }
   };
 
@@ -152,6 +185,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         clearInterval(playingTimer.current);
         playingTimer.current = null;
       }
+
+      // Stop playback
+      await audioRecorderPlayer.current.stopPlayer();
     } catch (error) {
       console.error('Error stopping playback:', error);
     }
@@ -163,12 +199,12 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (isRecording) {
-      stopRecording();
+      await stopRecording();
     }
     if (isPlaying) {
-      stopPlaying();
+      await stopPlaying();
     }
     onCancel();
   };

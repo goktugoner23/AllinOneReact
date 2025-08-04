@@ -167,7 +167,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
         return 'video';
       case MediaType.AUDIO:
         return 'music-note';
-      case MediaType.DRAWING:
+      
         return 'brush';
       default:
         return 'file';

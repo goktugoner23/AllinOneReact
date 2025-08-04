@@ -57,7 +57,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
           </View>
         );
       
-      case MediaType.DRAWING:
+      
         return (
           <Image
             source={{ uri: attachment.uri }}

@@ -77,7 +77,7 @@ src/
 │   ├── SpendingPieChart.tsx
 │   ├── YinYangIcon.tsx
 │   ├── SkiaDrawingCanvas.tsx    # Professional drawing canvas
-│   ├── DrawingViewer.tsx        # SVG drawing display
+
 │   ├── AttachmentGallery.tsx    # Media attachment viewer
 │   └── ...
 ├── screens/            # Screen components

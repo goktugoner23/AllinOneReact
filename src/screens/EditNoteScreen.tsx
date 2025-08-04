@@ -31,7 +31,7 @@ import VoiceRecorder from '../components/VoiceRecorder';
 import { MediaAttachmentsState, MediaAttachment, MediaType } from '../types/MediaAttachment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import Sound from 'react-native-sound';
+
 import { Video } from 'react-native-video';
 import ViewShot from 'react-native-view-shot';
 // import { saveDrawingToGallery } from '../utils/svgToPng'; // DISABLED: Drawing functionality temporarily removed
