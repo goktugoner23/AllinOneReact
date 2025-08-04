@@ -21,6 +21,7 @@ import AudioRecorderPlayer, {
   OutputFormatAndroidType,
 } from 'react-native-audio-recorder-player';
 
+
 interface VoiceRecorderProps {
   onRecordingComplete: (filePath: string, duration: number) => void;
   onCancel: () => void;
@@ -51,7 +52,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       if (playingTimer.current) {
         clearInterval(playingTimer.current);
       }
-      // Cleanup audio recorder player
+      // Cleanup audio
       audioRecorderPlayer.current.stopRecorder();
       audioRecorderPlayer.current.removeRecordBackListener();
       audioRecorderPlayer.current.removePlayBackListener();

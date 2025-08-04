@@ -11,8 +11,9 @@ import {
   ProgressBar,
   Surface,
 } from 'react-native-paper';
-import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+
 import { MediaAttachment, MediaType } from '../types/MediaAttachment';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -62,17 +63,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
         return;
       }
 
-      // Stop any current playback
-      await audioRecorderPlayer.current.stopPlayer();
-      
-      // Get audio info (duration)
-      const audioInfo = await audioRecorderPlayer.current.startPlayer(attachment.uri);
+      // Get audio info (duration) by starting and immediately stopping playback
+      await audioRecorderPlayer.current.startPlayer(attachment.uri);
+      const audioInfo = await audioRecorderPlayer.current.getCurrentPosition();
       await audioRecorderPlayer.current.stopPlayer();
       
       setState(prev => ({ 
         ...prev, 
         isLoaded: true, 
-        duration: audioInfo.duration * 1000 // Convert to milliseconds
+        duration: audioInfo * 1000 // Convert to milliseconds
       }));
     } catch (error) {
       console.error('Audio loading error:', error);
@@ -92,7 +91,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
 
       // Start playback
       await audioRecorderPlayer.current.startPlayer(attachment.uri);
-      
+
       // Start progress tracking
       progressInterval.current = setInterval(async () => {
         try {
@@ -105,17 +104,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
           console.error('Progress tracking error:', error);
         }
       }, 100);
-
-      // Listen for playback completion
-      audioRecorderPlayer.current.addPlayBackListener((e) => {
-        if (e.currentPosition === e.duration) {
-          setState(prev => ({ ...prev, isPlaying: false }));
-          if (progressInterval.current) {
-            clearInterval(progressInterval.current);
-            progressInterval.current = null;
-          }
-        }
-      });
     } catch (error) {
       console.error('Playback error:', error);
       setState(prev => ({ 
