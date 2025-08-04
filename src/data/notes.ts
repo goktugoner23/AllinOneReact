@@ -1,5 +1,24 @@
-import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc, query, orderBy, Timestamp, setDoc } from 'firebase/firestore';
-import { ref, deleteObject, listAll } from 'firebase/storage';
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc,
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  query, 
+  orderBy,
+  setDoc,
+  Timestamp 
+} from 'firebase/firestore';
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL, 
+  deleteObject, 
+  listAll 
+} from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import { Note, NoteFormData } from '../types/Note';
 import { firebaseIdManager } from './firebaseIdManager';
@@ -125,6 +144,7 @@ const docToNote = (doc: any): Note => {
     imageUris: data?.imageUris || null,
     videoUris: data?.videoUris || null,
     voiceNoteUris: data?.voiceNoteUris || null,
+    drawingUris: data?.drawingUris || null,
     lastEdited: safeDateToISO(data?.lastEdited),
     isRichText: data?.isRichText ?? true,
   };
@@ -138,6 +158,7 @@ const noteToDoc = (note: NoteFormData) => ({
   imageUris: note.imageUris || null,
   videoUris: note.videoUris || null,
   voiceNoteUris: note.voiceNoteUris || null,
+  drawingUris: note.drawingUris || null,
   lastEdited: Timestamp.now(),
   isRichText: true,
 });
@@ -162,7 +183,7 @@ export const getNotes = async (): Promise<Note[]> => {
 };
 
 // Add a new note
-export const addNote = async (noteData: NoteFormData): Promise<Note> => {
+export const addNote = async (noteData: NoteFormData, onProgress?: (progress: number) => void): Promise<Note> => {
   console.log('🔵 addNote called with:', { title: noteData.title, content: noteData.content?.substring(0, 50) });
   
   // Prevent duplicate note creation
@@ -188,9 +209,54 @@ export const addNote = async (noteData: NoteFormData): Promise<Note> => {
     const noteId = await firebaseIdManager.getNextId('notes');
     const docRef = doc(db, NOTES_COLLECTION, noteId.toString());
     
+    // Upload attachments to Firebase Storage if they exist
+    let uploadedImageUris: string | null = null;
+    let uploadedVideoUris: string | null = null;
+    let uploadedVoiceUris: string | null = null;
+    
+    // Collect all attachments that need uploading
+    const attachmentsToUpload: { uri: string; type: 'image' | 'video' | 'audio' | 'drawing' }[] = [];
+    
+    if (noteData.imageUris && noteData.imageUris.trim()) {
+      const imageUris = noteData.imageUris.split(',').map(uri => uri.trim()).filter(uri => uri);
+      imageUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'image' }));
+    }
+    
+    if (noteData.videoUris && noteData.videoUris.trim()) {
+      const videoUris = noteData.videoUris.split(',').map(uri => uri.trim()).filter(uri => uri);
+      videoUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'video' }));
+    }
+    
+    if (noteData.voiceNoteUris && noteData.voiceNoteUris.trim()) {
+      const voiceUris = noteData.voiceNoteUris.split(',').map(uri => uri.trim()).filter(uri => uri);
+      voiceUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'audio' }));
+    }
+    
+    if (noteData.drawingUris && noteData.drawingUris.trim()) {
+      const drawingUris = noteData.drawingUris.split(',').map(uri => uri.trim()).filter(uri => uri);
+      drawingUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'drawing' }));
+    }
+    
+    // Upload all attachments with progress tracking
+    let uploadedDrawingUris: string | null = null;
+    if (attachmentsToUpload.length > 0) {
+      console.log(`📤 Uploading ${attachmentsToUpload.length} attachments...`);
+      const uploadResult = await uploadAttachmentsWithProgress(noteId, attachmentsToUpload, onProgress);
+      
+      uploadedImageUris = uploadResult.images.length > 0 ? uploadResult.images.join(',') : null;
+      uploadedVideoUris = uploadResult.videos.length > 0 ? uploadResult.videos.join(',') : null;
+      uploadedVoiceUris = uploadResult.audio.length > 0 ? uploadResult.audio.join(',') : null;
+      uploadedDrawingUris = uploadResult.drawings.length > 0 ? uploadResult.drawings.join(',') : null;
+    }
+    
+    // Create note document with uploaded attachment URLs
     const noteDoc = {
       ...noteToDoc(noteData),
       id: noteId,
+      imageUris: uploadedImageUris,
+      videoUris: uploadedVideoUris,
+      voiceNoteUris: uploadedVoiceUris,
+      drawingUris: uploadedDrawingUris,
     };
     
     // Use merge option to prevent overwriting if document already exists
@@ -208,6 +274,10 @@ export const addNote = async (noteData: NoteFormData): Promise<Note> => {
     return {
       id: noteId,
       ...noteData,
+      imageUris: uploadedImageUris || undefined,
+      videoUris: uploadedVideoUris || undefined,
+      voiceNoteUris: uploadedVoiceUris || undefined,
+      drawingUris: uploadedDrawingUris || undefined,
       date: new Date().toISOString(),
       lastEdited: new Date().toISOString(),
       isRichText: true,
@@ -231,9 +301,15 @@ export const addNote = async (noteData: NoteFormData): Promise<Note> => {
 };
 
 // Update an existing note
-export const updateNote = async (noteId: number, noteData: NoteFormData): Promise<void> => {
+export const updateNote = async (noteId: number, noteData: NoteFormData, onProgress?: (progress: number) => void): Promise<void> => {
   try {
     console.log(`📝 Updating note ${noteId}...`);
+    
+    // Initialize final URIs
+    let finalImageUris: string[] = [];
+    let finalVideoUris: string[] = [];
+    let finalAudioUris: string[] = [];
+    let finalDrawingUris: string[] = [];
     
     // First, get the original note data to compare attachments
     const docRef = doc(db, NOTES_COLLECTION, noteId.toString());
@@ -246,18 +322,62 @@ export const updateNote = async (noteId: number, noteData: NoteFormData): Promis
       const originalImageUris = normalizeUris(originalData.imageUris ? originalData.imageUris.split(',') : []);
       const originalVideoUris = normalizeUris(originalData.videoUris ? originalData.videoUris.split(',') : []);
       const originalAudioUris = normalizeUris(originalData.voiceNoteUris ? originalData.voiceNoteUris.split(',') : []);
+      const originalDrawingUris = normalizeUris(originalData.drawingUris ? originalData.drawingUris.split(',') : []);
       
       // Extract and normalize new attachment URIs
       const newImageUris = normalizeUris(noteData.imageUris ? noteData.imageUris.split(',') : []);
       const newVideoUris = normalizeUris(noteData.videoUris ? noteData.videoUris.split(',') : []);
       const newAudioUris = normalizeUris(noteData.voiceNoteUris ? noteData.voiceNoteUris.split(',') : []);
+      const newDrawingUris = normalizeUris(noteData.drawingUris ? noteData.drawingUris.split(',') : []);
+      
+      // Find new attachments that need to be uploaded (not Firebase Storage URLs)
+      const newImageUrisToUpload = newImageUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
+      const newVideoUrisToUpload = newVideoUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
+      const newAudioUrisToUpload = newAudioUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
+      const newDrawingUrisToUpload = newDrawingUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
+      
+      // Upload new attachments to Firebase Storage with progress tracking
+      let uploadedImageUris: string[] = [];
+      let uploadedVideoUris: string[] = [];
+      let uploadedAudioUris: string[] = [];
+      let uploadedDrawingUris: string[] = [];
+      
+      // Collect new attachments that need uploading
+      const newAttachmentsToUpload: { uri: string; type: 'image' | 'video' | 'audio' | 'drawing' }[] = [];
+      
+      newImageUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'image' }));
+      newVideoUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'video' }));
+      newAudioUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'audio' }));
+      newDrawingUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'drawing' }));
+      
+      if (newAttachmentsToUpload.length > 0) {
+        console.log(`📤 Uploading ${newAttachmentsToUpload.length} new attachments...`);
+        const uploadResult = await uploadAttachmentsWithProgress(noteId, newAttachmentsToUpload, onProgress);
+        
+        uploadedImageUris = uploadResult.images;
+        uploadedVideoUris = uploadResult.videos;
+        uploadedAudioUris = uploadResult.audio;
+        uploadedDrawingUris = uploadResult.drawings;
+      }
+      
+      // Combine existing Firebase Storage URLs with newly uploaded ones
+      const existingImageUris = newImageUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
+      const existingVideoUris = newVideoUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
+      const existingAudioUris = newAudioUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
+      const existingDrawingUris = newDrawingUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
+      
+      finalImageUris = [...existingImageUris, ...uploadedImageUris];
+      finalVideoUris = [...existingVideoUris, ...uploadedVideoUris];
+      finalAudioUris = [...existingAudioUris, ...uploadedAudioUris];
+      finalDrawingUris = [...existingDrawingUris, ...uploadedDrawingUris];
       
       // Find removed attachments
       const removedImageUris = originalImageUris.filter(uri => !newImageUris.includes(uri));
       const removedVideoUris = originalVideoUris.filter(uri => !newVideoUris.includes(uri));
       const removedAudioUris = originalAudioUris.filter(uri => !newAudioUris.includes(uri));
+      const removedDrawingUris = originalDrawingUris.filter(uri => !newDrawingUris.includes(uri));
       
-      const allRemovedUris = [...removedImageUris, ...removedVideoUris, ...removedAudioUris];
+      const allRemovedUris = [...removedImageUris, ...removedVideoUris, ...removedAudioUris, ...removedDrawingUris];
       
       if (allRemovedUris.length > 0) {
         console.log(`🗑️ Found ${allRemovedUris.length} removed attachments to delete:`, allRemovedUris);
@@ -274,9 +394,13 @@ export const updateNote = async (noteId: number, noteData: NoteFormData): Promis
       }
     }
     
-    // Update the note document
+    // Update the note document with final attachment URIs
     const updateData = {
       ...noteToDoc(noteData),
+      imageUris: finalImageUris.length > 0 ? finalImageUris.join(',') : null,
+      videoUris: finalVideoUris.length > 0 ? finalVideoUris.join(',') : null,
+      voiceNoteUris: finalAudioUris.length > 0 ? finalAudioUris.join(',') : null,
+      drawingUris: finalDrawingUris.length > 0 ? finalDrawingUris.join(',') : null,
       lastEdited: Timestamp.now(),
     };
     
@@ -336,4 +460,146 @@ export const subscribeToNotes = (callback: (notes: Note[]) => void) => {
   return () => {
     console.log('📝 Notes subscription cleanup (no-op)');
   };
+}; 
+
+// Helper function to upload multiple attachments with progress tracking
+export const uploadAttachmentsWithProgress = async (
+  noteId: number,
+  attachments: { uri: string; type: 'image' | 'video' | 'audio' | 'drawing' }[],
+  onProgress?: (progress: number) => void
+): Promise<{ images: string[]; videos: string[]; audio: string[]; drawings: string[] }> => {
+  const uploadedImages: string[] = [];
+  const uploadedVideos: string[] = [];
+  const uploadedAudio: string[] = [];
+  const uploadedDrawings: string[] = [];
+  
+  const totalAttachments = attachments.length;
+  let completedUploads = 0;
+  
+  for (const attachment of attachments) {
+    try {
+      const fileName = `${attachment.type}_${Date.now()}_${Math.random()}.${attachment.type === 'image' ? 'jpg' : attachment.type === 'video' ? 'mp4' : attachment.type === 'audio' ? 'm4a' : 'svg'}`;
+      
+      const downloadURL = await uploadAttachmentToStorage(noteId, attachment.uri, fileName, (progress) => {
+        // Calculate overall progress
+        const overallProgress = ((completedUploads + progress / 100) / totalAttachments) * 100;
+        if (onProgress) {
+          onProgress(Math.min(overallProgress, 99)); // Cap at 99% until all uploads complete
+        }
+      });
+      
+      // Add to appropriate array
+      if (attachment.type === 'image') {
+        uploadedImages.push(downloadURL);
+      } else if (attachment.type === 'video') {
+        uploadedVideos.push(downloadURL);
+      } else if (attachment.type === 'audio') {
+        uploadedAudio.push(downloadURL);
+      } else if (attachment.type === 'drawing') {
+        uploadedDrawings.push(downloadURL);
+      }
+      
+      completedUploads++;
+      
+      // Update progress
+      const overallProgress = (completedUploads / totalAttachments) * 100;
+      if (onProgress) {
+        onProgress(Math.min(overallProgress, 99));
+      }
+      
+    } catch (error) {
+      console.error(`Failed to upload ${attachment.type} attachment:`, error);
+      throw error;
+    }
+  }
+  
+  // Report completion
+  if (onProgress) {
+    onProgress(100);
+  }
+  
+  return { images: uploadedImages, videos: uploadedVideos, audio: uploadedAudio, drawings: uploadedDrawings };
+};
+
+// Firebase Storage functions for attachments
+export const uploadAttachmentToStorage = async (
+  noteId: number, 
+  fileUri: string, 
+  fileName: string,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  try {
+    let blob: Blob;
+    
+    // Handle SVG strings (drawings) differently
+    if (fileName.endsWith('.svg') && fileUri.startsWith('<?xml')) {
+      // This is an SVG string, convert it to blob
+      blob = new Blob([fileUri], { type: 'image/svg+xml' });
+    } else {
+      // This is a file URI, fetch it
+      const response = await fetch(fileUri);
+      blob = await response.blob();
+    }
+    
+    // Create storage reference with proper folder structure
+    const storageRef = ref(storage, `notes-attachments/${noteId}/${fileName}`);
+    
+    // Upload the file with progress tracking
+    const uploadResult = await uploadBytes(storageRef, blob, {
+      customMetadata: {
+        uploadedAt: new Date().toISOString(),
+      }
+    });
+    
+    // Report progress completion
+    if (onProgress) {
+      onProgress(100);
+    }
+    
+    // Get download URL
+    const downloadURL = await getDownloadURL(uploadResult.ref);
+    
+    console.log(`Attachment uploaded successfully: ${downloadURL}`);
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading attachment to storage:', error);
+    throw error;
+  }
+};
+
+export const deleteAttachmentFromStorage = async (fileUrl: string): Promise<void> => {
+  try {
+    // Extract file path from URL
+    const url = new URL(fileUrl);
+    const pathMatch = url.pathname.match(/\/o\/(.+?)\?/);
+    if (!pathMatch) {
+      console.warn('Could not extract file path from URL:', fileUrl);
+      return;
+    }
+    
+    const filePath = decodeURIComponent(pathMatch[1]);
+    const storageRef = ref(storage, filePath);
+    
+    await deleteObject(storageRef);
+    console.log(`Attachment deleted from storage: ${filePath}`);
+  } catch (error) {
+    console.error('Error deleting attachment from storage:', error);
+    throw error;
+  }
+};
+
+export const deleteAllAttachmentsFromStorage = async (noteId: number): Promise<void> => {
+  try {
+    const folderRef = ref(storage, `notes-attachments/${noteId}`);
+    const result = await listAll(folderRef);
+    
+    // Delete all files in the folder
+    const deletePromises = result.items.map(itemRef => deleteObject(itemRef));
+    await Promise.all(deletePromises);
+    
+    console.log(`All attachments deleted for note ${noteId}`);
+  } catch (error) {
+    console.error('Error deleting all attachments from storage:', error);
+    throw error;
+  }
 }; 

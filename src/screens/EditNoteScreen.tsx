@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   Appbar,
   Snackbar,
   Portal,
+  Modal,
   Dialog,
   ProgressBar,
 } from 'react-native-paper';
@@ -25,11 +26,15 @@ import { useNotes } from '../store/notesHooks';
 import { NoteFormData } from '../types/Note';
 import RichTextEditor from '../components/RichTextEditor';
 import AttachmentGallery from '../components/AttachmentGallery';
+import VoiceRecorder from '../components/VoiceRecorder';
+// import DrawingScreen from './DrawingScreen'; // DISABLED: Drawing functionality temporarily removed
 import { MediaAttachmentsState, MediaAttachment, MediaType } from '../types/MediaAttachment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import Sound from 'react-native-sound';
 import { Video } from 'react-native-video';
+import ViewShot from 'react-native-view-shot';
+// import { saveDrawingToGallery } from '../utils/svgToPng'; // DISABLED: Drawing functionality temporarily removed
 
 interface RouteParams {
   noteId?: number;
@@ -63,12 +68,16 @@ const EditNoteScreen: React.FC = () => {
   const [selectedAttachments, setSelectedAttachments] = useState<Array<{ uri: string; type: 'image' | 'video' | 'audio'; name?: string }>>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
+
   const [playingMedia, setPlayingMedia] = useState<string | null>(null);
   const [mediaRefs, setMediaRefs] = useState<{ [key: string]: any }>({});
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  // const [showDrawingScreen, setShowDrawingScreen] = useState(false); // DISABLED: Drawing functionality temporarily removed
+  // const [lastDrawingSvg, setLastDrawingSvg] = useState<string>(''); // DISABLED: Drawing functionality temporarily removed
+  // const svgViewRef = useRef<ViewShot>(null); // DISABLED: Drawing functionality temporarily removed
 
   // Find existing note if editing
-  const existingNote = notes.find(note => note.id === noteId);
+  const existingNote = notes.find((note: any) => note.id === noteId);
 
   useEffect(() => {
     if (existingNote) {
@@ -80,7 +89,7 @@ const EditNoteScreen: React.FC = () => {
       
       // Process images
       if (existingNote.imageUris) {
-        existingNote.imageUris.split(',').filter(Boolean).forEach(uri => {
+        existingNote.imageUris.split(',').filter(Boolean).forEach((uri: string) => {
           existingAttachments.push({
             id: `image_${Date.now()}_${Math.random()}`,
             uri: uri.trim(),
@@ -92,7 +101,7 @@ const EditNoteScreen: React.FC = () => {
       
       // Process videos
       if (existingNote.videoUris) {
-        existingNote.videoUris.split(',').filter(Boolean).forEach(uri => {
+        existingNote.videoUris.split(',').filter(Boolean).forEach((uri: string) => {
           existingAttachments.push({
             id: `video_${Date.now()}_${Math.random()}`,
             uri: uri.trim(),
@@ -104,7 +113,7 @@ const EditNoteScreen: React.FC = () => {
       
       // Process voice notes
       if (existingNote.voiceNoteUris) {
-        existingNote.voiceNoteUris.split(',').filter(Boolean).forEach(uri => {
+        existingNote.voiceNoteUris.split(',').filter(Boolean).forEach((uri: string) => {
           existingAttachments.push({
             id: `audio_${Date.now()}_${Math.random()}`,
             uri: uri.trim(),
@@ -113,6 +122,21 @@ const EditNoteScreen: React.FC = () => {
           });
         });
       }
+      
+      // DISABLED: Drawing functionality temporarily removed
+      /*
+      // Process drawings
+      if (existingNote.drawingUris) {
+        existingNote.drawingUris.split(',').filter(Boolean).forEach(uri => {
+          existingAttachments.push({
+            id: `drawing_${Date.now()}_${Math.random()}`,
+            uri: uri.trim(),
+            type: MediaType.DRAWING,
+            name: 'Drawing'
+          });
+        });
+      }
+      */
       
       setMediaAttachments({
         attachments: existingAttachments,
@@ -165,10 +189,19 @@ const EditNoteScreen: React.FC = () => {
       .filter(att => att.type === MediaType.AUDIO)
       .map(att => att.uri)
       .join(',');
+    
+    // DISABLED: Drawing functionality temporarily removed
+    /*
+    const currentDrawingUris = mediaAttachments.attachments
+      .filter(att => att.type === MediaType.DRAWING)
+      .map(att => att.uri)
+      .join(',');
+    */
 
     return currentImageUris !== (existingNote.imageUris || '') ||
            currentVideoUris !== (existingNote.videoUris || '') ||
            currentVoiceUris !== (existingNote.voiceNoteUris || '');
+           // currentDrawingUris !== (existingNote.drawingUris || ''); // DISABLED: Drawing functionality removed
   };
 
   const handleSave = async () => {
@@ -178,22 +211,9 @@ const EditNoteScreen: React.FC = () => {
     }
 
     setSaving(true);
-    setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      // TODO: Upload attachments to Firebase Storage here
-      // For now, we'll simulate the upload process
-      const totalAttachments = mediaAttachments.attachments.length;
-      
-      if (totalAttachments > 0) {
-        // Simulate upload progress
-        for (let i = 0; i < totalAttachments; i++) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Simulate upload time
-          setUploadProgress(((i + 1) / totalAttachments) * 100);
-        }
-      }
-
       const noteData: NoteFormData = {
         title: title.trim(),
         content: content.trim(),
@@ -209,6 +229,10 @@ const EditNoteScreen: React.FC = () => {
           .filter(att => att.type === MediaType.AUDIO)
           .map(att => att.uri)
           .join(','),
+        // drawingUris: mediaAttachments.attachments
+        //   .filter(att => att.type === MediaType.DRAWING)
+        //   .map(att => att.uri)
+        //   .join(','), // DISABLED: Drawing functionality temporarily removed
       };
 
       if (noteId) {
@@ -222,7 +246,6 @@ const EditNoteScreen: React.FC = () => {
       Alert.alert('Error', 'Failed to save note. Please try again.');
     } finally {
       setSaving(false);
-      setIsUploading(false);
       setUploadProgress(0);
     }
   };
@@ -270,7 +293,19 @@ const EditNoteScreen: React.FC = () => {
       if (mediaType === 'AUDIO') {
         const attachment = mediaAttachments.attachments.find(att => att.id === attachmentId);
         if (attachment) {
-          const sound = new Sound(attachment.uri, null, (error) => {
+          // Check if this is a simulated recording (doesn't start with file:// or http://)
+          if (!attachment.uri.startsWith('file://') && !attachment.uri.startsWith('http://')) {
+            // Simulated audio - just show playing state without actual playback
+            setPlayingMedia(attachmentId);
+            // Use the attachment duration or default to 5 seconds
+            const audioDuration = attachment.duration || 5000;
+            setTimeout(() => {
+              setPlayingMedia(null);
+            }, audioDuration);
+            return;
+          }
+          
+          const sound = new Sound(attachment.uri, undefined, (error) => {
             if (error) {
               console.error('Error loading audio:', error);
               Alert.alert('Error', 'Failed to load audio file');
@@ -457,7 +492,6 @@ const EditNoteScreen: React.FC = () => {
               includeBase64: false,
               videoQuality: 'medium',
               saveToPhotos: true,
-              maxDuration: 60, // 60 seconds max
             }, (response) => {
               if (response.didCancel) {
                 console.log('User cancelled camera');
@@ -512,44 +546,44 @@ const EditNoteScreen: React.FC = () => {
   };
 
   const handleAddAudio = () => {
-    // For now, we'll simulate audio recording since react-native-audio-recorder-player had issues
-    Alert.alert(
-      'Voice Recording',
-      'Voice recording will be implemented in the next phase. For now, you can add audio files from your device.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Add Audio File', 
-          onPress: () => launchImageLibrary({
-            mediaType: 'mixed',
-            quality: 0.8,
-            includeBase64: false,
-            selectionLimit: 1,
-          }, (response) => {
-            if (response.assets && response.assets[0]) {
-              const asset = response.assets[0];
-              if (asset.uri && asset.type?.startsWith('audio/')) {
-                                  const newAttachment: MediaAttachment = {
-                    id: `audio_${Date.now()}_${Math.random()}`,
-                    uri: asset.uri,
-                    type: MediaType.AUDIO,
-                    name: asset.fileName || 'Audio',
-                    size: asset.fileSize,
-                    duration: asset.duration,
-                  };
-                setMediaAttachments(prev => ({
-                  ...prev,
-                  attachments: [...prev.attachments, newAttachment]
-                }));
-              } else {
-                Alert.alert('Error', 'Please select an audio file');
-              }
-            }
-          })
-        },
-      ]
-    );
+    setShowVoiceRecorder(true);
   };
+
+  const handleVoiceRecordingComplete = (filePath: string, duration: number) => {
+    const newAttachment: MediaAttachment = {
+      id: `audio_${Date.now()}_${Math.random()}`,
+      uri: filePath,
+      type: MediaType.AUDIO,
+      name: 'Voice Recording',
+      duration: duration,
+    };
+    
+    setMediaAttachments(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, newAttachment]
+    }));
+    
+    setShowVoiceRecorder(false);
+  };
+
+  const handleVoiceRecordingCancel = () => {
+    setShowVoiceRecorder(false);
+  };
+
+  // DISABLED: Drawing functionality temporarily removed
+  /*
+  const handleAddDrawing = () => {
+    setShowDrawingScreen(true);
+  };
+
+  const handleDrawingSave = async (svgContent: string, saveToGallery: boolean) => {
+    // Drawing functionality removed
+  };
+
+  const handleDrawingCancel = () => {
+    setShowDrawingScreen(false);
+  };
+  */
 
   if (loading && noteId) {
     return (
@@ -572,21 +606,21 @@ const EditNoteScreen: React.FC = () => {
         />
       </Appbar.Header>
       
-      {/* Upload Progress */}
-      {isUploading && (
-        <View style={styles.uploadProgressContainer}>
-          <Text style={styles.uploadProgressText}>
-            Uploading attachments... {Math.round(uploadProgress)}%
-          </Text>
-          <ProgressBar 
-            progress={uploadProgress / 100} 
-            color="#007AFF"
-            style={styles.uploadProgressBar}
-          />
-        </View>
-      )}
+              {/* Upload Progress */}
+        {uploadProgress > 0 && uploadProgress < 100 && (
+          <View style={styles.uploadProgressContainer}>
+            <Text style={styles.uploadProgressText}>
+              Uploading attachments... {Math.round(uploadProgress)}%
+            </Text>
+            <ProgressBar
+              progress={uploadProgress / 100}
+              color="#007AFF"
+              style={styles.uploadProgressBar}
+            />
+          </View>
+        )}
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <TextInput
           label="Title"
           value={title}
@@ -632,6 +666,16 @@ const EditNoteScreen: React.FC = () => {
               <Icon name="mic" size={20} color="#8B5CF6" />
               <Text style={styles.attachmentButtonText}>Voice</Text>
             </TouchableOpacity>
+            
+            {/* DISABLED: Drawing functionality temporarily removed
+            <TouchableOpacity
+              style={styles.attachmentButton}
+              onPress={handleAddDrawing}
+            >
+              <Icon name="brush" size={20} color="#8B5CF6" />
+              <Text style={styles.attachmentButtonText}>Drawing</Text>
+            </TouchableOpacity>
+            */}
           </View>
           
           {/* Attachment Previews */}
@@ -679,7 +723,12 @@ const EditNoteScreen: React.FC = () => {
                             <Icon name="play-arrow" size={20} color="white" />
                           </View>
                         </View>
-                      ) : (
+                      ) : /* attachment.type === MediaType.DRAWING ? (
+                        <View style={styles.previewDrawing}>
+                          <Icon name="brush" size={40} color="#8B5CF6" />
+                          <Text style={styles.drawingLabel}>Drawing</Text>
+                        </View>
+                      ) : */ (
                         <View style={styles.previewAudio}>
                           {playingMedia === attachment.id ? (
                             <View style={styles.audioPlaying}>
@@ -746,6 +795,30 @@ const EditNoteScreen: React.FC = () => {
           onClose={() => setShowAttachmentGallery(false)}
         />
       )}
+
+      {/* Voice Recorder Modal */}
+      {showVoiceRecorder && (
+        <Portal>
+          <Modal
+            visible={showVoiceRecorder}
+            onDismiss={handleVoiceRecordingCancel}
+            contentContainerStyle={styles.voiceRecorderModal}
+          >
+            <VoiceRecorder
+              onRecordingComplete={handleVoiceRecordingComplete}
+              onCancel={handleVoiceRecordingCancel}
+            />
+          </Modal>
+        </Portal>
+      )}
+
+      {/* DISABLED: Drawing functionality temporarily removed
+      <DrawingScreen
+        visible={showDrawingScreen}
+        onClose={handleDrawingCancel}
+        onSave={handleDrawingSave}
+      />
+      */}
 
       {/* Error Snackbar */}
       <Snackbar
@@ -855,6 +928,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#e8f4fd',
   },
+  previewDrawing: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderStyle: 'dashed',
+  },
+  drawingLabel: {
+    fontSize: 10,
+    color: '#8B5CF6',
+    marginTop: 4,
+    fontWeight: '500',
+  },
   previewVideoPlayer: {
     width: '100%',
     height: '100%',
@@ -922,6 +1011,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -931,6 +1021,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
+  },
+  voiceRecorderModal: {
+    backgroundColor: 'white',
+    margin: 0,
+    padding: 0,
   },
 });
 

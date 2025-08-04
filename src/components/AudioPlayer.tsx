@@ -12,7 +12,7 @@ import {
   Surface,
 } from 'react-native-paper';
 import Sound from 'react-native-sound';
-import { MediaAttachment } from '../types/MediaAttachment';
+import { MediaAttachment, MediaType } from '../types/MediaAttachment';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -42,14 +42,26 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    loadAudio();
+    if (attachment.type === MediaType.AUDIO) {
+      loadAudio();
+    }
     return () => {
       cleanup();
     };
-  }, [attachment.uri]);
+  }, [attachment.uri, attachment.type]);
 
   const loadAudio = () => {
     try {
+      // Check if URI is valid
+      if (!attachment.uri || attachment.uri.trim() === '') {
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Invalid audio file URI',
+          isLoaded: false 
+        }));
+        return;
+      }
+
       // Release previous sound if exists
       if (soundRef.current) {
         soundRef.current.release();

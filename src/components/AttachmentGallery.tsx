@@ -22,13 +22,14 @@ import {
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AudioPlayer from './AudioPlayer';
+import DrawingViewer from './DrawingViewer';
 import RNFS from 'react-native-fs';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface Attachment {
   uri: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'drawing';
   name?: string;
 }
 
@@ -104,10 +105,22 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
               <Text style={styles.mediaText}>Audio</Text>
               <AudioPlayer 
                 attachment={{ 
+                  id: `audio_${index}`,
                   uri: item.uri, 
                   type: 'audio' as any, 
                   name: item.name || 'Audio' 
                 }} 
+              />
+            </View>
+          );
+        
+        case 'drawing':
+          return (
+            <View style={styles.drawingContainer}>
+              <DrawingViewer
+                svgContent={item.uri}
+                width={screenWidth - 64}
+                height={screenHeight * 0.6}
               />
             </View>
           );
@@ -144,6 +157,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
           case 'image': return '.jpg';
           case 'video': return '.mp4';
           case 'audio': return '.m4a';
+          case 'drawing': return '.svg';
           default: return '.file';
         }
       };
@@ -406,6 +420,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   audioContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: screenWidth,
+    height: screenHeight * 0.7,
+  },
+  drawingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     width: screenWidth,
