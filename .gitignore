@@ -75,6 +75,7 @@ google-services.json
 GoogleService-Info.plist
 firebase-debug.log
 firebase-debug.*.log
+serviceAccountKey.json
 
 # API Keys and Secrets
 src/data/firestore.ts
