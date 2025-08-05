@@ -21,7 +21,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '../data/wtRegistry';
 import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration, deleteRegistrationWithTransactions, updateRegistrationPaymentStatus, addRegistrationWithTransaction } from '../data/wtRegistry';
 import { WTStudent, WTRegistration } from '../types/WTRegistry';
-import { launchImageLibrary, ImagePickerResponse, MediaType, ImageLibraryOptions } from 'react-native-image-picker';
+// import DocumentPicker, { isErrorWithCode, errorCodes } from '@react-native-documents/picker';
+import { pickDocument, isValidReceiptFile } from '../utils/documentPicker';
+import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useBalance } from '../store/balanceHooks';
@@ -1383,32 +1385,22 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
 
   const handlePickAttachment = async () => {
     try {
-      const result = await launchImageLibrary({
-        mediaType: 'mixed',
-        includeBase64: false,
-        maxHeight: 2000,
-        maxWidth: 2000,
-        quality: 1,
-        selectionLimit: 1,
-        includeExtra: true,
-        presentationStyle: 'fullScreen',
-      });
-
-      if (result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        const fileName = asset.fileName || asset.uri?.split('/').pop() || '';
-        const fileExtension = fileName.toLowerCase().split('.').pop();
+      const result = await pickDocument();
+      
+      if (result && result.uri) {
+        const fileName = result.name || result.uri.split('/').pop() || '';
         
-        // Check if file is PDF or image
-        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'webp'];
-        if (fileExtension && allowedExtensions.includes(fileExtension)) {
-          setAttachmentUri(asset.uri || null);
+        if (isValidReceiptFile(fileName)) {
+          setAttachmentUri(result.uri);
         } else {
-          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
+          Alert.alert(
+            'Invalid File Type', 
+            'Please select only PDF or image files (JPG, PNG, BMP, WEBP).'
+          );
         }
       }
     } catch (error) {
-      console.error('Error picking attachment:', error);
+      console.error('DocumentPicker Error: ', error);
       Alert.alert('Error', 'Failed to pick attachment');
     }
   };
@@ -1638,32 +1630,22 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
 
   const handlePickAttachment = async () => {
     try {
-      const result = await launchImageLibrary({
-        mediaType: 'mixed',
-        includeBase64: false,
-        maxHeight: 2000,
-        maxWidth: 2000,
-        quality: 1,
-        selectionLimit: 1,
-        includeExtra: true,
-        presentationStyle: 'fullScreen',
-      });
-
-      if (result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        const fileName = asset.fileName || asset.uri?.split('/').pop() || '';
-        const fileExtension = fileName.toLowerCase().split('.').pop();
+      const result = await pickDocument();
+      
+      if (result && result.uri) {
+        const fileName = result.name || result.uri.split('/').pop() || '';
         
-        // Check if file is PDF or image
-        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'webp'];
-        if (fileExtension && allowedExtensions.includes(fileExtension)) {
-          setAttachmentUri(asset.uri || null);
+        if (isValidReceiptFile(fileName)) {
+          setAttachmentUri(result.uri);
         } else {
-          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
+          Alert.alert(
+            'Invalid File Type', 
+            'Please select only PDF or image files (JPG, PNG, BMP, WEBP).'
+          );
         }
       }
     } catch (error) {
-      console.error('Error picking attachment:', error);
+      console.error('DocumentPicker Error: ', error);
       Alert.alert('Error', 'Failed to pick attachment');
     }
   };

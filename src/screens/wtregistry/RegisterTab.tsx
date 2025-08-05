@@ -22,7 +22,8 @@ import { RootState, AppDispatch } from '../../store';
 import { addRegistration, updateRegistration, deleteRegistration } from '../../store/wtRegistrySlice';
 import { WTRegistration, WTStudent } from '../../types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as DocumentPicker from 'expo-document-picker';
+// import DocumentPicker, { isErrorWithCode, errorCodes } from '@react-native-documents/picker';
+import { pickDocument, isValidReceiptFile } from '../../utils/documentPicker';
 import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../../utils/fileUtils';
 
 export function RegisterTab() {
@@ -112,18 +113,25 @@ export function RegisterTab() {
 
   const handlePickAttachment = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setFormData({
-          ...formData,
-          attachmentUri: result.assets[0].uri,
-        });
+      const result = await pickDocument();
+      
+      if (result && result.uri) {
+        const fileName = result.name || result.uri.split('/').pop() || '';
+        
+        if (isValidReceiptFile(fileName)) {
+          setFormData({
+            ...formData,
+            attachmentUri: result.uri,
+          });
+        } else {
+          Alert.alert(
+            'Invalid File Type', 
+            'Please select only PDF or image files (JPG, PNG, BMP, WEBP).'
+          );
+        }
       }
     } catch (error) {
+      console.error('DocumentPicker Error: ', error);
       Alert.alert('Error', 'Failed to pick attachment');
     }
   };
