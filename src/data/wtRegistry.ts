@@ -309,7 +309,7 @@ export async function updateRegistration(registration: WTRegistration): Promise<
       id: registration.id,
       studentId: registration.studentId,
       amount: registration.amount,
-      attachmentUri: cloudAttachmentUrl || undefined,
+      attachmentUri: cloudAttachmentUrl || null,
       startDate: registration.startDate ? Timestamp.fromDate(registration.startDate) : null,
       endDate: finalEndDate ? Timestamp.fromDate(finalEndDate) : null,
       paymentDate: Timestamp.fromDate(registration.paymentDate),

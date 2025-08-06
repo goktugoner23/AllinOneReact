@@ -1,5 +1,5 @@
-import { Alert, Linking, Platform } from 'react-native';
-import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
+import { Alert, Platform } from 'react-native';
+import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 
 export interface DocumentPickerResult {
   uri: string;
@@ -12,44 +12,47 @@ export const pickDocument = async (): Promise<DocumentPickerResult | null> => {
   try {
     console.log('🔍 Opening file/document picker...');
     
-    // Use image picker with mixed media type for better file manager access
-    const result = await new Promise<ImagePickerResponse>((resolve) => {
-      launchImageLibrary({
-        mediaType: 'mixed' as MediaType,
-        includeBase64: false,
-        quality: 1,
-        selectionLimit: 1,
-        includeExtra: true,
-        presentationStyle: 'fullScreen',
-      }, resolve);
+    // Use proper document picker to open file manager
+    const result = await pick({
+      type: [types.allFiles],
     });
 
-    if (result.assets && result.assets[0]) {
-      const asset = result.assets[0];
-      console.log('📁 File picked:', {
-        name: asset.fileName,
-        type: asset.type,
-        uri: asset.uri,
-        size: asset.fileSize
-      });
+    console.log('📁 File picked:', {
+      name: result[0]?.name,
+      type: result[0]?.type,
+      uri: result[0]?.uri,
+      size: result[0]?.size
+    });
 
+    if (result && result[0]) {
       return {
-        uri: asset.uri || '',
-        name: asset.fileName || asset.uri?.split('/').pop(),
-        type: asset.type,
-        size: asset.fileSize,
+        uri: result[0].uri || '',
+        name: result[0].name || undefined,
+        type: result[0].type || undefined,
+        size: result[0].size || undefined,
       };
     }
 
     console.log('❌ No file selected');
     return null;
   } catch (error) {
-    console.error('❌ Error picking document:', error);
+    // Check if user cancelled - this is normal behavior, not an error
+    if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) {
+      console.log('✅ User cancelled document picker (normal behavior)');
+      return null;
+    }
     
-    // Show helpful message for PDF selection
+    // Also check for string-based cancellation messages
+    if (error instanceof Error && error.message.includes('canceled')) {
+      console.log('✅ User cancelled document picker (normal behavior)');
+      return null;
+    }
+    
+    // Only log and show alert for actual errors, not cancellations
+    console.error('❌ Error picking document:', error);
     Alert.alert(
-      'File Selection',
-      'For PDF files, you can:\n\n1. Save PDFs as photos in your gallery\n2. Use a file sharing app to open PDFs with this app\n3. Convert PDFs to images\n\nFor now, please select image files.',
+      'File Selection Error',
+      'Failed to open file picker. Please try again.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Try Again', onPress: () => pickDocument() }
