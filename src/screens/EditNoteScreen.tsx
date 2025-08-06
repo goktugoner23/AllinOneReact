@@ -34,6 +34,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
 import { Video } from 'react-native-video';
 import ViewShot from 'react-native-view-shot';
+import RNFS from 'react-native-fs';
 // import { saveDrawingToGallery } from '../utils/svgToPng'; // DISABLED: Drawing functionality temporarily removed
 
 interface RouteParams {
@@ -235,14 +236,33 @@ const EditNoteScreen: React.FC = () => {
         //   .join(','), // DISABLED: Drawing functionality temporarily removed
       };
 
+      // Show upload progress if we have attachments
+      const hasAttachments = mediaAttachments.attachments.length > 0;
+      
+      if (hasAttachments) {
+        // Show upload progress simulation for immediate feedback
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 15, 95));
+        }, 50);
+        
+        // Complete progress after a short time
+        setTimeout(() => {
+          clearInterval(progressInterval);
+          setUploadProgress(100);
+        }, 800);
+      }
+      
+      // Save note (uploads will happen in background)
       if (noteId) {
         await updateNote(noteId, noteData);
       } else {
         await addNote(noteData);
       }
-
+      
+      // Navigate back immediately after saving
       navigation.goBack();
     } catch (error) {
+      console.error('Error saving note:', error);
       Alert.alert('Error', 'Failed to save note. Please try again.');
     } finally {
       setSaving(false);
@@ -274,7 +294,8 @@ const EditNoteScreen: React.FC = () => {
         if (mediaType === 'VIDEO') {
           mediaRefs[attachmentId].seek(0);
         } else if (mediaType === 'AUDIO') {
-          mediaRefs[attachmentId].stop();
+          // For audio, we'll let the AudioPlayer component handle stopping
+          // Just clear the playing state
         }
       }
       setPlayingMedia(null);
@@ -285,7 +306,7 @@ const EditNoteScreen: React.FC = () => {
         if (currentType === MediaType.VIDEO) {
           mediaRefs[playingMedia].seek(0);
         } else if (currentType === MediaType.AUDIO) {
-          mediaRefs[playingMedia].stop();
+          // For audio, we'll let the AudioPlayer component handle stopping
         }
       }
       
@@ -305,27 +326,8 @@ const EditNoteScreen: React.FC = () => {
             return;
           }
           
-          const sound = new Sound(attachment.uri, undefined, (error) => {
-            if (error) {
-              console.error('Error loading audio:', error);
-              Alert.alert('Error', 'Failed to load audio file');
-              return;
-            }
-            
-            sound.play((success) => {
-              if (success) {
-                console.log('Audio played successfully');
-              } else {
-                console.log('Audio playback failed');
-              }
-              setPlayingMedia(null);
-            });
-          });
-          
-          setMediaRefs(prev => ({
-            ...prev,
-            [attachmentId]: sound
-          }));
+          // For real audio files, we'll use the AudioPlayer component
+          // The AudioPlayer will handle the actual playback
           setPlayingMedia(attachmentId);
         }
       } else {
@@ -549,21 +551,52 @@ const EditNoteScreen: React.FC = () => {
     setShowVoiceRecorder(true);
   };
 
-  const handleVoiceRecordingComplete = (filePath: string, duration: number) => {
-    const newAttachment: MediaAttachment = {
-      id: `audio_${Date.now()}_${Math.random()}`,
-      uri: filePath,
-      type: MediaType.AUDIO,
-      name: 'Voice Recording',
-      duration: duration,
-    };
-    
-    setMediaAttachments(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, newAttachment]
-    }));
-    
-    setShowVoiceRecorder(false);
+  const handleVoiceRecordingComplete = async (filePath: string, duration: number) => {
+    try {
+      // Generate a unique filename with note ID and UUID using platform-specific extension
+      const noteIdStr = noteId ? `note_${noteId}` : 'new_note';
+      const uuid = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Use proper file extension based on platform (matching recording format)
+      const fileExtension = Platform.select({
+        ios: '.m4a',
+        android: '.mp4',
+        default: '.m4a'
+      });
+      const fileName = `${noteIdStr}_voice_${uuid}${fileExtension}`;
+      
+      // Create the destination path in the app's documents directory
+      const destPath = `${RNFS.DocumentDirectoryPath}/voice_recordings/${fileName}`;
+      
+      // Ensure the directory exists
+      const dirPath = `${RNFS.DocumentDirectoryPath}/voice_recordings`;
+      const dirExists = await RNFS.exists(dirPath);
+      if (!dirExists) {
+        await RNFS.mkdir(dirPath);
+      }
+      
+      // Copy the recording to the new location
+      const sourcePath = filePath.replace('file://', '');
+      await RNFS.copyFile(sourcePath, destPath);
+      
+      const newAttachment: MediaAttachment = {
+        id: `audio_${uuid}`,
+        uri: `file://${destPath}`,
+        type: MediaType.AUDIO,
+        name: `Voice Recording ${new Date().toLocaleTimeString()}`,
+        duration: duration,
+      };
+      
+      setMediaAttachments(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, newAttachment]
+      }));
+      
+      setShowVoiceRecorder(false);
+    } catch (error) {
+      console.error('Error saving voice recording:', error);
+      Alert.alert('Error', 'Failed to save voice recording. Please try again.');
+    }
   };
 
   const handleVoiceRecordingCancel = () => {

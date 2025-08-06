@@ -13,7 +13,7 @@ import {
 } from 'react-native-paper';
 
 import { MediaAttachment, MediaType } from '../types/MediaAttachment';
-import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+import AudioRecorderPlayer, { PlayBackType } from 'react-native-audio-recorder-player';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -40,7 +40,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   });
 
   const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (attachment.type === MediaType.AUDIO) {
@@ -63,15 +62,21 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
         return;
       }
 
-      // Get audio info (duration) by starting and immediately stopping playback
-      await audioRecorderPlayer.current.startPlayer(attachment.uri);
-      const audioInfo = await audioRecorderPlayer.current.getCurrentPosition();
-      await audioRecorderPlayer.current.stopPlayer();
+      // Clean up the URI - remove double file:// prefixes
+      let cleanUri = attachment.uri;
+      while (cleanUri.startsWith('file://file://')) {
+        cleanUri = cleanUri.replace('file://file://', 'file://');
+      }
+
+      // Use the attachment duration if available, otherwise use default
+      let duration = attachment.duration || 30000; // Default to 30 seconds
       
+      // Just mark as loaded without trying to determine duration
+      // The duration will be updated during playback if available
       setState(prev => ({ 
         ...prev, 
         isLoaded: true, 
-        duration: audioInfo * 1000 // Convert to milliseconds
+        duration: duration
       }));
     } catch (error) {
       console.error('Audio loading error:', error);
@@ -89,21 +94,39 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     try {
       setState(prev => ({ ...prev, isPlaying: true }));
 
-      // Start playback
-      await audioRecorderPlayer.current.startPlayer(attachment.uri);
+      // Set subscription duration for better progress tracking (recommended: 0.1)
+      audioRecorderPlayer.current.setSubscriptionDuration(0.1);
 
-      // Start progress tracking
-      progressInterval.current = setInterval(async () => {
-        try {
-          const currentPosition = await audioRecorderPlayer.current.getCurrentPosition();
-          setState(prev => ({
-            ...prev,
-            currentTime: currentPosition * 1000, // Convert to milliseconds
-          }));
-        } catch (error) {
-          console.error('Progress tracking error:', error);
+      // Clean up the URI - remove double file:// prefixes
+      let cleanUri = attachment.uri;
+      while (cleanUri.startsWith('file://file://')) {
+        cleanUri = cleanUri.replace('file://file://', 'file://');
+      }
+
+      // Add playback listener first - using proper PlayBackType interface
+      audioRecorderPlayer.current.addPlayBackListener((e: PlayBackType) => {
+        // Don't use Math.floor() - the library provides precise millisecond timing
+        setState(prev => ({
+          ...prev,
+          currentTime: e.currentPosition,
+          duration: e.duration,
+        }));
+        
+        // Check if playback has ended (within 500ms of duration to account for timing differences)
+        if (e.duration > 0 && e.currentPosition >= (e.duration - 500)) {
+          setTimeout(() => {
+            setState(prev => ({ 
+              ...prev, 
+              isPlaying: false, 
+              currentTime: 0 
+            }));
+            audioRecorderPlayer.current.removePlayBackListener();
+          }, 200);
         }
-      }, 100);
+      });
+
+      // Start playback
+      await audioRecorderPlayer.current.startPlayer(cleanUri);
     } catch (error) {
       console.error('Playback error:', error);
       setState(prev => ({ 
@@ -118,11 +141,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     try {
       await audioRecorderPlayer.current.pausePlayer();
       setState(prev => ({ ...prev, isPlaying: false }));
-      
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
     } catch (error) {
       console.error('Pause error:', error);
     }
@@ -131,18 +149,23 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   const stopAudio = async () => {
     try {
       await audioRecorderPlayer.current.stopPlayer();
+      
+      // Remove listeners
+      audioRecorderPlayer.current.removePlayBackListener();
+      
       setState(prev => ({ 
         ...prev, 
         isPlaying: false, 
         currentTime: 0 
       }));
-      
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
     } catch (error) {
       console.error('Stop error:', error);
+      // Even if there's an error, reset the state
+      setState(prev => ({ 
+        ...prev, 
+        isPlaying: false, 
+        currentTime: 0 
+      }));
     }
   };
 
@@ -162,21 +185,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   };
 
   const cleanup = async () => {
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-    }
     try {
       await audioRecorderPlayer.current.stopPlayer();
+      audioRecorderPlayer.current.removePlayBackListener();
     } catch (error) {
       console.error('Cleanup error:', error);
     }
   };
 
+  // Using the library's built-in time formatting utility
   const formatDuration = (milliseconds: number) => {
-    const seconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return audioRecorderPlayer.current.mmssss(milliseconds);
   };
 
   const getProgress = () => {

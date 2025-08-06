@@ -22,19 +22,14 @@ import {
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AudioPlayer from './AudioPlayer';
+import { MediaAttachment, MediaType } from '../types/MediaAttachment';
 
 import RNFS from 'react-native-fs';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-interface Attachment {
-  uri: string;
-  type: 'image' | 'video' | 'audio';
-  name?: string;
-}
-
 interface AttachmentGalleryProps {
-  attachments: Attachment[];
+  attachments: MediaAttachment[];
   initialIndex?: number;
   onClose: () => void;
 }
@@ -52,10 +47,10 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
 
   const currentAttachment = attachments[currentIndex];
 
-  const renderMediaItem = ({ item, index }: { item: Attachment; index: number }) => {
+  const renderMediaItem = ({ item, index }: { item: MediaAttachment; index: number }) => {
     const renderMediaContent = () => {
       switch (item.type) {
-        case 'image':
+        case MediaType.IMAGE:
           return (
             <Image
               source={{ uri: item.uri }}
@@ -64,7 +59,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
             />
           );
         
-        case 'video':
+        case MediaType.VIDEO:
           return (
             <View style={styles.videoContainer}>
               {playingVideo === item.uri ? (
@@ -98,18 +93,13 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
             </View>
           );
         
-        case 'audio':
+        case MediaType.AUDIO:
           return (
             <View style={styles.audioContainer}>
               <Icon name="music-note" size={80} color="#666" />
               <Text style={styles.mediaText}>Audio</Text>
               <AudioPlayer 
-                attachment={{ 
-                  id: `audio_${index}`,
-                  uri: item.uri, 
-                  type: 'audio' as any, 
-                  name: item.name || 'Audio' 
-                }} 
+                attachment={item}
               />
             </View>
           );
@@ -140,7 +130,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
       if (!currentAttachment) return;
 
       setDownloading(true);
-      setDownloadProgress(0);
+      setDownloadProgress(50); // Start at 50% since we're copying
 
       // Get file extension based on type
       const getFileExtension = (type: string) => {
@@ -156,23 +146,32 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
       const fileName = `attachment_${Date.now()}${getFileExtension(currentAttachment.type)}`;
       const downloadPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
 
-      // Download the file
-      const result = await RNFS.downloadFile({
-        fromUrl: currentAttachment.uri,
-        toFile: downloadPath,
-        background: true,
-        discretionary: true,
-        progress: (res) => {
-          const progressPercent = (res.bytesWritten / res.contentLength) * 100;
-          setDownloadProgress(progressPercent);
-          console.log(`Download progress: ${progressPercent}%`);
-        },
-      }).promise;
-
-      if (result.statusCode === 200) {
-        Alert.alert('Success', `File downloaded to Downloads folder as ${fileName}`);
+      // Handle local files vs remote files
+      if (currentAttachment.uri.startsWith('file://')) {
+        // For local files, copy them
+        const sourcePath = currentAttachment.uri.replace('file://', '');
+        await RNFS.copyFile(sourcePath, downloadPath);
+        setDownloadProgress(100);
+        Alert.alert('Success', `File copied to Downloads folder as ${fileName}`);
       } else {
-        throw new Error(`Download failed with status: ${result.statusCode}`);
+        // For remote files, download them
+        const result = await RNFS.downloadFile({
+          fromUrl: currentAttachment.uri,
+          toFile: downloadPath,
+          background: true,
+          discretionary: true,
+          progress: (res) => {
+            const progressPercent = (res.bytesWritten / res.contentLength) * 100;
+            setDownloadProgress(progressPercent);
+            console.log(`Download progress: ${progressPercent}%`);
+          },
+        }).promise;
+
+        if (result.statusCode === 200) {
+          Alert.alert('Success', `File downloaded to Downloads folder as ${fileName}`);
+        } else {
+          throw new Error(`Download failed with status: ${result.statusCode}`);
+        }
       }
     } catch (error) {
       console.error('Error downloading:', error);

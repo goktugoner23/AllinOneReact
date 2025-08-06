@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import {
   ProgressBar,
+  Button,
+  IconButton,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import RNFS from 'react-native-fs';
@@ -19,43 +21,48 @@ import AudioRecorderPlayer, {
   AudioEncoderAndroidType,
   AudioSourceAndroidType,
   OutputFormatAndroidType,
+  RecordBackType,
+  PlayBackType,
 } from 'react-native-audio-recorder-player';
-
 
 interface VoiceRecorderProps {
   onRecordingComplete: (filePath: string, duration: number) => void;
   onCancel: () => void;
 }
 
+interface VoiceRecorderState {
+  isRecording: boolean;
+  isPlaying: boolean;
+  recordingTime: number;
+  playingTime: number;
+  duration: number;
+  recordedFilePath: string | null;
+  hasPermission: boolean;
+  error: string | null;
+}
+
 const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onRecordingComplete,
   onCancel,
 }) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [playingTime, setPlayingTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [recordedFilePath, setRecordedFilePath] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState(false);
-
-  const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [state, setState] = useState<VoiceRecorderState>({
+    isRecording: false,
+    isPlaying: false,
+    recordingTime: 0,
+    playingTime: 0,
+    duration: 0,
+    recordedFilePath: null,
+    hasPermission: false,
+    error: null,
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
   const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
 
   useEffect(() => {
     checkPermission();
     return () => {
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-      }
-      if (playingTimer.current) {
-        clearInterval(playingTimer.current);
-      }
-      // Cleanup audio
-      audioRecorderPlayer.current.stopRecorder();
-      audioRecorderPlayer.current.removeRecordBackListener();
-      audioRecorderPlayer.current.removePlayBackListener();
+      cleanup();
     };
   }, []);
 
@@ -72,441 +79,430 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             buttonPositive: 'OK',
           }
         );
-        setHasPermission(granted === PermissionsAndroid.RESULTS.GRANTED);
+        setState(prev => ({ ...prev, hasPermission: granted === PermissionsAndroid.RESULTS.GRANTED }));
       } catch (err) {
         console.warn(err);
-        setHasPermission(false);
+        setState(prev => ({ ...prev, hasPermission: false }));
       }
     } else {
-      setHasPermission(true);
+      setState(prev => ({ ...prev, hasPermission: true }));
     }
   };
 
   const startRecording = async () => {
-    if (!hasPermission) {
+    if (!state.hasPermission) {
       Alert.alert('Permission Required', 'Microphone permission is required to record audio.');
       return;
     }
 
+    setIsLoading(true);
     try {
-      // Configure recording settings
+      // Set subscription duration for better progress tracking (recommended: 0.1)
+      audioRecorderPlayer.current.setSubscriptionDuration(0.1);
+
+      // Configure recording settings for proper MP4/M4A format
       const audioSet = {
         AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
         AudioSourceAndroid: AudioSourceAndroidType.MIC,
         AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
         AVNumberOfChannelsKeyIOS: 2,
-        OutputFormatAndroid: OutputFormatAndroidType.AAC_ADTS,
+        OutputFormatAndroid: OutputFormatAndroidType.MPEG_4, // Use MPEG_4 for MP4 format on Android
+        AVSampleRateKeyIOS: 44100,
+        AVFormatIDKeyIOS: AVEncodingOption.aac, // Explicitly set AAC format for iOS M4A
       };
 
+      // Use platform-specific paths as recommended
+      const timestamp = Date.now();
+      const recordingPath = Platform.select({
+        ios: `${RNFS.DocumentDirectoryPath}/recording_${timestamp}.m4a`,
+        android: `${RNFS.ExternalDirectoryPath}/recording_${timestamp}.mp4`,
+        default: `${RNFS.DocumentDirectoryPath}/recording_${timestamp}.m4a`
+      });
+
+      // Add record back listener first - using proper RecordBackType interface
+      audioRecorderPlayer.current.addRecordBackListener((e: RecordBackType) => {
+        setState(prev => ({
+          ...prev,
+          recordingTime: e.currentPosition, // Don't use Math.floor() for precise timing
+        }));
+      });
+
       const uri = await audioRecorderPlayer.current.startRecorder(
-        `${RNFS.DocumentDirectoryPath}/recording_${Date.now()}.m4a`,
-        audioSet
+        recordingPath,
+        audioSet,
+        true // Enable metering
       );
 
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      // Start recording timer
-      recordingTimer.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1000);
-      }, 1000);
+      setState(prev => ({
+        ...prev,
+        isRecording: true,
+        recordingTime: 0,
+        error: null,
+      }));
 
       console.log('Recording started:', uri);
     } catch (error) {
       console.error('Error starting recording:', error);
       Alert.alert('Error', 'Failed to start recording. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const stopRecording = async () => {
+    setIsLoading(true);
     try {
-      setIsRecording(false);
-
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-        recordingTimer.current = null;
-      }
+      // Remove the record back listener
+      audioRecorderPlayer.current.removeRecordBackListener();
 
       // Stop recording and get the file URI
       const uri = await audioRecorderPlayer.current.stopRecorder();
-      const fileUri = `file://${uri}`;
       
-      setRecordedFilePath(fileUri);
-      setDuration(recordingTime);
+      // Check if the URI already has file:// prefix
+      const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
+      
+      setState(prev => ({
+        ...prev,
+        isRecording: false,
+        recordedFilePath: fileUri,
+        duration: prev.recordingTime,
+      }));
 
       console.log('Recording stopped:', fileUri);
     } catch (error) {
       console.error('Error stopping recording:', error);
       Alert.alert('Error', 'Failed to stop recording.');
+      setState(prev => ({ ...prev, isRecording: false }));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const playRecording = async () => {
-    if (!recordedFilePath) return;
+    if (!state.recordedFilePath) return;
 
+    setIsLoading(true);
     try {
-      setIsPlaying(true);
-      setPlayingTime(0);
+      // Clean up the URI - remove double file:// prefixes
+      let cleanUri = state.recordedFilePath;
+      while (cleanUri.startsWith('file://file://')) {
+        cleanUri = cleanUri.replace('file://file://', 'file://');
+      }
+
+      // Add playback listener first - using proper PlayBackType interface
+      audioRecorderPlayer.current.addPlayBackListener((e: PlayBackType) => {
+        // Don't use Math.floor() - the library provides precise millisecond timing
+        setState(prev => ({
+          ...prev,
+          playingTime: e.currentPosition,
+          duration: e.duration,
+        }));
+        
+        // Check if playback has ended (within 500ms of duration to account for timing differences)
+        if (e.duration > 0 && e.currentPosition >= (e.duration - 500)) {
+          setTimeout(() => {
+            setState(prev => ({ 
+              ...prev, 
+              isPlaying: false, 
+              playingTime: 0 
+            }));
+            audioRecorderPlayer.current.removePlayBackListener();
+          }, 200);
+        }
+      });
+
+      // Note: addPlaybackEndListener doesn't exist, we'll handle end detection in the listener
 
       // Start playback
-      await audioRecorderPlayer.current.startPlayer(recordedFilePath);
+      await audioRecorderPlayer.current.startPlayer(cleanUri);
       
-      // Start playback timer
-      playingTimer.current = setInterval(async () => {
-        try {
-          const currentPosition = await audioRecorderPlayer.current.getCurrentPosition();
-          setPlayingTime(currentPosition * 1000); // Convert to milliseconds
-          
-          if (currentPosition >= duration / 1000) {
-            setIsPlaying(false);
-            if (playingTimer.current) {
-              clearInterval(playingTimer.current);
-              playingTimer.current = null;
-            }
-          }
-        } catch (error) {
-          console.error('Playback timer error:', error);
-        }
-      }, 1000);
+      setState(prev => ({ ...prev, isPlaying: true, playingTime: 0 }));
 
-      console.log('Playing recording:', recordedFilePath);
+      console.log('Playing recording:', cleanUri);
     } catch (error) {
       console.error('Error playing recording:', error);
       Alert.alert('Error', 'Failed to play recording.');
-      setIsPlaying(false);
+      setState(prev => ({ ...prev, isPlaying: false }));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const stopPlaying = async () => {
+    setIsLoading(true);
     try {
-      setIsPlaying(false);
-      setPlayingTime(0);
-
-      if (playingTimer.current) {
-        clearInterval(playingTimer.current);
-        playingTimer.current = null;
-      }
-
       // Stop playback
       await audioRecorderPlayer.current.stopPlayer();
+      
+      // Remove listeners
+      audioRecorderPlayer.current.removePlayBackListener();
+      
+      setState(prev => ({ ...prev, isPlaying: false, playingTime: 0 }));
     } catch (error) {
       console.error('Error stopping playback:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSave = () => {
-    if (recordedFilePath) {
-      onRecordingComplete(recordedFilePath, duration);
+    if (state.recordedFilePath) {
+      onRecordingComplete(state.recordedFilePath, state.duration);
     }
   };
 
   const handleCancel = async () => {
-    if (isRecording) {
+    if (state.isRecording) {
       await stopRecording();
     }
-    if (isPlaying) {
+    if (state.isPlaying) {
       await stopPlaying();
     }
     onCancel();
   };
 
+  const cleanup = async () => {
+    try {
+      await audioRecorderPlayer.current.stopRecorder();
+      await audioRecorderPlayer.current.stopPlayer();
+      audioRecorderPlayer.current.removeRecordBackListener();
+      audioRecorderPlayer.current.removePlayBackListener();
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  };
+
+  // Using the library's built-in time formatting utility
   const formatTime = (milliseconds: number) => {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return audioRecorderPlayer.current.mmssss(milliseconds);
   };
 
   const getProgress = () => {
-    if (duration === 0) return 0;
-    return playingTime / duration;
+    if (state.duration > 0) {
+      return state.playingTime / state.duration;
+    }
+    return 0;
   };
+
+  if (!state.hasPermission) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.permissionText}>
+          Microphone permission is required to record audio.
+        </Text>
+        <Button mode="contained" onPress={checkPermission}>
+          Grant Permission
+        </Button>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Voice Recorder</Text>
-        <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
-          <Icon name="close" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.content}>
-        {!recordedFilePath ? (
-          // Recording interface
-          <View style={styles.recordingSection}>
-            <View style={styles.recordingVisualizer}>
-              <Icon 
-                name={isRecording ? "mic" : "mic-none"} 
-                size={60} 
-                color={isRecording ? "#FF3B30" : "#666"} 
-              />
-              {isRecording && (
+      {state.isRecording ? (
+        // Recording View
+        <View style={styles.recordingContainer}>
                 <View style={styles.recordingIndicator}>
-                  <View style={styles.recordingDot} />
-                </View>
-              )}
+            <Icon name="fiber-manual-record" size={24} color="#f44336" />
+            <Text style={styles.recordingText}>Recording...</Text>
             </View>
             
-            <Text style={styles.recordingTime}>
-              {formatTime(recordingTime)}
-            </Text>
+          <Text style={styles.timeText}>{formatTime(state.recordingTime)}</Text>
 
-            <View style={styles.recordingControls}>
-              {!isRecording ? (
                 <TouchableOpacity
-                  style={styles.recordButton}
-                  onPress={startRecording}
-                >
-                  <Icon name="fiber-manual-record" size={40} color="white" />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.stopButton}
+            style={[styles.stopButton, isLoading && styles.disabledButton]}
                   onPress={stopRecording}
+            disabled={isLoading}
                 >
-                  <Icon name="stop" size={40} color="white" />
+            <Icon name="stop" size={32} color="white" />
                 </TouchableOpacity>
+          {isLoading && (
+            <Text style={styles.loadingText}>Stopping...</Text>
               )}
             </View>
-
-            <Text style={styles.instruction}>
-              {isRecording ? 'Tap to stop recording' : 'Tap to start recording'}
-            </Text>
-          </View>
-        ) : (
-          // Playback interface
-          <View style={styles.playbackSection}>
-            <View style={styles.playbackVisualizer}>
-              <Icon 
-                name={isPlaying ? "volume-up" : "volume-down"} 
-                size={60} 
-                color={isPlaying ? "#007AFF" : "#666"} 
-              />
-            </View>
+      ) : state.recordedFilePath ? (
+        // Playback View
+        <View style={styles.playbackContainer}>
+          <Text style={styles.playbackTitle}>Voice Recording</Text>
 
             <View style={styles.progressContainer}>
               <ProgressBar 
                 progress={getProgress()} 
-                color="#007AFF" 
                 style={styles.progressBar}
+              color="#2196f3"
               />
               <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>
-                  {formatTime(playingTime)}
-                </Text>
-                <Text style={styles.timeText}>
-                  {formatTime(duration)}
-                </Text>
-              </View>
+              <Text style={styles.timeText}>{formatTime(state.playingTime)}</Text>
+              <Text style={styles.timeText}>{formatTime(state.duration)}</Text>
+            </View>
             </View>
 
-            <View style={styles.playbackControls}>
-              {!isPlaying ? (
-                <TouchableOpacity
+                     <View style={styles.controls}>
+             <IconButton
+               icon="stop"
+               size={24}
+               onPress={stopPlaying}
+               disabled={isLoading}
+             />
+             <IconButton
+               icon={state.isPlaying ? 'pause' : 'play'}
+               size={32}
+               iconColor="white"
                   style={styles.playButton}
-                  onPress={playRecording}
-                >
-                  <Icon name="play-arrow" size={40} color="white" />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.stopButton}
-                  onPress={stopPlaying}
-                >
-                  <Icon name="stop" size={40} color="white" />
-                </TouchableOpacity>
-              )}
+               onPress={state.isPlaying ? stopPlaying : playRecording}
+               disabled={isLoading}
+             />
+             <IconButton
+               icon="refresh"
+               size={24}
+               onPress={() => {
+                 stopPlaying();
+                 setState(prev => ({
+                   ...prev,
+                   recordedFilePath: null,
+                   duration: 0,
+                   playingTime: 0,
+                 }));
+               }}
+               disabled={isLoading}
+             />
             </View>
+           
+           {isLoading && (
+             <Text style={styles.loadingText}>
+               {state.isPlaying ? 'Stopping...' : 'Starting...'}
+             </Text>
+           )}
 
             <View style={styles.actionButtons}>
+            <Button mode="outlined" onPress={handleCancel}>
+              Cancel
+            </Button>
+            <Button mode="contained" onPress={handleSave}>
+              Save
+            </Button>
+          </View>
+        </View>
+      ) : (
+        // Start Recording View
+        <View style={styles.startContainer}>
+          <Text style={styles.startText}>Ready to record</Text>
               <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSave}
+            style={[styles.recordButton, isLoading && styles.disabledButton]}
+            onPress={startRecording}
+            disabled={isLoading}
               >
-                <Icon name="check" size={24} color="white" />
-                <Text style={styles.saveButtonText}>Save</Text>
+            <Icon name="mic" size={32} color="white" />
               </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => {
-                  setRecordedFilePath(null);
-                  setRecordingTime(0);
-                  setPlayingTime(0);
-                  setDuration(0);
-                }}
-              >
-                <Icon name="refresh" size={24} color="#666" />
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
+          {isLoading && (
+            <Text style={styles.loadingText}>Starting...</Text>
+          )}
+          <Button mode="outlined" onPress={handleCancel}>
+            Cancel
+          </Button>
           </View>
         )}
-      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  content: {
     padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 8,
   },
-  recordingSection: {
+  permissionText: {
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#666',
+  },
+  recordingContainer: {
     alignItems: 'center',
-  },
-  recordingVisualizer: {
-    position: 'relative',
-    marginBottom: 20,
   },
   recordingIndicator: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  recordingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FF3B30',
+  recordingText: {
+    marginLeft: 8,
+    color: '#f44336',
+    fontWeight: 'bold',
   },
-  recordingTime: {
+  timeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 30,
-    fontFamily: 'monospace',
-  },
-  recordingControls: {
-    marginBottom: 20,
-  },
-  recordButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FF3B30',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    marginBottom: 16,
   },
   stopButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#f44336',
+    borderRadius: 50,
+    width: 64,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
   },
-  instruction: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  playbackSection: {
+  playbackContainer: {
     alignItems: 'center',
   },
-  playbackVisualizer: {
-    marginBottom: 20,
+  playbackTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   progressContainer: {
     width: '100%',
-    marginBottom: 30,
+    marginBottom: 16,
   },
   progressBar: {
     height: 6,
     borderRadius: 3,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  timeText: {
-    fontSize: 14,
-    color: '#666',
-    fontFamily: 'monospace',
-  },
-  playbackControls: {
-    marginBottom: 30,
-  },
-  playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#007AFF',
+  controls: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    gap: 16,
+    marginBottom: 16,
+  },
+  playButton: {
+    backgroundColor: '#2196f3',
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    gap: 12,
   },
-  saveButton: {
-    flexDirection: 'row',
+  startContainer: {
     alignItems: 'center',
-    backgroundColor: '#34C759',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
+  startText: {
+    fontSize: 16,
+    marginBottom: 16,
     color: '#666',
-    fontWeight: 'bold',
-    marginLeft: 8,
+  },
+  recordButton: {
+    backgroundColor: '#2196f3',
+    borderRadius: 50,
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
 

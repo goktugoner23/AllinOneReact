@@ -15,6 +15,7 @@ import {
 import { 
   ref, 
   uploadBytes, 
+  uploadString,
   getDownloadURL, 
   deleteObject, 
   listAll 
@@ -235,16 +236,38 @@ export const addNote = async (noteData: NoteFormData, onProgress?: (progress: nu
     
 
     
-    // Upload all attachments with progress tracking
-
+    // Handle uploads: save note immediately with local URIs, then upload in background
     if (attachmentsToUpload.length > 0) {
-      console.log(`📤 Uploading ${attachmentsToUpload.length} attachments...`);
-      const uploadResult = await uploadAttachmentsWithProgress(noteId, attachmentsToUpload, onProgress);
+      console.log(`📤 Will upload ${attachmentsToUpload.length} attachments in background...`);
       
-      uploadedImageUris = uploadResult.images.length > 0 ? uploadResult.images.join(',') : null;
-      uploadedVideoUris = uploadResult.videos.length > 0 ? uploadResult.videos.join(',') : null;
-      uploadedVoiceUris = uploadResult.audio.length > 0 ? uploadResult.audio.join(',') : null;
+      // Use local URIs initially for immediate save
+      uploadedImageUris = noteData.imageUris || null;
+      uploadedVideoUris = noteData.videoUris || null;
+      uploadedVoiceUris = noteData.voiceNoteUris || null;
       
+      // Start background upload after saving note
+      setTimeout(async () => {
+        try {
+          console.log(`📤 Starting background upload for note ${noteId}...`);
+          const uploadResult = await uploadAttachmentsWithProgress(noteId, attachmentsToUpload);
+          
+          // Update note with uploaded URLs
+          const uploadedImageUrls = uploadResult.images.length > 0 ? uploadResult.images.join(',') : null;
+          const uploadedVideoUrls = uploadResult.videos.length > 0 ? uploadResult.videos.join(',') : null;
+          const uploadedVoiceUrls = uploadResult.audio.length > 0 ? uploadResult.audio.join(',') : null;
+          
+          // Update the note document with uploaded URLs
+          await setDoc(doc(db, NOTES_COLLECTION, noteId.toString()), {
+            imageUris: uploadedImageUrls,
+            videoUris: uploadedVideoUrls,
+            voiceNoteUris: uploadedVoiceUrls,
+          }, { merge: true });
+          
+          console.log(`✅ Background upload completed for note ${noteId}`);
+        } catch (error) {
+          console.error(`❌ Background upload failed for note ${noteId}:`, error);
+        }
+      }, 100); // Start upload after a short delay
     }
     
     // Create note document with uploaded attachment URLs
@@ -349,12 +372,36 @@ export const updateNote = async (noteId: number, noteData: NoteFormData, onProgr
       
       
       if (newAttachmentsToUpload.length > 0) {
-        console.log(`📤 Uploading ${newAttachmentsToUpload.length} new attachments...`);
-        const uploadResult = await uploadAttachmentsWithProgress(noteId, newAttachmentsToUpload, onProgress);
+        console.log(`📤 Will upload ${newAttachmentsToUpload.length} new attachments in background...`);
         
-        uploadedImageUris = uploadResult.images;
-        uploadedVideoUris = uploadResult.videos;
-        uploadedAudioUris = uploadResult.audio;
+        // Use local URIs initially for immediate save
+        uploadedImageUris = newImageUrisToUpload;
+        uploadedVideoUris = newVideoUrisToUpload;
+        uploadedAudioUris = newAudioUrisToUpload;
+        
+        // Start background upload after saving note
+        setTimeout(async () => {
+          try {
+            console.log(`📤 Starting background upload for updated note ${noteId}...`);
+            const uploadResult = await uploadAttachmentsWithProgress(noteId, newAttachmentsToUpload);
+            
+            // Get current final URIs
+            const currentFinalImageUris = [...newImageUris.filter(uri => uri.includes('firebasestorage.googleapis.com')), ...uploadResult.images];
+            const currentFinalVideoUris = [...newVideoUris.filter(uri => uri.includes('firebasestorage.googleapis.com')), ...uploadResult.videos];
+            const currentFinalAudioUris = [...newAudioUris.filter(uri => uri.includes('firebasestorage.googleapis.com')), ...uploadResult.audio];
+            
+            // Update the note document with uploaded URLs
+            await setDoc(doc(db, NOTES_COLLECTION, noteId.toString()), {
+              imageUris: currentFinalImageUris.length > 0 ? currentFinalImageUris.join(',') : null,
+              videoUris: currentFinalVideoUris.length > 0 ? currentFinalVideoUris.join(',') : null,
+              voiceNoteUris: currentFinalAudioUris.length > 0 ? currentFinalAudioUris.join(',') : null,
+            }, { merge: true });
+            
+            console.log(`✅ Background upload completed for updated note ${noteId}`);
+          } catch (error) {
+            console.error(`❌ Background upload failed for updated note ${noteId}:`, error);
+          }
+        }, 100); // Start upload after a short delay
 
       }
       
@@ -531,61 +578,96 @@ export const uploadAttachmentToStorage = async (
     if (fileName.endsWith('.svg') && fileUri.startsWith('<?xml')) {
       // This is an SVG string, convert it to blob
       blob = new Blob([fileUri], { type: 'image/svg+xml' });
+      
+      // Create storage reference with proper folder structure
+      const storageRef = ref(storage, `notes-attachments/${noteId}/${fileName}`);
+      
+      // Upload the file with progress tracking
+      const uploadResult = await uploadBytes(storageRef, blob, {
+        customMetadata: {
+          uploadedAt: new Date().toISOString(),
+        }
+      });
+      
+      // Report progress completion
+      if (onProgress) {
+        onProgress(100);
+      }
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      console.log(`Attachment uploaded successfully: ${downloadURL}`);
+      return downloadURL;
     } else if (fileUri.startsWith('file://') || fileUri.startsWith('content://')) {
-      // This is a local file URI, read it using React Native's file system
+      // This is a local file URI - use recommended fetch() → blob approach
       
-      // Read the file as base64
-      const base64Data = await RNFS.readFile(fileUri, 'base64');
-      
-      // Convert base64 to blob
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      
-      // Determine MIME type based on file extension
-      let mimeType = 'application/octet-stream';
+      // Determine proper Firebase content type based on file extension
+      let contentType = 'application/octet-stream';
       if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
-        mimeType = 'image/jpeg';
+        contentType = 'image/jpeg';
       } else if (fileName.endsWith('.png')) {
-        mimeType = 'image/png';
+        contentType = 'image/png';
       } else if (fileName.endsWith('.mp4')) {
-        mimeType = 'video/mp4';
+        contentType = 'video/mp4'; // For Android MP4 audio files, use video/mp4 for better compatibility
       } else if (fileName.endsWith('.m4a')) {
-        mimeType = 'audio/m4a';
+        contentType = 'audio/mp4'; // For iOS M4A files, use audio/mp4 for better compatibility
       } else if (fileName.endsWith('.wav')) {
-        mimeType = 'audio/wav';
+        contentType = 'audio/wav';
       }
       
-      blob = new Blob([byteArray], { type: mimeType });
+      // Use recommended fetch() → blob approach for React Native
+      console.log('Fetching local file for upload:', fileUri);
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+      
+      // Create storage reference with proper folder structure
+      const storageRef = ref(storage, `notes-attachments/${noteId}/${fileName}`);
+      
+      // Upload blob with proper content type
+      const uploadResult = await uploadBytes(storageRef, blob, {
+        contentType: contentType,
+        customMetadata: {
+          uploadedAt: new Date().toISOString(),
+        }
+      });
+      
+      // Report progress completion
+      if (onProgress) {
+        onProgress(100);
+      }
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      console.log(`Attachment uploaded successfully: ${downloadURL}`);
+      return downloadURL;
     } else {
       // This is a remote URL, fetch it
       const response = await fetch(fileUri);
       blob = await response.blob();
-    }
-    
-    // Create storage reference with proper folder structure
-    const storageRef = ref(storage, `notes-attachments/${noteId}/${fileName}`);
-    
-    // Upload the file with progress tracking
-    const uploadResult = await uploadBytes(storageRef, blob, {
-      customMetadata: {
-        uploadedAt: new Date().toISOString(),
+      
+      // Create storage reference with proper folder structure
+      const storageRef = ref(storage, `notes-attachments/${noteId}/${fileName}`);
+      
+      // Upload the file with progress tracking
+      const uploadResult = await uploadBytes(storageRef, blob, {
+        customMetadata: {
+          uploadedAt: new Date().toISOString(),
+        }
+      });
+      
+      // Report progress completion
+      if (onProgress) {
+        onProgress(100);
       }
-    });
-    
-    // Report progress completion
-    if (onProgress) {
-      onProgress(100);
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      console.log(`Attachment uploaded successfully: ${downloadURL}`);
+      return downloadURL;
     }
-    
-    // Get download URL
-    const downloadURL = await getDownloadURL(uploadResult.ref);
-    
-    console.log(`Attachment uploaded successfully: ${downloadURL}`);
-    return downloadURL;
   } catch (error) {
     console.error('Error uploading attachment to storage:', error);
     throw error;
