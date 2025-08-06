@@ -66,7 +66,7 @@ const EditNoteScreen: React.FC = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAttachmentGallery, setShowAttachmentGallery] = useState(false);
-  const [selectedAttachments, setSelectedAttachments] = useState<Array<{ uri: string; type: 'image' | 'video' | 'audio'; name?: string }>>([]);
+  const [selectedAttachments, setSelectedAttachments] = useState<MediaAttachment[]>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -106,7 +106,7 @@ const EditNoteScreen: React.FC = () => {
           existingAttachments.push({
             id: `video_${Date.now()}_${Math.random()}`,
             uri: uri.trim(),
-            type: 'VIDEO' as any,
+            type: MediaType.VIDEO,
             name: 'Video'
           });
         });
@@ -119,7 +119,8 @@ const EditNoteScreen: React.FC = () => {
             id: `audio_${Date.now()}_${Math.random()}`,
             uri: uri.trim(),
             type: MediaType.AUDIO,
-            name: 'Voice Note'
+            name: 'Voice Note',
+            duration: 30000 // Default duration, will be updated when played
           });
         });
       }
@@ -288,51 +289,26 @@ const EditNoteScreen: React.FC = () => {
   };
 
   const handlePlayMedia = (attachmentId: string, mediaType: string) => {
+    // Only handle video playback now - audio files open preview modal instead
+    if (mediaType !== 'VIDEO') return;
+    
     if (playingMedia === attachmentId) {
-      // Stop current media
+      // Stop current video
       if (mediaRefs[attachmentId]) {
-        if (mediaType === 'VIDEO') {
-          mediaRefs[attachmentId].seek(0);
-        } else if (mediaType === 'AUDIO') {
-          // For audio, we'll let the AudioPlayer component handle stopping
-          // Just clear the playing state
-        }
+        mediaRefs[attachmentId].seek(0);
       }
       setPlayingMedia(null);
     } else {
-      // Stop any currently playing media
+      // Stop any currently playing video
       if (playingMedia && mediaRefs[playingMedia]) {
         const currentType = mediaAttachments.attachments.find(att => att.id === playingMedia)?.type;
         if (currentType === MediaType.VIDEO) {
           mediaRefs[playingMedia].seek(0);
-        } else if (currentType === MediaType.AUDIO) {
-          // For audio, we'll let the AudioPlayer component handle stopping
         }
       }
       
-      // Start new media
-      if (mediaType === 'AUDIO') {
-        const attachment = mediaAttachments.attachments.find(att => att.id === attachmentId);
-        if (attachment) {
-          // Check if this is a simulated recording (doesn't start with file:// or http://)
-          if (!attachment.uri.startsWith('file://') && !attachment.uri.startsWith('http://')) {
-            // Simulated audio - just show playing state without actual playback
-            setPlayingMedia(attachmentId);
-            // Use the attachment duration or default to 5 seconds
-            const audioDuration = attachment.duration || 5000;
-            setTimeout(() => {
-              setPlayingMedia(null);
-            }, audioDuration);
-            return;
-          }
-          
-          // For real audio files, we'll use the AudioPlayer component
-          // The AudioPlayer will handle the actual playback
-          setPlayingMedia(attachmentId);
-        }
-      } else {
-        setPlayingMedia(attachmentId);
-      }
+      // Start new video
+      setPlayingMedia(attachmentId);
     }
   };
 
@@ -716,13 +692,8 @@ const EditNoteScreen: React.FC = () => {
             <View style={styles.attachmentPreviews}>
               {mediaAttachments.attachments.map((attachment, index) => {
                 const handleAttachmentPress = () => {
-                  const attachments = mediaAttachments.attachments.map(att => ({
-                    uri: att.uri,
-                    type: (att.type === 'IMAGE' ? 'image' : att.type === 'VIDEO' ? 'video' : 'audio') as 'image' | 'video' | 'audio',
-                    name: `${att.type.toLowerCase()} attachment`
-                  }));
-                  
-                  setSelectedAttachments(attachments);
+                  // Pass the MediaAttachment objects directly to AttachmentGallery
+                  setSelectedAttachments(mediaAttachments.attachments);
                   setSelectedAttachmentIndex(index);
                   setShowAttachmentGallery(true);
                 };
@@ -763,27 +734,8 @@ const EditNoteScreen: React.FC = () => {
                         </View>
                       ) : */ (
                         <View style={styles.previewAudio}>
-                          {playingMedia === attachment.id ? (
-                            <View style={styles.audioPlaying}>
-                              <Icon name="music-note" size={20} color="#007AFF" />
-                              <TouchableOpacity
-                                style={styles.stopButton}
-                                onPress={() => handlePlayMedia(attachment.id, 'AUDIO')}
-                              >
-                                <Icon name="stop" size={16} color="white" />
-                              </TouchableOpacity>
-                            </View>
-                          ) : (
-                            <>
-                              <Icon name="music-note" size={20} color="#666" />
-                              <TouchableOpacity
-                                style={styles.playButton}
-                                onPress={() => handlePlayMedia(attachment.id, 'AUDIO')}
-                              >
-                                <Icon name="play-arrow" size={16} color="white" />
-                              </TouchableOpacity>
-                            </>
-                          )}
+                          <Icon name="music-note" size={40} color="#007AFF" />
+                          <Text style={styles.audioLabel}>Voice Note</Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -977,6 +929,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '500',
   },
+  audioLabel: {
+    fontSize: 10,
+    color: '#007AFF',
+    marginTop: 4,
+    fontWeight: '500',
+  },
   previewVideoPlayer: {
     width: '100%',
     height: '100%',
@@ -987,38 +945,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 8,
   },
-  playButton: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -12 }, { translateY: -12 }],
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stopButton: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -12 }, { translateY: -12 }],
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FF3B30',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  audioPlaying: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#e8f4fd',
-    position: 'relative',
-  },
+
   playOverlay: {
     position: 'absolute',
     top: 0,

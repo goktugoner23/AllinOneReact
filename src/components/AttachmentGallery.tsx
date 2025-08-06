@@ -43,6 +43,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const currentAttachment = attachments[currentIndex];
@@ -63,19 +64,61 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
           return (
             <View style={styles.videoContainer}>
               {playingVideo === item.uri ? (
-                <Video
-                  source={{ uri: item.uri }}
-                  style={styles.videoPlayer}
-                  resizeMode="contain"
-                  paused={false}
-                  onEnd={() => setPlayingVideo(null)}
-                  repeat={false}
-                  muted={false}
-                />
+                videoError ? (
+                  <View style={styles.videoErrorContainer}>
+                    <Text style={styles.videoErrorText}>Video playback failed</Text>
+                    <TouchableOpacity 
+                      style={styles.retryButton}
+                      onPress={() => {
+                        setVideoError(null);
+                        setPlayingVideo(null);
+                        setTimeout(() => setPlayingVideo(item.uri), 100);
+                      }}
+                    >
+                      <Text style={styles.retryButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Video
+                    source={{ uri: item.uri }}
+                    style={styles.videoPlayer}
+                    resizeMode="contain"
+                    paused={false}
+                    onEnd={() => {
+                      console.log('Video playback ended');
+                      setPlayingVideo(null);
+                      setVideoError(null);
+                    }}
+                    repeat={false}
+                    muted={false}
+                    controls={true}
+                    onError={(error) => {
+                      console.error('Video playback error:', error);
+                      setVideoError('Failed to play video');
+                      setPlayingVideo(null);
+                    }}
+                    onLoad={(data) => {
+                      console.log('Video loaded successfully:', data);
+                      setVideoError(null);
+                    }}
+                    onBuffer={(buffer) => {
+                      console.log('Video buffering:', buffer.isBuffering);
+                    }}
+                    onProgress={(progress) => {
+                      // Only log progress occasionally to avoid spam
+                      if (Math.floor(progress.currentTime) % 5 === 0) {
+                        console.log('Video progress:', Math.floor(progress.currentTime));
+                      }
+                    }}
+                  />
+                )
               ) : (
                 <TouchableOpacity
                   style={styles.videoThumbnail}
-                  onPress={() => setPlayingVideo(item.uri)}
+                  onPress={() => {
+                    console.log('Starting video playback for URI:', item.uri);
+                    setPlayingVideo(item.uri);
+                  }}
                 >
                   <Video
                     source={{ uri: item.uri }}
@@ -83,7 +126,12 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                     resizeMode="cover"
                     paused={true}
                     muted={true}
-                    onLoad={() => {}}
+                    onLoad={(data) => {
+                      console.log('Video thumbnail loaded:', data);
+                    }}
+                    onError={(error) => {
+                      console.error('Video thumbnail error:', error);
+                    }}
                   />
                   <View style={styles.playOverlay}>
                     <Icon name="play-circle-fill" size={60} color="white" />
@@ -96,8 +144,10 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
         case MediaType.AUDIO:
           return (
             <View style={styles.audioContainer}>
-              <Icon name="music-note" size={80} color="#666" />
-              <Text style={styles.mediaText}>Audio</Text>
+              <View style={styles.audioThumbnail}>
+                <Icon name="music-note" size={60} color="#007AFF" />
+              </View>
+              <Text style={styles.mediaText}>Voice Note</Text>
               <AudioPlayer 
                 attachment={item}
               />
@@ -186,6 +236,8 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
     if (currentIndex > 0) {
       const newIndex = currentIndex - 1;
       setCurrentIndex(newIndex);
+      setPlayingVideo(null);
+      setVideoError(null);
       flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
     }
   };
@@ -194,6 +246,8 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
     if (currentIndex < attachments.length - 1) {
       const newIndex = currentIndex + 1;
       setCurrentIndex(newIndex);
+      setPlayingVideo(null);
+      setVideoError(null);
       flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
     }
   };
@@ -201,6 +255,9 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index);
+      // Reset video state when switching between attachments
+      setPlayingVideo(null);
+      setVideoError(null);
     }
   }).current;
 
@@ -415,6 +472,23 @@ const styles = StyleSheet.create({
     width: screenWidth,
     height: screenHeight * 0.7,
   },
+  audioThumbnail: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#e8f4fd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
 
   placeholderContainer: {
     justifyContent: 'center',
@@ -432,6 +506,29 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     marginTop: 8,
+  },
+  videoErrorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: screenWidth,
+    height: screenHeight * 0.7,
+    backgroundColor: '#1a1a1a',
+  },
+  videoErrorText: {
+    color: 'white',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#2196f3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   placeholderText: {
     color: 'white',
