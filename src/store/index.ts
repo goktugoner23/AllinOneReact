@@ -3,6 +3,7 @@ import wtRegistryReducer from './wtRegistrySlice';
 import calendarReducer from './calendarSlice';
 import balanceReducer from './balanceSlice';
 import notesReducer from './notesSlice';
+import tasksReducer from './tasksSlice';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ const store = configureStore({
     calendar: calendarReducer,
     balance: balanceReducer,
     notes: notesReducer,
+    tasks: tasksReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

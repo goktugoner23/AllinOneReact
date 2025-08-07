@@ -18,18 +18,18 @@ import {
 } from 'react-native';
 import { Card, Button, Chip, Divider, FAB, Portal, Dialog, useTheme, Switch } from 'react-native-paper';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { fetchStudents, addStudent, updateStudent, deleteStudent } from '../data/wtRegistry';
-import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration, deleteRegistrationWithTransactions, updateRegistrationPaymentStatus, addRegistrationWithTransaction } from '../data/wtRegistry';
-import { WTStudent, WTRegistration } from '../types/WTRegistry';
+import { fetchStudents, addStudent, updateStudent, deleteStudent } from '../../data/wtRegistry';
+import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration, deleteRegistrationWithTransactions, updateRegistrationPaymentStatus, addRegistrationWithTransaction } from '../../data/wtRegistry';
+import { WTStudent, WTRegistration } from '../../types/WTRegistry';
 // import DocumentPicker, { isErrorWithCode, errorCodes } from '@react-native-documents/picker';
-import { pickDocument, isValidReceiptFile } from '../utils/documentPicker';
+import { pickDocument, isValidReceiptFile } from '../../utils/documentPicker';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useBalance } from '../store/balanceHooks';
-import { LessonsTab } from './wtregistry/LessonsTab';
-import { SeminarsTab } from './wtregistry/SeminarsTab';
-// import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../utils/fileUtils';
+import { useBalance } from '../../store/balanceHooks';
+import { LessonsTab } from './LessonsTab';
+import { SeminarsTab } from './SeminarsTab';
+// import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../../utils/fileUtils';
 
 const Tab = createBottomTabNavigator();
 

@@ -20,6 +20,7 @@ export class FirebaseIdManager {
     try {
       // Use a standardized collection name for workout-related items
       const standardizedCollectionName = this.getStandardizedCollectionName(collectionName);
+      console.log('FirebaseIdManager: Getting next ID for', collectionName, '->', standardizedCollectionName);
       
       // Check if document exists
       const docRef = doc(this.db, this.countersCollection, standardizedCollectionName);
@@ -29,6 +30,7 @@ export class FirebaseIdManager {
       if (!docSnap.exists() || !docSnap.data()?.count) {
         const initialData = { count: 1 };
         await setDoc(docRef, initialData);
+        console.log('FirebaseIdManager: Created new counter for', standardizedCollectionName, 'with ID 1');
         return 1;
       }
 
@@ -41,13 +43,16 @@ export class FirebaseIdManager {
       const updatedDocSnap = await getDoc(docRef);
       const newCount = updatedDocSnap.data()?.count || 1;
       
+      console.log('FirebaseIdManager: Generated ID', newCount, 'for', standardizedCollectionName);
       return newCount;
     } catch (error) {
       // Log failure and handle gracefully
       console.error('FirebaseIdManager: Failed to get next ID:', error);
       
       // In case of failure, generate a timestamp-based ID as fallback
-      return Date.now();
+      const fallbackId = Date.now();
+      console.log('FirebaseIdManager: Using fallback ID:', fallbackId);
+      return fallbackId;
     }
   }
 
@@ -97,6 +102,10 @@ export class FirebaseIdManager {
         return 'workouts_sessions';
       case 'exercises':
         return 'workouts_exercises';
+      case 'tasks':
+        return 'tasks';
+      case 'taskGroups':
+        return 'taskGroups';
       default:
         return collectionName;
     }

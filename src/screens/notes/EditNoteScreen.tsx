@@ -22,13 +22,13 @@ import {
   Dialog,
   ProgressBar,
 } from 'react-native-paper';
-import { useNotes } from '../store/notesHooks';
-import { NoteFormData } from '../types/Note';
-import RichTextEditor from '../components/RichTextEditor';
-import AttachmentGallery from '../components/AttachmentGallery';
-import VoiceRecorder from '../components/VoiceRecorder';
+import { useNotes } from '../../store/notesHooks';
+import { NoteFormData } from '../../types/Note';
+import RichTextEditor from '../../components/RichTextEditor';
+import AttachmentGallery from '../../components/AttachmentGallery';
+import VoiceRecorder from '../../components/VoiceRecorder';
 // import DrawingScreen from './DrawingScreen'; // DISABLED: Drawing functionality temporarily removed
-import { MediaAttachmentsState, MediaAttachment, MediaType } from '../types/MediaAttachment';
+import { MediaAttachmentsState, MediaAttachment, MediaType } from '../../types/MediaAttachment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 

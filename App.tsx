@@ -18,14 +18,15 @@ import {
 } from '@react-navigation/drawer';
 import { Provider } from 'react-redux';
 import store from './src/store';
-import { TransactionHomeScreen } from './src/screens/TransactionHomeScreen';
+import { TransactionHomeScreen } from './src/screens/transactions/TransactionHomeScreen';
 import { InvestmentsTab } from './src/screens/transactions/InvestmentsTab';
 import { ReportsTab } from './src/screens/transactions/ReportsTab';
-import { WTRegistryScreen } from './src/screens/WTRegistryScreen';
-import { CalendarScreen } from './src/screens/CalendarScreen';
-import { HistoryScreen } from './src/screens/HistoryScreen';
-import NotesScreen from './src/screens/NotesScreen';
-import EditNoteScreen from './src/screens/EditNoteScreen';
+import { WTRegistryScreen } from './src/screens/wtregistry/WTRegistryScreen';
+import { CalendarScreen } from './src/screens/calendar/CalendarScreen';
+import { HistoryScreen } from './src/screens/history/HistoryScreen';
+import NotesScreen from './src/screens/notes/NotesScreen';
+import EditNoteScreen from './src/screens/notes/EditNoteScreen';
+import TasksScreen from './src/screens/tasks/TasksScreen';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -298,6 +299,16 @@ export default function App() {
                   title: 'Notes',
                   drawerIcon: ({ color, size }) => (
                     <Ionicons name="document-text-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="Tasks"
+                component={TasksScreen}
+                options={{
+                  title: 'Tasks',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="checkbox-outline" size={size} color={color} />
                   ),
                 }}
               />

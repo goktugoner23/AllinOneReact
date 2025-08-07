@@ -9,14 +9,14 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { fetchTransactions, deleteTransaction } from '../data/transactions';
-import { fetchRegistrations, fetchStudents, deleteRegistration, deleteRegistrationWithTransactions } from '../data/wtRegistry';
-import { fetchInvestments, deleteInvestment } from '../data/investments';
-import { HistoryItem, HistoryItemType } from '../types/HistoryItem';
-import { Transaction } from '../types/Transaction';
-import { WTRegistration, WTStudent } from '../types/WTRegistry';
+import { fetchTransactions, deleteTransaction } from '../../data/transactions';
+import { fetchRegistrations, fetchStudents, deleteRegistration, deleteRegistrationWithTransactions } from '../../data/wtRegistry';
+import { fetchInvestments, deleteInvestment } from '../../data/investments';
+import { HistoryItem, HistoryItemType } from '../../types/HistoryItem';
+import { Transaction } from '../../types/Transaction';
+import { WTRegistration, WTStudent } from '../../types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useAppTheme } from '../../App';
+import { useAppTheme } from '../../../App';
 
 const FILTERS: { label: string; type: HistoryItemType }[] = [
   { label: 'Income', type: 'TRANSACTION_INCOME' },

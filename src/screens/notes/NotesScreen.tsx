@@ -15,10 +15,10 @@ import { Video } from 'react-native-video';
 import { useNavigation } from '@react-navigation/native';
 import { FAB, Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNotes } from '../store/notesHooks';
-import { Note } from '../types/Note';
-import { formatDate, stripHtmlTags } from '../utils/formatters';
-import AttachmentGallery from '../components/AttachmentGallery';
+import { useNotes } from '../../store/notesHooks';
+import { Note } from '../../types/Note';
+import { formatDate, stripHtmlTags } from '../../utils/formatters';
+import AttachmentGallery from '../../components/AttachmentGallery';
 
 const NotesScreen: React.FC = () => {
   const navigation = useNavigation();

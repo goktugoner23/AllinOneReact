@@ -8,15 +8,15 @@ import {
   Button,
   Alert,
 } from "react-native";
-import { fetchTransactions } from "../data/transactions";
-import { TransactionService } from "../data/transactionService";
-import { Transaction } from "../types/Transaction";
-import { BalanceCard } from "../components/BalanceCard";
-import { TransactionCard } from "../components/TransactionCard";
-import { TransactionForm } from "../components/TransactionForm";
-import { SpendingPieChart } from "../components/SpendingPieChart";
-import { logger } from "../utils/logger";
-import { useBalance } from "../store/balanceHooks";
+import { fetchTransactions } from "../../data/transactions";
+import { TransactionService } from "../../data/transactionService";
+import { Transaction } from "../../types/Transaction";
+import { BalanceCard } from "../../components/BalanceCard";
+import { TransactionCard } from "../../components/TransactionCard";
+import { TransactionForm } from "../../components/TransactionForm";
+import { SpendingPieChart } from "../../components/SpendingPieChart";
+import { logger } from "../../utils/logger";
+import { useBalance } from "../../store/balanceHooks";
 
 const PAGE_SIZE = 5;
 

@@ -77,19 +77,36 @@ src/
 │   ├── SpendingPieChart.tsx
 │   ├── YinYangIcon.tsx
 │   ├── SkiaDrawingCanvas.tsx    # Professional drawing canvas
-
 │   ├── AttachmentGallery.tsx    # Media attachment viewer
+│   ├── TaskCard.tsx             # Task display component
+│   ├── TaskGroupHeader.tsx      # Task group header component
+│   ├── EmptyTasksState.tsx      # Empty tasks state
+│   ├── AddTaskDialog.tsx        # Task creation dialog
+│   ├── EditTaskDialog.tsx       # Task editing dialog
+│   ├── AddTaskGroupDialog.tsx   # Task group creation dialog
+│   ├── DeleteConfirmationDialog.tsx # Reusable delete confirmation
 │   └── ...
-├── screens/            # Screen components
-│   ├── CalendarScreen.tsx
-│   ├── TransactionHomeScreen.tsx
-│   ├── InvestmentsScreen.tsx
-│   ├── WTRegistryScreen.tsx
-│   ├── ReportsScreen.tsx
-│   ├── DrawingScreen.tsx        # Drawing modal screen
-│   ├── EditNoteScreen.tsx       # Note editing with drawing
-│   ├── transactions/
-│   └── wtregistry/
+├── screens/            # Feature-based screen organization
+│   ├── calendar/               # Calendar feature
+│   │   └── CalendarScreen.tsx
+│   ├── tasks/                  # Tasks feature
+│   │   └── TasksScreen.tsx
+│   ├── transactions/           # Transaction features
+│   │   ├── TransactionHomeScreen.tsx
+│   │   ├── FuturesTab.tsx
+│   │   ├── InvestmentsTab.tsx
+│   │   └── ReportsTab.tsx
+│   ├── notes/                  # Notes feature
+│   │   ├── NotesScreen.tsx
+│   │   └── EditNoteScreen.tsx
+│   ├── history/                # History feature
+│   │   └── HistoryScreen.tsx
+│   └── wtregistry/             # Wing Tsun Registry feature
+│       ├── WTRegistryScreen.tsx
+│       ├── RegisterTab.tsx
+│       ├── StudentsTab.tsx
+│       ├── SeminarsTab.tsx
+│       └── LessonsTab.tsx
 ├── config/             # Configuration files
 │   ├── firebase.ts
 │   └── TransactionCategories.ts
@@ -105,6 +122,7 @@ src/
 │   ├── index.ts
 │   ├── calendarSlice.ts
 │   ├── notesSlice.ts  # Notes state management
+│   ├── tasksSlice.ts  # Tasks state management
 │   └── wtRegistrySlice.ts
 ├── types/             # TypeScript interfaces
 │   ├── Event.ts
@@ -112,6 +130,7 @@ src/
 │   ├── Investment.ts
 │   ├── Note.ts        # Note and drawing types
 │   ├── MediaAttachment.ts  # Media attachment types
+│   ├── Task.ts         # Task and TaskGroup types
 │   └── WTRegistry.ts
 ├── utils/             # Utility functions
 │   ├── svgToPng.ts    # SVG to PNG conversion

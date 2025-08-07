@@ -15,7 +15,7 @@ import {
 } from 'react-native-paper';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '../store';
+import { RootState, AppDispatch } from '../../store';
 import {
   generateCalendarEvents,
   fetchFirebaseEvents,
@@ -26,15 +26,15 @@ import {
   setShowEventModal,
   setSelectedEvent,
   setSelectedFirebaseEvent,
-} from '../store/calendarSlice';
+} from '../../store/calendarSlice';
 import {
   loadStudents,
   loadRegistrations,
   loadLessons,
   loadSeminars,
-} from '../store/wtRegistrySlice';
-import { CalendarEvent } from '../types/WTRegistry';
-import { Event, EventFormData, SerializableEvent, serializableToEvent } from '../types/Event';
+} from '../../store/wtRegistrySlice';
+import { CalendarEvent } from '../../types/WTRegistry';
+import { Event, EventFormData, SerializableEvent, serializableToEvent } from '../../types/Event';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export function CalendarScreen() {

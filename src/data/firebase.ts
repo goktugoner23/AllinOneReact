@@ -1,17 +1,7 @@
 import { db, storage } from "../config/firebase";
 import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
   Timestamp,
 } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
 import { logger } from "../utils/logger";
 
 // Get Firestore database instance
