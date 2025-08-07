@@ -53,15 +53,18 @@ export function CalendarScreen() {
     (state: RootState) => state.wtRegistry
   );
 
-  // Temporary debug: Check registration data
-  console.log('Registrations with dates:', registrations.map(r => ({
-    id: r.id,
-    studentName: students.find(s => s.id === r.studentId)?.name,
-    startDate: r.startDate,
-    endDate: r.endDate,
-    hasStartDate: !!r.startDate,
-    hasEndDate: !!r.endDate
-  })));
+  // Remove noisy debug logging in production for performance
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log('Registrations with dates:', registrations.map(r => ({
+      id: r.id,
+      studentName: students.find(s => s.id === r.studentId)?.name,
+      startDate: r.startDate,
+      endDate: r.endDate,
+      hasStartDate: !!r.startDate,
+      hasEndDate: !!r.endDate
+    })));
+  }
 
 
 

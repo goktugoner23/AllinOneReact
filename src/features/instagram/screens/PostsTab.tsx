@@ -1,10 +1,10 @@
 import React, { useEffect, useCallback } from 'react';
 import {
   View,
-  FlatList,
   RefreshControl,
   StyleSheet,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import {
   Text,
   Card,
@@ -122,7 +122,7 @@ const PostsTab: React.FC = () => {
       )}
 
       {/* Posts list */}
-      <FlatList
+      <FlashList
         data={posts?.posts || []}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
@@ -136,10 +136,7 @@ const PostsTab: React.FC = () => {
           />
         }
         showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={5}
-        windowSize={10}
-        removeClippedSubviews={true}
+        estimatedItemSize={260}
       />
     </View>
   );

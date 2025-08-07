@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, StyleSheet, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { 
   Appbar, 
   FAB, 
@@ -164,13 +165,13 @@ const TasksScreen: React.FC = () => {
   });
 
   // Render task item
-  const renderTaskItem = ({ item }: { item: Task }) => (
+  const renderTaskItem = useCallback(({ item }: { item: Task }) => (
     <TaskCard
       task={item}
       onToggleComplete={handleToggleTaskComplete}
       onEdit={handleEditTask}
     />
-  );
+  ), [handleToggleTaskComplete, handleEditTask]);
 
   // Render grouped tasks
   const renderGroupedTasks = () => {
@@ -203,7 +204,7 @@ const TasksScreen: React.FC = () => {
     });
 
     return (
-      <FlatList
+      <FlashList
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
@@ -243,13 +244,14 @@ const TasksScreen: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         contentContainerStyle={styles.listContainer}
+        estimatedItemSize={100}
       />
     );
   };
 
   // Render simple tasks list
   const renderSimpleTasks = () => (
-    <FlatList
+    <FlashList
       data={sortedTasks}
       keyExtractor={(item) => item.id}
       renderItem={renderTaskItem}
@@ -257,6 +259,7 @@ const TasksScreen: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
       contentContainerStyle={styles.listContainer}
+      estimatedItemSize={90}
     />
   );
 

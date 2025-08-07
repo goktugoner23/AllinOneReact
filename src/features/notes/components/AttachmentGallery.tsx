@@ -5,12 +5,12 @@ import {
   Dimensions,
   Image,
   TouchableOpacity,
-  FlatList,
   Alert,
   Share,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Video } from 'react-native-video';
 import {
   IconButton,
@@ -44,7 +44,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlashList<MediaAttachment>>(null);
 
   const currentAttachment = attachments[currentIndex];
 
@@ -314,7 +314,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
 
           {/* Media Content */}
           <View style={styles.contentContainer}>
-            <FlatList
+            <FlashList
               ref={flatListRef}
               data={attachments}
               renderItem={renderMediaItem}
@@ -325,11 +325,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
               initialScrollIndex={initialIndex}
-              getItemLayout={(data, index) => ({
-                length: screenWidth,
-                offset: screenWidth * index,
-                index,
-              })}
+              estimatedItemSize={screenWidth}
             />
           </View>
 

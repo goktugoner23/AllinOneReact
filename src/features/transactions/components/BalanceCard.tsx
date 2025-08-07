@@ -9,7 +9,7 @@ interface BalanceCardProps {
   showLoading?: boolean;
 }
 
-export const BalanceCard: React.FC<BalanceCardProps> = ({
+export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({
   totalIncome: propTotalIncome,
   totalExpense: propTotalExpense,
   balance: propBalance,
@@ -81,7 +81,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       )}
     </View>
   );
-};
+});
 
 interface BalanceItemProps {
   label: string;

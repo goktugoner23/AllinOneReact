@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import {
   Text,
   TextInput,
@@ -32,7 +32,7 @@ import { ChatMessage, ContentType, AttachmentType } from '@features/instagram/ty
 const AskAITab: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlashList<ChatMessage>>(null);
   
   const { messages, loading, suggestions } = useSelector((state: RootState) => state.instagram.ai);
   
@@ -171,7 +171,7 @@ const AskAITab: React.FC = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       {/* Messages list */}
-      <FlatList
+      <FlashList
         ref={flatListRef}
         data={messages}
         renderItem={renderMessageItem}
@@ -182,6 +182,7 @@ const AskAITab: React.FC = () => {
         ]}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        estimatedItemSize={80}
         onContentSizeChange={() => {
           if (messages.length > 0) {
             flatListRef.current?.scrollToEnd({ animated: true });

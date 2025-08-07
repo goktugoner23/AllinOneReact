@@ -27,6 +27,7 @@ import { TasksScreen } from '@features/tasks/screens';
 import { InstagramScreen } from '@features/instagram/screens';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { enableFreeze } from 'react-native-screens';
 import {
   Provider as PaperProvider,
   useTheme,
@@ -157,6 +158,13 @@ export default function App() {
     setupGlobalErrorHandler();
   }, []);
 
+  // Enable freezing offscreen screens to reduce JS work during navigation
+  useEffect(() => {
+    try {
+      enableFreeze(true);
+    } catch (_) {}
+  }, []);
+
   // Balance preloading removed - will load when needed
 
   return (
@@ -177,7 +185,9 @@ export default function App() {
             },
           }}
         >
-          <NavigationContainer theme={{
+          <NavigationContainer
+            documentTitle={{ enabled: false }}
+            theme={{
             dark: isDark,
             colors: {
               background: theme.background,
@@ -205,7 +215,8 @@ export default function App() {
                 fontWeight: '900',
               },
             },
-          }}>
+          }}
+          >
             <Drawer.Navigator
               initialRouteName="Transactions"
               drawerContent={(props) => (
