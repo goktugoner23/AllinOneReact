@@ -13,16 +13,19 @@ import {
   Chip,
   IconButton,
 } from 'react-native-paper';
+import { Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramPosts, clearError } from '@features/instagram/store/instagramSlice';
 import { InstagramPost } from '@features/instagram/types/Instagram';
+import { useNavigation } from '@react-navigation/native';
 import { formatNumber, getMediaTypeIcon, formatRelativeTime, getErrorMessage } from '@features/instagram/utils/instagramHelpers';
 
 const PostsTab: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
+  const navigation = useNavigation<any>();
   
   const { data: posts, loading } = useSelector((state: RootState) => state.instagram.posts);
 
@@ -45,9 +48,13 @@ const PostsTab: React.FC = () => {
   }, [dispatch]);
 
   // Render post item
+  const handleOpenDetails = useCallback((post: InstagramPost) => {
+    navigation.navigate('PostDetail', { post });
+  }, [navigation]);
+
   const renderPostItem = useCallback(({ item }: { item: InstagramPost }) => (
-    <PostCard post={item} />
-  ), []);
+    <PostCard post={item} onPress={() => handleOpenDetails(item)} />
+  ), [handleOpenDetails]);
 
   // Render loading state
   if (loading.isLoading && !posts) {
@@ -139,11 +146,11 @@ const PostsTab: React.FC = () => {
 };
 
 // Post Card Component
-const PostCard: React.FC<{ post: InstagramPost }> = React.memo(({ post }) => {
+const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.memo(({ post, onPress }) => {
   const theme = useTheme();
 
   return (
-    <Card style={[styles.postCard, { backgroundColor: theme.colors.surface }]}>
+    <Card style={[styles.postCard, { backgroundColor: theme.colors.surface }]} onPress={onPress}>
       <Card.Content>
         {/* Post header */}
         <View style={styles.postHeader}>
@@ -165,6 +172,15 @@ const PostCard: React.FC<{ post: InstagramPost }> = React.memo(({ post }) => {
             {post.metrics.engagementRate.toFixed(1)}%
           </Text>
         </View>
+
+        {/* Thumbnail */}
+        {post.thumbnailUrl && (
+          <Image
+            source={{ uri: post.thumbnailUrl }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
+        )}
 
         {/* Post caption */}
         <Text
@@ -312,6 +328,12 @@ const styles = StyleSheet.create({
   postCaption: {
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 12,
+  },
+  thumbnail: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
     marginBottom: 12,
   },
   metricsContainer: {

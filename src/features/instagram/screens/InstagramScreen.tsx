@@ -1,19 +1,23 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { useTheme } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@shared/store';
 import { checkInstagramHealth } from '@features/instagram/store/instagramSlice';
 import { InstagramHeader } from '@features/instagram/components';
+import { InstagramPost } from '@features/instagram/types/Instagram';
 
 // Import tab screens
 import PostsTab from '@features/instagram/screens/PostsTab';
 import InsightsTab from '@features/instagram/screens/InsightsTab';
 import AskAITab from '@features/instagram/screens/AskAITab';
+import PostDetailScreen from '@features/instagram/screens/PostDetailScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
 export type InstagramTabParamList = {
   Posts: undefined;
@@ -21,7 +25,7 @@ export type InstagramTabParamList = {
   'Ask AI': undefined;
 };
 
-const InstagramScreen: React.FC = () => {
+const InstagramTabs: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const { status: healthStatus } = useSelector((state: RootState) => state.instagram.health);
@@ -98,6 +102,15 @@ const InstagramScreen: React.FC = () => {
       />
     </Tab.Navigator>
     </View>
+  );
+};
+
+const InstagramScreen: React.FC = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="InstagramTabs" component={InstagramTabs} />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+    </Stack.Navigator>
   );
 };
 
