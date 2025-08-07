@@ -27,14 +27,14 @@ import { HistoryScreen } from './src/screens/history/HistoryScreen';
 import NotesScreen from './src/screens/notes/NotesScreen';
 import EditNoteScreen from './src/screens/notes/EditNoteScreen';
 import TasksScreen from './src/screens/tasks/TasksScreen';
+import InstagramScreen from './src/screens/instagram/InstagramScreen';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Provider as PaperProvider,
   useTheme,
   Switch,
-  MD3DarkTheme,
-  MD3LightTheme,
+
   Divider,
 } from 'react-native-paper';
 import { lightTheme, darkTheme } from './src/theme';
@@ -167,42 +167,20 @@ export default function App() {
         <PaperProvider theme={{
           colors: {
             primary: theme.primary,
-            onPrimary: theme.onPrimary,
-            primaryContainer: theme.primary,
-            onPrimaryContainer: theme.onPrimary,
-            secondary: theme.accent,
-            onSecondary: theme.onPrimary,
-            secondaryContainer: theme.accent,
-            onSecondaryContainer: theme.onPrimary,
-            tertiary: theme.accent,
-            onTertiary: theme.onPrimary,
-            tertiaryContainer: theme.accent,
-            onTertiaryContainer: theme.onPrimary,
-            error: theme.expense,
-            onError: theme.onPrimary,
-            errorContainer: theme.expense,
-            onErrorContainer: theme.onPrimary,
+            accent: theme.accent,
             background: theme.background,
-            onBackground: theme.text,
             surface: theme.surface,
+            error: theme.expense,
+            text: theme.text,
             onSurface: theme.text,
-            surfaceVariant: theme.chip,
-            onSurfaceVariant: theme.chipText,
-            outline: theme.border,
-            outlineVariant: theme.divider,
-            shadow: theme.border,
-            scrim: theme.border,
-            inverseSurface: theme.surface,
-            inverseOnSurface: theme.text,
-            inversePrimary: theme.primary,
-            elevation: theme.elevation,
-            surfaceDisabled: theme.divider,
-            onSurfaceDisabled: theme.placeholder,
+            disabled: theme.placeholder,
+            placeholder: theme.placeholder,
             backdrop: 'rgba(0, 0, 0, 0.5)',
+            notification: theme.accent,
           },
-          elevation: theme.elevation,
         }}>
           <NavigationContainer theme={{
+            dark: isDark,
             colors: {
               background: theme.background,
               card: theme.surface,
@@ -247,9 +225,9 @@ export default function App() {
                 headerStyle: {
                   backgroundColor: theme.primary,
                 },
-                headerTintColor: theme.onPrimary,
+                headerTintColor: '#FFFFFF',
                 drawerActiveTintColor: theme.primary,
-                drawerInactiveTintColor: theme.onSurface,
+                drawerInactiveTintColor: theme.text,
               }}
             >
               <Drawer.Screen
@@ -309,6 +287,16 @@ export default function App() {
                   title: 'Tasks',
                   drawerIcon: ({ color, size }) => (
                     <Ionicons name="checkbox-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="Instagram"
+                component={InstagramScreen}
+                options={{
+                  title: 'Instagram',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="logo-instagram" size={size} color={color} />
                   ),
                 }}
               />

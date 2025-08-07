@@ -4,6 +4,7 @@ import calendarReducer from './calendarSlice';
 import balanceReducer from './balanceSlice';
 import notesReducer from './notesSlice';
 import tasksReducer from './tasksSlice';
+import instagramReducer from './instagramSlice';
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     balance: balanceReducer,
     notes: notesReducer,
     tasks: tasksReducer,
+    instagram: instagramReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
