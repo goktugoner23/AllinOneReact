@@ -126,18 +126,31 @@ class InstagramApiService extends BaseApiClient {
     analysisQuery: string
   ): Promise<RAGQueryResponse> {
     try {
-      // For now, we'll simulate file upload by sending the query with file info
-      // In a real implementation, you'd upload the file first, then analyze
-      const query = `Analyze this ${mimeType.split('/')[0]} file (${fileName}) for Instagram insights: ${analysisQuery}`;
-      
-      return await this.queryRAG({
-        query,
-        domain: 'instagram',
-        options: {
-          topK: 5,
-          minScore: 0.7
-        }
+      const form = new FormData();
+      // React Native requires { uri, name, type } for file field
+      form.append('file', {
+        // @ts-ignore React Native FormData file type
+        uri: fileUri,
+        name: fileName,
+        type: mimeType,
       });
+      form.append('query', analysisQuery);
+      form.append('contentType', mimeType.split('/')[0]);
+
+      const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post(
+        'api/rag/upload',
+        form,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 120_000,
+        }
+      );
+
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.error || 'Unknown error uploading file');
+      }
+
+      return response.data.data;
     } catch (error) {
       console.error('Failed to upload and analyze file:', error);
       throw this.handleApiError(error, 'Failed to upload and analyze file');
@@ -156,15 +169,18 @@ class InstagramApiService extends BaseApiClient {
 
       const analysisType = this.getInstagramURLType(url);
       const query = customQuery || this.getDefaultAnalysisQuery(analysisType);
-      
-      return await this.queryRAG({
-        query: `Analyze this Instagram URL and provide strategic insights: ${url}. ${query}`,
-        domain: 'instagram',
-        options: {
-          topK: 5,
-          minScore: 0.8 // Higher threshold for URL analysis
-        }
-      });
+
+      const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post(
+        'api/rag/instagram/analyze',
+        { url, query },
+        { timeout: 90_000 }
+      );
+
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.error || 'Unknown error analyzing Instagram URL');
+      }
+
+      return response.data.data;
     } catch (error) {
       console.error('Failed to analyze Instagram URL:', error);
       throw this.handleApiError(error, 'Failed to analyze Instagram URL');
