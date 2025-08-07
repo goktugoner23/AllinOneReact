@@ -23,30 +23,36 @@
     "jsx": "react-native",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@components/*": [
-        "src/components/*"
-      ],
-      "@screens/*": [
-        "src/screens/*"
-      ],
-      "@types/*": [
-        "src/types/*"
-      ],
-      "@store/*": [
-        "src/store/*"
-      ],
-      "@data/*": [
-        "src/data/*"
-      ],
-      "@config/*": [
-        "src/config/*"
-      ],
-      "@utils/*": [
-        "src/utils/*"
-      ]
+      // Feature aliases
+      "@features/*": ["src/features/*"],
+      "@features/transactions/*": ["src/features/transactions/*"],
+      "@features/instagram/*": ["src/features/instagram/*"],
+      "@features/wtregistry/*": ["src/features/wtregistry/*"],
+      "@features/calendar/*": ["src/features/calendar/*"],
+      "@features/notes/*": ["src/features/notes/*"],
+      "@features/tasks/*": ["src/features/tasks/*"],
+      "@features/history/*": ["src/features/history/*"],
+      
+      // Shared aliases
+      "@shared/*": ["src/shared/*"],
+      "@shared/components/*": ["src/shared/components/*"],
+      "@shared/services/*": ["src/shared/services/*"],
+      "@shared/store/*": ["src/shared/store/*"],
+      "@shared/types/*": ["src/shared/types/*"],
+      "@shared/utils/*": ["src/shared/utils/*"],
+      "@shared/hooks/*": ["src/shared/hooks/*"],
+      
+      // Legacy aliases (for backward compatibility during migration)
+      "@/*": ["src/*"],
+      "@components/*": ["src/shared/components/*"],
+      "@screens/*": ["src/features/*"],
+      "@types/*": ["src/shared/types/*"],
+      "@store/*": ["src/shared/store/*"],
+      "@data/*": ["src/data/*"],
+      "@config/*": ["src/config/*"],
+      "@utils/*": ["src/shared/utils/*"],
+      "@theme": ["src/theme"],
+      "@App": ["App"]
     }
   },
   "include": [

@@ -17,30 +17,28 @@ import {
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { Provider } from 'react-redux';
-import store from './src/store';
-import { TransactionHomeScreen } from './src/screens/transactions/TransactionHomeScreen';
-import { InvestmentsTab } from './src/screens/transactions/InvestmentsTab';
-import { ReportsTab } from './src/screens/transactions/ReportsTab';
-import { WTRegistryScreen } from './src/screens/wtregistry/WTRegistryScreen';
-import { CalendarScreen } from './src/screens/calendar/CalendarScreen';
-import { HistoryScreen } from './src/screens/history/HistoryScreen';
-import NotesScreen from './src/screens/notes/NotesScreen';
-import EditNoteScreen from './src/screens/notes/EditNoteScreen';
-import TasksScreen from './src/screens/tasks/TasksScreen';
-import InstagramScreen from './src/screens/instagram/InstagramScreen';
+import store from '@shared/store/rootStore';
+import { TransactionHomeScreen, InvestmentsTab, ReportsTab } from '@features/transactions/screens';
+import { WTRegistryScreen } from '@features/wtregistry/screens';
+import { CalendarScreen } from '@features/calendar/screens';
+import { HistoryScreen } from '@features/history/screens';
+import { NotesScreen, EditNoteScreen } from '@features/notes/screens';
+import { TasksScreen } from '@features/tasks/screens';
+import { InstagramScreen } from '@features/instagram/screens';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Provider as PaperProvider,
   useTheme,
   Switch,
-
   Divider,
+  MD3LightTheme,
+  MD3DarkTheme,
 } from 'react-native-paper';
-import { lightTheme, darkTheme } from './src/theme';
+import { lightTheme, darkTheme } from '@theme';
 
 // Initialize Firebase
-import './src/config/firebase';
+import '@shared/services/firebase/firebase';
 
 // Global error handler to suppress Firestore assertion errors
 const setupGlobalErrorHandler = () => {
@@ -164,21 +162,21 @@ export default function App() {
   return (
     <Provider store={store}>
       <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
-        <PaperProvider theme={{
-          colors: {
-            primary: theme.primary,
-            accent: theme.accent,
-            background: theme.background,
-            surface: theme.surface,
-            error: theme.expense,
-            text: theme.text,
-            onSurface: theme.text,
-            disabled: theme.placeholder,
-            placeholder: theme.placeholder,
-            backdrop: 'rgba(0, 0, 0, 0.5)',
-            notification: theme.accent,
-          },
-        }}>
+        <PaperProvider
+          theme={{
+            ...(isDark ? MD3DarkTheme : MD3LightTheme),
+            colors: {
+              ...(isDark ? MD3DarkTheme.colors : MD3LightTheme.colors),
+              primary: theme.primary,
+              secondary: theme.accent,
+              background: theme.background,
+              surface: theme.surface,
+              error: theme.expense,
+              onSurface: theme.text,
+              onBackground: theme.text,
+            },
+          }}
+        >
           <NavigationContainer theme={{
             dark: isDark,
             colors: {
