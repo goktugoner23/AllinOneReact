@@ -21,7 +21,9 @@ const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
         ignoredPaths: ['_persist'],
       },
+      immutableCheck: false,
     }),
+  devTools: __DEV__,
 });
 
 export type RootState = ReturnType<typeof store.getState>;

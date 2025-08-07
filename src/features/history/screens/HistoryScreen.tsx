@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
+import { FlashList } from '@shopify/flash-list';
 import { fetchRegistrations, fetchStudents, deleteRegistration, deleteRegistrationWithTransactions } from '@features/wtregistry/services/wtRegistry';
 import { fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
 import { HistoryItem, HistoryItemType } from '@features/history/types/HistoryItem';
@@ -244,7 +245,7 @@ export const HistoryScreen: React.FC = () => {
         ))}
       </View>
       {/* History List */}
-      <FlatList
+      <FlashList
         data={filteredItems}
         keyExtractor={item => item.id}
         renderItem={renderItem}
@@ -256,6 +257,7 @@ export const HistoryScreen: React.FC = () => {
           </View>
         }
         contentContainerStyle={{ flexGrow: 1 }}
+        estimatedItemSize={100}
       />
     </View>
   );

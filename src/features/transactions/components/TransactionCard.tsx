@@ -7,7 +7,7 @@ interface TransactionCardProps {
   onLongPress: (transaction: Transaction) => void;
 }
 
-export const TransactionCard: React.FC<TransactionCardProps> = ({
+export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({
   transaction,
   onLongPress,
 }) => {
@@ -57,7 +57,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

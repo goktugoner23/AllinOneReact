@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   Alert,
   RefreshControl,
@@ -16,6 +15,7 @@ import {
   PanResponder,
   Dimensions,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Card, Button, Chip, Divider, FAB, Portal, Dialog, useTheme, Switch } from 'react-native-paper';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '@features/wtregistry/services/wtRegistry';
@@ -330,7 +330,7 @@ const StudentsTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <FlashList
         data={students}
         renderItem={renderStudent}
         keyExtractor={(item) => item.id.toString()}
@@ -343,6 +343,7 @@ const StudentsTab: React.FC = () => {
             <Text style={styles.emptySubtext}>Add your first student to get started</Text>
           </View>
         }
+        estimatedItemSize={110}
       />
       
       <FAB
@@ -813,7 +814,7 @@ const RegisterTab: React.FC = () => {
         </Card.Content>
       </Card>
 
-      <FlatList
+      <FlashList
         data={filteredRegistrations}
         renderItem={renderRegistration}
         keyExtractor={(item) => item.id.toString()}
@@ -830,6 +831,7 @@ const RegisterTab: React.FC = () => {
             </Text>
           </View>
         }
+        estimatedItemSize={120}
       />
       
       <FAB

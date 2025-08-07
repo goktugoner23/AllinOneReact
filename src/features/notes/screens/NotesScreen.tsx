@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   RefreshControl,
   Alert,
@@ -11,7 +10,8 @@ import {
   Image,
   Share,
 } from 'react-native';
-import { Video } from 'react-native-video';
+import { FlashList } from '@shopify/flash-list';
+// Avoid importing heavy video component on the list screen to reduce memory and startup cost
 import { useNavigation } from '@react-navigation/native';
 import { FAB, Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -172,15 +172,9 @@ const NotesScreen: React.FC = () => {
                   >
                     {isImage ? (
                       <Image source={{ uri }} style={styles.previewImage} />
-                    ) : isVideo ? (
+                ) : isVideo ? (
                       <View style={styles.previewVideo}>
-                        <Video
-                          source={{ uri }}
-                          style={styles.previewVideoThumbnail}
-                          resizeMode="cover"
-                          paused={true}
-                          muted={true}
-                        />
+                        <View style={styles.previewVideoThumbnail} />
                         <View style={styles.playOverlay}>
                           <Icon name="play-arrow" size={16} color="white" />
                         </View>
@@ -259,7 +253,7 @@ const NotesScreen: React.FC = () => {
         />
       )}
 
-      <FlatList
+      <FlashList
         data={notes}
         renderItem={renderNoteCard}
         keyExtractor={(item) => item.id.toString()}
@@ -269,6 +263,7 @@ const NotesScreen: React.FC = () => {
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        estimatedItemSize={180}
       />
 
       <View style={styles.fabContainer}>

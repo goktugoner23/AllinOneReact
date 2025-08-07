@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Alert, TouchableOpacity, Linking, Image } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import {
   Card,
   Text,
@@ -276,12 +277,13 @@ export function StudentsTab() {
         </View>
       </Surface>
 
-      <FlatList
+      <FlashList
         data={filteredStudents}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderStudentCard}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        estimatedItemSize={110}
       />
 
       <FAB

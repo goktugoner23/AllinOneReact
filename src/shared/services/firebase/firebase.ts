@@ -19,6 +19,7 @@ const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
   experimentalLongPollingOptions: { timeoutSeconds: 30 },
+  ignoreUndefinedProperties: true,
 });
 const storage = getFirebaseStorage(app);
 import {

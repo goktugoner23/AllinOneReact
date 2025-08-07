@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   Alert,
   RefreshControl,
@@ -11,6 +10,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Card, Button, Chip, Divider } from 'react-native-paper';
 import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment } from '@features/transactions/services/investments';
 import { Investment } from '@features/transactions/types/Investment';
@@ -179,7 +179,7 @@ function InvestmentsContent() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <FlashList
         data={investments}
         renderItem={renderInvestment}
         keyExtractor={(item) => item.id}
@@ -189,6 +189,7 @@ function InvestmentsContent() {
         ListEmptyComponent={
           <Text style={styles.empty}>No investments yet</Text>
         }
+        estimatedItemSize={120}
       />
 
       {/* Action Modal */}

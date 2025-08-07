@@ -10,7 +10,7 @@ interface TaskCardProps {
   style?: any;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, style }) => {
+const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, onEdit, style }) => {
   const theme = useTheme();
   
   // Check if task is overdue
@@ -117,7 +117,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
       </View>
     </Card>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import {
   Card,
   Text,
@@ -369,7 +370,7 @@ export function RegisterTab() {
         </View>
       </Surface>
 
-      <FlatList
+      <FlashList
         data={filteredRegistrations}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderRegistrationCard}
@@ -385,6 +386,7 @@ export function RegisterTab() {
             </Text>
           </View>
         }
+        estimatedItemSize={120}
       />
 
       <FAB

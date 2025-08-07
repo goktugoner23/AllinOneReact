@@ -2,12 +2,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   RefreshControl,
   Button,
   Alert,
 } from "react-native";
+import { FlashList } from '@shopify/flash-list';
 import { fetchTransactions } from "@features/transactions/services/transactions";
 import { TransactionService } from "@features/transactions/services/transactionService";
 import { Transaction } from "@features/transactions/types/Transaction";
@@ -186,7 +186,7 @@ export const TransactionHomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <FlashList
         data={listData}
         keyExtractor={(item, index) => `${item.type}-${index}`}
         renderItem={({ item }) => {
@@ -254,6 +254,7 @@ export const TransactionHomeScreen: React.FC = () => {
             onRefresh={forceRefreshTransactions} // Use force refresh like Kotlin app
           />
         }
+        estimatedItemSize={100}
       />
     </View>
   );
