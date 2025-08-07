@@ -49,7 +49,7 @@
       "@types/*": ["src/shared/types/*"],
       "@store/*": ["src/shared/store/*"],
       "@data/*": ["src/data/*"],
-      "@config/*": ["src/config/*"],
+      "@features/transactions/config/*": ["src/features/transactions/config/*"],
       "@utils/*": ["src/shared/utils/*"],
       "@theme": ["src/theme"],
       "@App": ["App"]

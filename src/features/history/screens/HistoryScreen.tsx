@@ -194,11 +194,11 @@ export const HistoryScreen: React.FC = () => {
                   : { color: theme.registration },
               ]}
             >
-              {item.amount.toLocaleString(undefined, {
+              {new Intl.NumberFormat('tr-TR', {
                 style: 'currency',
-                currency: 'USD',
+                currency: 'TRY',
                 minimumFractionDigits: 2,
-              })}
+              }).format(item.amount)}
             </Text>
           )}
         </View>

@@ -10,7 +10,7 @@ import {
   Modal,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { TransactionCategories } from "@config/TransactionCategories";
+import { TransactionCategories } from "@features/transactions/config/TransactionCategories";
 import { TransactionService } from "@features/transactions/services/transactionService";
 import { YinYangIcon } from "@features/wtregistry/components/YinYangIcon";
 import { logger } from "@shared/utils/logger";

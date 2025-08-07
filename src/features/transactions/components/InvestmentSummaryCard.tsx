@@ -19,6 +19,8 @@ export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({
     (sum, i) => sum + (i.currentValue || 0),
     0,
   );
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
 
   return (
     <Card style={styles.card}>
@@ -27,7 +29,7 @@ export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({
         <View style={styles.row}>
           <View style={styles.column}>
             <Text variant="labelLarge">Total Invested</Text>
-            <Text variant="titleMedium">${total.toFixed(2)}</Text>
+            <Text variant="titleMedium">{formatCurrency(total)}</Text>
           </View>
           <View style={styles.column}>
             <Text variant="labelLarge">Profit/Loss</Text>
@@ -35,12 +37,12 @@ export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({
               variant="titleMedium"
               style={{ color: profitLoss >= 0 ? '#2ecc71' : '#e74c3c' }}
             >
-              {profitLoss.toFixed(2)}
+              {formatCurrency(profitLoss)}
             </Text>
           </View>
           <View style={styles.column}>
             <Text variant="labelLarge">Current Value</Text>
-            <Text variant="titleMedium">${currentValue.toFixed(2)}</Text>
+            <Text variant="titleMedium">{formatCurrency(currentValue)}</Text>
           </View>
         </View>
       </Card.Content>

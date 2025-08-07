@@ -725,7 +725,7 @@ const RegisterTab: React.FC = () => {
 
         {/* Amount */}
         <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 4 }}>
-          Amount: ${item.amount.toFixed(2)}
+          Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
         </Text>
 
         {/* Date Information */}
@@ -807,7 +807,7 @@ const RegisterTab: React.FC = () => {
               color: totalAmount < 10000 ? '#B71C1C' : 
                      totalAmount < 20000 ? '#FF9800' : '#2E7D32'
             }}>
-              ${totalAmount.toFixed(2)}
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
             </Text>
           </View>
         </Card.Content>
@@ -887,7 +887,7 @@ const RegisterTab: React.FC = () => {
                   {getStudentName(selectedRegistration.studentId)}
                 </Text>
                 <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
-                  Amount: ${selectedRegistration.amount.toFixed(2)}
+                  Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedRegistration.amount)}
                 </Text>
                 <Text style={{ marginBottom: 4 }}>
                   Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}

@@ -33,9 +33,9 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   // Show loading indicator if explicitly requested or if balance is loading
   const shouldShowLoading = showLoading || isLoading;
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TRY',
     }).format(amount);
   };
 
@@ -91,9 +91,9 @@ interface BalanceItemProps {
 
 const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, color }) => {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TRY',
     }).format(amount);
   };
 
