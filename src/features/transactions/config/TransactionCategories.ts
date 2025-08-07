@@ -65,3 +65,5 @@ export const TransactionCategories = {
     "Game": { name: "game-controller", color: "#3F51B5" }
   }
 }; 
+
+

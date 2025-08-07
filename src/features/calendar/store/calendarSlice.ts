@@ -79,7 +79,7 @@ export const generateCalendarEvents = createAsyncThunk(
         events.push({
           id: `reg-start-${registration.id}`,
           title: `${studentName} - Registration Start`,
-          description: `Registration period starts for ${studentName}. Amount: $${registration.amount}`,
+          description: `Registration period starts for ${studentName}. Amount: ${new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}`,
           date: new Date(registration.startDate).toISOString(),
           type: 'Registration Start',
           relatedId: registration.id,
@@ -90,7 +90,7 @@ export const generateCalendarEvents = createAsyncThunk(
         events.push({
           id: `reg-end-${registration.id}`,
           title: `${studentName} - Registration End`,
-          description: `Registration period ends for ${studentName}. Amount: $${registration.amount}`,
+          description: `Registration period ends for ${studentName}. Amount: ${new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}`,
           date: new Date(registration.endDate).toISOString(),
           type: 'Registration End',
           relatedId: registration.id,

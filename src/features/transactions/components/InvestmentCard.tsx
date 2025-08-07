@@ -18,6 +18,8 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
   onEditClick,
   onLiquidateClick,
 }) => {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
   return (
     <Card style={styles.card} onPress={() => onInvestmentClick(investment)}>
       <Card.Title
@@ -44,21 +46,15 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
         )}
       />
       <Card.Content>
-        <Text variant="bodyMedium">
-          Amount: ${investment.amount.toFixed(2)}
-        </Text>
+        <Text variant="bodyMedium">Amount: {formatCurrency(investment.amount)}</Text>
         {investment.description ? (
           <Text variant="bodySmall">{investment.description}</Text>
         ) : null}
         <Text variant="bodySmall">
           Date: {new Date(investment.date).toLocaleDateString()}
         </Text>
-        <Text variant="bodySmall">
-          Profit/Loss: {investment.profitLoss?.toFixed(2)}
-        </Text>
-        <Text variant="bodySmall">
-          Current Value: {investment.currentValue?.toFixed(2)}
-        </Text>
+        <Text variant="bodySmall">Profit/Loss: {formatCurrency(investment.profitLoss || 0)}</Text>
+        <Text variant="bodySmall">Current Value: {formatCurrency(investment.currentValue || 0)}</Text>
       </Card.Content>
     </Card>
   );

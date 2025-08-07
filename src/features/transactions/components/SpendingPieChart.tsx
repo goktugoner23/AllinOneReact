@@ -75,7 +75,7 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
               <View style={styles.categoryInfo}>
                 <Text style={styles.categoryName}>{item.category}</Text>
                 <Text style={styles.categoryAmount}>
-                  ${item.amount.toFixed(2)} ({item.percentage.toFixed(1)}%)
+                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)} ({item.percentage.toFixed(1)}%)
                 </Text>
               </View>
             </View>

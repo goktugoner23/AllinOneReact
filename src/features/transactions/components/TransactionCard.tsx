@@ -12,9 +12,9 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   onLongPress,
 }) => {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TRY',
     }).format(amount);
   };
 

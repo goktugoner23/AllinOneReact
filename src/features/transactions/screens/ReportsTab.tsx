@@ -14,6 +14,9 @@ const dateRanges = [
   { label: 'All Time', value: 'all' },
 ];
 
+const formatCurrencyTRY = (amount: number) =>
+  new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+
 function filterByDateRange(transactions: Transaction[], range: string) {
   const now = new Date();
   if (range === 'all') return transactions;
@@ -166,9 +169,9 @@ export const ReportsTab: React.FC = () => {
       <Card style={styles.card}>
         <Card.Title title="Summary Statistics" />
         <Card.Content>
-          <Text>Total Income: {totalIncome.toFixed(2)}</Text>
-          <Text>Total Expense: {totalExpense.toFixed(2)}</Text>
-          <Text>Balance: {balance.toFixed(2)}</Text>
+          <Text>Total Income: {formatCurrencyTRY(totalIncome)}</Text>
+          <Text>Total Expense: {formatCurrencyTRY(totalExpense)}</Text>
+          <Text>Balance: {formatCurrencyTRY(balance)}</Text>
           <Text>Transactions: {filteredTransactions.length}</Text>
         </Card.Content>
       </Card>
@@ -214,7 +217,7 @@ export const ReportsTab: React.FC = () => {
             categorySpending.map(([cat, amt], i) => (
               <View key={cat} style={styles.categoryRow}>
                 <Text style={styles.flex1}>{cat}</Text>
-                <Text style={styles.expenseRedBold}>{amt.toFixed(2)}</Text>
+                <Text style={styles.expenseRedBold}>{formatCurrencyTRY(amt)}</Text>
                 {i < categorySpending.length - 1 && (
                   <Divider style={styles.marginVertical4} />
                 )}
@@ -228,7 +231,7 @@ export const ReportsTab: React.FC = () => {
       <Card style={styles.card}>
         <Card.Title title="Insights" />
         <Card.Content>
-          <Text>Average Transaction: {avgTransaction.toFixed(2)}</Text>
+          <Text>Average Transaction: {formatCurrencyTRY(avgTransaction)}</Text>
           <Text>Most Frequent Category: {mostFrequentCategory}</Text>
           <Text>Total Transactions: {filteredTransactions.length}</Text>
         </Card.Content>

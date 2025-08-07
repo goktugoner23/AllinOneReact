@@ -1,5 +1,6 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from '@config/firebase';
+import { getStorageInstance } from '@shared/services/firebase/firebase';
+const storage = getStorageInstance();
 
 export interface FileUploadResult {
   url: string;

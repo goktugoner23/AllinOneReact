@@ -269,7 +269,7 @@ export function RegisterTab() {
 
           {/* Amount */}
           <Text variant="bodyLarge" style={styles.amount}>
-            Amount: ${registration.amount.toFixed(2)}
+            Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}
           </Text>
 
           {/* Date Information */}
@@ -352,18 +352,18 @@ export function RegisterTab() {
         <View style={styles.summaryContainer}>
           <View style={styles.summaryItem}>
             <Text variant="bodySmall">Total</Text>
-            <Text variant="titleMedium">${totalAmount.toFixed(2)}</Text>
+            <Text variant="titleMedium">{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text variant="bodySmall">Paid</Text>
             <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-              ${paidAmount.toFixed(2)}
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(paidAmount)}
             </Text>
           </View>
           <View style={styles.summaryItem}>
             <Text variant="bodySmall">Unpaid</Text>
             <Text variant="titleMedium" style={{ color: theme.colors.error }}>
-              ${unpaidAmount.toFixed(2)}
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(unpaidAmount)}
             </Text>
           </View>
         </View>
@@ -578,7 +578,7 @@ export function RegisterTab() {
                   {selectedRegistration.studentName}
                 </Text>
                 <Text variant="bodyLarge" style={styles.detailAmount}>
-                  Amount: ${selectedRegistration.amount.toFixed(2)}
+                  Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedRegistration.amount)}
                 </Text>
                 <Text variant="bodyMedium" style={styles.detailText}>
                   Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}

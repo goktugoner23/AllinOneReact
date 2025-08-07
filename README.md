@@ -107,9 +107,10 @@ src/
 │       ├── StudentsTab.tsx
 │       ├── SeminarsTab.tsx
 │       └── LessonsTab.tsx
-├── config/             # Configuration files
-│   ├── firebase.ts
-│   └── TransactionCategories.ts
+├── features/
+│   └── transactions/
+│       └── config/
+│           └── TransactionCategories.ts
 ├── data/              # Data layer
 │   ├── firebase.ts
 │   ├── firebaseIdManager.ts
