@@ -1,54 +1,35 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import { Text, Button, useTheme } from 'react-native-paper';
 
 interface EmptyTasksStateProps {
   onCreateTask: () => void;
 }
 
 const EmptyTasksState: React.FC<EmptyTasksStateProps> = ({ onCreateTask }) => {
+  const theme = useTheme();
+
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Text
-          style={[
-            styles.icon,
-            { color: '#666666' }
-          ]}
-        >
-          📝
-        </Text>
-      </View>
-
       <Text
         variant="headlineSmall"
-        style={[
-          styles.title,
-          { color: '#666666' }
-        ]}
+        style={[styles.title, { color: theme.colors.onSurfaceVariant }]}
       >
-        No tasks yet
+        No Tasks Yet
       </Text>
-
       <Text
         variant="bodyMedium"
-        style={[
-          styles.subtitle,
-          { color: '#666666' }
-        ]}
+        style={[styles.description, { color: theme.colors.onSurfaceVariant }]}
       >
-        Create your first task to get started
+        Create your first task to get started with task management.
       </Text>
-
       <Button
         mode="contained"
         onPress={onCreateTask}
-        style={styles.button}
-        buttonColor="#007AFF"
-        textColor="#ffffff"
-        icon="plus"
+        style={[styles.button, { backgroundColor: theme.colors.primary }]}
+        textColor={theme.colors.onPrimary}
       >
-        Create Task
+        Create Your First Task
       </Button>
     </View>
   );
@@ -59,24 +40,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  icon: {
-    fontSize: 64,
+    paddingHorizontal: 32,
   },
   title: {
-    marginBottom: 8,
     textAlign: 'center',
+    marginBottom: 16,
+    // Color will be set dynamically
   },
-  subtitle: {
-    marginBottom: 24,
+  description: {
     textAlign: 'center',
+    marginBottom: 32,
+    // Color will be set dynamically
   },
   button: {
-    borderRadius: 8,
+    // backgroundColor will be set dynamically
   },
 });
 

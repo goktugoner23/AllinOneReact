@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Card, Text } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { TaskGroup } from '../types/Task';
 
 interface TaskGroupHeaderProps {
@@ -10,124 +10,81 @@ interface TaskGroupHeaderProps {
   onLongPress: (group: TaskGroup) => void;
 }
 
-const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({ 
-  group, 
-  taskCount, 
-  completedCount, 
-  onLongPress 
+const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
+  group,
+  taskCount,
+  completedCount,
+  onLongPress,
 }) => {
-  // Calculate progress percentage
-  const progress = taskCount > 0 ? completedCount / taskCount : 0;
+  const theme = useTheme();
+  
+  const completionPercentage = taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0;
 
-  // Parse group color
   const getGroupColor = () => {
-    try {
-      return group.color;
-    } catch {
-      return '#007AFF';
-    }
+    return group.color || theme.colors.primary;
   };
 
-  const groupColor = getGroupColor();
-
   return (
-    <TouchableOpacity
+    <Card
+      style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
+      elevation={1}
       onLongPress={() => onLongPress(group)}
-      activeOpacity={0.7}
     >
-      <Card
-        style={[
-          styles.card,
-          { backgroundColor: '#f5f5f5' }
-        ]}
-        elevation={1}
-      >
-        <View style={styles.content}>
-          <View style={styles.leftSection}>
-            <View
-              style={[
-                styles.colorIndicator,
-                { backgroundColor: groupColor }
-              ]}
-            />
-          </View>
+      <View style={styles.content}>
+        <View style={styles.leftSection}>
+          <View style={[styles.colorIndicator, { backgroundColor: getGroupColor() }]} />
+        </View>
 
-          <View style={styles.middleSection}>
-            <Text
-              variant="titleMedium"
-              style={[
-                styles.groupTitle,
-                { color: '#000000' }
-              ]}
-              numberOfLines={1}
-            >
-              {group.title}
-            </Text>
-
-            {group.description && (
-              <Text
-                variant="bodySmall"
-                style={[styles.description, { color: '#666666' }]}
-                numberOfLines={1}
-              >
-                {group.description}
-              </Text>
-            )}
-
+        <View style={styles.middleSection}>
+          <Text
+            variant="titleMedium"
+            style={[styles.groupTitle, { color: theme.colors.onSurface }]}
+            numberOfLines={1}
+          >
+            {group.title}
+          </Text>
+          
+          {group.description && (
             <Text
               variant="bodySmall"
-              style={[styles.progressText, { color: '#666666' }]}
+              style={[styles.groupDescription, { color: theme.colors.onSurfaceVariant }]}
+              numberOfLines={1}
             >
-              {completedCount}/{taskCount} completed
+              {group.description}
             </Text>
-          </View>
-
-          <View style={styles.rightSection}>
-            {taskCount > 0 && (
-              <View style={styles.progressContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    { backgroundColor: '#e0e0e0' }
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        backgroundColor: groupColor,
-                        width: `${progress * 100}%`,
-                      }
-                    ]}
-                  />
-                </View>
-                <Text
-                  variant="bodySmall"
-                  style={[
-                    styles.progressPercentage,
-                    { color: groupColor }
-                  ]}
-                >
-                  {Math.round(progress * 100)}%
-                </Text>
-              </View>
-            )}
-          </View>
+          )}
+          
+          <Text
+            variant="bodySmall"
+            style={[styles.taskCount, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {completedCount} of {taskCount} tasks completed ({completionPercentage}%)
+          </Text>
         </View>
-      </Card>
-    </TouchableOpacity>
+
+        <View style={styles.rightSection}>
+          <IconButton
+            icon="dots-vertical"
+            size={20}
+            onPress={() => onLongPress(group)}
+            iconColor={theme.colors.onSurfaceVariant}
+          />
+        </View>
+      </View>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    marginVertical: 4,
     marginHorizontal: 16,
+    marginVertical: 4,
+    // backgroundColor will be set dynamically
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 12,
   },
   leftSection: {
     marginRight: 12,
@@ -137,40 +94,24 @@ const styles = StyleSheet.create({
   },
   rightSection: {
     marginLeft: 8,
-    alignItems: 'flex-end',
   },
   colorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    // backgroundColor will be set dynamically
   },
   groupTitle: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 2,
+    // Color will be set dynamically
   },
-  description: {
-    marginBottom: 4,
+  groupDescription: {
+    marginBottom: 2,
+    // Color will be set dynamically
   },
-  progressText: {
-    fontWeight: '400',
-  },
-  progressContainer: {
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  progressBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  progressPercentage: {
-    fontWeight: '500',
-    fontSize: 12,
+  taskCount: {
+    // Color will be set dynamically
   },
 });
 

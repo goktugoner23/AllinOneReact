@@ -5,7 +5,8 @@ import {
   FAB, 
   Text, 
   IconButton, 
-  ActivityIndicator
+  ActivityIndicator,
+  useTheme
 } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
@@ -34,6 +35,7 @@ import DeleteConfirmationDialog from '../../components/DeleteConfirmationDialog'
 
 
 const TasksScreen: React.FC = () => {
+  const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
 
   // Redux state
@@ -228,10 +230,7 @@ const TasksScreen: React.FC = () => {
               <View style={styles.ungroupedHeader}>
                 <Text
                   variant="titleMedium"
-                  style={[
-                    styles.ungroupedTitle,
-                    { color: '#000000' }
-                  ]}
+                  style={[styles.ungroupedTitle, { color: theme.colors.onSurface }]}
                 >
                   {item.title}
                 </Text>
@@ -263,20 +262,20 @@ const TasksScreen: React.FC = () => {
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, { backgroundColor: '#ffffff' }]}>
-        <Appbar.Header style={{ backgroundColor: '#f5f5f5' }}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Appbar.Header style={[styles.header, { backgroundColor: theme.colors.surfaceVariant }]}>
           <Appbar.Content title="Tasks" />
         </Appbar.Header>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#ffffff' }]}>
-      <Appbar.Header style={{ backgroundColor: '#f5f5f5' }}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header style={[styles.header, { backgroundColor: theme.colors.surfaceVariant }]}>
         <Appbar.Content title="Tasks" />
         <Appbar.Action
           icon={isGroupedView ? 'view-list' : 'view-module'}
@@ -298,7 +297,7 @@ const TasksScreen: React.FC = () => {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: '#007AFF' }]}
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => setShowAddTaskDialog(true)}
       />
 
@@ -356,6 +355,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    // backgroundColor will be set dynamically
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -370,12 +372,14 @@ const styles = StyleSheet.create({
   },
   ungroupedTitle: {
     fontWeight: 'bold',
+    // Color will be set dynamically
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
+    // backgroundColor will be set dynamically
   },
 });
 

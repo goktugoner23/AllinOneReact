@@ -6,7 +6,8 @@ import {
   TextInput, 
   Button, 
   Text, 
-  Chip
+  Chip,
+  useTheme
 } from 'react-native-paper';
 import { TASK_GROUP_COLORS } from '../types/Task';
 
@@ -21,6 +22,7 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
   onDismiss,
   onConfirm,
 }) => {
+  const theme = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState<string>(TASK_GROUP_COLORS[0].value);
@@ -53,9 +55,9 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
       <Dialog 
         visible={visible} 
         onDismiss={handleDismiss} 
-        style={[styles.dialog, { backgroundColor: 'white' }]}
+        style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
       >
-        <Dialog.Title style={{ color: '#000000' }}>Add Task Group</Dialog.Title>
+        <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>Add Task Group</Dialog.Title>
         <Dialog.Content>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.form}>
@@ -78,48 +80,46 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
               <View style={styles.colorSection}>
                 <Text
                   variant="bodyMedium"
-                  style={[styles.sectionTitle, { color: '#000000' }]}
+                  style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
                 >
                   Color
                 </Text>
                 <View style={styles.colorGrid}>
-                  {TASK_GROUP_COLORS.map((colorOption) => (
-                    <View
-                      key={colorOption.value}
-                      style={[
-                        styles.colorOption,
-                        {
-                          backgroundColor: colorOption.value,
-                          borderColor: selectedColor === colorOption.value 
-                            ? '#007AFF' 
-                            : 'transparent',
-                          borderWidth: selectedColor === colorOption.value ? 3 : 1,
-                        }
-                      ]}
-                    >
+                  {TASK_GROUP_COLORS.map((colorOption) => {
+                    const isSelected = selectedColor === colorOption.value;
+                    
+                    return (
                       <View
+                        key={colorOption.value}
                         style={[
-                          styles.colorCircle,
-                          { backgroundColor: colorOption.value }
+                          styles.colorOption,
+                          isSelected && styles.selectedColorOption
                         ]}
-                        onTouchEnd={() => setSelectedColor(colorOption.value)}
-                      />
-                      <Text
-                        variant="bodySmall"
-                        style={[styles.colorLabel, { color: '#000000' }]}
                       >
-                        {colorOption.label}
-                      </Text>
-                    </View>
-                  ))}
+                        <View
+                          style={[
+                            styles.colorCircle,
+                            getColorStyle(colorOption.value)
+                          ]}
+                          onTouchEnd={() => setSelectedColor(colorOption.value)}
+                        />
+                        <Text
+                          variant="bodySmall"
+                          style={[styles.colorLabel, { color: theme.colors.onSurface }]}
+                        >
+                          {colorOption.label}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             </View>
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={handleDismiss} textColor="#666666">Cancel</Button>
-          <Button onPress={handleConfirm} disabled={!title.trim()} textColor="#007AFF">
+          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>Cancel</Button>
+          <Button onPress={handleConfirm} disabled={!title.trim()} textColor={theme.colors.primary}>
             Add Group
           </Button>
         </Dialog.Actions>
@@ -128,9 +128,38 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
   );
 };
 
+// Define static color styles
+const colorStyles = StyleSheet.create({
+  purple: { backgroundColor: '#7C3AED' },
+  green: { backgroundColor: '#4CAF50' },
+  red: { backgroundColor: '#F44336' },
+  orange: { backgroundColor: '#FF9800' },
+  blue: { backgroundColor: '#2196F3' },
+  deepPurple: { backgroundColor: '#9C27B0' },
+  blueGrey: { backgroundColor: '#607D8B' },
+  brown: { backgroundColor: '#795548' },
+});
+
+const getColorStyle = (colorValue: string) => {
+  switch (colorValue) {
+    case '#7C3AED': return colorStyles.purple;
+    case '#4CAF50': return colorStyles.green;
+    case '#F44336': return colorStyles.red;
+    case '#FF9800': return colorStyles.orange;
+    case '#2196F3': return colorStyles.blue;
+    case '#9C27B0': return colorStyles.deepPurple;
+    case '#607D8B': return colorStyles.blueGrey;
+    case '#795548': return colorStyles.brown;
+    default: return { backgroundColor: colorValue };
+  }
+};
+
 const styles = StyleSheet.create({
   dialog: {
     maxHeight: '80%',
+  },
+  dialogTitle: {
+    // Color will be set dynamically
   },
   form: {
     gap: 16,
@@ -144,6 +173,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: '500',
     marginBottom: 12,
+    // Color will be set dynamically
   },
   colorGrid: {
     flexDirection: 'row',
@@ -155,6 +185,12 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     minWidth: 60,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  selectedColorOption: {
+    borderColor: '#007AFF',
+    borderWidth: 3,
   },
   colorCircle: {
     width: 32,
@@ -165,6 +201,7 @@ const styles = StyleSheet.create({
   colorLabel: {
     fontSize: 12,
     textAlign: 'center',
+    // Color will be set dynamically
   },
 });
 

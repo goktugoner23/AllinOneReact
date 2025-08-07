@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, Checkbox, IconButton } from 'react-native-paper';
+import { Card, Text, Checkbox, IconButton, useTheme } from 'react-native-paper';
 import { Task } from '../types/Task';
 
 interface TaskCardProps {
@@ -11,6 +11,8 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, style }) => {
+  const theme = useTheme();
+  
   // Check if task is overdue
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
 
@@ -29,23 +31,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
   // Get card background color based on task state
   const getCardBackgroundColor = () => {
     if (isOverdue) {
-      return '#FFEBEE'; // Light red for overdue
+      return theme.colors.errorContainer;
     }
     if (task.completed) {
-      return '#F5F5F5'; // Light gray for completed
+      return theme.colors.surfaceVariant;
     }
-    return '#ffffff'; // White for normal
+    return theme.colors.surface;
   };
 
   // Get text color based on task state
   const getTextColor = () => {
     if (task.completed) {
-      return '#666666'; // Gray for completed
+      return theme.colors.onSurfaceVariant;
     }
     if (isOverdue) {
-      return '#FF3B30'; // Red for overdue
+      return theme.colors.error;
     }
-    return '#000000'; // Black for normal
+    return theme.colors.onSurface;
   };
 
   return (
@@ -62,7 +64,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
           <Checkbox
             status={task.completed ? 'checked' : 'unchecked'}
             onPress={() => onToggleComplete(task)}
-            color="#007AFF"
+            color={theme.colors.primary}
           />
         </View>
 
@@ -84,7 +86,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
           {task.description && (
             <Text
               variant="bodyMedium"
-              style={[styles.description, { color: '#666666' }]}
+              style={[styles.description, { color: theme.colors.onSurfaceVariant }]}
               numberOfLines={2}
             >
               {task.description}
@@ -96,7 +98,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
               variant="bodySmall"
               style={[
                 styles.dueDate,
-                { color: isOverdue ? '#FF3B30' : '#666666' }
+                { color: isOverdue ? theme.colors.error : theme.colors.onSurfaceVariant }
               ]}
             >
               Due: {formatDueDate(task.dueDate)}
@@ -109,7 +111,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
             icon="dots-vertical"
             size={20}
             onPress={() => onEdit(task)}
-            iconColor="#666666"
+            iconColor={theme.colors.onSurfaceVariant}
           />
         </View>
       </View>
@@ -119,8 +121,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, sty
 
 const styles = StyleSheet.create({
   card: {
-    marginVertical: 4,
     marginHorizontal: 16,
+    marginVertical: 4,
+    // backgroundColor will be set dynamically
   },
   content: {
     flexDirection: 'row',
@@ -139,12 +142,14 @@ const styles = StyleSheet.create({
   taskName: {
     fontWeight: '500',
     marginBottom: 4,
+    // Color will be set dynamically
   },
   description: {
     marginBottom: 4,
+    // Color will be set dynamically
   },
   dueDate: {
-    fontWeight: '400',
+    // Color will be set dynamically
   },
 });
 
