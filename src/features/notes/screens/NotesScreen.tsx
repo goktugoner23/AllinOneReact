@@ -19,6 +19,7 @@ import { useNotes } from '@features/notes/store/notesHooks';
 import { Note } from '@features/notes/types/Note';
 import { formatDate, stripHtmlTags } from '@shared/utils/formatters';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
+import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 
 const NotesScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -36,7 +37,7 @@ const NotesScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showAttachmentGallery, setShowAttachmentGallery] = useState(false);
-  const [selectedAttachments, setSelectedAttachments] = useState<Array<{ uri: string; type: 'image' | 'video' | 'audio'; name?: string }>>([]);
+  const [selectedAttachments, setSelectedAttachments] = useState<MediaAttachment[]>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
 
   useEffect(() => {
@@ -101,20 +102,21 @@ const NotesScreen: React.FC = () => {
     const voiceUris = item.voiceNoteUris?.split(',').filter(Boolean) || [];
     const allAttachments = [...imageUris, ...videoUris, ...voiceUris];
 
-    const handleAttachmentPress = (uri: string, type: 'image' | 'video' | 'audio') => {
+    const handleAttachmentPress = (uri: string) => {
       // Find the index of the clicked attachment
       const clickedIndex = allAttachments.findIndex(att => att === uri);
       
       // Create attachments array for the gallery
-      const attachments = allAttachments.map(att => {
+      const attachments: MediaAttachment[] = allAttachments.map((att, idx) => {
         const isImage = imageUris.includes(att);
         const isVideo = videoUris.includes(att);
         const isAudio = voiceUris.includes(att);
         
         return {
+          id: `${item.id}_${idx}`,
           uri: att,
-          type: (isImage ? 'image' : isVideo ? 'video' : 'audio') as 'image' | 'video' | 'audio',
-          name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`
+          type: isImage ? MediaType.IMAGE : isVideo ? MediaType.VIDEO : MediaType.AUDIO,
+          name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`,
         };
       });
       
@@ -165,10 +167,7 @@ const NotesScreen: React.FC = () => {
                   <TouchableOpacity
                     key={index}
                     style={styles.attachmentPreview}
-                    onPress={() => handleAttachmentPress(
-                      uri, 
-                      isImage ? 'image' : isVideo ? 'video' : 'audio'
-                    )}
+                    onPress={() => handleAttachmentPress(uri)}
                   >
                     {isImage ? (
                       <Image source={{ uri }} style={styles.previewImage} />

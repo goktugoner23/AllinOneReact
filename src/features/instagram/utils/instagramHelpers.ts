@@ -139,6 +139,16 @@ export const getGrowthColor = (growth: number): string => {
 };
 
 /**
+ * Ensure a single leading # and trim whitespace for hashtag display
+ */
+export const formatHashtagForDisplay = (tag: string): string => {
+    if (!tag) return '#';
+    const trimmed = tag.trim();
+    const withoutHashes = trimmed.replace(/^#+/, '');
+    return `#${withoutHashes}`;
+};
+
+/**
  * Format processing time for display
  */
 export const formatProcessingTime = (timeMs: number): string => {

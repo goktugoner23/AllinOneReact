@@ -351,7 +351,7 @@ function UsdMFuturesScreen() {
         </Chip>
       )}
       <FuturesAccountCard account={account} />
-      {loading && <ActivityIndicator style={{ marginVertical: 16 }} />}
+      {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
       
       <TPSLModal
@@ -461,7 +461,7 @@ function CoinMFuturesScreen() {
         </Chip>
       )}
       <FuturesAccountCard account={account} />
-      {loading && <ActivityIndicator style={{ marginVertical: 16 }} />}
+      {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
       
       <TPSLModal

@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Linking, Image } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { InstagramPost } from '@features/instagram/types/Instagram';
 import { Text, Card, IconButton, useTheme, Chip, Button } from 'react-native-paper';
+import { formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 type Params = {
@@ -67,7 +68,9 @@ const PostDetailScreen: React.FC = () => {
           {(post.hashtags?.length ?? 0) > 0 && (
             <View style={styles.hashtags}>
               {post.hashtags.slice(0, 10).map((h, i) => (
-                <Chip key={i} mode="outlined" compact style={styles.hashtag}>#{h}</Chip>
+                <Chip key={i} mode="outlined" compact style={styles.hashtag} textStyle={styles.hashtagText}>
+                  {formatHashtagForDisplay(h)}
+                </Chip>
               ))}
             </View>
           )}
@@ -112,7 +115,19 @@ const styles = StyleSheet.create({
   metricText: { marginLeft: 6, marginRight: 4, fontSize: 14 },
   metricLabel: { fontSize: 12 },
   hashtags: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },
-  hashtag: { marginRight: 6, marginBottom: 6, height: 26 },
+  hashtag: {
+    marginRight: 6,
+    marginBottom: 6,
+    borderRadius: 14,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  hashtagText: {
+    fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
   backBtn: { marginTop: 16 },
 });
 

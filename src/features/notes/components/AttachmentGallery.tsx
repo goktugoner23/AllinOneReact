@@ -25,6 +25,7 @@ import AudioPlayer from '@shared/components/ui/AudioPlayer';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 
 import RNFS from 'react-native-fs';
+import { getCachedUriIfExists, warmCache } from '@shared/services/mediaCache';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -48,18 +49,43 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
 
   const currentAttachment = attachments[currentIndex];
 
-  const renderMediaItem = ({ item, index }: { item: MediaAttachment; index: number }) => {
+  // Pre-warm cache for current, previous and next attachments
+  React.useEffect(() => {
+    const indicesToWarm = [currentIndex, currentIndex - 1, currentIndex + 1].filter(
+      (i) => i >= 0 && i < attachments.length
+    );
+    indicesToWarm.forEach((i) => {
+      const att = attachments[i];
+      const fallbackExt = att.type === MediaType.IMAGE ? 'jpg' : att.type === MediaType.VIDEO ? 'mp4' : 'm4a';
+      warmCache(att.uri, fallbackExt);
+    });
+  }, [currentIndex, attachments]);
+
+  const GalleryItem: React.FC<{ item: MediaAttachment }> = React.memo(({ item }) => {
+    const [cachedUri, setCachedUri] = React.useState<string>(item.uri);
+
+    React.useEffect(() => {
+      let mounted = true;
+      const fallbackExt = item.type === MediaType.IMAGE ? 'jpg' : item.type === MediaType.VIDEO ? 'mp4' : 'm4a';
+      getCachedUriIfExists(item.uri, fallbackExt).then((uri) => {
+        if (mounted) setCachedUri(uri);
+      });
+      return () => {
+        mounted = false;
+      };
+    }, [item.uri, item.type]);
+
     const renderMediaContent = () => {
       switch (item.type) {
         case MediaType.IMAGE:
           return (
             <Image
-              source={{ uri: item.uri }}
+              source={{ uri: cachedUri }}
               style={styles.mediaContent}
               resizeMode="contain"
             />
           );
-        
+
         case MediaType.VIDEO:
           return (
             <View style={styles.videoContainer}>
@@ -80,7 +106,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                   </View>
                 ) : (
                   <Video
-                    source={{ uri: item.uri }}
+                    source={{ uri: cachedUri }}
                     style={styles.videoPlayer}
                     resizeMode="contain"
                     paused={false}
@@ -105,7 +131,6 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                       console.log('Video buffering:', buffer.isBuffering);
                     }}
                     onProgress={(progress) => {
-                      // Only log progress occasionally to avoid spam
                       if (Math.floor(progress.currentTime) % 5 === 0) {
                         console.log('Video progress:', Math.floor(progress.currentTime));
                       }
@@ -121,7 +146,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                   }}
                 >
                   <Video
-                    source={{ uri: item.uri }}
+                    source={{ uri: cachedUri }}
                     style={styles.videoThumbnailPlayer}
                     resizeMode="cover"
                     paused={true}
@@ -140,7 +165,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
               )}
             </View>
           );
-        
+
         case MediaType.AUDIO:
           return (
             <View style={styles.audioContainer}>
@@ -149,13 +174,11 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
               </View>
               <Text style={styles.mediaText}>Voice Note</Text>
               <AudioPlayer 
-                attachment={item}
+                attachment={{ ...item, uri: cachedUri }}
               />
             </View>
           );
-        
 
-        
         default:
           return (
             <View style={styles.placeholderContainer}>
@@ -170,6 +193,10 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
         {renderMediaContent()}
       </View>
     );
+  });
+
+  const renderMediaItem = ({ item }: { item: MediaAttachment; index: number }) => {
+    return <GalleryItem item={item} />;
   };
 
 
