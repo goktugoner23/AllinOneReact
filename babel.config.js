@@ -18,7 +18,7 @@ module.exports = function (api) {
           },
         },
       ],
-      isProd && ['transform-remove-console', { exclude: ['error', 'warn'] }],
+      isProd ? ['transform-remove-console', { exclude: ['error', 'warn'] }],
     ].filter(Boolean),
   };
 };

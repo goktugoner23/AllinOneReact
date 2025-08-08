@@ -160,7 +160,7 @@ const AskAITab: React.FC = () => {
       <Text style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
         Ask questions about your Instagram performance, content strategy, and get insights from your posts.
       </Text>
-      {showSuggestions && renderSuggestedQuestions()}
+      {showSuggestions ? renderSuggestedQuestions() : null}
     </View>
   );
 

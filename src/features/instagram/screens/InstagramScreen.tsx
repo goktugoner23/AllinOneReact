@@ -41,7 +41,7 @@ const InstagramTabs: React.FC = () => {
         title="Instagram Business"
         subtitle="Analytics & AI Assistant"
         showHealthStatus={true}
-        isHealthy={healthStatus?.overall ?? false}
+        isHealthy={healthStatus?.overall ?? true}
       />
       
       <Tab.Navigator

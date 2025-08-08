@@ -20,7 +20,7 @@ import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramPosts, clearError } from '@features/instagram/store/instagramSlice';
 import { InstagramPost } from '@features/instagram/types/Instagram';
 import { useNavigation } from '@react-navigation/native';
-import { formatNumber, getMediaTypeIcon, formatRelativeTime, getErrorMessage } from '@features/instagram/utils/instagramHelpers';
+import { formatNumber, getMediaTypeIcon, formatRelativeTime, getErrorMessage, formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
 
 const PostsTab: React.FC = () => {
   const theme = useTheme();
@@ -121,8 +121,7 @@ const PostsTab: React.FC = () => {
         </View>
       )}
 
-      {/* Posts list */}
-      <FlashList
+          <FlashList
         data={posts?.posts || []}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
@@ -136,7 +135,6 @@ const PostsTab: React.FC = () => {
           />
         }
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={260}
       />
     </View>
   );
@@ -170,16 +168,14 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
           </Text>
         </View>
 
-        {/* Thumbnail */}
-        {post.thumbnailUrl && (
+        {post.thumbnailUrl ? (
           <Image
             source={{ uri: post.thumbnailUrl }}
             style={styles.thumbnail}
             resizeMode="cover"
           />
-        )}
+        ) : null}
 
-        {/* Post caption */}
         <Text
           style={[styles.postCaption, { color: theme.colors.onSurface }]}
           numberOfLines={3}
@@ -187,7 +183,6 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
           {post.caption}
         </Text>
 
-        {/* Metrics */}
         <View style={styles.metricsContainer}>
           <View style={styles.metricItem}>
             <Ionicons name="heart-outline" size={16} color={theme.colors.onSurfaceVariant} />
@@ -201,26 +196,25 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
               {formatNumber(post.metrics.commentsCount)}
             </Text>
           </View>
-          {post.metrics.sharesCount && (
+          {post.metrics.sharesCount && post.metrics.sharesCount > 0 ? (
             <View style={styles.metricItem}>
               <Ionicons name="share-outline" size={16} color={theme.colors.onSurfaceVariant} />
               <Text style={[styles.metricText, { color: theme.colors.onSurfaceVariant }]}>
                 {formatNumber(post.metrics.sharesCount)}
               </Text>
             </View>
-          )}
-          {post.metrics.reachCount && (
+          ) : null}
+          {post.metrics.reachCount && post.metrics.reachCount > 0 ? (
             <View style={styles.metricItem}>
               <Ionicons name="eye-outline" size={16} color={theme.colors.onSurfaceVariant} />
               <Text style={[styles.metricText, { color: theme.colors.onSurfaceVariant }]}>
                 {formatNumber(post.metrics.reachCount)}
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
 
-        {/* Hashtags */}
-        {post.hashtags.length > 0 && (
+        {post.hashtags.length > 0 ? (
           <View style={styles.hashtagsContainer}>
             {post.hashtags.slice(0, 3).map((hashtag, index) => (
               <Chip
@@ -228,18 +222,18 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
                 mode="outlined"
                 compact
                 style={styles.hashtagChip}
-                textStyle={{ fontSize: 10 }}
+                textStyle={styles.hashtagText}
               >
-                #{hashtag}
+                {formatHashtagForDisplay(hashtag)}
               </Chip>
             ))}
-            {post.hashtags.length > 3 && (
+            {post.hashtags.length > 3 ? (
               <Text style={[styles.moreHashtags, { color: theme.colors.onSurfaceVariant }]}>
                 +{post.hashtags.length - 3} more
               </Text>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
       </Card.Content>
     </Card>
   );
@@ -354,9 +348,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hashtagChip: {
-    height: 24,
+    borderRadius: 14,
     marginRight: 6,
-    marginBottom: 4,
+    marginBottom: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  hashtagText: {
+    fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   moreHashtags: {
     fontSize: 10,

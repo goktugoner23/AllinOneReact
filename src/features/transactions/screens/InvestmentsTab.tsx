@@ -149,7 +149,7 @@ function InvestmentsContent() {
             </Chip>
           </View>
           <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
-          {item.description && <Text style={styles.description}>{item.description}</Text>}
+          {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
           <Text style={styles.date}>
             {new Date(item.date).toLocaleDateString()}
           </Text>
