@@ -38,6 +38,7 @@ import {
   MD3DarkTheme,
 } from 'react-native-paper';
 import { lightTheme, darkTheme } from '@theme';
+import StopwatchScreen from '@features/workout/screens/StopwatchScreen';
 
 // Initialize Firebase
 import '@shared/services/firebase/firebase';
@@ -60,6 +61,7 @@ const setupGlobalErrorHandler = () => {
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
+const WorkoutStack = createStackNavigator();
 
 // Transactions Dashboard with bottom tabs (Home, Investments, Reports)
 function TransactionsDashboard() {
@@ -102,6 +104,16 @@ function NotesStack() {
       <Stack.Screen name="NotesList" component={NotesScreen} />
       <Stack.Screen name="EditNote" component={EditNoteScreen} />
     </Stack.Navigator>
+  );
+}
+
+// Workout stack: tabs + separate stopwatch page
+function WorkoutNavigator() {
+  return (
+    <WorkoutStack.Navigator screenOptions={{ headerShown: false }}>
+      <WorkoutStack.Screen name="WorkoutTabs" component={WorkoutTabs} />
+      <WorkoutStack.Screen name="Stopwatch" component={StopwatchScreen} />
+    </WorkoutStack.Navigator>
   );
 }
 
@@ -312,7 +324,7 @@ export default function App() {
               />
               <Drawer.Screen
                 name="Workout"
-                component={WorkoutTabs}
+                component={WorkoutNavigator}
                 options={{
                   title: 'Workout',
                   drawerIcon: ({ color, size }) => (

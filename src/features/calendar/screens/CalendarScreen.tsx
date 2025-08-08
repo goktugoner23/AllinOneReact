@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
 import {
   Text,
-  FAB,
   Portal,
   Dialog,
   TextInput,
@@ -13,6 +12,7 @@ import {
   Chip,
   IconButton,
 } from 'react-native-paper';
+import { PurpleFab } from '@shared/components';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';

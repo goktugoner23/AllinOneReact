@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { PurpleFab } from '@shared/components';
 import {
   Card,
   Text,
-  FAB,
   Portal,
   Dialog,
   TextInput,
@@ -21,7 +21,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addStudent, updateStudent, deleteStudent } from '@features/wtregistry/store/wtRegistrySlice';
-import { WTStudent } from '../../types/WTRegistry';
+import { WTStudent } from '../types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 
@@ -277,7 +277,7 @@ export function StudentsTab() {
         </View>
       </Surface>
 
-      <FlashList
+      <FlashList<WTStudent>
         data={filteredStudents}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderStudentCard}
@@ -286,11 +286,7 @@ export function StudentsTab() {
         estimatedItemSize={110}
       />
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => handleOpenDialog()}
-      />
+      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Detailed Student Modal */}
       <Portal>

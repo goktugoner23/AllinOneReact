@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, FlatList } from 'react-native';
 import { Text, Button, Card, ProgressBar } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
 import { startStopwatch, pause, resume, tick, finishWorkout, completeSet, uncompleteSet, saveProgress } from '@features/workout/store/workoutSlice';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 function formatMs(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -14,10 +15,17 @@ function formatMs(ms: number): string {
 export default function StopwatchScreen() {
   const dispatch = useAppDispatch();
   const { activeSession, stopwatch } = useAppSelector((s) => s.workout);
+  const nav = useNavigation<any>();
+  const startedRef = useRef(false);
 
-  useEffect(() => {
-    if (!stopwatch.isRunning) dispatch(startStopwatch());
-  }, [dispatch]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!stopwatch.isRunning) {
+        dispatch(startStopwatch());
+      }
+      return () => {};
+    }, [dispatch, stopwatch.isRunning])
+  );
 
   useEffect(() => {
     const id = setInterval(() => dispatch(tick()), 1000);
@@ -92,7 +100,19 @@ export default function StopwatchScreen() {
       />
 
       <View style={{ padding: 8 }}>
-        <Button mode="contained" onPress={() => dispatch(finishWorkout(undefined))}>Finish Workout</Button>
+        <Button
+          mode="contained"
+          onPress={async () => {
+            // simple confirmation
+            const confirmed = true; // RN Paper lacks native confirm, keep as immediate or wire a dialog if needed
+            if (confirmed) {
+              await dispatch(finishWorkout(undefined));
+              nav.navigate('WorkoutTabs' as never);
+            }
+          }}
+        >
+          Finish Workout
+        </Button>
       </View>
     </View>
   );

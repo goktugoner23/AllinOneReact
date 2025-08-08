@@ -3,12 +3,12 @@ import { View, StyleSheet, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { 
   Appbar, 
-  FAB, 
   Text, 
   IconButton, 
   ActivityIndicator,
   useTheme
 } from 'react-native-paper';
+import { PurpleFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { 
@@ -298,11 +298,7 @@ const TasksScreen: React.FC = () => {
         isGroupedView ? renderGroupedTasks() : renderSimpleTasks()
       )}
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => setShowAddTaskDialog(true)}
-      />
+      <PurpleFab style={styles.fab} onPress={() => setShowAddTaskDialog(true)} />
 
       {/* Dialogs */}
       <AddTaskDialog

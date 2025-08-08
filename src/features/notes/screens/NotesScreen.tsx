@@ -13,7 +13,8 @@ import {
 import { FlashList } from '@shopify/flash-list';
 // Avoid importing heavy video component on the list screen to reduce memory and startup cost
 import { useNavigation } from '@react-navigation/native';
-import { FAB, Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
+import { Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
+import { PurpleFab } from '@shared/components';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNotes } from '@features/notes/store/notesHooks';
 import { Note } from '@features/notes/types/Note';
@@ -266,16 +267,8 @@ const NotesScreen: React.FC = () => {
       />
 
       <View style={styles.fabContainer}>
-        <FAB
-          icon="magnify"
-          style={[styles.fab, styles.searchFab]}
-          onPress={() => setShowSearch(!showSearch)}
-        />
-        <FAB
-          icon="plus"
-          style={styles.fab}
-          onPress={handleCreateNote}
-        />
+        <PurpleFab iconName="magnify" style={styles.fab} onPress={() => setShowSearch(!showSearch)} />
+        <PurpleFab style={styles.fab} onPress={handleCreateNote} />
       </View>
 
       {/* Attachment Gallery */}
