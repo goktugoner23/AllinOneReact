@@ -5,6 +5,7 @@ import balanceReducer from '@features/transactions/store/balanceSlice';
 import notesReducer from '@features/notes/store/notesSlice';
 import tasksReducer from '@features/tasks/store/tasksSlice';
 import instagramReducer from '@features/instagram/store/instagramSlice';
+import workoutReducer from '@features/workout/store/workoutSlice';
 
 const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ const store = configureStore({
     notes: notesReducer,
     tasks: tasksReducer,
     instagram: instagramReducer,
+    workout: workoutReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
