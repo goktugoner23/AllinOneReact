@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from 'react-native-paper';
-import WorkoutDashboard from './tabs/WorkoutDashboard';
 import WorkoutPrograms from './tabs/WorkoutPrograms';
 import WorkoutExercise from './tabs/WorkoutExercise';
 import WorkoutStats from './tabs/WorkoutStats';
@@ -21,14 +20,12 @@ export default function WorkoutTabs() {
 
   return (
     <Tab.Navigator
-      initialRouteName="Dashboard"
+      initialRouteName="Exercise"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
           const icon =
-            route.name === 'Dashboard'
-              ? 'speedometer-outline'
-              : route.name === 'Exercise'
+            route.name === 'Exercise'
               ? 'barbell-outline'
               : route.name === 'Program'
               ? 'list-outline'
@@ -39,7 +36,6 @@ export default function WorkoutTabs() {
         tabBarInactiveTintColor: theme.colors.onSurface,
       })}
     >
-      <Tab.Screen name="Dashboard" component={WorkoutDashboard} />
       <Tab.Screen name="Exercise" component={WorkoutExercise} />
       <Tab.Screen name="Program" component={WorkoutPrograms} />
       <Tab.Screen name="Stats" component={WorkoutStats} />

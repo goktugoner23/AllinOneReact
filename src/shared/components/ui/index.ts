@@ -4,3 +4,4 @@ export { default as MediaViewer } from './MediaViewer';
 export { default as AudioPlayer } from './AudioPlayer';
 export { default as VoiceRecorder } from './VoiceRecorder';
 export { default as DeleteConfirmationDialog } from './DeleteConfirmationDialog';
+export { default as PurpleFab } from './PurpleFab';

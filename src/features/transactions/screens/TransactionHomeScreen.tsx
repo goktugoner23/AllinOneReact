@@ -4,9 +4,9 @@ import {
   Text,
   StyleSheet,
   RefreshControl,
-  Button,
   Alert,
 } from "react-native";
+import { Button as PaperButton, useTheme } from 'react-native-paper';
 import { FlashList } from '@shopify/flash-list';
 import { fetchTransactions } from "@features/transactions/services/transactions";
 import { TransactionService } from "@features/transactions/services/transactionService";
@@ -46,6 +46,7 @@ type ListItem =
     };
 
 export const TransactionHomeScreen: React.FC = () => {
+  const paperTheme = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -227,21 +228,25 @@ export const TransactionHomeScreen: React.FC = () => {
             case "pagination":
               return (
                 <View style={styles.pagination}>
-                  <Button
-                    title="Previous"
+                  <PaperButton
+                    mode="contained"
                     onPress={item.data.onPrevious}
                     disabled={item.data.currentPage === 0}
-                  />
+                    style={{ backgroundColor: paperTheme.colors.primary }}
+                  >
+                    Previous
+                  </PaperButton>
                   <Text style={styles.pageText}>
                     {item.data.currentPage + 1} / {item.data.totalPages}
                   </Text>
-                  <Button
-                    title="Next"
+                  <PaperButton
+                    mode="contained"
                     onPress={item.data.onNext}
-                    disabled={
-                      item.data.currentPage === item.data.totalPages - 1
-                    }
-                  />
+                    disabled={item.data.currentPage === item.data.totalPages - 1}
+                    style={{ backgroundColor: paperTheme.colors.primary }}
+                  >
+                    Next
+                  </PaperButton>
                 </View>
               );
             default:
@@ -254,7 +259,6 @@ export const TransactionHomeScreen: React.FC = () => {
             onRefresh={forceRefreshTransactions} // Use force refresh like Kotlin app
           />
         }
-        estimatedItemSize={100}
       />
     </View>
   );

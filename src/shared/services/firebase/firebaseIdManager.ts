@@ -97,11 +97,11 @@ export class FirebaseIdManager {
   private getStandardizedCollectionName(collectionName: string): string {
     switch (collectionName) {
       case 'programs':
-        return 'workouts_programs';
+        return 'programs';
       case 'workouts':
-        return 'workouts_sessions';
-      case 'exercises':
-        return 'workouts_exercises';
+        return 'workouts';
+      case 'stats':
+        return 'stats';
       case 'tasks':
         return 'tasks';
       case 'taskGroups':

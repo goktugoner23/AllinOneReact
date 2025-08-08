@@ -27,6 +27,7 @@ interface WorkoutState {
   stopwatch: StopwatchState;
   isLoading: boolean;
   error: string | null;
+  history: CompletedWorkout[];
 }
 
 const initialState: WorkoutState = {
@@ -41,6 +42,7 @@ const initialState: WorkoutState = {
   },
   isLoading: false,
   error: null,
+  history: [],
 };
 
 const now = () => Date.now();
@@ -51,7 +53,11 @@ const buildSessionFromProgram = (id: number, program?: Program): WorkoutSession 
     const sets: TargetSet[] = Array.from({ length: spec.sets }).map((_, idx) => ({
       setNumber: idx + 1,
       targetReps: spec.reps,
-      targetWeight: spec.weight,
+      targetWeight: (() => {
+        if (spec.weight == null) return 0;
+        const n = Number(spec.weight);
+        return isNaN(n) ? 0 : n;
+      })(),
       restTime: 0,
     }));
     return {
@@ -128,6 +134,10 @@ export const finishWorkout = createAsyncThunk('workout/finish', async (notes: st
   return completed;
 });
 
+export const loadHistory = createAsyncThunk('workout/loadHistory', async () => {
+  return await workoutService.getWorkoutHistory();
+});
+
 const slice = createSlice({
   name: 'workout',
   initialState,
@@ -186,9 +196,13 @@ const slice = createSlice({
         state.activeSession = action.payload;
         state.stopwatch = { startTimeMs: null, elapsedMs: 0, isRunning: false, isPaused: false, totalPausedMs: 0, pauseStartedAtMs: null };
       })
-      .addCase(finishWorkout.fulfilled, (state) => {
+      .addCase(finishWorkout.fulfilled, (state, action) => {
+        state.history.unshift(action.payload);
         state.activeSession = null;
         state.stopwatch = { startTimeMs: null, elapsedMs: 0, isRunning: false, isPaused: false, totalPausedMs: 0, pauseStartedAtMs: null };
+      })
+      .addCase(loadHistory.fulfilled, (state, action) => {
+        state.history = action.payload;
       });
   },
 });

@@ -68,9 +68,9 @@ export interface ProgramExerciseSpec {
   exerciseId: number;
   exerciseName: string;
   muscleGroup?: string | null;
-  sets: number;
-  reps: number;
-  weight: number;
+  sets?: number | null;
+  reps?: number | null;
+  weight?: string | null; // allow text like "bodyweight"
   notes?: string | null;
 }
 
@@ -91,6 +91,7 @@ export interface StatsSnapshot {
   id?: number;
   createdAt?: string;
   bodyWeightKg: number;
+  heightCm?: number;
   measurements: Record<string, number>;
   note?: string | null;
 }

@@ -4,7 +4,6 @@ import { FlashList } from '@shopify/flash-list';
 import {
   Card,
   Text,
-  FAB,
   Portal,
   Dialog,
   TextInput,
@@ -18,6 +17,7 @@ import {
   SegmentedButtons,
   ActivityIndicator,
 } from 'react-native-paper';
+import { PurpleFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addRegistration, updateRegistration, deleteRegistration } from '@features/wtregistry/store/wtRegistrySlice';
@@ -389,11 +389,7 @@ export function RegisterTab() {
         estimatedItemSize={120}
       />
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => handleOpenDialog()}
-      />
+      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Add/Edit Registration Dialog */}
       <Portal>

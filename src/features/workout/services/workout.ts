@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, orderBy, query, Timestamp, deleteDoc } from 'firebase/firestore';
 import { getDb } from '@shared/services/firebase/firebase';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { StorageService } from '@shared/services/storage/asyncStorage';
@@ -28,9 +28,9 @@ export const workoutService = {
             exerciseId: Number(e.exerciseId),
             exerciseName: String(e.exerciseName),
             muscleGroup: e.muscleGroup ?? null,
-            sets: Number(e.sets ?? 0),
-            reps: Number(e.reps ?? 0),
-            weight: Number(e.weight ?? 0),
+            sets: e.sets ?? null,
+            reps: e.reps ?? null,
+            weight: (e.weight ?? null) as string | null,
             notes: e.notes ?? null,
           })) as ProgramExerciseSpec[],
         } as Program;
@@ -45,6 +45,11 @@ export const workoutService = {
   },
   async getActiveSession(): Promise<WorkoutSession | null> {
     return (await StorageService.getItem<WorkoutSession>(STORAGE_KEYS.activeSession)) || null;
+  },
+
+  async deleteProgram(programId: number): Promise<void> {
+    const ref = doc(getDb(), COLLECTIONS.programs, programId.toString());
+    await deleteDoc(ref);
   },
   async clearActiveSession(): Promise<void> {
     await StorageService.removeItem(STORAGE_KEYS.activeSession);
@@ -96,6 +101,7 @@ export const workoutService = {
     await setDoc(docRef, {
       id,
       createdAt: Timestamp.now(),
+      heightCm: snapshot.heightCm ?? null,
       bodyWeightKg: snapshot.bodyWeightKg,
       measurements: snapshot.measurements,
       note: snapshot.note ?? null,
@@ -110,6 +116,7 @@ export const workoutService = {
         return {
           id: Number(data.id ?? d.id),
           createdAt: (data.createdAt?.toDate?.() ?? new Date()).toISOString(),
+          heightCm: data.heightCm ?? undefined,
           bodyWeightKg: Number(data.bodyWeightKg ?? 0),
           measurements: data.measurements || {},
           note: data.note ?? null,

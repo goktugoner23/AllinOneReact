@@ -3,7 +3,6 @@ import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import {
   Card,
   Text,
-  FAB,
   Portal,
   Dialog,
   TextInput,
@@ -13,6 +12,7 @@ import {
   Surface,
   Chip,
 } from 'react-native-paper';
+import { PurpleFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
@@ -343,11 +343,7 @@ export function SeminarsTab() {
         }
       />
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => handleOpenDialog()}
-      />
+      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
         <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
