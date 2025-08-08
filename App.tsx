@@ -25,6 +25,7 @@ import { HistoryScreen } from '@features/history/screens';
 import { NotesScreen, EditNoteScreen } from '@features/notes/screens';
 import { TasksScreen } from '@features/tasks/screens';
 import { InstagramScreen } from '@features/instagram/screens';
+import { WorkoutTabs } from '@features/workout';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { enableFreeze } from 'react-native-screens';
@@ -306,6 +307,16 @@ export default function App() {
                   title: 'Instagram',
                   drawerIcon: ({ color, size }) => (
                     <Ionicons name="logo-instagram" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="Workout"
+                component={WorkoutTabs}
+                options={{
+                  title: 'Workout',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="barbell-outline" size={size} color={color} />
                   ),
                 }}
               />
