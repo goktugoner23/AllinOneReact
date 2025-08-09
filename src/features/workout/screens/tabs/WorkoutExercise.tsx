@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { Text, Button, Card, TextInput, Menu, Portal as PaperPortal, Modal as PaperModal } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
@@ -29,7 +29,7 @@ export default function WorkoutExercise() {
   }, []);
 
   return (
-    <View style={{ flex: 1, padding: 12, gap: 12 }}>
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
       <Card>
         <Card.Title title="Exercise" subtitle="Control Center" />
         <Card.Content>
@@ -143,7 +143,7 @@ export default function WorkoutExercise() {
           )}
         </PaperModal>
       </PaperPortal>
-    </View>
+    </ScrollView>
   );
 }
 

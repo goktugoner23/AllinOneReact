@@ -136,13 +136,7 @@ function CustomDrawerContent(props: CustomDrawerContentProps) {
       <Divider />
       <DrawerItemList {...drawerProps} />
       <Divider style={styles.divider} />
-      <DrawerItem
-        label="Settings"
-        icon={({ color, size }) => (
-          <Ionicons name="settings-outline" size={size} color={color} />
-        )}
-        onPress={() => {}}
-      />
+      {/** Settings removed per request */}
       <View style={styles.themeToggle}>
         <Text style={[styles.themeLabel, { color: theme.colors.onSurface }]}>
           Dark Mode

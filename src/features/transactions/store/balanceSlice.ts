@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchTransactions } from '@features/transactions/services/transactions';
+import { fetchTransactions, getTransactionTotals } from '@features/transactions/services/transactions';
 import { fetchInvestments } from '@features/transactions/services/investments';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { Investment } from '@features/transactions/types/Investment';
@@ -49,8 +49,8 @@ export const loadCachedBalance = createAsyncThunk(
         const now = new Date();
         const hoursSinceUpdate = (now.getTime() - lastUpdateTime.getTime()) / (1000 * 60 * 60);
 
-        // Consider cache stale after 1 hour
-        const isStale = hoursSinceUpdate > 1;
+        // Consider cache stale after 30 minutes (reduced from 1 hour)
+        const isStale = hoursSinceUpdate > 0.5;
 
         performanceMonitor.endTimer('loadCachedBalance', true);
         
@@ -88,9 +88,9 @@ export const calculateBalance = createAsyncThunk(
         const lastUpdated = new Date(currentBalance.lastUpdated);
         const now = new Date();
         const timeDiff = now.getTime() - lastUpdated.getTime();
-        const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+        const twoMinutes = 2 * 60 * 1000; // 2 minutes in milliseconds (reduced from 5)
         
-        if (timeDiff < fiveMinutes) {
+        if (timeDiff < twoMinutes) {
           performanceMonitor.endTimer('calculateBalance', true);
           return {
             totalIncome: currentBalance.totalIncome,
@@ -102,26 +102,15 @@ export const calculateBalance = createAsyncThunk(
         }
       }
 
-      // Fetch both transactions and investments in parallel
-      const [transactions, investments] = await Promise.all([
-        fetchTransactions(),
-        fetchInvestments(),
+      // Fetch investments and get transaction totals in parallel
+      const [investments, transactionTotals] = await Promise.all([
+        fetchInvestments(100),   // Limit to 100 investments
+        getTransactionTotals(),  // Get totals from all transactions efficiently
       ]);
 
-      // Calculate totals using more efficient methods
-      let totalIncome = 0;
-      let totalExpense = 0;
-      
-      // Single pass through transactions
-      for (const transaction of transactions) {
-        if (transaction.isIncome) {
-          totalIncome += transaction.amount;
-        } else {
-          totalExpense += transaction.amount;
-        }
-      }
+      const { totalIncome, totalExpense } = transactionTotals;
 
-      // Add investment profits/losses
+      // Add investment profits/losses using reduce for better performance
       const investmentProfit = investments.reduce(
         (sum: number, inv: Investment) => sum + (inv.profitLoss || 0),
         0

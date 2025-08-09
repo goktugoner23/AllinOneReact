@@ -259,6 +259,7 @@ export const TransactionHomeScreen: React.FC = () => {
             onRefresh={forceRefreshTransactions} // Use force refresh like Kotlin app
           />
         }
+        estimatedItemSize={231}
       />
     </View>
   );

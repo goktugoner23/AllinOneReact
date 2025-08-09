@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   StyleSheet,
@@ -29,7 +29,11 @@ import {
 } from '@features/instagram/store/instagramSlice';
 import { ChatMessage, ContentType, AttachmentType } from '@features/instagram/types/Instagram';
 
-const AskAITab: React.FC = () => {
+export interface AskAIHandle {
+  scrollToEnd: () => void;
+}
+
+const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const flatListRef = useRef<FlashList<ChatMessage>>(null);
@@ -38,6 +42,11 @@ const AskAITab: React.FC = () => {
   
   const [inputText, setInputText] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(true);
+
+  // Expose scrollToEnd to parents
+  useImperativeHandle(ref, () => ({
+    scrollToEnd: () => flatListRef.current?.scrollToEnd({ animated: true }),
+  }), []);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -227,7 +236,7 @@ const AskAITab: React.FC = () => {
       </View>
     </KeyboardAvoidingView>
   );
-};
+});
 
 // Message Bubble Component
 const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message }) => {
