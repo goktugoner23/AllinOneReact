@@ -21,9 +21,11 @@ import { Note } from '@features/notes/types/Note';
 import { formatDate, stripHtmlTags } from '@shared/utils/formatters';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
+import { NavigationProps, NotesStackParamList } from '@shared/types/navigation';
+import { Video } from 'react-native-video';
 
 const NotesScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProps<NotesStackParamList>>();
   const {
     notes,
     loading,
@@ -82,11 +84,11 @@ const NotesScreen: React.FC = () => {
   };
 
   const handleNotePress = (note: Note) => {
-    navigation.navigate('EditNote' as never, { noteId: note.id } as never);
+    navigation.navigate({ name: 'EditNote', params: { noteId: String(note.id) } });
   };
 
   const handleCreateNote = () => {
-    navigation.navigate('EditNote' as never, { noteId: null } as never);
+    navigation.navigate({ name: 'EditNote', params: {} });
   };
 
   const renderNoteCard = ({ item }: { item: Note }) => {
@@ -172,9 +174,15 @@ const NotesScreen: React.FC = () => {
                   >
                     {isImage ? (
                       <Image source={{ uri }} style={styles.previewImage} />
-                ) : isVideo ? (
+                    ) : isVideo ? (
                       <View style={styles.previewVideo}>
-                        <View style={styles.previewVideoThumbnail} />
+                        <Video
+                          source={{ uri }}
+                          style={styles.previewVideoThumbnail}
+                          resizeMode="cover"
+                          paused={true}
+                          muted={true}
+                        />
                         <View style={styles.playOverlay}>
                           <Icon name="play-arrow" size={16} color="white" />
                         </View>
