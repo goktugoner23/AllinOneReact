@@ -2,6 +2,8 @@ import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Tim
 import { getDb } from '@shared/services/firebase/firebase';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { Investment } from '../types/Investment';
+import { MediaAttachment } from '@shared/types/MediaAttachment';
+import { uploadInvestmentAttachments } from './investmentAttachments';
 
 let nextInvestmentId = 1;
 
@@ -64,6 +66,9 @@ export async function fetchInvestments(limit: number = 100): Promise<Investment[
         type: data.type ?? '',
         description: data.description ?? '',
         imageUri: data.imageUri ?? '',
+        imageUris: data.imageUris ?? '',
+        videoUris: data.videoUris ?? '',
+        voiceNoteUris: data.voiceNoteUris ?? '',
         date: data.date instanceof Timestamp
           ? data.date.toDate().toISOString()
           : (data.date?.toDate?.() ? data.date.toDate().toISOString() : new Date().toISOString()),
@@ -125,6 +130,9 @@ export async function addInvestment(investment: Omit<Investment, 'id'>): Promise
       type: investment.type,
       description: investment.description || '',
       imageUri: investment.imageUri || '',
+      imageUris: investment.imageUris || '',
+      videoUris: investment.videoUris || '',
+      voiceNoteUris: investment.voiceNoteUris || '',
       date: investment.date,
       isPast: investment.isPast,
       profitLoss: investment.profitLoss,
@@ -141,6 +149,46 @@ export async function addInvestment(investment: Omit<Investment, 'id'>): Promise
   }
 }
 
+/**
+ * Create a new investment with attachments uploaded under investments/{id}/...
+ */
+export async function addInvestmentWithAttachments(
+  investment: Omit<Investment, 'id' | 'imageUris' | 'videoUris' | 'voiceNoteUris'>,
+  attachments: MediaAttachment[]
+): Promise<void> {
+  try {
+    const db = getDb();
+    const investmentId = await firebaseIdManager.getNextId('investments');
+
+    // Upload attachments under investments/{investmentId}
+    const uploaded = await uploadInvestmentAttachments(investmentId.toString(), attachments);
+
+    const investmentData = {
+      id: investmentId,
+      name: investment.name,
+      amount: investment.amount,
+      type: investment.type,
+      description: investment.description || '',
+      imageUri: uploaded.imageUris[0] || investment.imageUri || '',
+      imageUris: uploaded.imageUris.join(','),
+      videoUris: uploaded.videoUris.join(','),
+      voiceNoteUris: uploaded.voiceNoteUris.join(','),
+      date: investment.date,
+      isPast: investment.isPast,
+      profitLoss: investment.profitLoss,
+      currentValue: investment.currentValue,
+    };
+
+    await setDoc(doc(db, 'investments', investmentId.toString()), investmentData);
+
+    // Clear cache
+    investmentCache = null;
+  } catch (error) {
+    console.error('Error adding investment with attachments:', error);
+    throw error;
+  }
+}
+
 export async function updateInvestment(investment: Investment): Promise<void> {
   try {
     const db = getDb();
@@ -153,6 +201,9 @@ export async function updateInvestment(investment: Investment): Promise<void> {
       description: investment.description || '',
       date: new Date(investment.date),
       imageUri: investment.imageUri || '',
+      imageUris: investment.imageUris || '',
+      videoUris: investment.videoUris || '',
+      voiceNoteUris: investment.voiceNoteUris || '',
       isPast: investment.isPast || false,
       profitLoss: investment.profitLoss || 0,
       currentValue: investment.currentValue || investment.amount,
