@@ -11,23 +11,41 @@ import {
   TextInput,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Card, Button, Chip, Divider } from 'react-native-paper';
-import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment } from '@features/transactions/services/investments';
+import { Card, Button, Chip, Divider, useTheme } from 'react-native-paper';
+import { PurpleFab } from '@shared/components';
+import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment, addInvestmentWithAttachments } from '@features/transactions/services/investments';
 import { Investment } from '@features/transactions/types/Investment';
 import { FuturesTab } from './FuturesTab';
+import AttachmentGallery from '@features/notes/components/AttachmentGallery';
+import { Image } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
+import { Video } from 'react-native-video';
+import { launchImageLibrary } from 'react-native-image-picker';
+import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
+import { uploadInvestmentAttachments } from '@features/transactions/services/investmentAttachments';
 
 
 
 function InvestmentsContent() {
+  const theme = useTheme();
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [liquidateDialogVisible, setLiquidateDialogVisible] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', amount: '', type: '', description: '' });
   const [isSaving, setIsSaving] = useState(false);
+  const [showAttachmentGallery, setShowAttachmentGallery] = useState(false);
+  const [selectedAttachments, setSelectedAttachments] = useState<MediaAttachment[]>([]);
+  const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
+  const [editAttachments, setEditAttachments] = useState<MediaAttachment[]>([]);
+  const [addForm, setAddForm] = useState({ name: '', amount: '', type: '', description: '' });
+  const [addAttachments, setAddAttachments] = useState<MediaAttachment[]>([]);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
   const loadInvestments = async () => {
     try {
@@ -61,6 +79,14 @@ function InvestmentsContent() {
         type: selectedInvestment.type,
         description: selectedInvestment.description || '',
       });
+      const existing: MediaAttachment[] = [];
+      const img = selectedInvestment.imageUris?.split(',').filter(Boolean) || [];
+      const vid = selectedInvestment.videoUris?.split(',').filter(Boolean) || [];
+      const aud = selectedInvestment.voiceNoteUris?.split(',').filter(Boolean) || [];
+      img.forEach((uri, idx) => existing.push({ id: `img_${idx}`, uri, type: MediaType.IMAGE }));
+      vid.forEach((uri, idx) => existing.push({ id: `vid_${idx}`, uri, type: MediaType.VIDEO }));
+      aud.forEach((uri, idx) => existing.push({ id: `aud_${idx}`, uri, type: MediaType.AUDIO }));
+      setEditAttachments(existing);
       setEditModalVisible(true);
     }
     setActionModalVisible(false);
@@ -108,12 +134,21 @@ function InvestmentsContent() {
     if (selectedInvestment) {
       setIsSaving(true);
       try {
+        const uploaded = await uploadInvestmentAttachments(selectedInvestment.id, editAttachments);
+        const imageUris = uploaded.imageUris.join(',');
+        const videoUris = uploaded.videoUris.join(',');
+        const voiceNoteUris = uploaded.voiceNoteUris.join(',');
+
         await updateInvestment({
           ...selectedInvestment,
           name: editForm.name,
           amount: parseFloat(editForm.amount),
           type: editForm.type,
           description: editForm.description,
+          imageUris,
+          videoUris,
+          voiceNoteUris,
+          imageUri: uploaded.imageUris[0] || selectedInvestment.imageUri || '',
         });
         setEditModalVisible(false);
         setSelectedInvestment(null);
@@ -153,6 +188,75 @@ function InvestmentsContent() {
           <Text style={styles.date}>
             {new Date(item.date).toLocaleDateString()}
           </Text>
+          {/* Attachment Previews */}
+          {(() => {
+            const imageUris = item.imageUris?.split(',').filter(Boolean) || [];
+            const videoUris = item.videoUris?.split(',').filter(Boolean) || [];
+            const voiceUris = item.voiceNoteUris?.split(',').filter(Boolean) || [];
+            const allAttachments = [...imageUris, ...videoUris, ...voiceUris];
+            if (allAttachments.length === 0) return null;
+
+            const handleAttachmentPress = (uri: string) => {
+              const clickedIndex = allAttachments.findIndex(att => att === uri);
+              const attachments: MediaAttachment[] = allAttachments.map((att, idx) => {
+                const isImage = imageUris.includes(att);
+                const isVideo = videoUris.includes(att);
+                const isAudio = voiceUris.includes(att);
+                return {
+                  id: `${item.id}_${idx}`,
+                  uri: att,
+                  type: isImage ? MediaType.IMAGE : isVideo ? MediaType.VIDEO : MediaType.AUDIO,
+                  name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`,
+                };
+              });
+              setSelectedAttachments(attachments);
+              setSelectedAttachmentIndex(clickedIndex);
+              setShowAttachmentGallery(true);
+            };
+
+            return (
+              <View style={styles.attachmentPreviews}>
+                {allAttachments.slice(0, 3).map((uri, index) => {
+                  const isImage = imageUris.includes(uri);
+                  const isVideo = videoUris.includes(uri);
+                  const isAudio = voiceUris.includes(uri);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.attachmentPreview}
+                      onPress={() => handleAttachmentPress(uri)}
+                    >
+                      {isImage ? (
+                        <Image source={{ uri }} style={styles.previewImage} />
+                      ) : isVideo ? (
+                        <View style={styles.previewVideo}>
+                          <Video
+                            source={{ uri }}
+                            style={styles.previewVideoThumbnail}
+                            resizeMode="cover"
+                            paused={true}
+                            muted={true}
+                          />
+                          <View style={styles.playOverlay}>
+                            <Icon name="play-arrow" size={16} color="white" />
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.previewAudio}>
+                          <Icon name="music-note" size={20} color="#666" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+                {allAttachments.length > 3 && (
+                  <View style={styles.moreAttachments}>
+                    <Text style={styles.moreAttachmentsText}>+{allAttachments.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
           {item.isPast && (
             <View style={styles.profitLossContainer}>
               <Text style={[styles.profitLoss, (item.profitLoss || 0) >= 0 ? styles.profit : styles.loss]}>
@@ -170,14 +274,7 @@ function InvestmentsContent() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => Alert.alert('Add Investment', 'Add investment functionality coming soon')}
-        >
-          <Text style={styles.addBtnText}>Add</Text>
-        </TouchableOpacity>
-      </View>
+      <View style={styles.headerRow} />
 
       <FlashList
         data={investments}
@@ -192,6 +289,15 @@ function InvestmentsContent() {
         estimatedItemSize={120}
       />
 
+      {/* Attachment Gallery */}
+      {showAttachmentGallery && (
+        <AttachmentGallery
+          attachments={selectedAttachments}
+          initialIndex={selectedAttachmentIndex}
+          onClose={() => setShowAttachmentGallery(false)}
+        />
+      )}
+
       {/* Action Modal */}
       <Modal
         visible={actionModalVisible}
@@ -202,16 +308,191 @@ function InvestmentsContent() {
         <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setActionModalVisible(false)}>
           <View style={styles.actionModal}>
             <TouchableOpacity style={styles.actionOption} onPress={handleEdit}>
-              <Text style={styles.actionOptionText}>Edit</Text>
+              <Text style={[styles.actionOptionText, { color: theme.colors.primary }]}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionOption} onPress={handleDelete}>
-              <Text style={styles.actionOptionText}>Delete</Text>
+              <Text style={[styles.actionOptionText, { color: theme.colors.error }]}>Delete</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionOption} onPress={handleLiquidate}>
-              <Text style={styles.actionOptionText}>Liquidate</Text>
+              <Text style={[styles.actionOptionText, { color: theme.colors.error }]}>Liquidate</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Add Modal */}
+      <Modal
+        visible={addModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <View style={styles.modalBg}>
+          <View style={styles.editModal}>
+            <Text style={styles.editTitle}>Add Investment</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              value={addForm.name}
+              onChangeText={text => setAddForm(f => ({ ...f, name: text }))}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Amount"
+              keyboardType="numeric"
+              value={addForm.amount}
+              onChangeText={text => setAddForm(f => ({ ...f, amount: text }))}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Type"
+              value={addForm.type}
+              onChangeText={text => setAddForm(f => ({ ...f, type: text }))}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Description"
+              value={addForm.description}
+              onChangeText={text => setAddForm(f => ({ ...f, description: text }))}
+            />
+
+            <View style={styles.attachmentButtons}>
+              <TouchableOpacity
+                style={styles.attachmentButton}
+                onPress={() => {
+                  launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
+                    if (response.assets) {
+                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                        id: `img_${Date.now()}_${Math.random()}`,
+                        uri: a.uri!,
+                        type: MediaType.IMAGE,
+                        name: a.fileName || 'Image',
+                        size: a.fileSize,
+                      }));
+                      setAddAttachments(prev => [...prev, ...newAttachments]);
+                    }
+                  });
+                }}
+              >
+                <Icon name="photo" size={20} color="#2ecc71" />
+                <Text style={styles.attachmentButtonText}>Image</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.attachmentButton}
+                onPress={() => {
+                  launchImageLibrary({ mediaType: 'video', selectionLimit: 3 }, (response) => {
+                    if (response.assets) {
+                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                        id: `vid_${Date.now()}_${Math.random()}`,
+                        uri: a.uri!,
+                        type: MediaType.VIDEO,
+                        name: a.fileName || 'Video',
+                        size: a.fileSize,
+                      }));
+                      setAddAttachments(prev => [...prev, ...newAttachments]);
+                    }
+                  });
+                }}
+              >
+                <Icon name="videocam" size={20} color="#2ecc71" />
+                <Text style={styles.attachmentButtonText}>Video</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.attachmentButton}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
+                <Icon name="mic" size={20} color="#2ecc71" />
+                <Text style={styles.attachmentButtonText}>Voice</Text>
+              </TouchableOpacity>
+            </View>
+
+            {addAttachments.length > 0 && (
+              <View style={styles.attachmentPreviews}>
+                {addAttachments.map((att) => (
+                  <View key={att.id} style={styles.attachmentPreview}>
+                    {att.type === MediaType.IMAGE ? (
+                      <Image source={{ uri: att.uri }} style={styles.previewImage} />
+                    ) : att.type === MediaType.VIDEO ? (
+                      <View style={styles.previewVideo}>
+                        <Video source={{ uri: att.uri }} style={styles.previewVideoThumbnail} resizeMode="cover" paused muted />
+                        <View style={styles.playOverlay}><Icon name="play-arrow" size={16} color="white" /></View>
+                      </View>
+                    ) : (
+                      <View style={styles.previewAudio}>
+                        <Icon name="music-note" size={20} color="#666" />
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <Button
+                mode="contained"
+                loading={isSaving}
+                disabled={isSaving}
+                onPress={async () => {
+                  setIsSaving(true);
+                  try {
+                    await addInvestmentWithAttachments(
+                      {
+                        name: addForm.name,
+                        amount: parseFloat(addForm.amount || '0'),
+                        type: addForm.type,
+                        description: addForm.description,
+                        date: new Date().toISOString(),
+                        isPast: false,
+                        profitLoss: 0,
+                        currentValue: parseFloat(addForm.amount || '0'),
+                        imageUri: '',
+                      },
+                      addAttachments
+                    );
+                    setAddModalVisible(false);
+                    setAddForm({ name: '', amount: '', type: '', description: '' });
+                    setAddAttachments([]);
+                    await loadInvestments();
+                    Alert.alert('Added', 'Investment added successfully');
+                  } catch (e) {
+                    Alert.alert('Error', 'Failed to add investment');
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+              >
+                Save
+              </Button>
+              <Button mode="text" onPress={() => setAddModalVisible(false)} disabled={isSaving}>
+                Cancel
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Voice Recorder Modal for Attachments */}
+      <Modal
+        visible={showVoiceRecorder}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowVoiceRecorder(false)}
+      >
+        <View style={styles.modalBg}>
+          <View style={styles.editModal}>
+            <VoiceRecorder
+              onRecordingComplete={(filePath: string) => {
+                setEditAttachments(prev => [
+                  ...prev,
+                  { id: `aud_${Date.now()}`, uri: filePath, type: MediaType.AUDIO, name: 'Voice Recording' },
+                ]);
+                setShowVoiceRecorder(false);
+              }}
+              onCancel={() => setShowVoiceRecorder(false)}
+            />
+          </View>
+        </View>
       </Modal>
 
       {/* Edit Modal */}
@@ -249,6 +530,79 @@ function InvestmentsContent() {
               value={editForm.description}
               onChangeText={text => setEditForm(f => ({ ...f, description: text }))}
             />
+            {/* Attachment controls */}
+            <View style={styles.attachmentButtons}>
+              <TouchableOpacity
+                style={styles.attachmentButton}
+                onPress={() => {
+                  launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
+                    if (response.assets) {
+                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                        id: `img_${Date.now()}_${Math.random()}`,
+                        uri: a.uri!,
+                        type: MediaType.IMAGE,
+                        name: a.fileName || 'Image',
+                        size: a.fileSize,
+                      }));
+                      setEditAttachments(prev => [...prev, ...newAttachments]);
+                    }
+                  });
+                }}
+              >
+                <Icon name="photo" size={20} color="#2ecc71" />
+                <Text style={styles.attachmentButtonText}>Image</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.attachmentButton}
+                onPress={() => {
+                  launchImageLibrary({ mediaType: 'video', selectionLimit: 3 }, (response) => {
+                    if (response.assets) {
+                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                        id: `vid_${Date.now()}_${Math.random()}`,
+                        uri: a.uri!,
+                        type: MediaType.VIDEO,
+                        name: a.fileName || 'Video',
+                        size: a.fileSize,
+                      }));
+                      setEditAttachments(prev => [...prev, ...newAttachments]);
+                    }
+                  });
+                }}
+              >
+                <Icon name="videocam" size={20} color="#2ecc71" />
+                <Text style={styles.attachmentButtonText}>Video</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.attachmentButton}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
+                <Icon name="mic" size={20} color="#2ecc71" />
+                <Text style={styles.attachmentButtonText}>Voice</Text>
+              </TouchableOpacity>
+            </View>
+
+            {editAttachments.length > 0 && (
+              <View style={styles.attachmentPreviews}>
+                {editAttachments.map((att) => (
+                  <View key={att.id} style={styles.attachmentPreview}>
+                    {att.type === MediaType.IMAGE ? (
+                      <Image source={{ uri: att.uri }} style={styles.previewImage} />
+                    ) : att.type === MediaType.VIDEO ? (
+                      <View style={styles.previewVideo}>
+                        <Video source={{ uri: att.uri }} style={styles.previewVideoThumbnail} resizeMode="cover" paused muted />
+                        <View style={styles.playOverlay}><Icon name="play-arrow" size={16} color="white" /></View>
+                      </View>
+                    ) : (
+                      <View style={styles.previewAudio}>
+                        <Icon name="music-note" size={20} color="#666" />
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
             <View style={styles.modalActions}>
               <Button mode="contained" onPress={confirmEdit} loading={isSaving} disabled={isSaving}>
                 Save
@@ -306,6 +660,8 @@ function InvestmentsContent() {
           </View>
         </View>
       </Modal>
+      {/* Add Investment FAB */}
+      <PurpleFab style={styles.fab} onPress={() => setAddModalVisible(true)} />
     </View>
   );
 }
@@ -388,7 +744,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   activeTabButtonText: {
-    color: '#2ecc71',
     fontWeight: 'bold',
   },
   tabContent: {
@@ -410,13 +765,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   addBtn: {
-    backgroundColor: '#2ecc71',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   addBtnText: {
-    color: '#fff',
     fontWeight: 'bold',
   },
   empty: {
@@ -445,7 +800,6 @@ const styles = StyleSheet.create({
   },
   actionOptionText: {
     fontSize: 18,
-    color: '#2ecc71',
     fontWeight: 'bold',
   },
   editModal: {
@@ -499,6 +853,94 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 8,
+  },
+  attachmentPreviews: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  attachmentButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  attachmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    gap: 6,
+  },
+  attachmentButtonText: {
+    fontSize: 14,
+    color: '#2ecc71',
+    fontWeight: '500',
+  },
+  attachmentPreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  previewVideo: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e0e0e0',
+    position: 'relative',
+  },
+  previewVideoThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 8,
+  },
+  previewAudio: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e8f4fd',
+  },
+  moreAttachments: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreAttachmentsText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
   },
   amount: {
     fontSize: 18,
