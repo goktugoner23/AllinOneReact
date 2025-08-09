@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   StyleSheet,
@@ -29,23 +29,36 @@ import { getCachedUriIfExists, warmCache } from '@shared/services/mediaCache';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-interface AttachmentGalleryProps {
+export interface AttachmentGalleryProps {
   attachments: MediaAttachment[];
   initialIndex?: number;
   onClose: () => void;
 }
 
-const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({ 
-  attachments, 
-  initialIndex = 0, 
-  onClose 
-}) => {
+export interface AttachmentGalleryHandle {
+  scrollToIndex: (index: number) => void;
+}
+
+const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryProps>(({ 
+  attachments,
+  initialIndex = 0,
+  onClose
+}, ref) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const flatListRef = useRef<FlashList<MediaAttachment>>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToIndex: (index: number) => {
+      if (index >= 0 && index < attachments.length) {
+        setCurrentIndex(index);
+        flatListRef.current?.scrollToIndex({ index, animated: true });
+      }
+    },
+  }), [attachments.length]);
 
   const currentAttachment = attachments[currentIndex];
 
@@ -382,7 +395,7 @@ const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
       </Modal>
     </Portal>
   );
-};
+});
 
 const styles = StyleSheet.create({
   modalContainer: {

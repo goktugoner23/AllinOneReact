@@ -50,14 +50,24 @@ const isoNow = () => new Date().toISOString();
 
 const buildSessionFromProgram = (id: number, program?: Program): WorkoutSession => {
   const exercises: SessionExercise[] = (program?.exercises || []).map((spec: ProgramExerciseSpec) => {
-    const sets: TargetSet[] = Array.from({ length: spec.sets }).map((_, idx) => ({
+    const setsCount: number = (() => {
+      const n = Number(spec.sets ?? 0);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    })();
+    const targetReps: number = (() => {
+      const n = Number(spec.reps ?? 0);
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    })();
+    const targetWeightFromSpec = () => {
+      if (spec.weight == null) return 0;
+      const n = Number(spec.weight);
+      return isNaN(n) ? 0 : n;
+    };
+
+    const sets: TargetSet[] = Array.from({ length: setsCount }).map((_, idx) => ({
       setNumber: idx + 1,
-      targetReps: spec.reps,
-      targetWeight: (() => {
-        if (spec.weight == null) return 0;
-        const n = Number(spec.weight);
-        return isNaN(n) ? 0 : n;
-      })(),
+      targetReps,
+      targetWeight: targetWeightFromSpec(),
       restTime: 0,
     }));
     return {

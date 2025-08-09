@@ -121,7 +121,7 @@ const PostsTab: React.FC = () => {
         </View>
       )}
 
-          <FlashList
+      <FlashList
         data={posts?.posts || []}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
@@ -135,6 +135,7 @@ const PostsTab: React.FC = () => {
           />
         }
         showsVerticalScrollIndicator={false}
+        estimatedItemSize={231}
       />
     </View>
   );

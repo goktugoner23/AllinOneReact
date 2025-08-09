@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,26 +22,65 @@ import TableInsertionModal from '@features/notes/components/TableInsertionModal'
 import ChecklistModal from '@features/tasks/components/ChecklistModal';
 import LinkInsertionModal from '@features/notes/components/LinkInsertionModal';
 
-interface RichTextEditorProps {
+export interface RichTextEditorProps {
   value: string;
   onChange: (text: string) => void;
   placeholder?: string;
   style?: any;
 }
 
+export interface RichTextEditorHandle {
+  focus: () => void;
+  blur: () => void;
+  insertHTML: (html: string) => void;
+  insertLink: (text: string, url: string) => void;
+  getHtml?: () => Promise<string | undefined>;
+}
+
 const { width: screenWidth } = Dimensions.get('window');
 
-const RichTextEditor: React.FC<RichTextEditorProps> = ({
+const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({ 
   value,
   onChange,
   placeholder = 'Start writing your note...',
   style,
-}) => {
+}, ref) => {
   const richText = useRef<RichEditor>(null);
   const [showAdvancedToolbar, setShowAdvancedToolbar] = useState(false);
   const [showTableModal, setShowTableModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+
+  // Expose imperative API to parents
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      // RichEditor exposes focusContentEditor in most versions
+      // Fallback to focus() if available
+      // @ts-expect-error library method
+      richText.current?.focusContentEditor?.();
+      // @ts-expect-error fallback
+      richText.current?.focus?.();
+    },
+    blur: () => {
+      // @ts-expect-error library method
+      richText.current?.blurContentEditor?.();
+    },
+    insertHTML: (html: string) => {
+      richText.current?.insertHTML?.(html);
+    },
+    insertLink: (text: string, url: string) => {
+      richText.current?.insertLink?.(text, url);
+    },
+    getHtml: async () => {
+      // Some versions expose getContentHtml()
+      // @ts-expect-error library method
+      if (typeof richText.current?.getContentHtml === 'function') {
+        // @ts-expect-error library method
+        return await richText.current.getContentHtml();
+      }
+      return undefined;
+    },
+  }), []);
   const handleChange = (text: string) => {
     onChange(text);
   };
@@ -627,7 +666,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -705,4 +744,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RichTextEditor; 
+export default RichTextEditor;
