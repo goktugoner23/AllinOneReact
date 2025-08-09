@@ -7,4 +7,5 @@ export interface Transaction {
   date: string; // ISO string for React Native
   category: string;
   relatedRegistrationId?: number; // Reference to linked registration if applicable
+  relatedInvestmentId?: string; // Reference to linked investment if applicable
 }

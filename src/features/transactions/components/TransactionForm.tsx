@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,9 @@ import { TransactionCategories } from "@features/transactions/config/Transaction
 import { TransactionService } from "@features/transactions/services/transactionService";
 import { YinYangIcon } from "@features/wtregistry/components/YinYangIcon";
 import { logger } from "@shared/utils/logger";
+import { fetchInvestments, updateInvestment } from "@features/transactions/services/investments";
+import { Investment } from "@features/transactions/types/Investment";
+import { InvestmentCategories } from "@features/transactions/config/InvestmentCategories";
 
 interface TransactionFormProps {
   onTransactionAdded: () => void;
@@ -26,7 +29,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [description, setDescription] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [selectedInvestmentType, setSelectedInvestmentType] = useState("");
+  const [showInvestmentTypeDropdown, setShowInvestmentTypeDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showInvestmentPicker, setShowInvestmentPicker] = useState(false);
+  const [investmentOptions, setInvestmentOptions] = useState<Investment[]>([]);
+  const [pendingIsIncome, setPendingIsIncome] = useState<boolean>(false);
+  const [pendingAmount, setPendingAmount] = useState<number>(0);
+  const [pendingDescription, setPendingDescription] = useState<string>("");
 
   // Get categories exactly like Kotlin app
   const categories = TransactionCategories.CATEGORIES;
@@ -51,12 +61,32 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       return;
     }
 
+    // If category is Investment, prompt to choose an investment and then adjust the investment amount
+    if (selectedCategory === "Investment") {
+      try {
+        setIsSubmitting(true);
+        const investments = await fetchInvestments();
+        setInvestmentOptions(investments);
+        setPendingIsIncome(isIncome);
+        setPendingAmount(amountValue);
+        setPendingDescription(description.trim() || "");
+        setShowInvestmentPicker(true);
+      } catch (error) {
+        logger.error("Error loading investments for picker", error, "TransactionForm");
+        Alert.alert("Error", "Failed to load investments");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // Regular non-investment flow
     setIsSubmitting(true);
     try {
       await TransactionService.addTransaction({
         amount: amountValue,
         type: selectedCategory,
-        description: description.trim() || "", // Handle empty description like Kotlin app
+        description: description.trim() || "",
         isIncome,
         date: new Date().toISOString(),
         category: selectedCategory,
@@ -73,6 +103,58 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     } catch (error) {
       logger.error("Error adding transaction", error, "TransactionForm");
       Alert.alert("Error", "Failed to add transaction");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSelectInvestment = async (investment: Investment) => {
+    // Following Kotlin logic:
+    // - If income: add income transaction and DECREASE investment amount by value
+    // - If expense: add expense transaction and INCREASE investment amount by value
+    try {
+      setIsSubmitting(true);
+      // Build description string
+      const txDescription = pendingIsIncome
+        ? (pendingDescription ? `Return from investment: ${investment.name} - ${pendingDescription}` : `Return from investment: ${investment.name}`)
+        : (pendingDescription ? `Investment in ${investment.name} - ${pendingDescription}` : `Investment in ${investment.name}`);
+
+      // 1) Add the transaction
+      await TransactionService.addTransaction({
+        amount: pendingAmount,
+        type: "Investment",
+        description: selectedInvestmentType ? `${txDescription} [${selectedInvestmentType}]` : txDescription,
+        isIncome: pendingIsIncome,
+        date: new Date().toISOString(),
+        category: investment.type,
+        // carry linkage for revert from history
+        relatedInvestmentId: investment.id,
+      });
+
+      // 2) Adjust the investment amount
+      const adjustedAmount = pendingIsIncome
+        ? (investment.amount - pendingAmount) // income -> deduct from investment
+        : (investment.amount + pendingAmount); // expense -> add to investment
+
+      await updateInvestment({
+        ...investment,
+        amount: adjustedAmount,
+        currentValue: typeof investment.currentValue === 'number' ? investment.currentValue : adjustedAmount,
+      });
+
+      // Clean up UI state
+      setShowInvestmentPicker(false);
+      setAmount("");
+      setDescription("");
+      setSelectedCategory("");
+      setPendingAmount(0);
+      setPendingDescription("");
+
+      // Notify parent
+      onTransactionAdded();
+    } catch (error) {
+      logger.error("Error applying investment transaction", error, "TransactionForm");
+      Alert.alert("Error", "Failed to apply investment change");
     } finally {
       setIsSubmitting(false);
     }
@@ -180,6 +262,64 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           </Modal>
         </View>
 
+        {/* Investment Sub-Category Dropdown */}
+        {selectedCategory === 'Investment' && (
+          <View style={styles.dropdownContainer}>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setShowInvestmentTypeDropdown(!showInvestmentTypeDropdown)}
+              disabled={isSubmitting}
+            >
+              <Text
+                style={[
+                  styles.dropdownButtonText,
+                  !selectedInvestmentType && styles.placeholder,
+                ]}
+              >
+                {selectedInvestmentType || 'Investment Type (Stock, Crypto, ...)'}
+              </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+
+            <Modal
+              visible={showInvestmentTypeDropdown}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowInvestmentTypeDropdown(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowInvestmentTypeDropdown(false)}
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Select Investment Type</Text>
+                  <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={true}>
+                    {InvestmentCategories.TYPES.map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        style={styles.modalItem}
+                        onPress={() => {
+                          setSelectedInvestmentType(type);
+                          setShowInvestmentTypeDropdown(false);
+                        }}
+                      >
+                        <Ionicons
+                          name="trending-up"
+                          size={24}
+                          color="#2196F3"
+                          style={styles.modalItemIcon}
+                        />
+                        <Text style={styles.modalItemText}>{type}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </View>
+        )}
+
         <TextInput
           style={styles.input}
           placeholder="Description (Optional)"
@@ -216,6 +356,35 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Investment Picker Modal */}
+      <Modal
+        visible={showInvestmentPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInvestmentPicker(false)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowInvestmentPicker(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Investment</Text>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator>
+              {investmentOptions.map(inv => (
+                <TouchableOpacity
+                  key={inv.id}
+                  style={styles.modalItem}
+                  onPress={() => handleSelectInvestment(inv)}
+                >
+                  <Ionicons name="trending-up" size={24} color="#2196F3" style={styles.modalItemIcon} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalItemText}>{inv.name} ({inv.type})</Text>
+                    <Text style={{ color: '#666', fontSize: 12 }}>Amount: {inv.amount}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
