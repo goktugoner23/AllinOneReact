@@ -32,6 +32,7 @@ export async function addTransaction(
       ...(transaction.relatedRegistrationId !== undefined && {
         relatedRegistrationId: transaction.relatedRegistrationId,
       }),
+      ...(transaction as any).relatedInvestmentId && { relatedInvestmentId: (transaction as any).relatedInvestmentId },
     };
 
     await setDoc(
@@ -64,6 +65,7 @@ export async function updateTransaction(
       ...(transaction.relatedRegistrationId !== undefined && {
         relatedRegistrationId: transaction.relatedRegistrationId,
       }),
+      ...(transaction as any).relatedInvestmentId && { relatedInvestmentId: (transaction as any).relatedInvestmentId },
     };
 
     await setDoc(doc(db, "transactions", transaction.id), transactionData);
@@ -131,6 +133,7 @@ export async function fetchTransactions(limit: number = 50): Promise<Transaction
               : new Date().toISOString(),
         category: data.category ?? "",
         relatedRegistrationId: data.relatedRegistrationId,
+        relatedInvestmentId: data.relatedInvestmentId?.toString(),
       };
     });
 

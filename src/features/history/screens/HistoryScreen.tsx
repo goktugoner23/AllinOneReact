@@ -10,12 +10,13 @@ import {
   Alert,
 } from 'react-native';
 import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
+import { TransactionService } from '@features/transactions/services/transactionService';
+import { updateInvestment, fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
 import { FlashList } from '@shopify/flash-list';
-import { fetchRegistrations, fetchStudents, deleteRegistration, deleteRegistrationWithTransactions } from '@features/wtregistry/services/wtRegistry';
-import { fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
+import { fetchRegistrations, fetchStudents, deleteRegistrationWithTransactions } from '@features/wtregistry/services/wtRegistry';
 import { HistoryItem, HistoryItemType } from '@features/history/types/HistoryItem';
 import { Transaction } from '@features/transactions/types/Transaction';
-import { WTRegistration, WTStudent } from '@features/wtregistry/types/WTRegistry';
+import { WTRegistration } from '@features/wtregistry/types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAppTheme } from '@App';
 
@@ -135,7 +136,19 @@ export const HistoryScreen: React.FC = () => {
           text: 'Delete', style: 'destructive', onPress: async () => {
             try {
               if (item.itemType === 'TRANSACTION_INCOME' || item.itemType === 'TRANSACTION_EXPENSE') {
-                await deleteTransaction(item.id);
+                // Revert transaction effect on investment if linked
+                const txs = await fetchTransactions(1000);
+                const tx = txs.find(t => t.id === item.id);
+                if (tx && (tx as any).relatedInvestmentId) {
+                  const invs = await fetchInvestments(1000);
+                  const inv = invs.find(i => i.id === (tx as any).relatedInvestmentId);
+                  if (inv) {
+                    const amount = tx.amount;
+                    const adjustedAmount = tx.isIncome ? (inv.amount + amount) : (inv.amount - amount);
+                    await updateInvestment({ ...inv, amount: adjustedAmount, currentValue: adjustedAmount });
+                  }
+                }
+                await TransactionService.deleteTransaction(item.id);
               } else if (item.itemType === 'INVESTMENT') {
                 await deleteInvestment(item.id);
               } else if (item.itemType === 'REGISTRATION') {
@@ -256,7 +269,6 @@ export const HistoryScreen: React.FC = () => {
             <Text style={[styles.emptyText, { color: theme.divider }]}>No history yet</Text>
           </View>
         }
-        contentContainerStyle={{ flexGrow: 1 }}
         estimatedItemSize={100}
       />
     </View>
