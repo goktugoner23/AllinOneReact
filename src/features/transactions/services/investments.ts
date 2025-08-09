@@ -28,8 +28,24 @@ async function getNextInvestmentId(): Promise<number> {
   return nextInvestmentId++;
 }
 
-export async function fetchInvestments(): Promise<Investment[]> {
+// Cache for investment counts
+let investmentCache: { 
+  count: number; 
+  investments: Investment[];
+  timestamp: number 
+} | null = null;
+const INVESTMENT_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export async function fetchInvestments(limit: number = 100): Promise<Investment[]> {
   try {
+    const now = Date.now();
+    
+    // Check if we have a valid cache
+    if (investmentCache && (now - investmentCache.timestamp) < INVESTMENT_CACHE_DURATION) {
+      // Return limited results from cache
+      return investmentCache.investments.slice(0, limit);
+    }
+    
     const db = getDb();
 
     // Get all investments (not filtered by deviceId like in Kotlin app)
@@ -58,12 +74,42 @@ export async function fetchInvestments(): Promise<Investment[]> {
     });
     
     // Sort by date descending in memory
-    return investments.sort((a, b) => 
+    const sortedInvestments = investments.sort((a, b) => 
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
+    
+    // Update cache
+    investmentCache = {
+      count: sortedInvestments.length,
+      investments: sortedInvestments,
+      timestamp: now
+    };
+    
+    // Return limited results
+    return sortedInvestments.slice(0, limit);
   } catch (error) {
     console.error('Error fetching investments:', error);
     return [];
+  }
+}
+
+export async function getInvestmentCount(): Promise<number> {
+  try {
+    const now = Date.now();
+    
+    // Check if we have a valid cache
+    if (investmentCache && (now - investmentCache.timestamp) < INVESTMENT_CACHE_DURATION) {
+      return investmentCache.count;
+    }
+    
+    // If no cache, fetch investments to get count
+    const investments = await fetchInvestments(1000); // Fetch more to ensure we get all
+    
+    // Cache should be updated by fetchInvestments
+    return investmentCache?.count || investments.length;
+  } catch (error) {
+    console.error('Error getting investment count:', error);
+    return 0;
   }
 }
 
@@ -86,6 +132,9 @@ export async function addInvestment(investment: Omit<Investment, 'id'>): Promise
     };
     
     await setDoc(doc(db, 'investments', investmentId.toString()), investmentData);
+    
+    // Clear investment cache
+    investmentCache = null;
   } catch (error) {
     console.error('Error adding investment:', error);
     throw error;
@@ -110,6 +159,9 @@ export async function updateInvestment(investment: Investment): Promise<void> {
     };
 
     await setDoc(doc(db, 'investments', investment.id), investmentData);
+    
+    // Clear investment cache
+    investmentCache = null;
   } catch (error) {
     console.error('Error updating investment:', error);
     throw error;
@@ -117,7 +169,15 @@ export async function updateInvestment(investment: Investment): Promise<void> {
 }
 
 export async function deleteInvestment(id: string): Promise<void> {
-  const db = getDb();
-  const ref = doc(db, 'investments', id);
-  await deleteDoc(ref);
+  try {
+    const db = getDb();
+    const ref = doc(db, 'investments', id);
+    await deleteDoc(ref);
+    
+    // Clear investment cache
+    investmentCache = null;
+  } catch (error) {
+    console.error('Error deleting investment:', error);
+    throw error;
+  }
 }

@@ -121,7 +121,8 @@ export class TransactionService {
   private static async getTransactionById(id: string): Promise<Transaction | null> {
     try {
       const { fetchTransactions } = await import('./transactions');
-      const transactions = await fetchTransactions();
+      // Fetch with a reasonable limit and filter in memory for better performance
+      const transactions = await fetchTransactions(1000);
       return transactions.find(t => t.id === id) || null;
     } catch (error) {
       logger.error('Error getting transaction by ID', error, 'TransactionService');
