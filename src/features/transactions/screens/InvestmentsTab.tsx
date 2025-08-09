@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Switch,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Card, Button, Chip, Divider, useTheme } from 'react-native-paper';
@@ -24,6 +25,8 @@ import { Video } from 'react-native-video';
 import { launchImageLibrary } from 'react-native-image-picker';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { uploadInvestmentAttachments } from '@features/transactions/services/investmentAttachments';
+import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
+import { TransactionService } from '@features/transactions/services/transactionService';
 
 
 
@@ -46,6 +49,10 @@ function InvestmentsContent() {
   const [addForm, setAddForm] = useState({ name: '', amount: '', type: '', description: '' });
   const [addAttachments, setAddAttachments] = useState<MediaAttachment[]>([]);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [addIsPast, setAddIsPast] = useState(false);
+  const [editIsPast, setEditIsPast] = useState(false);
+  const [showTypeDropdownAdd, setShowTypeDropdownAdd] = useState(false);
+  const [showTypeDropdownEdit, setShowTypeDropdownEdit] = useState(false);
 
   const loadInvestments = async () => {
     try {
@@ -79,6 +86,7 @@ function InvestmentsContent() {
         type: selectedInvestment.type,
         description: selectedInvestment.description || '',
       });
+      setEditIsPast(!!selectedInvestment.isPast);
       const existing: MediaAttachment[] = [];
       const img = selectedInvestment.imageUris?.split(',').filter(Boolean) || [];
       const vid = selectedInvestment.videoUris?.split(',').filter(Boolean) || [];
@@ -149,6 +157,7 @@ function InvestmentsContent() {
           videoUris,
           voiceNoteUris,
           imageUri: uploaded.imageUris[0] || selectedInvestment.imageUri || '',
+          isPast: editIsPast,
         });
         setEditModalVisible(false);
         setSelectedInvestment(null);
@@ -343,18 +352,57 @@ function InvestmentsContent() {
               value={addForm.amount}
               onChangeText={text => setAddForm(f => ({ ...f, amount: text }))}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Type"
-              value={addForm.type}
-              onChangeText={text => setAddForm(f => ({ ...f, type: text }))}
-            />
+            {/* Investment Type Dropdown (Add) */}
+            <View style={styles.dropdownContainer}>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowTypeDropdownAdd(!showTypeDropdownAdd)}
+              >
+                <Text style={[styles.dropdownButtonText, !addForm.type && styles.placeholder]}>
+                  {addForm.type || 'Investment Type (Stock, Crypto, ... )'}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
+              <Modal
+                visible={showTypeDropdownAdd}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowTypeDropdownAdd(false)}
+              >
+                <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setShowTypeDropdownAdd(false)}>
+                  <View style={styles.confirmModal}>
+                    <Text style={styles.confirmTitle}>Select Investment Type</Text>
+                    <View style={{ width: '100%' }}>
+                      {InvestmentCategories.TYPES.map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={styles.modalItem}
+                          onPress={() => {
+                            setAddForm(f => ({ ...f, type }));
+                            setShowTypeDropdownAdd(false);
+                          }}
+                        >
+                          <Icon name="trending-up" size={20} color={theme.colors.primary} style={{ marginRight: 10 }} />
+                          <Text style={styles.modalItemText}>{type}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Description"
               value={addForm.description}
               onChangeText={text => setAddForm(f => ({ ...f, description: text }))}
             />
+
+            {/* Past Investment Switch (Add) */}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Past Investment</Text>
+              <Switch value={addIsPast} onValueChange={setAddIsPast} />
+            </View>
 
             <View style={styles.attachmentButtons}>
               <TouchableOpacity
@@ -374,8 +422,8 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="photo" size={20} color="#2ecc71" />
-                <Text style={styles.attachmentButtonText}>Image</Text>
+                <Icon name="photo" size={20} color={theme.colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Image</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -395,16 +443,16 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="videocam" size={20} color="#2ecc71" />
-                <Text style={styles.attachmentButtonText}>Video</Text>
+                <Icon name="videocam" size={20} color={theme.colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.attachmentButton}
                 onPress={() => setShowVoiceRecorder(true)}
               >
-                <Icon name="mic" size={20} color="#2ecc71" />
-                <Text style={styles.attachmentButtonText}>Voice</Text>
+                <Icon name="mic" size={20} color={theme.colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Voice</Text>
               </TouchableOpacity>
             </View>
 
@@ -444,16 +492,27 @@ function InvestmentsContent() {
                         type: addForm.type,
                         description: addForm.description,
                         date: new Date().toISOString(),
-                        isPast: false,
+                        isPast: addIsPast,
                         profitLoss: 0,
                         currentValue: parseFloat(addForm.amount || '0'),
                         imageUri: '',
                       },
                       addAttachments
                     );
+                    if (!addIsPast) {
+                      await TransactionService.addTransaction({
+                        amount: parseFloat(addForm.amount || '0'),
+                        type: 'Investment',
+                        description: `Investment in ${addForm.name}`,
+                        isIncome: false,
+                        date: new Date().toISOString(),
+                        category: addForm.type,
+                      });
+                    }
                     setAddModalVisible(false);
                     setAddForm({ name: '', amount: '', type: '', description: '' });
                     setAddAttachments([]);
+                    setAddIsPast(false);
                     await loadInvestments();
                     Alert.alert('Added', 'Investment added successfully');
                   } catch (e) {
@@ -518,18 +577,57 @@ function InvestmentsContent() {
               value={editForm.amount}
               onChangeText={text => setEditForm(f => ({ ...f, amount: text }))}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Type"
-              value={editForm.type}
-              onChangeText={text => setEditForm(f => ({ ...f, type: text }))}
-            />
+            {/* Investment Type Dropdown (Edit) */}
+            <View style={styles.dropdownContainer}>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowTypeDropdownEdit(!showTypeDropdownEdit)}
+              >
+                <Text style={[styles.dropdownButtonText, !editForm.type && styles.placeholder]}>
+                  {editForm.type || 'Investment Type (Stock, Crypto, ... )'}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
+              <Modal
+                visible={showTypeDropdownEdit}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowTypeDropdownEdit(false)}
+              >
+                <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setShowTypeDropdownEdit(false)}>
+                  <View style={styles.confirmModal}>
+                    <Text style={styles.confirmTitle}>Select Investment Type</Text>
+                    <View style={{ width: '100%' }}>
+                      {InvestmentCategories.TYPES.map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={styles.modalItem}
+                          onPress={() => {
+                            setEditForm(f => ({ ...f, type }));
+                            setShowTypeDropdownEdit(false);
+                          }}
+                        >
+                          <Icon name="trending-up" size={20} color={theme.colors.primary} style={{ marginRight: 10 }} />
+                          <Text style={styles.modalItemText}>{type}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Description"
               value={editForm.description}
               onChangeText={text => setEditForm(f => ({ ...f, description: text }))}
             />
+            {/* Past Investment Switch (Edit) */}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Past Investment</Text>
+              <Switch value={editIsPast} onValueChange={setEditIsPast} />
+            </View>
+
             {/* Attachment controls */}
             <View style={styles.attachmentButtons}>
               <TouchableOpacity
@@ -549,8 +647,8 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="photo" size={20} color="#2ecc71" />
-                <Text style={styles.attachmentButtonText}>Image</Text>
+                <Icon name="photo" size={20} color={theme.colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Image</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -570,16 +668,16 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="videocam" size={20} color="#2ecc71" />
-                <Text style={styles.attachmentButtonText}>Video</Text>
+                <Icon name="videocam" size={20} color={theme.colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.attachmentButton}
                 onPress={() => setShowVoiceRecorder(true)}
               >
-                <Icon name="mic" size={20} color="#2ecc71" />
-                <Text style={styles.attachmentButtonText}>Voice</Text>
+                <Icon name="mic" size={20} color={theme.colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Voice</Text>
               </TouchableOpacity>
             </View>
 
@@ -843,6 +941,41 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  dropdownContainer: {
+    position: 'relative',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 12,
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  placeholder: {
+    color: '#999',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#666',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  switchLabel: {
+    fontSize: 16,
+    color: '#333',
   },
   modalActions: {
     flexDirection: 'row',
