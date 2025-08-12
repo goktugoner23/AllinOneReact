@@ -8,6 +8,7 @@ import {
   HealthStatus,
   ApiResponse,
 } from '@features/instagram/types/Instagram';
+import { InstagramProfilePictureResponse, InstagramStoriesResponse } from '@features/instagram/types/Instagram';
 
 class InstagramApiService extends BaseApiClient {
   constructor() {
@@ -17,6 +18,36 @@ class InstagramApiService extends BaseApiClient {
       : 'http://129.212.143.6:3000/';
     
     super(baseURL, 90000); // 90 seconds for Instagram API processing
+  }
+
+  /**
+   * Get public profile picture by username
+   */
+  async getProfilePicture(username: string): Promise<InstagramProfilePictureResponse> {
+    try {
+      const response: AxiosResponse<InstagramProfilePictureResponse> = await this.api.get(
+        `api/instagram/profile-picture/${encodeURIComponent(username)}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch profile picture:', error);
+      throw this.handleApiError(error, 'Failed to fetch profile picture');
+    }
+  }
+
+  /**
+   * Get public stories by username
+   */
+  async getStories(username: string): Promise<InstagramStoriesResponse> {
+    try {
+      const response: AxiosResponse<InstagramStoriesResponse> = await this.api.get(
+        `api/instagram/stories/${encodeURIComponent(username)}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch stories:', error);
+      throw this.handleApiError(error, 'Failed to fetch stories');
+    }
   }
 
   /**

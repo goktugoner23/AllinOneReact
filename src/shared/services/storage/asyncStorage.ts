@@ -120,6 +120,7 @@ export const STORAGE_KEYS = {
   LAST_SYNC: 'last_sync',
   CACHED_DATA: 'cached_data',
   APP_VERSION: 'app_version',
+  INSTAGRAM_PROFILER_USERNAMES: 'instagram_profiler_usernames',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

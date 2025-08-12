@@ -15,6 +15,8 @@ import PostsTab from '@features/instagram/screens/PostsTab';
 import InsightsTab from '@features/instagram/screens/InsightsTab';
 import AskAITab from '@features/instagram/screens/AskAITab';
 import PostDetailScreen from '@features/instagram/screens/PostDetailScreen';
+import ProfilerTab from '@features/instagram/screens/ProfilerTab';
+import ProfileDetailScreen from '@features/instagram/screens/ProfileDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -23,6 +25,7 @@ export type InstagramTabParamList = {
   Posts: undefined;
   Insights: undefined;
   'Ask AI': undefined;
+  Profiler: undefined;
 };
 
 const InstagramTabs: React.FC = () => {
@@ -60,6 +63,9 @@ const InstagramTabs: React.FC = () => {
               break;
             case 'Ask AI':
               iconName = 'chatbubble-ellipses-outline';
+              break;
+            case 'Profiler':
+              iconName = 'person-circle-outline';
               break;
             default:
               iconName = 'help-outline';
@@ -100,6 +106,13 @@ const InstagramTabs: React.FC = () => {
           title: 'Ask AI',
         }}
       />
+      <Tab.Screen 
+        name="Profiler" 
+        component={ProfilerTab}
+        options={{
+          title: 'Profiler',
+        }}
+      />
     </Tab.Navigator>
     </View>
   );
@@ -110,6 +123,7 @@ const InstagramScreen: React.FC = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="InstagramTabs" component={InstagramTabs} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+      <Stack.Screen name="ProfileDetail" component={ProfileDetailScreen} />
     </Stack.Navigator>
   );
 };
