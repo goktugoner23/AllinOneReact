@@ -389,3 +389,46 @@ export interface InstagramState {
         lastChecked?: string;
     };
 }
+
+// ==============
+// Profiler Types
+// ==============
+
+// Profile picture endpoint response
+export interface InstagramProfilePictureResponse {
+    success: boolean;
+    data: {
+        username: string;
+        imageUrl: string;
+        isPrivate?: boolean;
+        isVerified?: boolean;
+        fullName?: string;
+    };
+    session?: {
+        hasSession: boolean;
+        valid: boolean;
+        issue?: string;
+    };
+    timestamp?: number | string;
+}
+
+// Stories endpoint response
+export interface InstagramStoriesResponse {
+    success: boolean;
+    data: InstagramStoryItem[];
+    count?: number;
+    session?: {
+        hasSession: boolean;
+        valid: boolean;
+        issue?: string;
+    };
+    timestamp?: number | string;
+}
+
+export interface InstagramStoryItem {
+    id: string;
+    mediaType: 'IMAGE' | 'VIDEO';
+    mediaUrl: string;
+    timestamp?: string;
+    expiresAt?: string;
+}
