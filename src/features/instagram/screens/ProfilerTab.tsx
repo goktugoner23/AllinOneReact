@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Avatar, Card, Text, TextInput, Button, useTheme } from 'react-native-paper';
+import { Avatar, Card, Text, TextInput, Button, useTheme, Snackbar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { PurpleFab } from '@shared/components';
-import { StorageService, STORAGE_KEYS } from '@shared/services/storage';
+import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
 
 type UsernameItem = {
   id: string;
@@ -16,6 +16,8 @@ export default function ProfilerTab() {
   const [usernames, setUsernames] = useState<UsernameItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [newUsername, setNewUsername] = useState('');
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
+  const [avatars, setAvatars] = useState<Record<string, string | undefined>>({});
 
   const loadUsernames = useCallback(async () => {
     const stored = await StorageService.getItem<string[]>(STORAGE_KEYS.INSTAGRAM_PROFILER_USERNAMES);
@@ -27,6 +29,33 @@ export default function ProfilerTab() {
   useEffect(() => {
     loadUsernames();
   }, [loadUsernames]);
+
+  // Load cached profile pictures for listed usernames
+  useEffect(() => {
+    const loadAvatars = async () => {
+      try {
+        if (!usernames.length) {
+          setAvatars({});
+          return;
+        }
+        const keys = usernames.map(u => `${STORAGE_KEYS.CACHED_DATA}:ig_stories:${u.username}`);
+        const results = await StorageService.multiGet<any>(keys);
+        const map: Record<string, string | undefined> = {};
+        results.forEach(([key, value]) => {
+          if (value && value.profile && value.profile.data && value.profile.data.imageUrl) {
+            const uname = key.split(':ig_stories:')[1] || '';
+            if (uname) {
+              map[uname] = value.profile.data.imageUrl as string;
+            }
+          }
+        });
+        setAvatars(map);
+      } catch (_) {
+        // ignore avatar load errors
+      }
+    };
+    loadAvatars();
+  }, [usernames]);
 
   const persist = useCallback(async (items: UsernameItem[]) => {
     await StorageService.setItem(STORAGE_KEYS.INSTAGRAM_PROFILER_USERNAMES, items.map((i) => i.username));
@@ -65,9 +94,25 @@ export default function ProfilerTab() {
         <Card.Title
           title={`@${item.username}`}
           subtitle="Tap to view profile"
-          left={(props) => <Avatar.Icon {...props} icon="account" />}
+          left={(props) => (
+            avatars[item.username]
+              ? <Avatar.Image {...props} source={{ uri: avatars[item.username] }} />
+              : <Avatar.Icon {...props} icon="account" />
+          )}
           right={(props) => (
-            <Button compact onPress={() => handleRemove(item)}>
+            <Button
+              compact
+              onPress={() => {
+                Alert.alert(
+                  `Remove @${item.username}?`,
+                  'This will remove the profile from your list.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Remove', style: 'destructive', onPress: () => handleRemove(item) },
+                  ]
+                );
+              }}
+            >
               Remove
             </Button>
           )}
@@ -83,13 +128,12 @@ export default function ProfilerTab() {
           <Card.Content>
             <TextInput
               mode="outlined"
-              label="Add username"
-              placeholder="goktug_oner"
+              label="Username"
               value={newUsername}
               onChangeText={setNewUsername}
               autoCapitalize="none"
               autoCorrect={false}
-              left={<TextInput.Affix text="@" />}
+              left={<TextInput.Icon icon="at" />}
               onSubmitEditing={handleAdd}
             />
             <View style={styles.addActions}>
@@ -112,7 +156,26 @@ export default function ProfilerTab() {
         )}
       />
 
+      <PurpleFab
+        iconName="refresh"
+        style={{ left: 16, right: undefined }}
+        onPress={async () => {
+          try {
+            const keys = await StorageService.getAllKeys();
+            const toRemove = keys.filter((k) => k.startsWith(`${STORAGE_KEYS.CACHED_DATA}:ig_stories:`));
+            if (toRemove.length) {
+              await Promise.all(toRemove.map((k) => StorageService.removeItem(k)));
+            }
+            setSnackbar({ visible: true, message: 'All story caches cleared' });
+          } catch (_) {
+            setSnackbar({ visible: true, message: 'Failed to clear caches' });
+          }
+        }}
+      />
       <PurpleFab iconName={adding ? 'check' : 'plus'} onPress={() => setAdding((v) => !v)} />
+      <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={2000}>
+        {snackbar.message}
+      </Snackbar>
     </View>
   );
 }
