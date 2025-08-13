@@ -296,7 +296,7 @@ const StudentsTab: React.FC = () => {
       }}
       activeOpacity={0.7}
     >
-      <Card style={styles.card} mode="outlined">
+      <Card style={styles.card} mode="elevated">
         <Card.Content style={{ padding: 8 }}>
           <View style={styles.studentHeader}>
                             <View style={styles.studentPhotoContainer}>
@@ -685,7 +685,7 @@ const RegisterTab: React.FC = () => {
   const renderRegistration = ({ item }: { item: WTRegistration }) => (
     <Card 
       style={styles.card} 
-      mode="outlined"
+      mode="elevated"
       onPress={() => {
         setSelectedRegistration(item);
         setShowDetailsDialog(true);
@@ -770,7 +770,7 @@ const RegisterTab: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Filter Section */}
-      <Card style={{ margin: 16, marginBottom: 8 }}>
+      <Card style={[styles.card, { marginHorizontal: 16, marginTop: 16, marginBottom: 8 }]} mode="elevated">
         <Card.Content>
           <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>Filters</Text>
           
@@ -1847,9 +1847,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   card: {
-    margin: 4,
-    marginBottom: 2,
-    elevation: 4,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    overflow: 'hidden',
   },
   emptyState: {
     flex: 1,

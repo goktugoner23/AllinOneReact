@@ -244,7 +244,7 @@ export function SeminarsTab() {
             borderLeftColor: isUpcoming(seminar.date) ? theme.colors.primary : theme.colors.outline,
           }
         ]} 
-        mode="outlined"
+        mode="elevated"
       >
         <Card.Content>
           <View style={styles.seminarHeader}>
@@ -473,6 +473,16 @@ const styles = StyleSheet.create({
   },
   seminarCard: {
     marginBottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    overflow: 'hidden',
   },
   seminarHeader: {
     flexDirection: 'row',

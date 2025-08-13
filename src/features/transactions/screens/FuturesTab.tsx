@@ -58,7 +58,7 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               style={[styles.positionSideChip, { backgroundColor: positionSideColor }]}
               textStyle={{ color: 'white', fontWeight: 'bold' }}
             >
-              {position.positionSide}
+              {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
             </Chip>
           </View>
           <IconButton
@@ -129,7 +129,7 @@ function FuturesPositionCard({ position, onSetTPSL }: {
           <View style={styles.detailRow}>
             <Text style={styles.label}>Liquidation Price:</Text>
             <Text style={[styles.value, { color: '#FF5722' }]}>
-              {formatCurrency(calculations.liquidationPrice)}
+              {formatCurrency(calculations.liquidationPrice, 'USDT', 2)}
             </Text>
           </View>
           
@@ -146,13 +146,6 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               <Text style={[styles.value, { color: riskLevel.color }]}>
                 {formatPercentage(calculations.marginRatio)}
               </Text>
-              <Chip 
-                mode="outlined" 
-                style={[styles.riskChip, { backgroundColor: riskLevel.color }]}
-                textStyle={{ color: 'white', fontSize: 10 }}
-              >
-                {riskLevel.level}
-              </Chip>
             </View>
           </View>
         </View>
@@ -163,17 +156,17 @@ function FuturesPositionCard({ position, onSetTPSL }: {
         <View style={styles.marginSection}>
           <View style={styles.detailRow}>
             <Text style={styles.label}>Notional Value:</Text>
-            <Text style={styles.value}>{formatCurrency(calculations.notionalValue)}</Text>
+            <Text style={styles.value}>{formatCurrency(calculations.notionalValue, 'USDT', 2)}</Text>
           </View>
           
           <View style={styles.detailRow}>
             <Text style={styles.label}>Initial Margin:</Text>
-            <Text style={styles.value}>{formatCurrency(calculations.initialMargin)}</Text>
+            <Text style={styles.value}>{formatCurrency(calculations.initialMargin, 'USDT', 2)}</Text>
           </View>
           
           <View style={styles.detailRow}>
             <Text style={styles.label}>Maintenance Margin:</Text>
-            <Text style={styles.value}>{formatCurrency(calculations.maintMargin)}</Text>
+            <Text style={styles.value}>{formatCurrency(calculations.maintMargin, 'USDT', 2)}</Text>
           </View>
           
           <View style={styles.detailRow}>

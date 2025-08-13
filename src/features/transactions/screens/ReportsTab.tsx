@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import { Card, Text, Button, Menu, Divider } from 'react-native-paper';
 import { fetchTransactions } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
 import { format, subDays, startOfYear, isAfter, parseISO } from 'date-fns';
+import { TransactionCard } from '@features/transactions/components/TransactionCard';
+import { TransactionService } from '@features/transactions/services/transactionService';
 
 const dateRanges = [
   { label: 'Last 7 Days', value: '7d' },
@@ -42,9 +44,10 @@ export const ReportsTab: React.FC = () => {
   const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
   const [dateRangeMenuVisible, setDateRangeMenuVisible] = useState(false);
   const [categories, setCategories] = useState<string[]>(['All']);
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    fetchTransactions().then(txs => {
+    fetchTransactions(1000).then(txs => {
       setTransactions(txs);
       const cats = Array.from(new Set(txs.map(t => t.category)));
       setCategories(['All', ...cats]);
@@ -109,6 +112,33 @@ export const ReportsTab: React.FC = () => {
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
   })();
+
+  // Pagination for transactions list (default sorted by date desc from fetchTransactions)
+  const PAGE_SIZE = 5;
+  const totalPages = transactions.length === 0 ? 0 : Math.ceil(transactions.length / PAGE_SIZE);
+  const startIndex = currentPage * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, transactions.length);
+  const pagedTransactions = startIndex < transactions.length ? transactions.slice(startIndex, endIndex) : [];
+
+  const handleDelete = async (transaction: Transaction) => {
+    Alert.alert(
+      'Delete Transaction',
+      `Are you sure you want to delete this ${transaction.isIncome ? 'income' : 'expense'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await TransactionService.deleteTransaction(transaction.id);
+            const fresh = await fetchTransactions(1000);
+            setTransactions(fresh);
+            setCurrentPage(0);
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -236,6 +266,33 @@ export const ReportsTab: React.FC = () => {
           <Text>Total Transactions: {filteredTransactions.length}</Text>
         </Card.Content>
       </Card>
+
+      {/* Transactions list (date-desc, paginated) */}
+      <Card style={styles.card}>
+        <Card.Title title="Transactions" />
+        <Card.Content>
+          {pagedTransactions.length === 0 ? (
+            <Text>No transactions found</Text>
+          ) : (
+            <View>
+              {pagedTransactions.map((t) => (
+                <TransactionCard key={t.id} transaction={t} onLongPress={handleDelete} />
+              ))}
+              {totalPages > 1 && (
+                <View style={styles.pagination}>
+                  <Button mode="contained" onPress={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
+                    Previous
+                  </Button>
+                  <Text style={styles.pageText}>{currentPage + 1} / {totalPages}</Text>
+                  <Button mode="contained" onPress={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1}>
+                    Next
+                  </Button>
+                </View>
+              )}
+            </View>
+          )}
+        </Card.Content>
+      </Card>
     </ScrollView>
   );
 };
@@ -275,5 +332,17 @@ const styles = StyleSheet.create({
   },
   marginVertical4: {
     marginVertical: 4,
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 12,
+  },
+  pageText: {
+    marginHorizontal: 16,
+    fontWeight: 'bold',
+    color: '#333',
   },
 });
