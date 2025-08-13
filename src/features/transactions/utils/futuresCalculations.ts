@@ -5,32 +5,33 @@ import { PositionData, PositionCalculations } from '@features/transactions/types
  * Based on Binance documentation: https://binance-docs.github.io/apidocs/futures/en/#position-information-v2-user_data
  */
 export function calculateLiquidationPrice(position: PositionData): number {
-  const { positionAmount, entryPrice, leverage, marginType, isolatedMargin } = position;
-  
-  if (positionAmount === 0) return 0;
-  
+  const { positionAmount, entryPrice, markPrice, leverage, marginType, isolatedMargin } = position;
+  if (positionAmount === 0 || leverage <= 0 || entryPrice <= 0) return 0;
+
   const isLong = positionAmount > 0;
-  const absPositionAmount = Math.abs(positionAmount);
-  const notionalValue = absPositionAmount * entryPrice;
-  
-  // For isolated margin
-  if (marginType === 'isolated') {
-    const maintenanceMargin = isolatedMargin * 0.004; // 0.4% maintenance margin rate
-    const liquidationPrice = isLong 
-      ? entryPrice - (maintenanceMargin / absPositionAmount)
-      : entryPrice + (maintenanceMargin / absPositionAmount);
-    return Math.max(0, liquidationPrice);
-  }
-  
-  // For cross margin (simplified calculation)
-  const maintenanceMarginRate = 0.004; // 0.4% for most pairs
-  const maintenanceMargin = notionalValue * maintenanceMarginRate;
-  
-  const liquidationPrice = isLong
-    ? entryPrice - (maintenanceMargin / absPositionAmount)
-    : entryPrice + (maintenanceMargin / absPositionAmount);
-    
-  return Math.max(0, liquidationPrice);
+  const Q = Math.abs(positionAmount); // contract quantity
+  const E = entryPrice; // entry price
+  const L = leverage;
+
+  // Approximate maintenance margin rate (MMR). In reality it's tiered per symbol notional.
+  const MMR = 0.004; // 0.4%
+
+  // Initial margin for linear contracts: IM = (Q * E) / L
+  const IM = (Q * E) / L;
+
+  // Maintenance margin: MM = (Q * Pliq) * MMR -> depends on Pliq, iterative. Use E approximation:
+  // To avoid iteration, approximate with entry price for MM basis:
+  const approxMM = (Q * E) * MMR;
+
+  // Fees/funding ignored in simplified calc.
+  // Long: liquidation when (Q * Pliq) <= Q*E - IM + approxMM
+  // Solve for Pliq: Pliq_long ≈ E - (IM - approxMM) / Q
+  // Short: liquidation when (Q * Pliq) >= Q*E + IM - approxMM
+  // Pliq_short ≈ E + (IM - approxMM) / Q
+  const delta = (IM - approxMM) / Q;
+  const pLiq = isLong ? E - delta : E + delta;
+
+  return Math.max(0, Number.isFinite(pLiq) ? pLiq : 0);
 }
 
 /**
@@ -170,9 +171,9 @@ export function formatNumber(value: number, decimals: number = 4): string {
 /**
  * Format currency with appropriate precision
  */
-export function formatCurrency(value: number, currency: string = 'USDT'): string {
+export function formatCurrency(value: number, currency: string = 'USDT', decimalsAbove1: number = 2): string {
   if (value >= 1) {
-    return `${currency} ${value.toFixed(2)}`;
+    return `${currency} ${value.toFixed(decimalsAbove1)}`;
   } else {
     return `${currency} ${value.toFixed(6)}`;
   }

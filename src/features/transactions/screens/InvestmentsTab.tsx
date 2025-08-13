@@ -186,10 +186,14 @@ function InvestmentsContent() {
     >
       <Card style={styles.card} mode="outlined">
         <Card.Content>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>{item.name}</Text>
-            <Chip mode="outlined">
-              {item.type}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={[styles.title, { flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
+            <Chip
+              mode="outlined"
+              style={{ height: 24 }}
+              textStyle={{ fontSize: 12, fontWeight: '700' }}
+            >
+              {(item.type || '').toUpperCase()}
             </Chip>
           </View>
           <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
