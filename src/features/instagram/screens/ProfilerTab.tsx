@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Avatar, Card, Text, TextInput, Button, useTheme, Snackbar } from 'react-native-paper';
+import { Avatar, Card, Text, TextInput, Button, useTheme, Snackbar, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { PurpleFab } from '@shared/components';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
@@ -89,8 +89,21 @@ export default function ProfilerTab() {
   }, [navigation]);
 
   const renderItem = ({ item }: { item: UsernameItem }) => (
-    <TouchableOpacity onPress={() => handleOpenProfile(item)}>
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+    <TouchableOpacity onPress={() => handleOpenProfile(item)} activeOpacity={0.85}>
+      <Card
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.colors.surface,
+            borderWidth: 0.5,
+            borderColor: (theme as any).colors?.outlineVariant || theme.colors.outline,
+            borderRadius: 12,
+            elevation: 1,
+            overflow: 'hidden',
+          },
+        ]}
+        mode="elevated"
+      >
         <Card.Title
           title={`@${item.username}`}
           subtitle="Tap to view profile"
@@ -100,8 +113,10 @@ export default function ProfilerTab() {
               : <Avatar.Icon {...props} icon="account" />
           )}
           right={(props) => (
-            <Button
-              compact
+            <IconButton
+              {...props}
+              icon="delete"
+              size={20}
               onPress={() => {
                 Alert.alert(
                   `Remove @${item.username}?`,
@@ -112,9 +127,7 @@ export default function ProfilerTab() {
                   ]
                 );
               }}
-            >
-              Remove
-            </Button>
+            />
           )}
         />
       </Card>

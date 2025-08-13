@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, FlatList, Image, TouchableOpacity, Modal, Platform, Alert, RefreshControl } from 'react-native';
-import { Appbar, Avatar, Button, SegmentedButtons, Text, useTheme, ActivityIndicator } from 'react-native-paper';
+import { Appbar, Avatar, Button, Text, useTheme, ActivityIndicator, ProgressBar } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import instagramApiService from '@features/instagram/services/InstagramApiService';
 import { InstagramProfilePictureResponse, InstagramStoriesResponse, InstagramStoryItem } from '@features/instagram/types/Instagram';
@@ -36,6 +36,9 @@ export default function ProfileDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pfpVisible, setPfpVisible] = useState(false);
+  const [bulkVisible, setBulkVisible] = useState(false);
+  const [bulkDone, setBulkDone] = useState(0);
+  const [bulkTotal, setBulkTotal] = useState(0);
   
 
   useEffect(() => {
@@ -205,15 +208,21 @@ export default function ProfileDetailScreen() {
           onPress: async () => {
             try {
               setDownloadingAll(true);
+              setBulkVisible(true);
+              setBulkTotal(stories.length);
+              setBulkDone(0);
               let success = 0;
               for (const s of stories) {
                 try {
                   await saveStoryToGallery(s);
                   success += 1;
+                  setBulkDone((d) => d + 1);
                 } catch (_) {}
               }
+              setBulkVisible(false);
               Alert.alert('Completed', `${success}/${stories.length} saved to gallery.`);
             } catch (_) {
+              setBulkVisible(false);
               Alert.alert('Download failed', 'Could not save all stories.');
             } finally {
               setDownloadingAll(false);
@@ -305,21 +314,33 @@ export default function ProfileDetailScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <SegmentedButtons
-            style={{ marginRight: 8, flexShrink: 1, maxWidth: 220 }}
-            density="small"
-            value={layout}
-            onValueChange={(v) => setLayout(v as any)}
-            buttons={[
-              { value: 'grid', label: 'Grid', icon: 'view-grid-outline' },
-              { value: 'timeline', label: 'List', icon: 'view-agenda-outline' },
-            ]}
-          />
+          <View style={[styles.segmentWrap, { backgroundColor: theme.colors.primary }]}>
+            <Button
+              mode="contained"
+              icon="view-grid-outline"
+              onPress={() => setLayout('grid')}
+              style={[styles.segmentBtn, layout === 'grid' && styles.segmentActive]}
+              textColor="#FFFFFF"
+            >
+              Grid
+            </Button>
+            <Button
+              mode="contained"
+              icon="view-agenda-outline"
+              onPress={() => setLayout('timeline')}
+              style={[styles.segmentBtn, layout === 'timeline' && styles.segmentActive]}
+              textColor="#FFFFFF"
+            >
+              List
+            </Button>
+          </View>
           <Button
-            mode="contained-tonal"
+            mode="contained"
             icon={downloadingAll ? 'progress-download' : 'download'}
             onPress={handleDownloadAll}
             disabled={downloadingAll || stories.length === 0}
+            style={{ marginLeft: 8, backgroundColor: theme.colors.primary }}
+            textColor="#FFFFFF"
           >
             Download All
           </Button>
@@ -409,6 +430,15 @@ export default function ProfileDetailScreen() {
               <Button mode="contained" onPress={() => handleDownload(stories[previewIndex])} icon="download">Download</Button>
               <Button onPress={() => setPreview(null)}>Close</Button>
             </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={bulkVisible} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.viewer, { backgroundColor: theme.colors.surface }]}> 
+            <Text variant="titleMedium" style={{ marginBottom: 12 }}>Saving stories...</Text>
+            <ProgressBar progress={bulkTotal ? bulkDone / bulkTotal : 0} color={theme.colors.primary} style={{ height: 8, borderRadius: 4 }} />
+            <Text style={{ marginTop: 8 }}>{bulkDone}/{bulkTotal}</Text>
           </View>
         </View>
       </Modal>
@@ -504,6 +534,9 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   headerText: { gap: 2 },
+  segmentWrap: { flexDirection: 'row', borderRadius: 8, overflow: 'hidden' },
+  segmentBtn: { backgroundColor: 'transparent', borderRadius: 0 },
+  segmentActive: { opacity: 0.9 },
   gridItem: { flex: 1 / 3, aspectRatio: 1, marginBottom: 8 },
   gridThumb: { width: '100%', height: '75%', borderRadius: 8 },
   thumbWrapper: { width: '100%', height: '75%', borderRadius: 8, overflow: 'hidden' },
