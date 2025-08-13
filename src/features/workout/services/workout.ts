@@ -51,6 +51,10 @@ export const workoutService = {
     const ref = doc(getDb(), COLLECTIONS.programs, programId.toString());
     await deleteDoc(ref);
   },
+  async deleteWorkout(workoutId: number): Promise<void> {
+    const ref = doc(getDb(), COLLECTIONS.workouts, workoutId.toString());
+    await deleteDoc(ref);
+  },
   async clearActiveSession(): Promise<void> {
     await StorageService.removeItem(STORAGE_KEYS.activeSession);
   },

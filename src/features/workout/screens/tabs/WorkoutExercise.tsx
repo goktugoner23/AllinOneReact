@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import { Text, Button, Card, TextInput, Menu, Portal as PaperPortal, Modal as PaperModal } from 'react-native-paper';
+import { Text, Button, Card, TextInput, Menu, Portal as PaperPortal, Modal as PaperModal, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
-import { startWorkout } from '@features/workout/store/workoutSlice';
+import { startWorkout, deleteWorkout } from '@features/workout/store/workoutSlice';
+import { DeleteConfirmationDialog } from '@shared/components/ui';
 import { Portal, Modal, Card as PCard } from 'react-native-paper';
 import { workoutService } from '@features/workout/services/workout';
 import { Program } from '@features/workout/types/Workout';
@@ -20,6 +21,7 @@ export default function WorkoutExercise() {
   const [period, setPeriod] = React.useState<Period>('ALL');
   const [periodMenuVisible, setPeriodMenuVisible] = React.useState(false);
   const [selectedWorkout, setSelectedWorkout] = React.useState<any | null>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState<{ visible: boolean; workoutId: number | null }>({ visible: false, workoutId: null });
 
   React.useEffect(() => {
     workoutService.getPrograms().then(setPrograms);
@@ -112,9 +114,19 @@ export default function WorkoutExercise() {
             })
             .map((w) => (
               <Card key={w.id} style={{ marginBottom: 8, backgroundColor: '#fff' }} onPress={() => setSelectedWorkout(w)}>
+                <Card.Title
+                  title={w.programName || 'Custom'}
+                  subtitle={`${new Date(w.endTime).toLocaleString()} • ${Math.round(w.durationMs / 60000)} min`}
+                  right={(props) => (
+                    <IconButton
+                      {...props}
+                      icon="delete"
+                      size={20}
+                      onPress={() => setConfirmDelete({ visible: true, workoutId: w.id })}
+                    />
+                  )}
+                />
                 <Card.Content>
-                  <Text style={{ fontWeight: '700', color: '#000' }}>{w.programName || 'Custom'}</Text>
-                  <Text style={{ color: '#000' }}>{new Date(w.endTime).toLocaleString()} • {Math.round(w.durationMs / 60000)} min</Text>
                   <Text style={{ color: '#000' }}>Completed: {Math.round(w.completionPercentage)}% • Sets: {w.totalSetsCompleted}/{w.totalSetsPlanned}</Text>
                 </Card.Content>
               </Card>
@@ -122,6 +134,19 @@ export default function WorkoutExercise() {
           {history.length === 0 && <Text>No workouts yet.</Text>}
         </Card.Content>
       </Card>
+
+      <DeleteConfirmationDialog
+        visible={confirmDelete.visible}
+        title="Delete Workout"
+        message="Are you sure you want to delete this workout? This action cannot be undone."
+        onDismiss={() => setConfirmDelete({ visible: false, workoutId: null })}
+        onConfirm={async () => {
+          if (confirmDelete.workoutId != null) {
+            await dispatch(deleteWorkout(confirmDelete.workoutId));
+          }
+          setConfirmDelete({ visible: false, workoutId: null });
+        }}
+      />
 
       {/* Details modal */}
       <PaperPortal>
