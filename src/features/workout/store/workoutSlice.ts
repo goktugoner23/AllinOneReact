@@ -148,6 +148,11 @@ export const loadHistory = createAsyncThunk('workout/loadHistory', async () => {
   return await workoutService.getWorkoutHistory();
 });
 
+export const deleteWorkout = createAsyncThunk('workout/deleteWorkout', async (workoutId: number) => {
+  await workoutService.deleteWorkout(workoutId);
+  return workoutId;
+});
+
 const slice = createSlice({
   name: 'workout',
   initialState,
@@ -213,6 +218,9 @@ const slice = createSlice({
       })
       .addCase(loadHistory.fulfilled, (state, action) => {
         state.history = action.payload;
+      })
+      .addCase(deleteWorkout.fulfilled, (state, action) => {
+        state.history = state.history.filter((w) => w.id !== action.payload);
       });
   },
 });
