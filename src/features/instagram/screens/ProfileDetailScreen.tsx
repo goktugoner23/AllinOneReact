@@ -86,7 +86,7 @@ export default function ProfileDetailScreen() {
   }, [username]);
 
   const handleRefresh = useCallback(async () => {
-    if (refreshing) return;
+    if (refreshing) return Promise.resolve();
     setRefreshing(true);
     try {
       const [p, s] = await Promise.all([
@@ -112,13 +112,45 @@ export default function ProfileDetailScreen() {
   const handleOpenStory = useCallback(async (item: InstagramStoryItem) => {
     try {
       const local = await cacheMedia(item.mediaUrl, item.mediaType === 'VIDEO' ? '.mp4' : '.jpg');
-      setPreview({ item, localUri: local });
+      const idx = stories.findIndex((s) => s.id === item.id);
+      if (idx >= 0) {
+        setPreviewIndex(idx);
+        setPreview({ item, localUri: local });
+      }
     } catch (_) {
-      setPreview({ item });
+      const idx = stories.findIndex((s) => s.id === item.id);
+      if (idx >= 0) {
+        setPreviewIndex(idx);
+        setPreview({ item });
+      }
     }
-    const idx = stories.findIndex((s) => s.id === item.id);
-    if (idx >= 0) setPreviewIndex(idx);
-  }, []);
+    return Promise.resolve();
+  }, [stories]);
+
+  // Scroll to the correct story index when the modal becomes visible
+  useEffect(() => {
+    if (preview && previewListRef.current && viewerWidth > 0) {
+      // Use setTimeout to ensure the modal is fully rendered before scrolling
+      const timer = setTimeout(() => {
+        try {
+          previewListRef.current?.scrollToIndex({
+            index: previewIndex,
+            animated: false,
+          });
+        } catch (error) {
+          // Fallback: scroll to offset if scrollToIndex fails
+          const offset = previewIndex * viewerWidth;
+          previewListRef.current?.scrollToOffset({
+            offset,
+            animated: false,
+          });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [preview, previewIndex, viewerWidth]);
 
   const saveStoryToGallery = useCallback(async (item: InstagramStoryItem) => {
     try {
@@ -170,6 +202,7 @@ export default function ProfileDetailScreen() {
       }
       return fileUri;
     } catch (e) {
+      // Re-throw the error to maintain the same behavior
       throw e;
     }
   }, []);
@@ -394,7 +427,6 @@ export default function ProfileDetailScreen() {
                 pagingEnabled
                 decelerationRate="fast"
                 keyExtractor={(i) => i.id}
-                initialScrollIndex={previewIndex}
                 getItemLayout={(data, index) => ({ length: viewerWidth, offset: viewerWidth * index, index })}
                 snapToInterval={viewerWidth}
                 onScrollBeginDrag={undefined}
