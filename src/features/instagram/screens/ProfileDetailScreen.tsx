@@ -70,8 +70,14 @@ export default function ProfileDetailScreen() {
       } catch (e) {
         // eslint-disable-next-line no-console
         console.warn('Failed to load profile/stories', e);
-        const message = (e as Error)?.message || '';
-        if (message.includes('(404)')) {
+        
+        // Check for 404 error from Axios
+        const is404Error = (e as any)?.response?.status === 404 || 
+                          (e as any)?.code === 'ERR_BAD_REQUEST' ||
+                          (e as Error)?.message?.includes('404') ||
+                          (e as Error)?.message?.includes('Request failed');
+        
+        if (is404Error) {
           setError('User not found or not accessible');
           setProfile(null);
           setStories([]);
@@ -103,7 +109,20 @@ export default function ProfileDetailScreen() {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('Failed to refresh profile/stories', e);
-      setError('Failed to refresh');
+      
+      // Check for 404 error from Axios
+      const is404Error = (e as any)?.response?.status === 404 || 
+                        (e as any)?.code === 'ERR_BAD_REQUEST' ||
+                        (e as Error)?.message?.includes('404') ||
+                        (e as Error)?.message?.includes('Request failed');
+      
+      if (is404Error) {
+        setError('User not found or not accessible');
+        setProfile(null);
+        setStories([]);
+      } else {
+        setError('Failed to refresh');
+      }
     } finally {
       setRefreshing(false);
     }
