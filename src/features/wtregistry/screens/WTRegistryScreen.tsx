@@ -1065,10 +1065,10 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface }}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}>
         <Dialog.Title>Add Student</Dialog.Title>
         <Dialog.Content>
-          <ScrollView>
+          <ScrollView style={{ maxHeight: 400 }}>
             {/* Photo Section */}
             <View style={styles.photoSection}>
               <TouchableOpacity onPress={pickImage} style={styles.photoButton}>
@@ -1114,13 +1114,15 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
               onChangeText={setInstagram}
             />
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.notesInput]}
               placeholder="Notes"
               placeholderTextColor="#999"
               value={notes}
               onChangeText={setNotes}
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
+              scrollEnabled={true}
+              textAlignVertical="top"
             />
           </ScrollView>
         </Dialog.Content>
@@ -1216,10 +1218,10 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
 
       return (
       <Portal>
-        <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface }}>
+        <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}>
         <Dialog.Title>Edit Student</Dialog.Title>
         <Dialog.Content>
-          <ScrollView>
+          <ScrollView style={{ maxHeight: 400 }}>
             {/* Photo Section */}
             <View style={styles.photoSection}>
               <TouchableOpacity 
@@ -1276,13 +1278,15 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
               onChangeText={setInstagram}
             />
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.notesInput]}
               placeholder="Notes"
               placeholderTextColor="#999"
               value={notes}
               onChangeText={setNotes}
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
+              scrollEnabled={true}
+              textAlignVertical="top"
             />
             
             {/* Active Status */}
@@ -1485,12 +1489,14 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
             {/* Notes */}
             <Text style={styles.label}>Notes</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.notesInput]}
               placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
+              scrollEnabled={true}
+              textAlignVertical="top"
             />
 
             {/* Payment Status */}
@@ -1700,10 +1706,10 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white' }}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white', maxHeight: '80%' }}>
         <Dialog.Title>Edit Registration</Dialog.Title>
         <Dialog.Content>
-          <ScrollView>
+          <ScrollView style={{ maxHeight: 400 }}>
             {/* Student Display (Read-only) */}
             <Text style={styles.label}>Student *</Text>
             <Text style={[styles.input, { color: '#666', backgroundColor: '#f5f5f5' }]}>
@@ -1740,12 +1746,14 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
 
             <Text style={styles.label}>Notes</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.notesInput]}
               placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
+              scrollEnabled={true}
+              textAlignVertical="top"
             />
 
             {/* Payment Status */}
@@ -2175,5 +2183,10 @@ const styles = StyleSheet.create({
   },
   selectedStudentText: {
     color: 'white',
+  },
+  notesInput: {
+    minHeight: 80, // Ensure a minimum height for multiline text input
+    textAlignVertical: 'top', // Align text to the top
+    paddingTop: 10, // Add some padding to the top
   },
 });
