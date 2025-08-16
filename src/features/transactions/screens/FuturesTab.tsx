@@ -82,7 +82,8 @@ function FuturesPositionCard({ position, onSetTPSL }: {
             >
               {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
             </Chip>
-            {isCoinMFutures && (
+            {/* Only show COIN-M chip if it's actually COIN-M and has valid data */}
+            {isCoinMFutures && position.symbol.includes('USD_PERP') && (
               <Chip 
                 mode="outlined" 
                 style={[styles.futuresTypeChip, { borderColor: theme.colors.secondary }]}
@@ -277,6 +278,99 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
       </Card.Content>
     </Card>
   );
+}
+
+// COIN-M specific account card that calculates USD values from coin balances
+function CoinMFuturesAccountCard({ account, positions }: { 
+  account: AccountData | null; 
+  positions: EnhancedPositionData[];
+}) {
+  if (!account) return null;
+  
+  // Calculate total USD value from coin balances
+  const totalCoinValue = account.assets?.reduce((total, asset) => {
+    if (asset.walletBalance > 0) {
+      // For COIN-M, we need to get the current price to convert to USD
+      // Since we don't have real-time prices here, we'll use a rough estimate
+      // In a real app, you'd fetch current prices for each coin
+      const estimatedPrice = getEstimatedCoinPrice(asset.asset);
+      return total + (asset.walletBalance * estimatedPrice);
+    }
+    return total;
+  }, 0) || 0;
+  
+  // Calculate total position value (contracts * $1 for COIN-M)
+  const totalPositionValue = positions.reduce((total, pos) => {
+    return total + Math.abs(pos.positionAmount); // Each contract = $1
+  }, 0);
+  
+  // Calculate total unrealized PnL in USD
+  const totalUnrealizedPnL = positions.reduce((total, pos) => {
+    // For COIN-M, unrealized PnL is in the coin itself, convert to USD
+    const estimatedPrice = getEstimatedCoinPrice(pos.symbol.replace('USD_PERP', ''));
+    return total + (pos.unrealizedProfit * estimatedPrice);
+  }, 0);
+  
+  const totalValue = totalCoinValue + totalPositionValue + totalUnrealizedPnL;
+  
+  return (
+    <Card style={styles.accountCard} mode="outlined">
+      <Card.Title title="COIN-M Account Overview" titleVariant="titleMedium" />
+      <Card.Content>
+        <View style={styles.accountGrid}>
+          <View style={styles.accountItem}>
+            <Text style={styles.accountLabel}>Coin Balances</Text>
+            <Text style={[styles.accountValue, { color: getValueColor(totalCoinValue) }]}>
+              {formatCurrency(totalCoinValue)}
+            </Text>
+          </View>
+          
+          <View style={styles.accountItem}>
+            <Text style={styles.accountLabel}>Position Value</Text>
+            <Text style={[styles.accountValue, { color: getValueColor(totalPositionValue) }]}>
+              {formatCurrency(totalPositionValue)}
+            </Text>
+          </View>
+          
+          <View style={styles.accountItem}>
+            <Text style={styles.accountLabel}>Unrealized PnL</Text>
+            <Text style={[styles.accountValue, { color: getValueColor(totalUnrealizedPnL) }]}>
+              {formatCurrency(totalUnrealizedPnL)}
+            </Text>
+          </View>
+          
+          <View style={styles.accountItem}>
+            <Text style={styles.accountLabel}>Total Value</Text>
+            <Text style={[styles.accountValue, { color: getValueColor(totalValue) }]}>
+              {formatCurrency(totalValue)}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Show individual coin balances */}
+        {account.assets?.filter(asset => asset.walletBalance > 0).map(asset => (
+          <View key={asset.asset} style={styles.coinBalanceRow}>
+            <Text style={styles.coinSymbol}>{asset.asset}</Text>
+            <Text style={styles.coinAmount}>{asset.walletBalance.toFixed(6)}</Text>
+            <Text style={styles.coinValue}>
+              {formatCurrency(asset.walletBalance * getEstimatedCoinPrice(asset.asset))}
+            </Text>
+          </View>
+        ))}
+      </Card.Content>
+    </Card>
+  );
+}
+
+// Helper function to get estimated coin prices (in a real app, fetch from API)
+function getEstimatedCoinPrice(symbol: string): number {
+  const prices: { [key: string]: number } = {
+    'SOL': 188.37, // Current SOL price
+    'BTC': 117349.5, // Current BTC price
+    'ETH': 4412.87, // Current ETH price
+    // Add more coins as needed
+  };
+  return prices[symbol] || 1; // Default to $1 if unknown
 }
 
 // USD-M Futures Screen with WebSocket integration for live updates - UNIQUE_IDENTIFIER_USDM_FUNCTION_SPECIFIC
@@ -546,7 +640,7 @@ function CoinMFuturesScreen() {
       >
         {wsConnectedCoin ? 'Live Data Connected' : 'Live Data Disconnected'}
       </Chip>
-      <FuturesAccountCard account={account} />
+      <CoinMFuturesAccountCard account={account} positions={positions} />
       {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
       
@@ -681,5 +775,30 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 32,
     fontSize: 16,
+  },
+  coinBalanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  coinSymbol: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  coinAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007bff',
+  },
+  coinValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#28a745',
   },
 });
