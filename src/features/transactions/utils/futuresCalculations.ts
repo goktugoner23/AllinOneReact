@@ -4,32 +4,35 @@ import { PositionData, PositionCalculations } from '@features/transactions/types
  * Calculate liquidation price for Binance futures positions
  * Based on Binance documentation: https://binance-docs.github.io/apidocs/futures/en/#position-information-v2-user_data
  */
-export function calculateLiquidationPrice(position: PositionData): number {
+export function calculateLiquidationPrice(position: PositionData, accountBalance: number = 0): number {
   const { positionAmount, entryPrice, markPrice, leverage, marginType, isolatedMargin } = position;
   if (positionAmount === 0 || leverage <= 0 || entryPrice <= 0) return 0;
 
-  const isLong = positionAmount > 0;
-  const Q = Math.abs(positionAmount); // contract quantity
-  const E = entryPrice; // entry price
-  const L = leverage;
+  // Absolute quantity and entry
+  const Q = Math.abs(positionAmount);
+  const E = entryPrice;
 
-  // Approximate maintenance margin rate (MMR). In reality it's tiered per symbol notional.
+  // Determine margin balance used for the position
+  // Cross: use account margin balance; Isolated: use isolated margin assigned
+  const marginBalance = (marginType?.toLowerCase?.() === 'isolated')
+    ? Math.max(0, isolatedMargin || 0)
+    : Math.max(0, accountBalance || 0);
+
+  // Maintenance margin rate (MMR) approximation.
+  // NOTE: True MMR is tiered per symbol notional. If tier is unavailable,
+  // use a conservative default. Using markPrice-based notional for MM basis.
   const MMR = 0.004; // 0.4%
+  const notionalForMM = Q * (markPrice > 0 ? markPrice : E);
+  const maintenanceMargin = notionalForMM * MMR;
 
-  // Initial margin for linear contracts: IM = (Q * E) / L
-  const IM = (Q * E) / L;
-
-  // Maintenance margin: MM = (Q * Pliq) * MMR -> depends on Pliq, iterative. Use E approximation:
-  // To avoid iteration, approximate with entry price for MM basis:
-  const approxMM = (Q * E) * MMR;
-
-  // Fees/funding ignored in simplified calc.
-  // Long: liquidation when (Q * Pliq) <= Q*E - IM + approxMM
-  // Solve for Pliq: Pliq_long ≈ E - (IM - approxMM) / Q
-  // Short: liquidation when (Q * Pliq) >= Q*E + IM - approxMM
-  // Pliq_short ≈ E + (IM - approxMM) / Q
-  const delta = (IM - approxMM) / Q;
-  const pLiq = isLong ? E - delta : E + delta;
+  // From Binance formula for USDT-M linear contracts (approx.):
+  // Liquidation when MarginBalance <= MaintenanceMargin, where
+  // MarginBalance = WalletBalance (or IsolatedMargin) + UnrealizedPnL.
+  // Solve for price P:
+  // For long: UPNL = Q * (P - E)
+  // For short: UPNL = Q * (E - P)
+  // Both yield: Pliq = (Q*E + MM - M) / Q
+  const pLiq = (Q * E + maintenanceMargin - marginBalance) / Q;
 
   return Math.max(0, Number.isFinite(pLiq) ? pLiq : 0);
 }
@@ -92,9 +95,9 @@ export function calculateROE(position: PositionData): number {
 /**
  * Calculate distance to liquidation as percentage
  */
-export function calculateDistanceToLiquidation(position: PositionData): number {
+export function calculateDistanceToLiquidation(position: PositionData, accountBalance: number = 0): number {
   const { markPrice } = position;
-  const liquidationPrice = calculateLiquidationPrice(position);
+  const liquidationPrice = calculateLiquidationPrice(position, accountBalance);
   
   if (liquidationPrice === 0 || markPrice === 0) return 0;
   
@@ -140,11 +143,11 @@ export function calculateMaintenanceMargin(position: PositionData): number {
  * Get all position calculations in one call
  */
 export function calculatePositionMetrics(position: PositionData, accountBalance: number = 0): PositionCalculations {
-  const liquidationPrice = calculateLiquidationPrice(position);
+  const liquidationPrice = calculateLiquidationPrice(position, accountBalance);
   const marginRatio = calculateMarginRatio(position, accountBalance);
   const roi = calculateROI(position);
   const roe = calculateROE(position);
-  const distanceToLiquidation = calculateDistanceToLiquidation(position);
+  const distanceToLiquidation = calculateDistanceToLiquidation(position, accountBalance);
   const notionalValue = calculateNotionalValue(position);
   const initialMargin = calculateInitialMargin(position);
   const maintMargin = calculateMaintenanceMargin(position);
