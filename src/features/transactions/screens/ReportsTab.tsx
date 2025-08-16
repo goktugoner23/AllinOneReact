@@ -60,6 +60,11 @@ export const ReportsTab: React.FC = () => {
     return filterByDateRange([t], dateRange).length > 0;
   });
 
+  // Sort filtered transactions by date desc (latest first)
+  const sortedTransactions = filteredTransactions
+    .slice()
+    .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+
   // Summary statistics - updated to use isIncome field
   const totalIncome = filteredTransactions
     .filter(t => t.isIncome)
@@ -113,12 +118,17 @@ export const ReportsTab: React.FC = () => {
     return Object.entries(map).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
   })();
 
-  // Pagination for transactions list (default sorted by date desc from fetchTransactions)
+  // Pagination for transactions list (apply on filtered & sorted list)
   const PAGE_SIZE = 5;
-  const totalPages = transactions.length === 0 ? 0 : Math.ceil(transactions.length / PAGE_SIZE);
+  const totalPages = sortedTransactions.length === 0 ? 0 : Math.ceil(sortedTransactions.length / PAGE_SIZE);
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, transactions.length);
-  const pagedTransactions = startIndex < transactions.length ? transactions.slice(startIndex, endIndex) : [];
+  const endIndex = Math.min(startIndex + PAGE_SIZE, sortedTransactions.length);
+  const pagedTransactions = startIndex < sortedTransactions.length ? sortedTransactions.slice(startIndex, endIndex) : [];
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [dateRange, category]);
 
   const handleDelete = async (transaction: Transaction) => {
     Alert.alert(
