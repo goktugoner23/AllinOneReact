@@ -12,7 +12,7 @@ import {
   Surface,
   Chip,
 } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
@@ -343,7 +343,7 @@ export function SeminarsTab() {
         }
       />
 
-      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
+              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
         <Dialog visible={showDialog} onDismiss={handleCloseDialog}>

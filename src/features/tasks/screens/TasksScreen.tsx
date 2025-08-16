@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   useTheme
 } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { 
@@ -298,7 +298,7 @@ const TasksScreen: React.FC = () => {
         isGroupedView ? renderGroupedTasks() : renderSimpleTasks()
       )}
 
-      <PurpleFab style={styles.fab} onPress={() => setShowAddTaskDialog(true)} />
+              <AddFab style={styles.fab} onPress={() => setShowAddTaskDialog(true)} />
 
       {/* Dialogs */}
       <AddTaskDialog

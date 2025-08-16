@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Card, Button, Chip, Divider, useTheme } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment, addInvestmentWithAttachments } from '@features/transactions/services/investments';
 import { Investment } from '@features/transactions/types/Investment';
 import { FuturesTab } from './FuturesTab';
@@ -763,7 +763,7 @@ function InvestmentsContent() {
         </View>
       </Modal>
       {/* Add Investment FAB */}
-      <PurpleFab style={styles.fab} onPress={() => setAddModalVisible(true)} />
+              <AddFab style={styles.fab} onPress={() => setAddModalVisible(true)} />
     </View>
   );
 }
@@ -771,6 +771,7 @@ function InvestmentsContent() {
 
 
 export const InvestmentsTab: React.FC = () => {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<'investments' | 'futures'>('investments');
 
   return (
@@ -780,7 +781,7 @@ export const InvestmentsTab: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.tabButton,
-            activeTab === 'investments' && styles.activeTabButton
+            activeTab === 'investments' && { borderBottomColor: theme.colors.primary }
           ]}
           onPress={() => setActiveTab('investments')}
         >
@@ -795,7 +796,7 @@ export const InvestmentsTab: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.tabButton,
-            activeTab === 'futures' && styles.activeTabButton
+            activeTab === 'futures' && { borderBottomColor: theme.colors.primary }
           ]}
           onPress={() => setActiveTab('futures')}
         >
@@ -837,9 +838,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  activeTabButton: {
-    borderBottomColor: '#2ecc71',
-  },
+
   tabButtonText: {
     fontSize: 16,
     fontWeight: '500',
@@ -874,6 +873,15 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   addBtnText: {
+    fontWeight: 'bold',
+  },
+  modalItem: {
+    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalItemText: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
   empty: {

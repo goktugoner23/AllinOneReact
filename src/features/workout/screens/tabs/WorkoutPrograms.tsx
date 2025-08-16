@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, ScrollView } from 'react-native';
 import { Text, Button, Card, Portal, Modal, TextInput, Dialog, IconButton } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { workoutService } from '@features/workout/services/workout';
 import { Program, ProgramExerciseSpec } from '@features/workout/types/Workout';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
@@ -134,7 +134,7 @@ export default function WorkoutPrograms() {
         </Dialog>
       </Portal>
 
-      <PurpleFab onPress={() => setAddOpen(true)} />
+              <AddFab onPress={() => setAddOpen(true)} />
     </View>
   );
 }

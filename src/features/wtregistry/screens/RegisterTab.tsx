@@ -17,7 +17,7 @@ import {
   SegmentedButtons,
   ActivityIndicator,
 } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addRegistration, updateRegistration, deleteRegistration } from '@features/wtregistry/store/wtRegistrySlice';
@@ -389,7 +389,7 @@ export function RegisterTab() {
         estimatedItemSize={120}
       />
 
-      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
+              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Add/Edit Registration Dialog */}
       <Portal>

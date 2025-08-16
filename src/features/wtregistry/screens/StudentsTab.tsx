@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import {
   Card,
   Text,
@@ -286,7 +286,7 @@ export function StudentsTab() {
         estimatedItemSize={110}
       />
 
-      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
+              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Detailed Student Modal */}
       <Portal>
