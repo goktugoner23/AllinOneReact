@@ -3,7 +3,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { getDb, getStorageInstance as getStorage } from '@shared/services/firebase/firebase';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '@features/wtregistry/types/WTRegistry';
-import { addTransaction, fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
+import { addTransaction, fetchTransactions, deleteTransaction, updateTransaction } from '@features/transactions/services/transactions';
 
 
 
@@ -319,10 +319,13 @@ export async function updateRegistration(registration: WTRegistration): Promise<
     
     await setDoc(doc(db, 'registrations', registration.id.toString()), registrationData);
     
-    // Check for payment status changes like Kotlin app
+    // Check for payment status changes and amount changes like Kotlin app
     if (originalRegistration) {
+      console.log(`🔍 Registration update - ID: ${registration.id}, Payment: ${originalRegistration.isPaid} → ${registration.isPaid}, Amount: ${originalRegistration.amount} → ${registration.amount}`);
+      
       // Payment status changed from unpaid to paid
       if (!originalRegistration.isPaid && registration.isPaid && registration.amount > 0) {
+        console.log(`💰 Creating transaction for newly paid registration ${registration.id} - Amount: ${registration.amount}`);
         await addTransaction({
           amount: registration.amount,
           type: 'Registration',
@@ -335,10 +338,40 @@ export async function updateRegistration(registration: WTRegistration): Promise<
       }
       // Payment status changed from paid to unpaid
       else if (originalRegistration.isPaid && !registration.isPaid) {
+        console.log(`❌ Removing transaction for unpaid registration ${registration.id}`);
         const transactions = await fetchTransactions();
         const relatedTransactions = transactions.filter(t => t.relatedRegistrationId === registration.id);
         for (const tx of relatedTransactions) {
           await deleteTransaction(tx.id);
+        }
+      }
+      // Amount changed but payment status remains the same
+      else if (originalRegistration.isPaid && registration.isPaid && 
+               originalRegistration.amount !== registration.amount) {
+        console.log(`📊 Amount changed for paid registration ${registration.id} - ${originalRegistration.amount} → ${registration.amount}`);
+        // Update existing transaction amount if it exists
+        const transactions = await fetchTransactions();
+        const existingTransaction = transactions.find(t => t.relatedRegistrationId === registration.id);
+        if (existingTransaction) {
+          // Update the existing transaction with new amount
+          console.log(`🔄 Updating existing transaction ${existingTransaction.id} amount from ${existingTransaction.amount} to ${registration.amount}`);
+          await updateTransaction({
+            ...existingTransaction,
+            amount: registration.amount,
+          });
+        } else {
+          // If no existing transaction but registration is paid, create one
+          // This handles the case where a transaction might have been deleted manually
+          console.log(`➕ Creating new transaction for paid registration ${registration.id} with amount ${registration.amount}`);
+          await addTransaction({
+            amount: registration.amount,
+            type: 'Registration',
+            description: 'Course Registration',
+            isIncome: true,
+            date: new Date().toISOString(),
+            category: 'Wing Tzun',
+            relatedRegistrationId: registration.id,
+          });
         }
       }
     }
@@ -366,16 +399,11 @@ export async function updateRegistrationPaymentStatus(
       return;
     }
     
-    // Update the registration
-    await updateRegistration({
-      ...registration,
-      isPaid: newIsPaid,
-    });
-    
-    // Handle transaction changes
+    // Handle transaction changes first
     if (newIsPaid && !oldIsPaid) {
       // Changed from unpaid to paid - add transaction
       if (registration.amount > 0) {
+        console.log(`💰 Payment status change: Creating transaction for registration ${registration.id} - Amount: ${registration.amount}`);
         await addTransaction({
           amount: registration.amount,
           type: 'Registration',
@@ -385,17 +413,31 @@ export async function updateRegistrationPaymentStatus(
           category: 'Wing Tzun',
           relatedRegistrationId: registration.id,
         });
-
       }
     } else if (!newIsPaid && oldIsPaid) {
       // Changed from paid to unpaid - remove transaction
+      console.log(`❌ Payment status change: Removing transaction for registration ${registration.id}`);
       const transactions = await fetchTransactions();
       const relatedTransaction = transactions.find(t => t.relatedRegistrationId === registration.id);
       if (relatedTransaction) {
         await deleteTransaction(relatedTransaction.id);
-
       }
     }
+    
+    // Now update the registration without triggering transaction logic again
+    const registrationData = {
+      id: registration.id,
+      studentId: registration.studentId,
+      amount: registration.amount,
+      attachmentUri: registration.attachmentUri,
+      startDate: registration.startDate ? Timestamp.fromDate(registration.startDate) : null,
+      endDate: registration.endDate ? Timestamp.fromDate(registration.endDate) : null,
+      paymentDate: Timestamp.fromDate(registration.paymentDate),
+      notes: registration.notes || '',
+      isPaid: newIsPaid,
+    };
+    
+    await setDoc(doc(db, 'registrations', registration.id.toString()), registrationData);
   } catch (error) {
     console.error('Error updating registration payment status:', error);
     throw error;
