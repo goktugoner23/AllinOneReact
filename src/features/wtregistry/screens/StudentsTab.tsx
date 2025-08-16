@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { PurpleFab } from '@shared/components';
 import {
@@ -378,81 +378,84 @@ export function StudentsTab() {
 
       {/* Edit/Add Student Dialog */}
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
+        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={{ maxHeight: '80%' }}>
           <Dialog.Title>{editingStudent ? 'Edit Student' : 'Add Student'}</Dialog.Title>
           <Dialog.Content>
-            {/* Photo Section */}
-            <View style={styles.photoSection}>
-              <TouchableOpacity
-                onLongPress={handlePhotoOptions}
-                onPress={() => {
-                  if (formData.photoUri) {
-                    setShowFullscreenPhoto(true);
-                  }
-                }}
-                style={styles.editPhotoContainer}
-              >
-                {formData.photoUri ? (
-                  <Image source={{ uri: formData.photoUri }} style={styles.editPhoto} />
-                ) : (
-                  <View style={styles.editDefaultPhoto}>
-                    <Ionicons name="person" size={40} color="#666" />
-                  </View>
-                )}
-              </TouchableOpacity>
-              <Text variant="bodySmall" style={styles.photoHint}>
-                Long press for photo options
-              </Text>
-            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {/* Photo Section */}
+              <View style={styles.photoSection}>
+                <TouchableOpacity
+                  onLongPress={handlePhotoOptions}
+                  onPress={() => {
+                    if (formData.photoUri) {
+                      setShowFullscreenPhoto(true);
+                    }
+                  }}
+                  style={styles.editPhotoContainer}
+                >
+                  {formData.photoUri ? (
+                    <Image source={{ uri: formData.photoUri }} style={styles.editPhoto} />
+                  ) : (
+                    <View style={styles.editDefaultPhoto}>
+                      <Ionicons name="person" size={40} color="#666" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <Text variant="bodySmall" style={styles.photoHint}>
+                  Long press for photo options
+                </Text>
+              </View>
 
-            <TextInput
-              label="Name *"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              style={styles.input}
-              mode="outlined"
-            />
-            <TextInput
-              label="Phone Number"
-              value={formData.phoneNumber}
-              onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="phone-pad"
-            />
-            <TextInput
-              label="Email"
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              label="Instagram"
-              value={formData.instagram}
-              onChangeText={(text) => setFormData({ ...formData, instagram: text })}
-              style={styles.input}
-              mode="outlined"
-              autoCapitalize="none"
-            />
-            <TextInput
-              label="Notes"
-              value={formData.notes}
-              onChangeText={(text) => setFormData({ ...formData, notes: text })}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.switchContainer}>
-              <Text variant="bodyMedium">Active</Text>
-              <Switch
-                value={formData.isActive}
-                onValueChange={(value) => setFormData({ ...formData, isActive: value })}
+              <TextInput
+                label="Name *"
+                value={formData.name}
+                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                style={styles.input}
+                mode="outlined"
               />
-            </View>
+              <TextInput
+                label="Phone Number"
+                value={formData.phoneNumber}
+                onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+                style={styles.input}
+                mode="outlined"
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                label="Email"
+                value={formData.email}
+                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                style={styles.input}
+                mode="outlined"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                label="Instagram"
+                value={formData.instagram}
+                onChangeText={(text) => setFormData({ ...formData, instagram: text })}
+                style={styles.input}
+                mode="outlined"
+                autoCapitalize="none"
+              />
+              <TextInput
+                label="Notes"
+                value={formData.notes}
+                onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                style={[styles.input, styles.notesInput]}
+                mode="outlined"
+                multiline
+                numberOfLines={4}
+                scrollEnabled={true}
+              />
+              <View style={styles.switchContainer}>
+                <Text variant="bodyMedium">Active</Text>
+                <Switch
+                  value={formData.isActive}
+                  onValueChange={(value) => setFormData({ ...formData, isActive: value })}
+                />
+              </View>
+            </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleCloseDialog}>Cancel</Button>
@@ -665,5 +668,8 @@ const styles = StyleSheet.create({
   fullscreenPhoto: {
     width: '100%',
     height: 400,
+  },
+  notesInput: {
+    minHeight: 100, // Ensure a minimum height for multiline text input
   },
 }); 

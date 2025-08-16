@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import {
   Card,
@@ -393,10 +393,11 @@ export function RegisterTab() {
 
       {/* Add/Edit Registration Dialog */}
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={[styles.dialog, { backgroundColor: 'white' }]}>
+        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={[styles.dialog, { backgroundColor: 'white', maxHeight: '80%' }]}>
           <Dialog.Title>{editingRegistration ? 'Edit Registration' : 'Add Registration'}</Dialog.Title>
           <Dialog.Content>
-            <View style={styles.dialogContent}>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <View style={styles.dialogContent}>
               {/* Student Selection */}
               <Text variant="bodyMedium" style={styles.sectionTitle}>Student *</Text>
               <View style={styles.studentSelector}>
@@ -450,10 +451,11 @@ export function RegisterTab() {
                 label="Notes"
                 value={formData.notes}
                 onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                style={styles.input}
+                style={[styles.input, styles.notesInput]}
                 mode="outlined"
                 multiline
-                numberOfLines={3}
+                numberOfLines={4}
+                scrollEnabled={true}
               />
 
               {/* Payment Status */}
@@ -496,6 +498,7 @@ export function RegisterTab() {
                 </>
               )}
             </View>
+            </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleCloseDialog}>Cancel</Button>
@@ -761,6 +764,9 @@ const styles = StyleSheet.create({
   attachmentTextDialog: {
     marginTop: 8,
     color: '#666',
+  },
+  notesInput: {
+    minHeight: 80, // Ensure minimum height for multiline text input
   },
 
   detailTitle: {
