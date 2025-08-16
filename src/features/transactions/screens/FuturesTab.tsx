@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import {
@@ -9,8 +9,12 @@ import {
   Chip,
   Divider,
   IconButton,
+  useTheme,
 } from 'react-native-paper';
 import RefreshFab from '@shared/components/ui/RefreshFab';
+import BinanceWebSocketService from '../services/binanceWebSocket';
+import { logger } from '@shared/utils/logger';
+import { FuturesWebSocketProvider, useFuturesWebSocket } from '@features/transactions/context/FuturesWebSocketProvider';
 import {
   getUsdMPositions,
   getCoinMPositions,
@@ -40,10 +44,26 @@ function FuturesPositionCard({ position, onSetTPSL }: {
   position: EnhancedPositionData; 
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
+  const theme = useTheme();
   const calculations = position.calculations || calculatePositionMetrics(position);
   const isLong = position.positionAmount > 0;
-  const positionSideColor = isLong ? '#4CAF50' : '#F44336';
+  const positionSideColor = isLong ? theme.colors.primary : theme.colors.error;
   const riskLevel = getRiskLevel(calculations.marginRatio);
+  
+  // Determine if this is COIN-M futures (check symbol pattern or contract type)
+  const isCoinMFutures = position.symbol.includes('USD_PERP') || (position as any).contractType === 'COIN-M';
+  
+  // Format P&L based on futures type
+  const formatPnL = (pnl: number) => {
+    if (isCoinMFutures) {
+      // For COIN-M, P&L is in the coin itself
+      const coinSymbol = position.symbol.replace('USD_PERP', '');
+      return `${pnl > 0 ? '+' : ''}${pnl.toFixed(6)} ${coinSymbol}`;
+    } else {
+      // For USD-M, P&L is in USDT
+      return `${pnl > 0 ? '+' : ''}${pnl.toFixed(2)} USDT`;
+    }
+  };
   
   return (
     <Card style={styles.positionCard} mode="outlined">
@@ -55,12 +75,21 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               {position.symbol}
             </Text>
             <Chip 
-              mode="outlined" 
-              style={[styles.positionSideChip, { backgroundColor: positionSideColor }]}
-              textStyle={{ color: 'white', fontWeight: 'bold' }}
+              mode="flat" 
+              style={[styles.positionSideChip, { backgroundColor: positionSideColor, paddingHorizontal: 6, height: 26 }]} 
+              textStyle={{ color: 'white', fontWeight: 'bold', lineHeight: 16 }}
             >
               {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
             </Chip>
+            {isCoinMFutures && (
+              <Chip 
+                mode="outlined" 
+                style={[styles.futuresTypeChip, { borderColor: theme.colors.secondary }]}
+                textStyle={{ color: theme.colors.secondary, fontSize: 10 }}
+              >
+                COIN-M
+              </Chip>
+            )}
           </View>
           <IconButton
             icon="target"
@@ -104,7 +133,7 @@ function FuturesPositionCard({ position, onSetTPSL }: {
           <View style={styles.detailRow}>
             <Text style={styles.label}>Unrealized PnL:</Text>
             <Text style={[styles.value, { color: getValueColor(position.unrealizedProfit) }]}>
-              {formatCurrency(position.unrealizedProfit)}
+              {formatPnL(position.unrealizedProfit)}
             </Text>
           </View>
           
@@ -249,6 +278,7 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
   );
 }
 
+// USD-M Futures Screen with WebSocket integration for live updates - UNIQUE_IDENTIFIER_USDM_FUNCTION_SPECIFIC
 function UsdMFuturesScreen() {
   const [positions, setPositions] = useState<EnhancedPositionData[]>([]);
   const [account, setAccount] = useState<AccountData | null>(null);
@@ -258,6 +288,36 @@ function UsdMFuturesScreen() {
   const [tpslModalVisible, setTpslModalVisible] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<EnhancedPositionData | null>(null);
   const [tpslLoading, setTpslLoading] = useState(false);
+  const [wsConnectedLocal, setWsConnectedLocal] = useState(false);
+  
+  // Shared WebSocket: subscribe and react to events
+  const { connected: wsConnected, addListener, removeListener, subscribeToPositions, subscribeToOrders, subscribeToBalance, subscribeToTicker } = useFuturesWebSocket();
+  useEffect(() => { setWsConnectedLocal(wsConnected); }, [wsConnected]);
+
+  useEffect(() => {
+    const handlePositions = () => loadData();
+    const handleOrders = () => loadData();
+    const handleBalance = () => getUsdMAccount().then(setAccount).catch(() => {});
+
+    addListener('positions_update', handlePositions);
+    addListener('order_update', handleOrders);
+    addListener('balance_update', handleBalance);
+
+    // Initial subscriptions
+    subscribeToPositions();
+    subscribeToOrders();
+    subscribeToBalance();
+
+    // Subscribe tickers for current positions
+    positions.forEach((p) => subscribeToTicker(p.symbol));
+
+    return () => {
+      removeListener('positions_update', handlePositions);
+      removeListener('order_update', handleOrders);
+      removeListener('balance_update', handleBalance);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -323,6 +383,7 @@ function UsdMFuturesScreen() {
     loadData();
   }, [loadData]);
 
+  // WebSocket status indicator below (USD-M only)
   return (
     <View style={styles.container}>
       {error && (
@@ -334,6 +395,18 @@ function UsdMFuturesScreen() {
           {error}
         </Chip>
       )}
+      {/* WebSocket Connection Status for USD-M Futures */}
+      <Chip
+        icon={wsConnectedLocal ? "wifi" : "wifi-off"}
+        style={{
+          marginBottom: 8,
+          backgroundColor: wsConnectedLocal ? '#4CAF50' : '#FF9800',
+          alignSelf: 'flex-start',
+        }}
+        textStyle={{ color: 'white' }}
+      >
+        {wsConnectedLocal ? 'Live Data Connected' : 'Live Data Disconnected'}
+      </Chip>
       <FuturesAccountCard account={account} />
       {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
@@ -360,6 +433,30 @@ function CoinMFuturesScreen() {
   const [tpslModalVisible, setTpslModalVisible] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<EnhancedPositionData | null>(null);
   const [tpslLoading, setTpslLoading] = useState(false);
+  // Shared WebSocket for COIN-M
+  const { connected: wsConnectedCoin, addListener: addListenerCoin, removeListener: removeListenerCoin, subscribeToPositions: subPosCoin, subscribeToOrders: subOrdCoin, subscribeToBalance: subBalCoin, subscribeToTicker: subTickerCoin } = useFuturesWebSocket();
+
+  useEffect(() => {
+    const handlePositions = () => loadData();
+    const handleOrders = () => loadData();
+    const handleBalance = () => getCoinMAccount().then(setAccount).catch(() => {});
+
+    addListenerCoin('positions_update', handlePositions);
+    addListenerCoin('order_update', handleOrders);
+    addListenerCoin('balance_update', handleBalance);
+
+    subPosCoin();
+    subOrdCoin();
+    subBalCoin();
+    positions.forEach((p) => subTickerCoin(p.symbol));
+
+    return () => {
+      removeListenerCoin('positions_update', handlePositions);
+      removeListenerCoin('order_update', handleOrders);
+      removeListenerCoin('balance_update', handleBalance);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -436,6 +533,18 @@ function CoinMFuturesScreen() {
           {error}
         </Chip>
       )}
+      {/* WebSocket Connection Status for COIN-M Futures */}
+      <Chip
+        icon={wsConnectedCoin ? "wifi" : "wifi-off"}
+        style={{
+          marginBottom: 8,
+          backgroundColor: wsConnectedCoin ? '#4CAF50' : '#FF9800',
+          alignSelf: 'flex-start',
+        }}
+        textStyle={{ color: 'white' }}
+      >
+        {wsConnectedCoin ? 'Live Data Connected' : 'Live Data Disconnected'}
+      </Chip>
       <FuturesAccountCard account={account} />
       {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
@@ -455,10 +564,12 @@ function CoinMFuturesScreen() {
 
 export const FuturesTab: React.FC = () => {
   return (
-    <TopTab.Navigator>
-      <TopTab.Screen name="USD-M" component={UsdMFuturesScreen} />
-      <TopTab.Screen name="COIN-M" component={CoinMFuturesScreen} />
-    </TopTab.Navigator>
+    <FuturesWebSocketProvider>
+      <TopTab.Navigator>
+        <TopTab.Screen name="USD-M" component={UsdMFuturesScreen} />
+        <TopTab.Screen name="COIN-M" component={CoinMFuturesScreen} />
+      </TopTab.Navigator>
+    </FuturesWebSocketProvider>
   );
 };
 
@@ -492,7 +603,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   positionSideChip: {
-    height: 24,
+    borderRadius: 12,
+    minWidth: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  futuresTypeChip: {
+    height: 20,
+    marginLeft: 4,
   },
   tpslButton: {
     margin: 0,
