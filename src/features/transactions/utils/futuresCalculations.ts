@@ -4,13 +4,14 @@ import { PositionData, PositionCalculations } from '@features/transactions/types
  * Calculate liquidation price for Binance futures positions
  * Based on Binance documentation: https://binance-docs.github.io/apidocs/futures/en/#position-information-v2-user_data
  */
-export function calculateLiquidationPrice(position: PositionData, accountBalance: number = 0): number {
+export function calculateLiquidationPrice(position: PositionData, accountBalance: number = 0, allPositions: PositionData[] = []): number {
   const { positionAmount, entryPrice, markPrice, leverage, marginType, isolatedMargin } = position;
   if (positionAmount === 0 || leverage <= 0 || entryPrice <= 0) return 0;
 
   // Absolute quantity and entry
   const Q = Math.abs(positionAmount);
   const E = entryPrice;
+  const isLong = positionAmount > 0;
 
   // Determine margin balance used for the position
   // Cross: use account margin balance; Isolated: use isolated margin assigned
@@ -22,17 +23,32 @@ export function calculateLiquidationPrice(position: PositionData, accountBalance
   // NOTE: True MMR is tiered per symbol notional. If tier is unavailable,
   // use a conservative default. Using markPrice-based notional for MM basis.
   const MMR = 0.004; // 0.4%
-  const notionalForMM = Q * (markPrice > 0 ? markPrice : E);
-  const maintenanceMargin = notionalForMM * MMR;
+  // Total maintenance margin across all positions (approx)
+  const totalMaintenanceMargin = ((allPositions && allPositions.length
+    ? allPositions
+    : [position])
+  ).reduce((sum, p) => {
+    const qty = Math.abs(p.positionAmount);
+    if (qty === 0) return sum;
+    const priceBasis = p.markPrice > 0 ? p.markPrice : p.entryPrice;
+    return sum + qty * priceBasis * MMR;
+  }, 0);
 
-  // From Binance formula for USDT-M linear contracts (approx.):
-  // Liquidation when MarginBalance <= MaintenanceMargin, where
-  // MarginBalance = WalletBalance (or IsolatedMargin) + UnrealizedPnL.
-  // Solve for price P:
-  // For long: UPNL = Q * (P - E)
-  // For short: UPNL = Q * (E - P)
-  // Both yield: Pliq = (Q*E + MM - M) / Q
-  const pLiq = (Q * E + maintenanceMargin - marginBalance) / Q;
+  // Sum of unrealized PnL for all other positions at current mark
+  const unrealizedOthers = ((allPositions && allPositions.length
+    ? allPositions
+    : []
+  )).filter(p => p.symbol !== position.symbol || p.positionSide !== position.positionSide)
+    .reduce((s, p) => s + (p.unrealizedProfit || 0), 0);
+
+  // From cross formula:
+  // marginBalance + UPNL_others + UPNL_this = totalMaintenanceMargin
+  // Long: UPNL_this = Q*(P - E) => P = (Q*E + totalMM - marginBalance - UPNL_others)/Q
+  // Short: UPNL_this = Q*(E - P) => P = (Q*E - (totalMM - marginBalance - UPNL_others))/Q
+  const rhs = totalMaintenanceMargin - marginBalance - unrealizedOthers;
+  const pLiq = isLong
+    ? (Q * E + rhs) / Q
+    : (Q * E - rhs) / Q;
 
   return Math.max(0, Number.isFinite(pLiq) ? pLiq : 0);
 }
@@ -95,9 +111,9 @@ export function calculateROE(position: PositionData): number {
 /**
  * Calculate distance to liquidation as percentage
  */
-export function calculateDistanceToLiquidation(position: PositionData, accountBalance: number = 0): number {
+export function calculateDistanceToLiquidation(position: PositionData, accountBalance: number = 0, allPositions: PositionData[] = []): number {
   const { markPrice } = position;
-  const liquidationPrice = calculateLiquidationPrice(position, accountBalance);
+  const liquidationPrice = calculateLiquidationPrice(position, accountBalance, allPositions);
   
   if (liquidationPrice === 0 || markPrice === 0) return 0;
   
@@ -142,12 +158,12 @@ export function calculateMaintenanceMargin(position: PositionData): number {
 /**
  * Get all position calculations in one call
  */
-export function calculatePositionMetrics(position: PositionData, accountBalance: number = 0): PositionCalculations {
-  const liquidationPrice = calculateLiquidationPrice(position, accountBalance);
+export function calculatePositionMetrics(position: PositionData, accountBalance: number = 0, allPositions: PositionData[] = []): PositionCalculations {
+  const liquidationPrice = calculateLiquidationPrice(position, accountBalance, allPositions);
   const marginRatio = calculateMarginRatio(position, accountBalance);
   const roi = calculateROI(position);
   const roe = calculateROE(position);
-  const distanceToLiquidation = calculateDistanceToLiquidation(position, accountBalance);
+  const distanceToLiquidation = calculateDistanceToLiquidation(position, accountBalance, allPositions);
   const notionalValue = calculateNotionalValue(position);
   const initialMargin = calculateInitialMargin(position);
   const maintMargin = calculateMaintenanceMargin(position);

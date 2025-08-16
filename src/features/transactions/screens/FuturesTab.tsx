@@ -47,7 +47,8 @@ function FuturesPositionCard({ position, onSetTPSL }: {
   const theme = useTheme();
   const calculations = position.calculations || calculatePositionMetrics(position);
   const isLong = position.positionAmount > 0;
-  const positionSideColor = isLong ? theme.colors.primary : theme.colors.error;
+  // Use explicit green for LONG and red for SHORT
+  const positionSideColor = isLong ? '#4CAF50' : '#F44336';
   const riskLevel = getRiskLevel(calculations.marginRatio);
   
   // Determine if this is COIN-M futures (check symbol pattern or contract type)
