@@ -277,16 +277,6 @@ export default function App() {
                 }}
               />
               <Drawer.Screen
-                name="History"
-                component={HistoryScreen}
-                options={{
-                  title: 'History',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="time-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
                 name="Notes"
                 component={NotesStack}
                 options={{
@@ -323,6 +313,16 @@ export default function App() {
                   title: 'Workout',
                   drawerIcon: ({ color, size }) => (
                     <Ionicons name="barbell-outline" size={size} color={color} />
+                  ),
+                }}
+              />
+              <Drawer.Screen
+                name="History"
+                component={HistoryScreen}
+                options={{
+                  title: 'History',
+                  drawerIcon: ({ color, size }) => (
+                    <Ionicons name="time-outline" size={size} color={color} />
                   ),
                 }}
               />
