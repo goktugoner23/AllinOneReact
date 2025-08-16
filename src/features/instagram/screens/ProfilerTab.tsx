@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Avatar, Card, Text, TextInput, Button, useTheme, Snackbar, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
 
 type UsernameItem = {
@@ -169,7 +169,7 @@ export default function ProfilerTab() {
         )}
       />
 
-      <PurpleFab
+      <AddFab
         iconName="refresh"
         style={{ left: 16, right: undefined }}
         onPress={async () => {
@@ -185,7 +185,7 @@ export default function ProfilerTab() {
           }
         }}
       />
-      <PurpleFab iconName={adding ? 'check' : 'plus'} onPress={() => setAdding((v) => !v)} />
+      <AddFab iconName={adding ? 'check' : 'plus'} onPress={() => setAdding((v) => !v)} />
       <Snackbar visible={snackbar.visible} onDismiss={() => setSnackbar({ visible: false, message: '' })} duration={2000}>
         {snackbar.message}
       </Snackbar>

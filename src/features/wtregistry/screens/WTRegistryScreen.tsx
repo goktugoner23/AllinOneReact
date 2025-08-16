@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Card, Button, Chip, Divider, Portal, Dialog, useTheme, Switch } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '@features/wtregistry/services/wtRegistry';
 import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration, deleteRegistrationWithTransactions, updateRegistrationPaymentStatus, addRegistrationWithTransaction } from '@features/wtregistry/services/wtRegistry';
@@ -347,7 +347,7 @@ const StudentsTab: React.FC = () => {
         estimatedItemSize={110}
       />
       
-      <PurpleFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
+      <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
 
       {/* Add Student Dialog */}
       <AddStudentDialog
@@ -831,7 +831,7 @@ const RegisterTab: React.FC = () => {
         estimatedItemSize={120}
       />
       
-      <PurpleFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
+      <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
 
       {/* Context Menu */}
       <Portal>

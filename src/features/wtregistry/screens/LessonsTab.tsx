@@ -11,7 +11,7 @@ import {
   Surface,
   SegmentedButtons,
 } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addLesson, updateLesson, deleteLesson, loadLessons } from '@features/wtregistry/store/wtRegistrySlice';
@@ -253,7 +253,7 @@ export function LessonsTab() {
         }
       />
 
-      <PurpleFab style={styles.fab} onPress={() => handleOpenDialog()} />
+              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
         <Dialog visible={showDialog} onDismiss={handleCloseDialog}>

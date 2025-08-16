@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { Text, Button, Card, TextInput, Portal, Modal } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { workoutService } from '@features/workout/services/workout';
 import { StatsSnapshot } from '@features/workout/types/Workout';
 
@@ -133,7 +133,7 @@ export default function WorkoutStats() {
         </Modal>
       </Portal>
 
-      <PurpleFab onPress={() => setVisible(true)} />
+              <AddFab onPress={() => setVisible(true)} />
     </ScrollView>
   );
 }

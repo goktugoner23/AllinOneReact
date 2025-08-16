@@ -1,12 +1,12 @@
 import React from 'react';
 import { FAB, FABProps, useTheme } from 'react-native-paper';
 
-type PurpleFabProps = Omit<FABProps, 'icon' | 'color' | 'style'> & {
+type AddFabProps = Omit<FABProps, 'icon' | 'color' | 'style'> & {
   iconName?: string;
   style?: any;
 };
 
-export default function PurpleFab({ iconName = 'plus', style, ...rest }: PurpleFabProps) {
+export default function AddFab({ iconName = 'plus', style, ...rest }: AddFabProps) {
   const theme = useTheme();
   return (
     <FAB
@@ -17,5 +17,3 @@ export default function PurpleFab({ iconName = 'plus', style, ...rest }: PurpleF
     />
   );
 }
-
-

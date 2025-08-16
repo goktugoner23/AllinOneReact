@@ -12,7 +12,7 @@ import {
   Chip,
   IconButton,
 } from 'react-native-paper';
-import { PurpleFab } from '@shared/components';
+import { AddFab } from '@shared/components';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';

@@ -10,6 +10,7 @@ import {
   Divider,
   IconButton,
 } from 'react-native-paper';
+import RefreshFab from '@shared/components/ui/RefreshFab';
 import {
   getUsdMPositions,
   getCoinMPositions,
@@ -324,16 +325,6 @@ function UsdMFuturesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Button
-          mode="outlined"
-          onPress={loadData}
-          loading={loading}
-          style={{ marginLeft: 8 }}
-        >
-          Refresh
-        </Button>
-      </View>
       {error && (
         <Chip
           icon="alert"
@@ -354,6 +345,8 @@ function UsdMFuturesScreen() {
         onConfirm={handleTPSLConfirm}
         loading={tpslLoading}
       />
+      
+      <RefreshFab onPress={loadData} />
     </View>
   );
 }
@@ -434,16 +427,6 @@ function CoinMFuturesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Button
-          mode="outlined"
-          onPress={loadData}
-          loading={loading}
-          style={{ marginLeft: 8 }}
-        >
-          Refresh
-        </Button>
-      </View>
       {error && (
         <Chip
           icon="alert"
@@ -464,6 +447,8 @@ function CoinMFuturesScreen() {
         onConfirm={handleTPSLConfirm}
         loading={tpslLoading}
       />
+      
+      <RefreshFab onPress={loadData} />
     </View>
   );
 }
@@ -483,12 +468,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 16,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: 8,
-  },
+
   accountCard: {
     marginBottom: 16,
   },
