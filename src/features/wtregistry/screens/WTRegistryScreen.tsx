@@ -1198,6 +1198,32 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
     setPhotoUri(null);
   };
 
+  const handleEditDownloadFromInstagram = async () => {
+    setShowEditPhotoOptions(false);
+    
+    if (!instagram.trim()) {
+      Alert.alert('Error', 'Please enter an Instagram handle first');
+      return;
+    }
+
+    try {
+      Alert.alert('Downloading...', 'Fetching profile picture from Instagram');
+      
+      const { instagramApiService } = await import('@features/instagram/services/InstagramApiService');
+      const response = await instagramApiService.getProfilePicture(instagram.trim());
+      
+      if (response.success && response.data?.imageUrl) {
+        setPhotoUri(response.data.imageUrl);
+        Alert.alert('Success', 'Instagram profile picture downloaded successfully!');
+      } else {
+        Alert.alert('Error', 'Instagram profile not found or not accessible');
+      }
+    } catch (error) {
+      console.error('Error downloading Instagram profile picture:', error);
+      Alert.alert('Error', 'Failed to download Instagram profile picture. Please check the username and try again.');
+    }
+  };
+
   const handleSave = () => {
     if (!name.trim() || !phoneNumber.trim()) {
       Alert.alert('Error', 'Name and phone number are required');
@@ -1332,6 +1358,14 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
             >
               <Text style={[styles.photoOptionText, { color: theme.colors.error }]}>Remove Photo</Text>
             </TouchableOpacity>
+            {instagram.trim() && (
+              <TouchableOpacity 
+                style={styles.photoOptionButton}
+                onPress={handleEditDownloadFromInstagram}
+              >
+                <Text style={[styles.photoOptionText, { color: theme.colors.primary }]}>Download from Instagram</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Dialog.Content>
       </Dialog>

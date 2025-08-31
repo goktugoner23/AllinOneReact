@@ -189,6 +189,32 @@ export function StudentsTab() {
     setFormData({ ...formData, photoUri: '' });
   };
 
+  const handleDownloadFromInstagram = async () => {
+    setShowPhotoOptions(false);
+    
+    if (!formData.instagram?.trim()) {
+      Alert.alert('Error', 'Please enter an Instagram handle first');
+      return;
+    }
+
+    try {
+      Alert.alert('Downloading...', 'Fetching profile picture from Instagram');
+      
+      const { instagramApiService } = await import('@features/instagram/services/InstagramApiService');
+      const response = await instagramApiService.getProfilePicture(formData.instagram.trim());
+      
+      if (response.success && response.data?.imageUrl) {
+        setFormData({ ...formData, photoUri: response.data.imageUrl });
+        Alert.alert('Success', 'Instagram profile picture downloaded successfully!');
+      } else {
+        Alert.alert('Error', 'Instagram profile not found or not accessible');
+      }
+    } catch (error) {
+      console.error('Error downloading Instagram profile picture:', error);
+      Alert.alert('Error', 'Failed to download Instagram profile picture. Please check the username and try again.');
+    }
+  };
+
   const renderStudentCard = ({ item: student }: { item: WTStudent }) => (
     <TouchableOpacity
       onPress={() => {
@@ -477,6 +503,11 @@ export function StudentsTab() {
             <Button onPress={handleViewPhoto}>View Photo</Button>
             <Button onPress={handleChangePhoto}>Change Photo</Button>
             <Button onPress={handleRemovePhoto} textColor="red">Remove Photo</Button>
+            {formData.instagram?.trim() && (
+              <Button onPress={handleDownloadFromInstagram} textColor="primary">
+                Download from Instagram
+              </Button>
+            )}
           </Dialog.Actions>
         </Dialog>
       </Portal>
