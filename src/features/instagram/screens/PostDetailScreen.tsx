@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Linking, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, Linking } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { InstagramPost } from '@features/instagram/types/Instagram';
 import { Text, Card, IconButton, useTheme, Chip, Button } from 'react-native-paper';
 import { formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import InstagramImage from '@features/instagram/components/InstagramImage';
 
 type Params = {
   PostDetail: { post: InstagramPost };
@@ -38,10 +39,12 @@ const PostDetailScreen: React.FC = () => {
         />
         <Card.Content>
           {post.mediaUrl || post.thumbnailUrl ? (
-            <Image
-              source={{ uri: post.mediaUrl || post.thumbnailUrl! }}
+            <InstagramImage
+              instagramUrl={post.mediaUrl || post.thumbnailUrl!}
               style={styles.media}
               resizeMode="cover"
+              onError={(url) => console.warn('Failed to load post media:', url)}
+              onPress={() => post.permalink && Linking.openURL(post.permalink)}
             />
           ) : null}
 

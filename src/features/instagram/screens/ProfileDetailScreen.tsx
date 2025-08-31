@@ -11,6 +11,7 @@ import { PermissionsAndroid } from 'react-native';
 import { cacheMedia } from '@shared/services/mediaCache';
 import Video from 'react-native-video';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
+import InstagramImage from '@features/instagram/components/InstagramImage';
 
 // Simple cache to avoid re-fetching on each open
 const profileStoriesCache = new Map<string, { profile: InstagramProfilePictureResponse | null; stories: InstagramStoryItem[]; timestamp: number }>();
@@ -319,7 +320,11 @@ export default function ProfileDetailScreen() {
             paused
           />
         ) : (
-          <Image source={{ uri: item.mediaUrl }} style={styles.gridThumb} />
+          <InstagramImage 
+            instagramUrl={item.mediaUrl} 
+            style={styles.gridThumb}
+            onError={(url) => console.warn('Failed to load grid story image:', url)}
+          />
         )}
         {item.mediaType === 'VIDEO' && (
           <View style={styles.playBadge}>
@@ -470,7 +475,12 @@ export default function ProfileDetailScreen() {
                           paused={true}
                         />
                       ) : (
-                        <Image source={{ uri }} style={styles.player} resizeMode="contain" />
+                        <InstagramImage 
+                          instagramUrl={uri} 
+                          style={styles.player} 
+                          resizeMode="contain"
+                          onError={(url) => console.warn('Failed to load preview image:', url)}
+                        />
                       )}
                     </View>
                   );
@@ -497,7 +507,12 @@ export default function ProfileDetailScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.viewer, { backgroundColor: theme.colors.surface }]}> 
             {profile?.data?.imageUrl && (
-              <Image source={{ uri: profile.data.imageUrl }} style={styles.player} resizeMode="contain" />
+              <InstagramImage 
+                instagramUrl={profile.data.imageUrl} 
+                style={styles.player} 
+                resizeMode="contain"
+                onError={(url) => console.warn('Failed to load profile picture:', url)}
+              />
             )}
             <View style={styles.viewerActions}>
               <Button mode="contained" onPress={handleDownloadProfilePicture} icon="download">Download</Button>
@@ -526,7 +541,11 @@ function CardRow({ item, onOpen, onDownload }: { item: InstagramStoryItem; onOpe
               paused
             />
           ) : (
-            <Image source={{ uri: item.mediaUrl }} style={styles.rowThumb} />
+            <InstagramImage 
+              instagramUrl={item.mediaUrl} 
+              style={styles.rowThumb}
+              onError={(url) => console.warn('Failed to load row story image:', url)}
+            />
           )}
           {item.mediaType === 'VIDEO' && (
             <View style={styles.playBadgeSmall}>
@@ -565,7 +584,12 @@ function FeedStoryCard({ item, onOpen, onDownload, avatarUrl, username }: { item
           {isVideo ? (
             <Video source={{ uri: item.mediaUrl }} style={styles.feedMedia} resizeMode="cover" paused muted />
           ) : (
-            <Image source={{ uri: item.mediaUrl }} style={styles.feedMedia} resizeMode="cover" />
+            <InstagramImage 
+              instagramUrl={item.mediaUrl} 
+              style={styles.feedMedia} 
+              resizeMode="cover"
+              onError={(url) => console.warn('Failed to load feed story image:', url)}
+            />
           )}
         </View>
       </TouchableOpacity>

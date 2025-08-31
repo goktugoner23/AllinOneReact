@@ -13,7 +13,6 @@ import {
   Chip,
   IconButton,
 } from 'react-native-paper';
-import { Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
@@ -21,6 +20,7 @@ import { fetchInstagramPosts, clearError } from '@features/instagram/store/insta
 import { InstagramPost } from '@features/instagram/types/Instagram';
 import { useNavigation } from '@react-navigation/native';
 import { formatNumber, getMediaTypeIcon, formatRelativeTime, getErrorMessage, formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
+import InstagramImage from '@features/instagram/components/InstagramImage';
 
 const PostsTab: React.FC = () => {
   const theme = useTheme();
@@ -170,10 +170,11 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
         </View>
 
         {post.thumbnailUrl ? (
-          <Image
-            source={{ uri: post.thumbnailUrl }}
+          <InstagramImage
+            instagramUrl={post.thumbnailUrl}
             style={styles.thumbnail}
             resizeMode="cover"
+            onError={(url) => console.warn('Failed to load post thumbnail:', url)}
           />
         ) : null}
 
