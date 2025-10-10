@@ -209,14 +209,21 @@ function InvestmentsContent() {
             const allAttachments = [...imageUris, ...videoUris, ...voiceUris];
             if (allAttachments.length === 0) return null;
 
-            const handleAttachmentPress = (uri: string) => {
-              const clickedIndex = allAttachments.findIndex(att => att === uri);
-              const attachments: MediaAttachment[] = allAttachments.map((att, idx) => {
-                const isImage = imageUris.includes(att);
-                const isVideo = videoUris.includes(att);
-                const isAudio = voiceUris.includes(att);
+            // Create a closure-safe handler by capturing item data
+            const handleAttachmentPress = (clickedUri: string, currentItem: Investment) => {
+              // Reconstruct URIs from the current item to avoid stale closures
+              const currentImageUris = currentItem.imageUris?.split(',').filter(Boolean) || [];
+              const currentVideoUris = currentItem.videoUris?.split(',').filter(Boolean) || [];
+              const currentVoiceUris = currentItem.voiceNoteUris?.split(',').filter(Boolean) || [];
+              const currentAllAttachments = [...currentImageUris, ...currentVideoUris, ...currentVoiceUris];
+
+              const clickedIndex = currentAllAttachments.findIndex(att => att === clickedUri);
+              const attachments: MediaAttachment[] = currentAllAttachments.map((att, idx) => {
+                const isImage = currentImageUris.includes(att);
+                const isVideo = currentVideoUris.includes(att);
+                const isAudio = currentVoiceUris.includes(att);
                 return {
-                  id: `${item.id}_${idx}`,
+                  id: `${currentItem.id}_${idx}`,
                   uri: att,
                   type: isImage ? MediaType.IMAGE : isVideo ? MediaType.VIDEO : MediaType.AUDIO,
                   name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`,
@@ -237,7 +244,7 @@ function InvestmentsContent() {
                     <TouchableOpacity
                       key={index}
                       style={styles.attachmentPreview}
-                      onPress={() => handleAttachmentPress(uri)}
+                      onPress={() => handleAttachmentPress(uri, item)}
                     >
                       {isImage ? (
                         <Image source={{ uri }} style={styles.previewImage} />
