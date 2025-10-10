@@ -6,3 +6,4 @@ export { default as VoiceRecorder } from './VoiceRecorder';
 export { default as DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 export { default as AddFab } from './AddFab';
 export { default as RefreshFab } from './RefreshFab';
+export { default as LinearProgressBar } from './LinearProgressBar';

@@ -12,6 +12,7 @@ import { cacheMedia } from '@shared/services/mediaCache';
 import Video from 'react-native-video';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
 import InstagramImage from '@features/instagram/components/InstagramImage';
+import { LinearProgressBar } from '@shared/components';
 
 // Simple cache to avoid re-fetching on each open
 const profileStoriesCache = new Map<string, { profile: InstagramProfilePictureResponse | null; stories: InstagramStoryItem[]; timestamp: number }>();
@@ -340,14 +341,6 @@ export default function ProfileDetailScreen() {
     <FeedStoryCard item={item} onOpen={() => handleOpenStory(item)} onDownload={() => handleDownload(item)} avatarUrl={profile?.data?.imageUrl} username={username} />
   ), [handleOpenStory, handleDownload, profile?.data?.imageUrl, username]);
 
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Appbar.Header mode="small" elevated style={{ backgroundColor: theme.colors.surface }}>
@@ -355,6 +348,16 @@ export default function ProfileDetailScreen() {
         <Appbar.Content title={`@${username}`} />
       </Appbar.Header>
 
+      {/* Linear Progress Bar at the top */}
+      <LinearProgressBar visible={loading || refreshing} />
+
+      {loading && stories.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" />
+          <Text style={{ marginTop: 12, opacity: 0.7 }}>Loading profile...</Text>
+        </View>
+      ) : (
+        <>
       <View style={styles.headerBox}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={handleOpenProfilePicture} activeOpacity={0.7}>
@@ -521,7 +524,8 @@ export default function ProfileDetailScreen() {
           </View>
         </View>
       </Modal>
-      
+        </>
+      )}
     </View>
   );
 }
