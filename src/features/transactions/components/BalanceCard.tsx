@@ -17,18 +17,18 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({
 }) => {
   // Use cached balance from Redux store
   const {
-    totalIncome: cachedIncome,
-    totalExpense: cachedExpense,
-    balance: cachedBalance,
+    currentMonthIncome,
+    currentMonthExpense,
+    currentMonthBalance,
     isLoading,
     isStale,
     lastUpdated,
   } = useBalance();
 
-  // Use props if provided (for backward compatibility), otherwise use cached values
-  const totalIncome = propTotalIncome ?? cachedIncome;
-  const totalExpense = propTotalExpense ?? cachedExpense;
-  const balance = propBalance ?? cachedBalance;
+  // Use props if provided (for backward compatibility), otherwise use current month values
+  const totalIncome = propTotalIncome ?? currentMonthIncome;
+  const totalExpense = propTotalExpense ?? currentMonthExpense;
+  const balance = propBalance ?? currentMonthBalance;
 
   // Show loading indicator if explicitly requested or if balance is loading
   const shouldShowLoading = showLoading || isLoading;
@@ -39,10 +39,13 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({
     }).format(amount);
   };
 
+  // Get current month name
+  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Balance Overview</Text>
+        <Text style={styles.title}>{currentMonthName}</Text>
         {isStale && (
           <Text style={styles.staleIndicator}>⚠️ Stale</Text>
         )}

@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchTransactions, getTransactionTotals } from '@features/transactions/services/transactions';
+import { fetchTransactions, getTransactionTotals, getCurrentMonthTransactionTotals } from '@features/transactions/services/transactions';
 import { fetchInvestments } from '@features/transactions/services/investments';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { Investment } from '@features/transactions/types/Investment';
@@ -10,6 +10,9 @@ interface BalanceState {
   totalIncome: number;
   totalExpense: number;
   balance: number;
+  currentMonthIncome: number;
+  currentMonthExpense: number;
+  currentMonthBalance: number;
   isLoading: boolean;
   lastUpdated: string | null;
   isStale: boolean;
@@ -20,6 +23,9 @@ const initialState: BalanceState = {
   totalIncome: 0,
   totalExpense: 0,
   balance: 0,
+  currentMonthIncome: 0,
+  currentMonthExpense: 0,
+  currentMonthBalance: 0,
   isLoading: false,
   lastUpdated: null,
   isStale: false,
@@ -103,12 +109,14 @@ export const calculateBalance = createAsyncThunk(
       }
 
       // Fetch investments and get transaction totals in parallel
-      const [investments, transactionTotals] = await Promise.all([
+      const [investments, transactionTotals, currentMonthTotals] = await Promise.all([
         fetchInvestments(100),   // Limit to 100 investments
         getTransactionTotals(),  // Get totals from all transactions efficiently
+        getCurrentMonthTransactionTotals(),  // Get current month totals
       ]);
 
       const { totalIncome, totalExpense } = transactionTotals;
+      const { totalIncome: currentMonthIncome, totalExpense: currentMonthExpense } = currentMonthTotals;
 
       // Add investment profits/losses using reduce for better performance
       const investmentProfit = investments.reduce(
@@ -117,11 +125,15 @@ export const calculateBalance = createAsyncThunk(
       );
 
       const balance = totalIncome - totalExpense + investmentProfit;
+      const currentMonthBalance = currentMonthIncome - currentMonthExpense;
 
       const balanceData = {
         totalIncome,
         totalExpense,
         balance,
+        currentMonthIncome,
+        currentMonthExpense,
+        currentMonthBalance,
         lastUpdated: new Date().toISOString(),
         isStale: false,
       };
@@ -216,6 +228,9 @@ const balanceSlice = createSlice({
       state.totalIncome = 0;
       state.totalExpense = 0;
       state.balance = 0;
+      state.currentMonthIncome = 0;
+      state.currentMonthExpense = 0;
+      state.currentMonthBalance = 0;
       state.lastUpdated = null;
       state.isStale = false;
       state.error = null;
@@ -239,6 +254,9 @@ const balanceSlice = createSlice({
           state.totalIncome = action.payload.totalIncome;
           state.totalExpense = action.payload.totalExpense;
           state.balance = action.payload.balance;
+          state.currentMonthIncome = action.payload.currentMonthIncome || 0;
+          state.currentMonthExpense = action.payload.currentMonthExpense || 0;
+          state.currentMonthBalance = action.payload.currentMonthBalance || 0;
           state.lastUpdated = action.payload.lastUpdated;
           state.isStale = action.payload.isStale;
         }
@@ -257,6 +275,9 @@ const balanceSlice = createSlice({
         state.totalIncome = action.payload.totalIncome;
         state.totalExpense = action.payload.totalExpense;
         state.balance = action.payload.balance;
+        state.currentMonthIncome = action.payload.currentMonthIncome;
+        state.currentMonthExpense = action.payload.currentMonthExpense;
+        state.currentMonthBalance = action.payload.currentMonthBalance;
         state.lastUpdated = action.payload.lastUpdated;
         state.isStale = false;
       })

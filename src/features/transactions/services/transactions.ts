@@ -212,18 +212,18 @@ export async function getTransactionTotals(): Promise<{ totalIncome: number; tot
 export async function getTransactionCount(): Promise<number> {
   try {
     const now = Date.now();
-    
+
     // Check if we have a valid cache
     if (transactionCache && (now - transactionCache.timestamp) < CACHE_DURATION) {
       return transactionCache.count;
     }
-    
+
     const db = getDb();
     const q = query(collection(db, "transactions"));
     const snapshot = await getDocs(q);
-    
+
     const count = snapshot.docs.length;
-    
+
     // Update cache if it exists but doesn't have count
     if (transactionCache) {
       transactionCache.count = count;
@@ -237,10 +237,59 @@ export async function getTransactionCount(): Promise<number> {
         timestamp: now
       };
     }
-    
+
     return count;
   } catch (error) {
     logger.error("Error getting transaction count", error, "getTransactionCount");
     return 0;
+  }
+}
+
+export async function getCurrentMonthTransactionTotals(): Promise<{ totalIncome: number; totalExpense: number }> {
+  try {
+    const db = getDb();
+    const q = query(collection(db, "transactions"));
+    const snapshot = await getDocs(q);
+
+    // Get current month start and end dates
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    // Calculate totals from transactions in current month
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const amount = data.amount ?? 0;
+      const isIncome = data.isIncome ?? false;
+
+      // Parse transaction date
+      let transactionDate: Date;
+      if (data.date instanceof Timestamp) {
+        transactionDate = data.date.toDate();
+      } else if (data.date?.toDate) {
+        transactionDate = data.date.toDate();
+      } else if (typeof data.date === 'string') {
+        transactionDate = new Date(data.date);
+      } else {
+        return; // Skip if date is invalid
+      }
+
+      // Check if transaction is in current month
+      if (transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd) {
+        if (isIncome) {
+          totalIncome += amount;
+        } else {
+          totalExpense += amount;
+        }
+      }
+    });
+
+    return { totalIncome, totalExpense };
+  } catch (error) {
+    logger.error("Error getting current month transaction totals", error, "getCurrentMonthTransactionTotals");
+    return { totalIncome: 0, totalExpense: 0 };
   }
 }
