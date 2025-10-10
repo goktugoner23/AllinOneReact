@@ -432,3 +432,30 @@ export interface InstagramStoryItem {
     timestamp?: string;
     expiresAt?: string;
 }
+
+// User posts endpoint response (for profiler)
+export interface InstagramUserPostsResponse {
+    success: boolean;
+    data: InstagramUserPost[];
+    count?: number;
+    session?: {
+        hasSession: boolean;
+        valid: boolean;
+        issue?: string;
+    };
+    timestamp?: number | string;
+}
+
+export interface InstagramUserPost {
+    id: string;
+    shortcode: string;
+    caption?: string;
+    mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+    mediaUrl: string;
+    thumbnailUrl?: string;
+    permalink: string;
+    timestamp: string;
+    likesCount?: number;
+    commentsCount?: number;
+    videoViewsCount?: number;
+}

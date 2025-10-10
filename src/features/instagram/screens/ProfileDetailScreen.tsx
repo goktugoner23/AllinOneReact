@@ -3,11 +3,11 @@ import { View, StyleSheet, FlatList, Image, TouchableOpacity, Modal, Platform, A
 import { Appbar, Avatar, Button, Text, useTheme, ActivityIndicator, ProgressBar } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import instagramApiService from '@features/instagram/services/InstagramApiService';
-import { InstagramProfilePictureResponse, InstagramStoriesResponse, InstagramStoryItem } from '@features/instagram/types/Instagram';
+import { InstagramProfilePictureResponse, InstagramStoriesResponse, InstagramStoryItem, InstagramUserPostsResponse, InstagramUserPost } from '@features/instagram/types/Instagram';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import * as CameraRollModule from '@react-native-camera-roll/camera-roll';
-import { PermissionsAndroid } from 'react-native';
+import { PermissionsAndroid, Linking } from 'react-native';
 import { cacheMedia } from '@shared/services/mediaCache';
 import Video from 'react-native-video';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
@@ -27,15 +27,21 @@ export default function ProfileDetailScreen() {
 
   const [profile, setProfile] = useState<InstagramProfilePictureResponse | null>(null);
   const [stories, setStories] = useState<InstagramStoryItem[]>([]);
+  const [posts, setPosts] = useState<InstagramUserPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'stories' | 'posts'>('stories');
   const [layout, setLayout] = useState<'timeline' | 'grid'>('grid');
   const [preview, setPreview] = useState<{ item: InstagramStoryItem; localUri?: string } | null>(null);
+  const [postPreview, setPostPreview] = useState<{ item: InstagramUserPost; localUri?: string } | null>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [viewerWidth, setViewerWidth] = useState(0);
   const previewListRef = useRef<FlatList<InstagramStoryItem>>(null);
+  const postPreviewListRef = useRef<FlatList<InstagramUserPost>>(null);
   const dragStartRef = useRef<{ startOffset: number; startIndex: number }>({ startOffset: 0, startIndex: 0 });
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [postsError, setPostsError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pfpVisible, setPfpVisible] = useState(false);
   const [bulkVisible, setBulkVisible] = useState(false);
@@ -93,42 +99,119 @@ export default function ProfileDetailScreen() {
     run();
   }, [username]);
 
+  // Load posts when switching to posts tab
+  useEffect(() => {
+    if (activeTab === 'posts' && posts.length === 0 && !postsLoading) {
+      loadPosts();
+    }
+  }, [activeTab]);
+
+  const loadPosts = async () => {
+    setPostsLoading(true);
+    setPostsError(null);
+    try {
+      const response = await instagramApiService.getUserPosts(username);
+
+      // Log full response structure
+      console.log('📸 User Posts Response:', JSON.stringify(response, null, 2));
+
+      // Check session status
+      if (response.session) {
+        console.log('🔐 Session Status:', {
+          hasSession: response.session.hasSession,
+          valid: response.session.valid,
+          issue: response.session.issue
+        });
+
+        if (!response.session.valid) {
+          console.warn('⚠️ Instagram session is invalid:', response.session.issue);
+        }
+      }
+
+      // Log post count and first post details
+      console.log('📊 Posts Data:', {
+        success: response.success,
+        count: response.count || response.data?.length || 0,
+        hasData: !!response.data,
+        dataLength: response.data?.length || 0
+      });
+
+      if (response.data?.[0]) {
+        console.log('📸 First Post Sample:', {
+          id: response.data[0].id,
+          mediaType: response.data[0].mediaType,
+          hasMediaUrl: !!response.data[0].mediaUrl,
+          hasThumbnailUrl: !!response.data[0].thumbnailUrl,
+          mediaUrlPreview: response.data[0].mediaUrl?.substring(0, 150),
+          thumbnailUrlPreview: response.data[0].thumbnailUrl?.substring(0, 150),
+          allKeys: Object.keys(response.data[0])
+        });
+      } else {
+        console.log('📸 No posts in response');
+      }
+
+      setPosts(response.data || []);
+    } catch (e) {
+      console.error('❌ Failed to load posts:', e);
+
+      const is404Error = (e as any)?.response?.status === 404 ||
+                        (e as any)?.code === 'ERR_BAD_REQUEST' ||
+                        (e as Error)?.message?.includes('404') ||
+                        (e as Error)?.message?.includes('Request failed');
+
+      if (is404Error) {
+        setPostsError('Posts not found or not accessible');
+      } else {
+        setPostsError('Failed to load posts');
+      }
+      setPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
   const handleRefresh = useCallback(async () => {
     if (refreshing) return Promise.resolve();
     setRefreshing(true);
     try {
-      const [p, s] = await Promise.all([
-        instagramApiService.getProfilePicture(username),
-        instagramApiService.getStories(username),
-      ]);
-      const storiesSorted = (s?.data || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
-      setProfile(p);
-      setStories(storiesSorted);
-      const toCache = { profile: p, stories: storiesSorted, timestamp: Date.now() };
-      profileStoriesCache.set(username, toCache);
-      await StorageService.setItem(`${STORAGE_KEYS.CACHED_DATA}:ig_stories:${username}`, toCache);
-      setError(null);
+      if (activeTab === 'stories') {
+        const [p, s] = await Promise.all([
+          instagramApiService.getProfilePicture(username),
+          instagramApiService.getStories(username),
+        ]);
+        const storiesSorted = (s?.data || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+        setProfile(p);
+        setStories(storiesSorted);
+        const toCache = { profile: p, stories: storiesSorted, timestamp: Date.now() };
+        profileStoriesCache.set(username, toCache);
+        await StorageService.setItem(`${STORAGE_KEYS.CACHED_DATA}:ig_stories:${username}`, toCache);
+        setError(null);
+      } else {
+        await loadPosts();
+      }
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to refresh profile/stories', e);
-      
+      console.warn('Failed to refresh', e);
+
       // Check for 404 error from Axios
-      const is404Error = (e as any)?.response?.status === 404 || 
+      const is404Error = (e as any)?.response?.status === 404 ||
                         (e as any)?.code === 'ERR_BAD_REQUEST' ||
                         (e as Error)?.message?.includes('404') ||
                         (e as Error)?.message?.includes('Request failed');
-      
-      if (is404Error) {
-        setError('User not found or not accessible');
-        setProfile(null);
-        setStories([]);
-      } else {
-        setError('Failed to refresh');
+
+      if (activeTab === 'stories') {
+        if (is404Error) {
+          setError('User not found or not accessible');
+          setProfile(null);
+          setStories([]);
+        } else {
+          setError('Failed to refresh');
+        }
       }
     } finally {
       setRefreshing(false);
     }
-  }, [username, refreshing]);
+  }, [username, refreshing, activeTab]);
 
   const handleOpenStory = useCallback(async (item: InstagramStoryItem) => {
     try {
@@ -341,6 +424,109 @@ export default function ProfileDetailScreen() {
     <FeedStoryCard item={item} onOpen={() => handleOpenStory(item)} onDownload={() => handleDownload(item)} avatarUrl={profile?.data?.imageUrl} username={username} />
   ), [handleOpenStory, handleDownload, profile?.data?.imageUrl, username]);
 
+  // Post render items
+  const renderPostGridItem = useCallback(({ item }: { item: InstagramUserPost }) => {
+    // Check all possible field names for media URLs
+    const imageUrl = item.thumbnailUrl || item.mediaUrl || (item as any).thumbnail_url || (item as any).media_url;
+
+    // Detailed logging for debugging
+    if (__DEV__) {
+      console.log('🖼️ Post Grid Item Debug:', {
+        id: item.id,
+        mediaType: item.mediaType,
+        hasMediaUrl: !!item.mediaUrl,
+        hasThumbnailUrl: !!item.thumbnailUrl,
+        resolvedUrl: imageUrl,
+        urlLength: imageUrl?.length || 0,
+        urlPreview: imageUrl?.substring(0, 100) || 'No URL',
+      });
+    }
+
+    if (!imageUrl) {
+      console.warn('⚠️ No image URL found for post:', {
+        id: item.id,
+        shortcode: item.shortcode,
+        mediaType: item.mediaType,
+        allFields: Object.keys(item),
+        item: item
+      });
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.gridItem}
+        onPress={() => {
+          Linking.openURL(item.permalink);
+        }}
+      >
+        <View style={styles.thumbWrapper} pointerEvents="none">
+          {imageUrl ? (
+            item.mediaType === 'VIDEO' ? (
+              <Video
+                source={{ uri: imageUrl }}
+                style={styles.gridThumb}
+                resizeMode="cover"
+                muted
+                paused
+                onError={(error) => {
+                  console.error('❌ Video load error:', {
+                    url: imageUrl,
+                    error,
+                    postId: item.id
+                  });
+                }}
+              />
+            ) : (
+              <InstagramImage
+                instagramUrl={imageUrl}
+                style={styles.gridThumb}
+                onError={(url) => {
+                  console.error('❌ Image load error:', {
+                    url,
+                    postId: item.id,
+                    mediaType: item.mediaType,
+                    fullPost: item
+                  });
+                }}
+                onLoad={() => {
+                  if (__DEV__) {
+                    console.log('✅ Image loaded successfully:', item.id);
+                  }
+                }}
+              />
+            )
+          ) : (
+            <View style={[styles.gridThumb, { backgroundColor: '#e0e0e0', justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ fontSize: 10, color: '#666' }}>No Image</Text>
+            </View>
+          )}
+        {item.mediaType === 'VIDEO' && (
+          <View style={styles.playBadge}>
+            <Text style={styles.playBadgeText}>▶</Text>
+          </View>
+        )}
+        {item.mediaType === 'CAROUSEL_ALBUM' && (
+          <View style={styles.carouselBadge}>
+            <Text style={styles.playBadgeText}>◉</Text>
+          </View>
+          )}
+        </View>
+        <View style={styles.postStats}>
+          {item.likesCount !== undefined && (
+            <Text style={styles.postStat}>❤️ {item.likesCount}</Text>
+          )}
+          {item.commentsCount !== undefined && (
+            <Text style={styles.postStat}>💬 {item.commentsCount}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }, []);
+
+  const renderPostRowItem = useCallback(({ item }: { item: InstagramUserPost }) => (
+    <FeedPostCard item={item} avatarUrl={profile?.data?.imageUrl} username={username} />
+  ), [profile?.data?.imageUrl, username]);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Appbar.Header mode="small" elevated style={{ backgroundColor: theme.colors.surface }}>
@@ -358,6 +544,26 @@ export default function ProfileDetailScreen() {
         </View>
       ) : (
         <>
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'stories' && { borderBottomColor: theme.colors.primary }]}
+          onPress={() => setActiveTab('stories')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'stories' && styles.activeTabButtonText]}>
+            Stories
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'posts' && { borderBottomColor: theme.colors.primary }]}
+          onPress={() => setActiveTab('posts')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'posts' && styles.activeTabButtonText]}>
+            Posts
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.headerBox}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={handleOpenProfilePicture} activeOpacity={0.7}>
@@ -367,10 +573,12 @@ export default function ProfileDetailScreen() {
               <Avatar.Icon size={56} icon="account" />
             )}
           </TouchableOpacity>
-          <View style={styles.headerText}> 
+          <View style={styles.headerText}>
             <Text variant="titleMedium">@{username}</Text>
             {!!profile?.data?.fullName && <Text variant="bodySmall" style={{ opacity: 0.7 }}>{profile.data.fullName}</Text>}
-            <Text variant="bodySmall" style={{ opacity: 0.6 }}>{stories.length} stories</Text>
+            <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+              {activeTab === 'stories' ? `${stories.length} stories` : `${posts.length} posts`}
+            </Text>
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -407,38 +615,81 @@ export default function ProfileDetailScreen() {
         </View>
       </View>
 
-      {error ? (
-        <View style={[styles.center, { padding: 24 }]}> 
-          <Text>{error}</Text>
-        </View>
-      ) : layout === 'grid' ? (
-        <FlatList
-          key="grid"
-          data={stories}
-          keyExtractor={(i) => i.id}
-          numColumns={3}
-          contentContainerStyle={{ padding: 8 }}
-          columnWrapperStyle={{ gap: 8 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          removeClippedSubviews
-          windowSize={5}
-          maxToRenderPerBatch={9}
-          initialNumToRender={12}
-          renderItem={renderGridItem}
-        />
+      {/* Content Area - Stories or Posts */}
+      {activeTab === 'stories' ? (
+        error ? (
+          <View style={[styles.center, { padding: 24 }]}>
+            <Text>{error}</Text>
+          </View>
+        ) : layout === 'grid' ? (
+          <FlatList
+            key="grid-stories"
+            data={stories}
+            keyExtractor={(i) => i.id}
+            numColumns={3}
+            contentContainerStyle={{ padding: 8 }}
+            columnWrapperStyle={{ gap: 8 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            removeClippedSubviews
+            windowSize={5}
+            maxToRenderPerBatch={9}
+            initialNumToRender={12}
+            renderItem={renderGridItem}
+          />
+        ) : (
+          <FlatList
+            key="timeline-stories"
+            data={stories}
+            keyExtractor={(i) => i.id}
+            contentContainerStyle={{ padding: 12 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            removeClippedSubviews
+            windowSize={7}
+            maxToRenderPerBatch={7}
+            initialNumToRender={10}
+            renderItem={renderRowItem}
+          />
+        )
       ) : (
-        <FlatList
-          key="timeline"
-          data={stories}
-          keyExtractor={(i) => i.id}
-          contentContainerStyle={{ padding: 12 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          removeClippedSubviews
-          windowSize={7}
-          maxToRenderPerBatch={7}
-          initialNumToRender={10}
-          renderItem={renderRowItem}
-        />
+        // Posts Tab
+        postsLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" />
+            <Text style={{ marginTop: 12, opacity: 0.7 }}>Loading posts...</Text>
+          </View>
+        ) : postsError ? (
+          <View style={[styles.center, { padding: 24 }]}>
+            <Text>{postsError}</Text>
+          </View>
+        ) : layout === 'grid' ? (
+          <FlatList
+            key="grid-posts"
+            data={posts}
+            keyExtractor={(i) => i.id}
+            numColumns={3}
+            contentContainerStyle={{ padding: 8 }}
+            columnWrapperStyle={{ gap: 8 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            removeClippedSubviews
+            windowSize={5}
+            maxToRenderPerBatch={9}
+            initialNumToRender={12}
+            renderItem={renderPostGridItem}
+          />
+        ) : (
+          <FlatList
+            key="timeline-posts"
+            data={posts}
+            keyExtractor={(i) => i.id}
+            contentContainerStyle={{ padding: 12 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            removeClippedSubviews
+            windowSize={7}
+            maxToRenderPerBatch={7}
+            initialNumToRender={10}
+            renderItem={renderPostRowItem}
+          />
+        )
       )}
 
       <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
@@ -588,9 +839,9 @@ function FeedStoryCard({ item, onOpen, onDownload, avatarUrl, username }: { item
           {isVideo ? (
             <Video source={{ uri: item.mediaUrl }} style={styles.feedMedia} resizeMode="cover" paused muted />
           ) : (
-            <InstagramImage 
-              instagramUrl={item.mediaUrl} 
-              style={styles.feedMedia} 
+            <InstagramImage
+              instagramUrl={item.mediaUrl}
+              style={styles.feedMedia}
               resizeMode="cover"
               onError={(url) => console.warn('Failed to load feed story image:', url)}
             />
@@ -606,9 +857,128 @@ function FeedStoryCard({ item, onOpen, onDownload, avatarUrl, username }: { item
   );
 }
 
+function FeedPostCard({ item, avatarUrl, username }: { item: InstagramUserPost; avatarUrl?: string; username: string }) {
+  const theme = useTheme();
+  const isVideo = item.mediaType === 'VIDEO';
+  const imageUrl = item.thumbnailUrl || item.mediaUrl || (item as any).thumbnail_url || (item as any).media_url;
+
+  if (__DEV__) {
+    console.log('📱 Feed Post Card Debug:', {
+      id: item.id,
+      mediaType: item.mediaType,
+      hasMediaUrl: !!item.mediaUrl,
+      hasThumbnailUrl: !!item.thumbnailUrl,
+      resolvedUrl: imageUrl,
+      urlPreview: imageUrl?.substring(0, 100) || 'No URL',
+    });
+  }
+
+  return (
+    <View style={[styles.feedCard, { backgroundColor: theme.colors.surface }]}>
+      <View style={styles.feedHeader}>
+        {avatarUrl ? (
+          <Avatar.Image size={36} source={{ uri: avatarUrl }} />
+        ) : (
+          <Avatar.Icon size={36} icon="account" />
+        )}
+        <Text variant="titleSmall" style={{ marginLeft: 8 }}>@{username}</Text>
+        <View style={{ marginLeft: 'auto' }}>
+          <Button compact onPress={() => {
+            Linking.openURL(item.permalink);
+          }} icon="open-in-new">View</Button>
+        </View>
+      </View>
+      <TouchableOpacity onPress={() => {
+        Linking.openURL(item.permalink);
+      }} activeOpacity={0.8}>
+        <View pointerEvents="none">
+          {isVideo ? (
+            <Video
+              source={{ uri: imageUrl }}
+              style={styles.feedMedia}
+              resizeMode="cover"
+              paused
+              muted
+              onError={(error) => {
+                console.error('❌ Feed video load error:', {
+                  url: imageUrl,
+                  error,
+                  postId: item.id
+                });
+              }}
+            />
+          ) : (
+            <InstagramImage
+              instagramUrl={imageUrl}
+              style={styles.feedMedia}
+              resizeMode="cover"
+              onError={(url) => {
+                console.error('❌ Feed image load error:', {
+                  url,
+                  postId: item.id,
+                  fullPost: item
+                });
+              }}
+              onLoad={() => {
+                if (__DEV__) {
+                  console.log('✅ Feed image loaded successfully:', item.id);
+                }
+              }}
+            />
+          )}
+        </View>
+      </TouchableOpacity>
+      <View style={styles.feedFooter}>
+        {item.caption && (
+          <Text variant="bodyMedium" numberOfLines={3} style={{ marginBottom: 8 }}>{item.caption}</Text>
+        )}
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          {item.likesCount !== undefined && (
+            <Text variant="bodySmall" style={{ opacity: 0.7 }}>❤️ {item.likesCount}</Text>
+          )}
+          {item.commentsCount !== undefined && (
+            <Text variant="bodySmall" style={{ opacity: 0.7 }}>💬 {item.commentsCount}</Text>
+          )}
+          {item.videoViewsCount !== undefined && (
+            <Text variant="bodySmall" style={{ opacity: 0.7 }}>👁️ {item.videoViewsCount}</Text>
+          )}
+        </View>
+        {!!item.timestamp && (
+          <Text variant="bodySmall" style={{ opacity: 0.5, marginTop: 4 }}>{new Date(item.timestamp).toLocaleString()}</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+  },
+  activeTabButtonText: {
+    fontWeight: 'bold',
+    color: '#000',
+  },
   headerBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, gap: 12, flexWrap: 'wrap' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
@@ -622,6 +992,9 @@ const styles = StyleSheet.create({
   playBadge: { position: 'absolute', right: 6, top: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
   playBadgeSmall: { position: 'absolute', right: 6, bottom: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 1 },
   playBadgeText: { color: '#fff', fontSize: 12 },
+  carouselBadge: { position: 'absolute', right: 6, top: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2 },
+  postStats: { flexDirection: 'row', gap: 8, marginTop: 4, paddingHorizontal: 4 },
+  postStat: { fontSize: 11, fontWeight: '600', color: '#333' },
   downloadBtn: { marginTop: 6 },
   rowCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, marginBottom: 10 },
   rowThumbWrapper: { width: 72, height: 72, borderRadius: 8, marginRight: 12, overflow: 'hidden' },

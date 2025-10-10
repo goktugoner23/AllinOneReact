@@ -24,14 +24,27 @@ export const createInstagramImageProxyUrl = (instagramUrl: string): string => {
     return '';
   }
 
-  // If it's already a proxy URL, return it as-is
-  if (instagramUrl.includes('/api/instagram/image-proxy')) {
+  // If it's already a proxy URL from our backend, return it as-is
+  const baseUrl = getBaseUrl();
+  if (instagramUrl.includes('/api/instagram/image-proxy') ||
+      instagramUrl.startsWith(baseUrl)) {
+    if (__DEV__) {
+      console.log('🔗 URL is already proxied, returning as-is');
+    }
     return instagramUrl;
   }
 
-  const baseUrl = getBaseUrl();
   const encodedUrl = encodeURIComponent(instagramUrl);
-  return `${baseUrl}/api/instagram/image-proxy?url=${encodedUrl}`;
+  const proxiedUrl = `${baseUrl}/api/instagram/image-proxy?url=${encodedUrl}`;
+
+  if (__DEV__) {
+    console.log('🔗 Creating proxy URL:', {
+      base: baseUrl,
+      encoded: encodedUrl.substring(0, 50)
+    });
+  }
+
+  return proxiedUrl;
 };
 
 /**
@@ -45,17 +58,39 @@ export const createInstagramImageProxyUrls = (urls: string[]): string[] => {
  * Checks if a URL is a valid Instagram CDN URL
  */
 export const isInstagramUrl = (url: string): boolean => {
-  if (!url || typeof url !== 'string') return false;
-  
+  if (!url || typeof url !== 'string') {
+    if (__DEV__) {
+      console.warn('🔍 isInstagramUrl: Invalid URL type:', typeof url);
+    }
+    return false;
+  }
+
+  // Instagram and Facebook CDN domains
+  // Includes domains used by both regular Instagram and Instagram Business accounts (Graph API)
   const instagramDomains = [
     'cdninstagram.com',
     'instagram.com',
     'fbcdn.net',
     'scontent',
-    'instagram.fcdn.net'
+    'instagram.fcdn.net',
+    'facebook.com',  // Graph API media URLs
+    'fbsbx.com',     // Facebook sandbox
+    'xx.fbcdn.net',  // Facebook CDN variant
+    'scontent-',     // Prefix for regional CDN servers
+    'graph.facebook.com',  // Direct Graph API URLs
+    'graph.instagram.com'  // Instagram Graph API
   ];
-  
-  return instagramDomains.some(domain => url.includes(domain));
+
+  const isIg = instagramDomains.some(domain => url.includes(domain));
+
+  if (__DEV__ && !isIg) {
+    console.log('🔍 URL does not match Instagram domains:', {
+      urlPreview: url.substring(0, 100),
+      checkedDomains: instagramDomains
+    });
+  }
+
+  return isIg;
 };
 
 /**
@@ -63,14 +98,39 @@ export const isInstagramUrl = (url: string): boolean => {
  * Returns original URL if it's not from Instagram
  */
 export const createSafeProxyUrl = (url: string): string => {
-  if (!url) return '';
-  
-  // If it's an Instagram URL, use proxy
-  if (isInstagramUrl(url)) {
-    return createInstagramImageProxyUrl(url);
+  if (!url) {
+    if (__DEV__) {
+      console.warn('🔗 createSafeProxyUrl: Empty URL provided');
+    }
+    return '';
   }
-  
+
+  // If it's an Instagram URL, use proxy
+  const isIgUrl = isInstagramUrl(url);
+
+  if (__DEV__) {
+    console.log('🔗 createSafeProxyUrl:', {
+      isInstagramUrl: isIgUrl,
+      urlPreview: url.substring(0, 100),
+      urlLength: url.length
+    });
+  }
+
+  if (isIgUrl) {
+    const proxiedUrl = createInstagramImageProxyUrl(url);
+    if (__DEV__) {
+      console.log('🔗 Proxied URL created:', {
+        original: url.substring(0, 100),
+        proxied: proxiedUrl.substring(0, 100)
+      });
+    }
+    return proxiedUrl;
+  }
+
   // Return original URL for non-Instagram sources
+  if (__DEV__) {
+    console.log('🔗 Non-Instagram URL, returning as-is:', url.substring(0, 100));
+  }
   return url;
 };
 
