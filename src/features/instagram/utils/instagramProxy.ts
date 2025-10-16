@@ -4,13 +4,11 @@
  * Following the guide in AllinOneReact Instagram Proxy Integration Guide
  */
 
-import { InstagramApiService } from '@features/instagram/services/InstagramApiService';
-
 // Get the base URL from the Instagram API service
 const getBaseUrl = (): string => {
   // Use the same base URL as the Instagram API service
-  return __DEV__ 
-    ? 'http://129.212.143.6:3000' 
+  return __DEV__
+    ? 'http://129.212.143.6:3000'
     : 'http://129.212.143.6:3000';
 };
 
@@ -96,6 +94,9 @@ export const isInstagramUrl = (url: string): boolean => {
 /**
  * Safely creates a proxy URL only for Instagram URLs
  * Returns original URL if it's not from Instagram
+ *
+ * TEMPORARY FIX: Proxy is currently unreliable (502 errors),
+ * so we're using direct URLs until proxy is fixed
  */
 export const createSafeProxyUrl = (url: string): string => {
   if (!url) {
@@ -105,6 +106,17 @@ export const createSafeProxyUrl = (url: string): string => {
     return '';
   }
 
+  // TEMPORARY: Return direct URLs to avoid proxy 502 errors
+  // TODO: Re-enable proxy once backend image-proxy endpoint is fixed
+  if (__DEV__) {
+    console.log('🔗 Using direct URL (proxy disabled):', {
+      urlPreview: url.substring(0, 100),
+      urlLength: url.length
+    });
+  }
+  return url;
+
+  /* DISABLED PROXY CODE - Uncomment when proxy is fixed
   // If it's an Instagram URL, use proxy
   const isIgUrl = isInstagramUrl(url);
 
@@ -132,6 +144,7 @@ export const createSafeProxyUrl = (url: string): string => {
     console.log('🔗 Non-Instagram URL, returning as-is:', url.substring(0, 100));
   }
   return url;
+  */
 };
 
 /**

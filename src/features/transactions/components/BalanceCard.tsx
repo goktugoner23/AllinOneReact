@@ -19,16 +19,16 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({
   const {
     currentMonthIncome,
     currentMonthExpense,
-    currentMonthBalance,
+    balance: totalBalance,
     isLoading,
     isStale,
     lastUpdated,
   } = useBalance();
 
-  // Use props if provided (for backward compatibility), otherwise use current month values
+  // Use props if provided (for backward compatibility), otherwise use current month for income/expense and total for balance
   const totalIncome = propTotalIncome ?? currentMonthIncome;
   const totalExpense = propTotalExpense ?? currentMonthExpense;
-  const balance = propBalance ?? currentMonthBalance;
+  const balance = propBalance ?? totalBalance;
 
   // Show loading indicator if explicitly requested or if balance is loading
   const shouldShowLoading = showLoading || isLoading;

@@ -81,6 +81,7 @@
     "jest": "^30.0.5",
     "patch-package": "^8.0.0",
     "prettier": "^3.6.2",
+    "react-native-dotenv": "^3.4.11",
     "react-test-renderer": "19.1.0",
     "typescript": "^5.8.3"
   },
