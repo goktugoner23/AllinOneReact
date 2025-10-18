@@ -15,7 +15,7 @@ import InstagramImage from '@features/instagram/components/InstagramImage';
 import { LinearProgressBar } from '@shared/components';
 
 // Simple cache to avoid re-fetching on each open
-const profileStoriesCache = new Map<string, { profile: InstagramProfilePictureResponse | null; stories: InstagramStoryItem[]; timestamp: number }>();
+const profileStoriesCache = new Map<string, { profile: InstagramProfilePictureResponse | null; stories: InstagramStoryItem[]; posts: InstagramUserPost[]; timestamp: number }>();
 
 type RouteParams = { username: string };
 
@@ -58,39 +58,62 @@ export default function ProfileDetailScreen() {
       try {
         setLoading(true);
         setError(null);
-        const cached = profileStoriesCache.get(username) || (await StorageService.getItem<{ profile: InstagramProfilePictureResponse | null; stories: InstagramStoryItem[]; timestamp: number }>(`${STORAGE_KEYS.CACHED_DATA}:ig_stories:${username}`));
+        setPostsError(null);
+
+        // Check cache first
+        const cached = profileStoriesCache.get(username) || (await StorageService.getItem<{ profile: InstagramProfilePictureResponse | null; stories: InstagramStoryItem[]; posts: InstagramUserPost[]; timestamp: number }>(`${STORAGE_KEYS.CACHED_DATA}:ig_all:${username}`));
         if (cached) {
           setProfile(cached.profile);
           setStories(cached.stories);
+          setPosts(cached.posts || []);
           setLoading(false);
           return;
         }
-        const [p, s] = await Promise.all([
-          instagramApiService.getProfilePicture(username),
-          instagramApiService.getStories(username),
-        ]);
-        const storiesSorted = (s?.data || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
-        setProfile(p);
+
+        // Use the optimized /all endpoint to get everything in one call
+        const allData = await instagramApiService.getAllUserData(username);
+
+        if (!allData.success) {
+          throw new Error('Failed to fetch user data');
+        }
+
+        // Transform profile data to match existing format
+        const profileData: InstagramProfilePictureResponse = {
+          success: allData.status.profile,
+          data: allData.data.profile || {
+            username,
+            imageUrl: '',
+          },
+        };
+
+        const storiesSorted = (allData.data.stories || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+        const postsData = allData.data.posts || [];
+
+        setProfile(profileData);
         setStories(storiesSorted);
-        const toCache = { profile: p, stories: storiesSorted, timestamp: Date.now() };
+        setPosts(postsData);
+
+        // Cache the combined data
+        const toCache = { profile: profileData, stories: storiesSorted, posts: postsData, timestamp: Date.now() };
         profileStoriesCache.set(username, toCache);
-        await StorageService.setItem(`${STORAGE_KEYS.CACHED_DATA}:ig_stories:${username}`, toCache);
+        await StorageService.setItem(`${STORAGE_KEYS.CACHED_DATA}:ig_all:${username}`, toCache);
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.warn('Failed to load profile/stories', e);
-        
+        console.warn('Failed to load profile data', e);
+
         // Check for 404 error from Axios
-        const is404Error = (e as any)?.response?.status === 404 || 
+        const is404Error = (e as any)?.response?.status === 404 ||
                           (e as any)?.code === 'ERR_BAD_REQUEST' ||
                           (e as Error)?.message?.includes('404') ||
                           (e as Error)?.message?.includes('Request failed');
-        
+
         if (is404Error) {
           setError('User not found or not accessible');
           setProfile(null);
           setStories([]);
+          setPosts([]);
         } else {
-          setError('Failed to load profile/stories');
+          setError('Failed to load profile data');
         }
       } finally {
         setLoading(false);
@@ -99,96 +122,41 @@ export default function ProfileDetailScreen() {
     run();
   }, [username]);
 
-  // Load posts when switching to posts tab
-  useEffect(() => {
-    if (activeTab === 'posts' && posts.length === 0 && !postsLoading) {
-      loadPosts();
-    }
-  }, [activeTab]);
-
-  const loadPosts = async () => {
-    setPostsLoading(true);
-    setPostsError(null);
-    try {
-      const response = await instagramApiService.getUserPosts(username);
-
-      // Log full response structure
-      console.log('📸 User Posts Response:', JSON.stringify(response, null, 2));
-
-      // Check session status
-      if (response.session) {
-        console.log('🔐 Session Status:', {
-          hasSession: response.session.hasSession,
-          valid: response.session.valid,
-          issue: response.session.issue
-        });
-
-        if (!response.session.valid) {
-          console.warn('⚠️ Instagram session is invalid:', response.session.issue);
-        }
-      }
-
-      // Log post count and first post details
-      console.log('📊 Posts Data:', {
-        success: response.success,
-        count: response.count || response.data?.length || 0,
-        hasData: !!response.data,
-        dataLength: response.data?.length || 0
-      });
-
-      if (response.data?.[0]) {
-        console.log('📸 First Post Sample:', {
-          id: response.data[0].id,
-          mediaType: response.data[0].mediaType,
-          hasMediaUrl: !!response.data[0].mediaUrl,
-          hasThumbnailUrl: !!response.data[0].thumbnailUrl,
-          mediaUrlPreview: response.data[0].mediaUrl?.substring(0, 150),
-          thumbnailUrlPreview: response.data[0].thumbnailUrl?.substring(0, 150),
-          allKeys: Object.keys(response.data[0])
-        });
-      } else {
-        console.log('📸 No posts in response');
-      }
-
-      setPosts(response.data || []);
-    } catch (e) {
-      console.error('❌ Failed to load posts:', e);
-
-      const is404Error = (e as any)?.response?.status === 404 ||
-                        (e as any)?.code === 'ERR_BAD_REQUEST' ||
-                        (e as Error)?.message?.includes('404') ||
-                        (e as Error)?.message?.includes('Request failed');
-
-      if (is404Error) {
-        setPostsError('Posts not found or not accessible');
-      } else {
-        setPostsError('Failed to load posts');
-      }
-      setPosts([]);
-    } finally {
-      setPostsLoading(false);
-    }
-  };
 
   const handleRefresh = useCallback(async () => {
     if (refreshing) return Promise.resolve();
     setRefreshing(true);
     try {
-      if (activeTab === 'stories') {
-        const [p, s] = await Promise.all([
-          instagramApiService.getProfilePicture(username),
-          instagramApiService.getStories(username),
-        ]);
-        const storiesSorted = (s?.data || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
-        setProfile(p);
-        setStories(storiesSorted);
-        const toCache = { profile: p, stories: storiesSorted, timestamp: Date.now() };
-        profileStoriesCache.set(username, toCache);
-        await StorageService.setItem(`${STORAGE_KEYS.CACHED_DATA}:ig_stories:${username}`, toCache);
-        setError(null);
-      } else {
-        await loadPosts();
+      setError(null);
+      setPostsError(null);
+
+      // Use the optimized /all endpoint to refresh everything
+      const allData = await instagramApiService.getAllUserData(username);
+
+      if (!allData.success) {
+        throw new Error('Failed to refresh user data');
       }
+
+      // Transform profile data to match existing format
+      const profileData: InstagramProfilePictureResponse = {
+        success: allData.status.profile,
+        data: allData.data.profile || {
+          username,
+          imageUrl: '',
+        },
+      };
+
+      const storiesSorted = (allData.data.stories || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+      const postsData = allData.data.posts || [];
+
+      setProfile(profileData);
+      setStories(storiesSorted);
+      setPosts(postsData);
+
+      // Update cache
+      const toCache = { profile: profileData, stories: storiesSorted, posts: postsData, timestamp: Date.now() };
+      profileStoriesCache.set(username, toCache);
+      await StorageService.setItem(`${STORAGE_KEYS.CACHED_DATA}:ig_all:${username}`, toCache);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('Failed to refresh', e);
@@ -199,19 +167,18 @@ export default function ProfileDetailScreen() {
                         (e as Error)?.message?.includes('404') ||
                         (e as Error)?.message?.includes('Request failed');
 
-      if (activeTab === 'stories') {
-        if (is404Error) {
-          setError('User not found or not accessible');
-          setProfile(null);
-          setStories([]);
-        } else {
-          setError('Failed to refresh');
-        }
+      if (is404Error) {
+        setError('User not found or not accessible');
+        setProfile(null);
+        setStories([]);
+        setPosts([]);
+      } else {
+        setError('Failed to refresh');
       }
     } finally {
       setRefreshing(false);
     }
-  }, [username, refreshing, activeTab]);
+  }, [username, refreshing]);
 
   const handleOpenStory = useCallback(async (item: InstagramStoryItem) => {
     try {

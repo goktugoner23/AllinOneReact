@@ -8,7 +8,7 @@ import {
   HealthStatus,
   ApiResponse,
 } from '@features/instagram/types/Instagram';
-import { InstagramProfilePictureResponse, InstagramStoriesResponse, InstagramUserPostsResponse } from '@features/instagram/types/Instagram';
+import { InstagramProfilePictureResponse, InstagramStoriesResponse, InstagramUserPostsResponse, InstagramAllDataResponse } from '@features/instagram/types/Instagram';
 
 class InstagramApiService extends BaseApiClient {
   constructor() {
@@ -62,6 +62,22 @@ class InstagramApiService extends BaseApiClient {
     } catch (error) {
       console.error('Failed to fetch user posts:', error);
       throw this.handleApiError(error, 'Failed to fetch user posts');
+    }
+  }
+
+  /**
+   * Get all data (profile + stories + posts) in a single efficient call
+   * This is the most efficient endpoint - uses a single browser navigation
+   */
+  async getAllUserData(username: string): Promise<InstagramAllDataResponse> {
+    try {
+      const response: AxiosResponse<InstagramAllDataResponse> = await this.api.get(
+        `api/instagram/all/${encodeURIComponent(username)}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch all user data:', error);
+      throw this.handleApiError(error, 'Failed to fetch all user data');
     }
   }
 

@@ -459,3 +459,34 @@ export interface InstagramUserPost {
     commentsCount?: number;
     videoViewsCount?: number;
 }
+
+// All-in-one endpoint response (profile + stories + posts)
+export interface InstagramAllDataResponse {
+    success: boolean;
+    data: {
+        profile: {
+            username: string;
+            imageUrl: string;
+            isPrivate?: boolean;
+            isVerified?: boolean;
+            fullName?: string;
+            biography?: string;
+            postsCount?: number;
+            followersCount?: number;
+            followingCount?: number;
+        } | null;
+        stories: InstagramStoryItem[];
+        posts: InstagramUserPost[];
+    };
+    counts: {
+        stories: number;
+        posts: number;
+    };
+    status: {
+        profile: boolean;
+        stories: boolean;
+        posts: boolean;
+    };
+    scrapedAt?: string;
+    timestamp: number;
+}
