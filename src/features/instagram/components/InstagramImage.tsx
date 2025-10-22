@@ -1,6 +1,6 @@
 /**
  * InstagramImage Component
- * A React Native component that safely displays Instagram images through proxy endpoints
+ * A React Native component that safely displays Instagram images
  * Includes error handling, loading states, and fallback support
  */
 
@@ -17,7 +17,6 @@ import {
   Alert,
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { createSafeProxyUrl, logProxyRequest, handleProxyError } from '@features/instagram/utils/instagramProxy';
 
 export interface InstagramImageProps {
   /** Instagram image URL to display */
@@ -61,20 +60,22 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   errorComponent,
 }) => {
   const theme = useTheme();
-  const [proxyUrl, setProxyUrl] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
 
   useEffect(() => {
     if (instagramUrl) {
-      const proxiedUrl = createSafeProxyUrl(instagramUrl);
-      setProxyUrl(proxiedUrl);
-      
+      setImageUrl(instagramUrl);
+
       if (__DEV__) {
-        logProxyRequest(instagramUrl, proxiedUrl);
+        console.log('Instagram Image URL:', {
+          url: instagramUrl,
+          timestamp: new Date().toISOString(),
+        });
       }
-      
+
       // Reset states when URL changes
       setHasError(false);
       setIsLoading(true);
@@ -94,23 +95,26 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   const handleImageError = () => {
     setIsLoading(false);
     setHasError(true);
-    
-    const error = new Error(`Failed to load Instagram image: ${instagramUrl}`);
-    handleProxyError(instagramUrl, error);
+
+    console.error('Instagram Image Error:', {
+      url: instagramUrl,
+      error: `Failed to load Instagram image: ${instagramUrl}`,
+      timestamp: new Date().toISOString(),
+    });
+
     onError && onError(instagramUrl);
   };
 
   const handleRetry = () => {
     if (isRetrying) return;
-    
+
     setIsRetrying(true);
     setHasError(false);
     setIsLoading(true);
-    
-    // Force a new proxy URL generation
-    const newProxyUrl = createSafeProxyUrl(instagramUrl);
-    setProxyUrl(newProxyUrl);
-    
+
+    // Force a re-render with the same URL
+    setImageUrl(instagramUrl);
+
     setTimeout(() => {
       setIsRetrying(false);
     }, 1000);
@@ -120,10 +124,9 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
     if (enableDebugLongPress && __DEV__) {
       Alert.alert(
         'Instagram Image Debug',
-        `Original: ${instagramUrl}\n\nProxy: ${proxyUrl}\n\nStatus: ${hasError ? 'Error' : isLoading ? 'Loading' : 'Loaded'}`,
+        `URL: ${instagramUrl}\n\nStatus: ${hasError ? 'Error' : isLoading ? 'Loading' : 'Loaded'}`,
         [
-          { text: 'Copy Original', onPress: () => console.log('Original URL:', instagramUrl) },
-          { text: 'Copy Proxy', onPress: () => console.log('Proxy URL:', proxyUrl) },
+          { text: 'Copy URL', onPress: () => console.log('Image URL:', instagramUrl) },
           { text: 'Retry', onPress: handleRetry },
           { text: 'Close', style: 'cancel' },
         ]
@@ -178,7 +181,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   const imageComponent = (
     <View style={[styles.container, style]}>
       <Image
-        source={{ uri: proxyUrl }}
+        source={{ uri: imageUrl }}
         style={[styles.image, imageStyle, isLoading && styles.hidden]}
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}
