@@ -206,3 +206,6 @@ my-release-key.jks
 firebase_rules/
 
 android/google-services.json
+
+.claude
+documentation
