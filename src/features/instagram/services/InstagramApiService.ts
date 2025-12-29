@@ -14,11 +14,12 @@ import {
   InstagramUserPostsResponse,
   InstagramAllDataResponse,
 } from '@features/instagram/types/Instagram';
+import { API_BASE_URL_DEV, API_BASE_URL_PROD } from '@env';
 
 class InstagramApiService extends BaseApiClient {
   constructor() {
     // External API URL - pointing to allinone-external backend
-    const baseURL = __DEV__ ? 'http://129.212.143.6:3000/' : 'http://129.212.143.6:3000/';
+    const baseURL = __DEV__ ? API_BASE_URL_DEV : API_BASE_URL_PROD;
 
     super(baseURL, 90000); // 90 seconds for Instagram API processing
   }

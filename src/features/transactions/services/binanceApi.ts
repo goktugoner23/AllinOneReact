@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { AccountData, PositionData, OrderData } from '../types/BinanceApiModels';
+import { API_BASE_URL_DEV, API_BASE_URL_PROD } from '@env';
 
-const BASE_URL = 'http://129.212.143.6:3000'; // Change to your allinone-external base URL
+// Remove trailing slash to avoid double slashes in URL paths
+const BASE_URL = (__DEV__ ? API_BASE_URL_DEV : API_BASE_URL_PROD).replace(/\/$/, '');
 
 // Account & Balance Endpoints
 

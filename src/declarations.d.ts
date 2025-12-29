@@ -13,6 +13,8 @@ declare module '@env' {
   export const FIREBASE_STORAGE_BUCKET: string;
   export const FIREBASE_MESSAGING_SENDER_ID: string;
   export const FIREBASE_APP_ID: string;
+  export const API_BASE_URL_DEV: string;
+  export const API_BASE_URL_PROD: string;
 }
 
 declare module 'react-native-pell-rich-editor' {

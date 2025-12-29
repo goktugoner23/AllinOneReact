@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getDb, getStorageInstance as getStorage } from '@shared/services/firebase/firebase';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import {
@@ -148,12 +149,18 @@ export async function uploadFileToStorage(
     const storage = getStorage();
     const storageRef = ref(storage, `${folderName}/${fileName}`);
 
-    // Convert file URI to blob
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
+    // Read file using ReactNativeBlobUtil for proper content:// URI support on Android
+    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
+
+    // Convert base64 to Uint8Array for uploadBytes
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
 
     // Upload to Firebase Storage
-    const snapshot = await uploadBytes(storageRef, blob);
+    const snapshot = await uploadBytes(storageRef, bytes);
 
     // Get download URL
     const downloadURL = await getDownloadURL(snapshot.ref);

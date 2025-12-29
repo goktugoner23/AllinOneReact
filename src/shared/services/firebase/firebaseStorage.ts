@@ -1,5 +1,6 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getStorageInstance } from '@shared/services/firebase/firebase';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 const storage = getStorageInstance();
 
 export interface FileUploadResult {
@@ -26,9 +27,15 @@ export const uploadFile = async (
   try {
     console.log(`📤 Uploading file to Firebase Storage: ${folderName}/${id}`);
 
-    // Fetch the file from URI
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
+    // Read file using ReactNativeBlobUtil for proper content:// URI support on Android
+    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
+
+    // Convert base64 to Uint8Array for uploadBytes
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
 
     // Generate filename if not provided
     const finalFileName = fileName || `file_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
@@ -37,7 +44,7 @@ export const uploadFile = async (
     const fileRef = ref(storage, `${folderName}/${id}/${finalFileName}`);
 
     // Upload file
-    await uploadBytes(fileRef, blob);
+    await uploadBytes(fileRef, bytes);
 
     // Get download URL
     const downloadURL = await getDownloadURL(fileRef);
