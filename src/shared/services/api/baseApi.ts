@@ -36,7 +36,7 @@ export class BaseApiClient {
         // eslint-disable-next-line no-console
         console.error('📤 API Request Error:', error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor for logging and error handling
@@ -53,7 +53,7 @@ export class BaseApiClient {
         // eslint-disable-next-line no-console
         console.error('📥 API Response Error:', error.response?.status, error.message);
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -68,7 +68,7 @@ export class BaseApiClient {
         return new Error('Network error - please check your connection');
       }
     }
-    
+
     // Other errors
     return new Error(error.message || defaultMessage);
   }

@@ -27,7 +27,7 @@ export interface UploadedInvestmentUris {
  */
 export async function uploadInvestmentAttachments(
   investmentId: string,
-  attachments: MediaAttachment[]
+  attachments: MediaAttachment[],
 ): Promise<UploadedInvestmentUris> {
   const result: UploadedInvestmentUris = {
     imageUris: [],
@@ -84,5 +84,3 @@ export async function uploadInvestmentAttachments(
 
   return result;
 }
-
-

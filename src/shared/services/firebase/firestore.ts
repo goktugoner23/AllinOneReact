@@ -1,13 +1,13 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  Firestore, 
-  enableNetwork, 
+import {
+  getFirestore,
+  Firestore,
+  enableNetwork,
   disableNetwork,
   connectFirestoreEmulator,
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager
+  persistentMultipleTabManager,
 } from 'firebase/firestore';
 
 // Firebase config from google-services.json (Kotlin app)
@@ -35,13 +35,13 @@ export function getFirebaseApp(): FirebaseApp {
 export function getDb(): Firestore {
   if (!db) {
     const app = getFirebaseApp();
-    
+
     try {
       // Initialize Firestore with offline persistence
       db = initializeFirestore(app, {
         localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager()
-        })
+          tabManager: persistentMultipleTabManager(),
+        }),
       });
     } catch (error) {
       // Fallback to regular getFirestore if initialization fails

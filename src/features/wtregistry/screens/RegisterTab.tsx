@@ -21,11 +21,34 @@ import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addRegistration, updateRegistration, deleteRegistration } from '@features/wtregistry/store/wtRegistrySlice';
-import { WTRegistration, WTStudent } from '../../types/WTRegistry';
+import { WTRegistration, WTStudent } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
-// import DocumentPicker, { isErrorWithCode, errorCodes } from '@react-native-documents/picker';
-import { pickDocument, isValidReceiptFile } from '../../utils/documentPicker';
-import { downloadAndOpenFile, isFileDownloaded, getLocalFileUri, openFile } from '../../utils/fileUtils';
+
+// Helper to convert string | Date to Date
+const toDate = (date: string | Date): Date => {
+  if (typeof date === 'string') return new Date(date);
+  return date;
+};
+
+// Placeholder functions for file operations (not yet fully implemented)
+const pickDocument = async (): Promise<{ uri: string; name?: string } | null> => {
+  Alert.alert('Not Available', 'Document picker is not yet implemented');
+  return null;
+};
+
+const isValidReceiptFile = (fileName: string): boolean => {
+  const ext = fileName.toLowerCase().split('.').pop();
+  return ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'webp'].includes(ext || '');
+};
+
+const isFileDownloaded = async (_uri: string): Promise<boolean> => false;
+const getLocalFileUri = async (_uri: string): Promise<string | null> => null;
+const openFile = async (_localUri: string, _fileName: string): Promise<void> => {
+  Alert.alert('Not Available', 'File viewer is not yet implemented');
+};
+const downloadAndOpenFile = async (_uri: string): Promise<void> => {
+  Alert.alert('Not Available', 'File download is not yet implemented');
+};
 
 export function RegisterTab() {
   const dispatch = useDispatch<AppDispatch>();
@@ -56,25 +79,35 @@ export function RegisterTab() {
   });
 
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   const filteredRegistrations = useMemo(() => {
     return registrations
-      .filter(registration => {
-        const regDate = registration.paymentDate;
+      .filter((registration) => {
+        const regDate = toDate(registration.paymentDate);
         return regDate.getMonth() === filterMonth && regDate.getFullYear() === filterYear;
       })
-      .map(registration => ({
+      .map((registration) => ({
         ...registration,
-        studentName: students.find(s => s.id === registration.studentId)?.name || 'Unknown Student'
+        studentName: students.find((s) => s.id === registration.studentId)?.name || 'Unknown Student',
       }))
-      .sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime());
+      .sort((a, b) => toDate(b.paymentDate).getTime() - toDate(a.paymentDate).getTime());
   }, [registrations, students, filterMonth, filterYear]);
 
   const totalAmount = filteredRegistrations.reduce((sum, reg) => sum + reg.amount, 0);
-  const paidAmount = filteredRegistrations.filter(reg => reg.isPaid).reduce((sum, reg) => sum + reg.amount, 0);
+  const paidAmount = filteredRegistrations.filter((reg) => reg.isPaid).reduce((sum, reg) => sum + reg.amount, 0);
   const unpaidAmount = totalAmount - paidAmount;
 
   const handleOpenDialog = (registration?: WTRegistration) => {
@@ -83,8 +116,8 @@ export function RegisterTab() {
       setFormData({
         studentId: registration.studentId,
         amount: registration.amount.toString(),
-        startDate: registration.startDate || new Date(),
-        endDate: registration.endDate || new Date(),
+        startDate: registration.startDate ? toDate(registration.startDate) : new Date(),
+        endDate: registration.endDate ? toDate(registration.endDate) : new Date(),
         notes: registration.notes || '',
         isPaid: registration.isPaid,
         attachmentUri: registration.attachmentUri || '',
@@ -115,20 +148,17 @@ export function RegisterTab() {
   const handlePickAttachment = async () => {
     try {
       const result = await pickDocument();
-      
+
       if (result && result.uri) {
         const fileName = result.name || result.uri.split('/').pop() || '';
-        
+
         if (isValidReceiptFile(fileName)) {
           setFormData({
             ...formData,
             attachmentUri: result.uri,
           });
         } else {
-          Alert.alert(
-            'Invalid File Type', 
-            'Please select only PDF or image files (JPG, PNG, BMP, WEBP).'
-          );
+          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
         }
       }
     } catch (error) {
@@ -159,10 +189,12 @@ export function RegisterTab() {
       };
 
       if (editingRegistration) {
-        await dispatch(updateRegistration({
-          ...editingRegistration,
-          ...registrationData,
-        })).unwrap();
+        await dispatch(
+          updateRegistration({
+            ...editingRegistration,
+            ...registrationData,
+          }),
+        ).unwrap();
       } else {
         await dispatch(addRegistration(registrationData)).unwrap();
       }
@@ -179,7 +211,7 @@ export function RegisterTab() {
 
   const confirmDelete = async () => {
     if (!selectedRegistration) return;
-    
+
     try {
       await dispatch(deleteRegistration(selectedRegistration.id)).unwrap();
       setShowDeleteDialog(false);
@@ -212,10 +244,10 @@ export function RegisterTab() {
   const handleViewAttachment = async (attachmentUri: string) => {
     try {
       setIsDownloading(true);
-      
+
       // Check if file is already downloaded
       const isDownloaded = await isFileDownloaded(attachmentUri);
-      
+
       if (isDownloaded) {
         // File is already downloaded, open it directly
         const localUri = await getLocalFileUri(attachmentUri);
@@ -236,8 +268,8 @@ export function RegisterTab() {
 
   const renderRegistrationCard = ({ item: registration }: { item: WTRegistration & { studentName: string } }) => {
     return (
-      <Card 
-        style={[styles.registrationCard, { backgroundColor: theme.colors.surface }]} 
+      <Card
+        style={[styles.registrationCard, { backgroundColor: theme.colors.surface }]}
         mode="outlined"
         onPress={() => handleCardPress(registration)}
         onLongPress={() => handleLongPress(registration)}
@@ -252,16 +284,12 @@ export function RegisterTab() {
               mode="outlined"
               style={[
                 styles.statusChip,
-                { 
-                  backgroundColor: registration.isPaid 
-                    ? theme.colors.primaryContainer 
-                    : theme.colors.errorContainer 
-                }
+                {
+                  backgroundColor: registration.isPaid ? theme.colors.primaryContainer : theme.colors.errorContainer,
+                },
               ]}
-              textStyle={{ 
-                color: registration.isPaid 
-                  ? theme.colors.onPrimaryContainer 
-                  : theme.colors.onErrorContainer 
+              textStyle={{
+                color: registration.isPaid ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
               }}
             >
               {registration.isPaid ? 'Paid' : 'Unpaid'}
@@ -276,12 +304,12 @@ export function RegisterTab() {
           {/* Date Information */}
           {registration.startDate && (
             <Text variant="bodyMedium" style={styles.dateInfo}>
-              Start: {registration.startDate.toLocaleDateString()}
+              Start: {toDate(registration.startDate).toLocaleDateString()}
             </Text>
           )}
           {registration.endDate && (
             <Text variant="bodyMedium" style={styles.dateInfo}>
-              End: {registration.endDate.toLocaleDateString()}
+              End: {toDate(registration.endDate).toLocaleDateString()}
             </Text>
           )}
 
@@ -296,7 +324,7 @@ export function RegisterTab() {
           {registration.attachmentUri && (
             <View style={styles.attachmentIndicator}>
               <IconButton
-                icon={isDownloading ? "loading" : "attachment"}
+                icon={isDownloading ? 'loading' : 'attachment'}
                 size={16}
                 onPress={() => handleViewAttachment(registration.attachmentUri!)}
                 disabled={isDownloading}
@@ -328,11 +356,7 @@ export function RegisterTab() {
             visible={showMonthMenu}
             onDismiss={() => setShowMonthMenu(false)}
             anchor={
-              <Button
-                mode="outlined"
-                onPress={() => setShowMonthMenu(true)}
-                icon="calendar"
-              >
+              <Button mode="outlined" onPress={() => setShowMonthMenu(true)} icon="calendar">
                 {monthNames[filterMonth]} {filterYear}
               </Button>
             }
@@ -353,7 +377,9 @@ export function RegisterTab() {
         <View style={styles.summaryContainer}>
           <View style={styles.summaryItem}>
             <Text variant="bodySmall">Total</Text>
-            <Text variant="titleMedium">{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}</Text>
+            <Text variant="titleMedium">
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
+            </Text>
           </View>
           <View style={styles.summaryItem}>
             <Text variant="bodySmall">Paid</Text>
@@ -389,115 +415,127 @@ export function RegisterTab() {
         estimatedItemSize={120}
       />
 
-              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
+      <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Add/Edit Registration Dialog */}
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={[styles.dialog, { backgroundColor: 'white', maxHeight: '80%' }]}>
+        <Dialog
+          visible={showDialog}
+          onDismiss={handleCloseDialog}
+          style={[styles.dialog, { backgroundColor: 'white', maxHeight: '80%' }]}
+        >
           <Dialog.Title>{editingRegistration ? 'Edit Registration' : 'Add Registration'}</Dialog.Title>
           <Dialog.Content>
             <ScrollView style={{ maxHeight: 400 }}>
               <View style={styles.dialogContent}>
-              {/* Student Selection */}
-              <Text variant="bodyMedium" style={styles.sectionTitle}>Student *</Text>
-              <View style={styles.studentSelector}>
-                {students.filter(s => s.isActive).map(student => (
-                  <Chip
-                    key={student.id}
-                    mode={formData.studentId === student.id ? 'flat' : 'outlined'}
-                    selected={formData.studentId === student.id}
-                    onPress={() => setFormData({ ...formData, studentId: student.id })}
-                    style={styles.studentChip}
-                  >
-                    {student.name}
-                  </Chip>
-                ))}
-              </View>
+                {/* Student Selection */}
+                <Text variant="bodyMedium" style={styles.sectionTitle}>
+                  Student *
+                </Text>
+                <View style={styles.studentSelector}>
+                  {students
+                    .filter((s) => s.isActive)
+                    .map((student) => (
+                      <Chip
+                        key={student.id}
+                        mode={formData.studentId === student.id ? 'flat' : 'outlined'}
+                        selected={formData.studentId === student.id}
+                        onPress={() => setFormData({ ...formData, studentId: student.id })}
+                        style={styles.studentChip}
+                      >
+                        {student.name}
+                      </Chip>
+                    ))}
+                </View>
 
-              {/* Amount */}
-              <TextInput
-                label="Amount *"
-                value={formData.amount}
-                onChangeText={(text) => setFormData({ ...formData, amount: text })}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="numeric"
-                left={<TextInput.Icon icon="currency-usd" />}
-              />
-
-              {/* Date Selection */}
-              <Text variant="bodyMedium" style={styles.sectionTitle}>Registration Period</Text>
-              <View style={styles.dateContainer}>
-                <Button
+                {/* Amount */}
+                <TextInput
+                  label="Amount *"
+                  value={formData.amount}
+                  onChangeText={(text) => setFormData({ ...formData, amount: text })}
+                  style={styles.input}
                   mode="outlined"
-                  onPress={() => setShowDatePicker('start')}
-                  style={styles.dateButton}
-                  icon="calendar"
-                >
-                  Start: {formData.startDate.toLocaleDateString()}
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => setShowDatePicker('end')}
-                  style={styles.dateButton}
-                  icon="calendar"
-                >
-                  End: {formData.endDate.toLocaleDateString()}
-                </Button>
-              </View>
-
-              {/* Notes */}
-              <TextInput
-                label="Notes"
-                value={formData.notes}
-                onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                style={[styles.input, styles.notesInput]}
-                mode="outlined"
-                multiline
-                numberOfLines={4}
-                scrollEnabled={true}
-              />
-
-              {/* Payment Status */}
-              <View style={styles.switchContainer}>
-                <Text variant="bodyMedium">Paid</Text>
-                <Switch
-                  value={formData.isPaid}
-                  onValueChange={(value) => setFormData({ ...formData, isPaid: value })}
+                  keyboardType="numeric"
+                  left={<TextInput.Icon icon="currency-usd" />}
                 />
-              </View>
 
-              {/* Receipt/Attachment section (only show if paid) */}
-              {formData.isPaid && (
-                <>
-                  <Text variant="bodyMedium" style={styles.sectionTitle}>Receipt/Attachment</Text>
-                  <View style={styles.attachmentContainer}>
-                    <Button
-                      mode="outlined"
-                      onPress={handlePickAttachment}
-                      icon="attachment"
-                      style={styles.attachmentButton}
-                    >
-                      {formData.attachmentUri ? 'Change Receipt' : 'Add Receipt'}
-                    </Button>
-                    
-                    {formData.attachmentUri && (
-                      <IconButton
-                        icon="close"
-                        size={20}
-                        onPress={() => setFormData({ ...formData, attachmentUri: '' })}
-                      />
-                    )}
-                  </View>
-                  
-                  {formData.attachmentUri && (
-                    <Text variant="bodySmall" style={styles.attachmentTextDialog}>
-                      File selected: {formData.attachmentUri.split('/').pop() || 'Unknown'}
+                {/* Date Selection */}
+                <Text variant="bodyMedium" style={styles.sectionTitle}>
+                  Registration Period
+                </Text>
+                <View style={styles.dateContainer}>
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowDatePicker('start')}
+                    style={styles.dateButton}
+                    icon="calendar"
+                  >
+                    Start: {formData.startDate.toLocaleDateString()}
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowDatePicker('end')}
+                    style={styles.dateButton}
+                    icon="calendar"
+                  >
+                    End: {formData.endDate.toLocaleDateString()}
+                  </Button>
+                </View>
+
+                {/* Notes */}
+                <TextInput
+                  label="Notes"
+                  value={formData.notes}
+                  onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                  style={[styles.input, styles.notesInput]}
+                  mode="outlined"
+                  multiline
+                  numberOfLines={4}
+                  scrollEnabled={true}
+                />
+
+                {/* Payment Status */}
+                <View style={styles.switchContainer}>
+                  <Text variant="bodyMedium">Paid</Text>
+                  <Switch
+                    value={formData.isPaid}
+                    onValueChange={(value) => setFormData({ ...formData, isPaid: value })}
+                  />
+                </View>
+
+                {/* Receipt/Attachment section (only show if paid) */}
+                {formData.isPaid && (
+                  <>
+                    <Text variant="bodyMedium" style={styles.sectionTitle}>
+                      Receipt/Attachment
                     </Text>
-                  )}
-                </>
-              )}
-            </View>
+                    <View style={styles.attachmentContainer}>
+                      <Button
+                        mode="outlined"
+                        onPress={handlePickAttachment}
+                        icon="attachment"
+                        style={styles.attachmentButton}
+                      >
+                        {formData.attachmentUri ? 'Change Receipt' : 'Add Receipt'}
+                      </Button>
+
+                      {formData.attachmentUri && (
+                        <IconButton
+                          icon="close"
+                          size={20}
+                          onPress={() => setFormData({ ...formData, attachmentUri: '' })}
+                        />
+                      )}
+                    </View>
+
+                    {formData.attachmentUri && (
+                      <Text variant="bodySmall" style={styles.attachmentTextDialog}>
+                        File selected: {formData.attachmentUri.split('/').pop() || 'Unknown'}
+                      </Text>
+                    )}
+                  </>
+                )}
+              </View>
             </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>
@@ -511,11 +549,7 @@ export function RegisterTab() {
 
       {/* Context Menu */}
       <Portal>
-        <Menu
-          visible={showContextMenu}
-          onDismiss={() => setShowContextMenu(false)}
-          anchor={{ x: 0, y: 0 }}
-        >
+        <Menu visible={showContextMenu} onDismiss={() => setShowContextMenu(false)} anchor={{ x: 0, y: 0 }}>
           {selectedRegistration && (
             <>
               <Menu.Item
@@ -551,12 +585,16 @@ export function RegisterTab() {
 
       {/* Delete Confirmation Dialog */}
       <Portal>
-        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)} style={{ backgroundColor: 'white' }}>
+        <Dialog
+          visible={showDeleteDialog}
+          onDismiss={() => setShowDeleteDialog(false)}
+          style={{ backgroundColor: 'white' }}
+        >
           <Dialog.Title>Delete Registration</Dialog.Title>
           <Dialog.Content>
             <Text>
-              Are you sure you want to delete this registration for {selectedRegistration?.studentName}? 
-              This will also delete any related transactions.
+              Are you sure you want to delete this registration for {selectedRegistration?.studentName}? This will also
+              delete any related transactions.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -570,7 +608,11 @@ export function RegisterTab() {
 
       {/* Details Dialog */}
       <Portal>
-        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)} style={{ backgroundColor: 'white' }}>
+        <Dialog
+          visible={showDetailsDialog}
+          onDismiss={() => setShowDetailsDialog(false)}
+          style={{ backgroundColor: 'white' }}
+        >
           <Dialog.Title>Registration Details</Dialog.Title>
           <Dialog.Content>
             {selectedRegistration && (
@@ -579,22 +621,25 @@ export function RegisterTab() {
                   {selectedRegistration.studentName}
                 </Text>
                 <Text variant="bodyLarge" style={styles.detailAmount}>
-                  Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedRegistration.amount)}
+                  Amount:{' '}
+                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
+                    selectedRegistration.amount,
+                  )}
                 </Text>
                 <Text variant="bodyMedium" style={styles.detailText}>
                   Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
                 </Text>
                 <Text variant="bodyMedium" style={styles.detailText}>
-                  Payment Date: {selectedRegistration.paymentDate.toLocaleDateString()}
+                  Payment Date: {toDate(selectedRegistration.paymentDate).toLocaleDateString()}
                 </Text>
                 {selectedRegistration.startDate && (
                   <Text variant="bodyMedium" style={styles.detailText}>
-                    Start: {selectedRegistration.startDate.toLocaleDateString()}
+                    Start: {toDate(selectedRegistration.startDate).toLocaleDateString()}
                   </Text>
                 )}
                 {selectedRegistration.endDate && (
                   <Text variant="bodyMedium" style={styles.detailText}>
-                    End: {selectedRegistration.endDate.toLocaleDateString()}
+                    End: {toDate(selectedRegistration.endDate).toLocaleDateString()}
                   </Text>
                 )}
                 {selectedRegistration.notes && (
@@ -626,7 +671,7 @@ export function RegisterTab() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowDetailsDialog(false)}>Close</Button>
-            <Button 
+            <Button
               onPress={() => {
                 setShowDetailsDialog(false);
                 handleOpenDialog(selectedRegistration!);
@@ -638,8 +683,6 @@ export function RegisterTab() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-
-
 
       {/* Date Picker */}
       {showDatePicker && (
@@ -820,4 +863,4 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: 'bold',
   },
-}); 
+});

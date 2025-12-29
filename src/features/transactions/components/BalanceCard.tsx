@@ -1,37 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useBalance } from '../store/balanceHooks';
+import { Card, CardHeader, CardContent } from '@shared/components/ui';
+import { useBalance } from '@shared/hooks/useTransactionsQueries';
 
 interface BalanceCardProps {
-  totalIncome?: number;
-  totalExpense?: number;
-  balance?: number;
   showLoading?: boolean;
 }
 
-export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({
-  totalIncome: propTotalIncome,
-  totalExpense: propTotalExpense,
-  balance: propBalance,
-  showLoading = false,
-}) => {
-  // Use cached balance from Redux store
-  const {
-    currentMonthIncome,
-    currentMonthExpense,
-    balance: totalBalance,
-    isLoading,
-    isStale,
-    lastUpdated,
-  } = useBalance();
+export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading = false }) => {
+  // Use TanStack Query based balance hook - balance is computed from transactions
+  const { income, expense, balance } = useBalance();
 
-  // Use props if provided (for backward compatibility), otherwise use current month for income/expense and total for balance
-  const totalIncome = propTotalIncome ?? currentMonthIncome;
-  const totalExpense = propTotalExpense ?? currentMonthExpense;
-  const balance = propBalance ?? totalBalance;
-
-  // Show loading indicator if explicitly requested or if balance is loading
-  const shouldShowLoading = showLoading || isLoading;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
@@ -43,46 +22,28 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <Card variant="elevated" style={styles.card}>
+      <CardHeader style={styles.header}>
         <Text style={styles.title}>{currentMonthName}</Text>
-        {isStale && (
-          <Text style={styles.staleIndicator}>⚠️ Stale</Text>
+      </CardHeader>
+
+      <CardContent>
+        {showLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingText}>Loading balance...</Text>
+          </View>
+        ) : (
+          <View style={styles.balanceRow}>
+            <BalanceItem label="Income" amount={income} color="#4CAF50" />
+
+            <BalanceItem label="Expense" amount={expense} color="#F44336" />
+
+            <BalanceItem label="Balance" amount={balance} color={balance >= 0 ? '#4CAF50' : '#F44336'} />
+          </View>
         )}
-        {lastUpdated && (
-          <Text style={styles.lastUpdated}>
-            Updated: {new Date(lastUpdated).toLocaleTimeString()}
-          </Text>
-        )}
-      </View>
-      
-      {shouldShowLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading balance...</Text>
-        </View>
-      ) : (
-        <View style={styles.balanceRow}>
-          <BalanceItem
-            label="Income"
-            amount={totalIncome}
-            color="#4CAF50"
-          />
-          
-          <BalanceItem
-            label="Expense"
-            amount={totalExpense}
-            color="#F44336"
-          />
-          
-          <BalanceItem
-            label="Balance"
-            amount={balance}
-            color={balance >= 0 ? '#4CAF50' : '#F44336'}
-          />
-        </View>
-      )}
-    </View>
+      </CardContent>
+    </Card>
   );
 });
 
@@ -103,46 +64,25 @@ const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, color }) => {
   return (
     <View style={styles.balanceItem}>
       <Text style={styles.balanceLabel}>{label}</Text>
-      <Text style={[styles.balanceAmount, { color }]}>
-        {formatCurrency(amount)}
-      </Text>
+      <Text style={[styles.balanceAmount, { color }]}>{formatCurrency(amount)}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+  card: {
     marginVertical: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
-  },
-  staleIndicator: {
-    fontSize: 12,
-    color: '#FF9800',
-    fontWeight: 'bold',
-  },
-  lastUpdated: {
-    fontSize: 10,
-    color: '#666',
-    fontStyle: 'italic',
   },
   loadingContainer: {
     alignItems: 'center',

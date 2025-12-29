@@ -19,23 +19,17 @@ const initialState: NotesState = {
 };
 
 // Async thunks
-export const fetchNotes = createAsyncThunk(
-  'notes/fetchNotes',
-  async () => {
-    const notes = await notesApi.getNotes();
-    return notes;
-  }
-);
+export const fetchNotes = createAsyncThunk('notes/fetchNotes', async () => {
+  const notes = await notesApi.getNotes();
+  return notes;
+});
 
-export const addNoteAsync = createAsyncThunk(
-  'notes/addNote',
-  async (noteData: NoteFormData, { dispatch }) => {
-    const newNote = await notesApi.addNote(noteData);
-    // Manually refresh notes since subscription is disabled
-    dispatch(fetchNotes());
-    return newNote;
-  }
-);
+export const addNoteAsync = createAsyncThunk('notes/addNote', async (noteData: NoteFormData, { dispatch }) => {
+  const newNote = await notesApi.addNote(noteData);
+  // Manually refresh notes since subscription is disabled
+  dispatch(fetchNotes());
+  return newNote;
+});
 
 export const updateNoteAsync = createAsyncThunk(
   'notes/updateNote',
@@ -44,18 +38,15 @@ export const updateNoteAsync = createAsyncThunk(
     // Manually refresh notes since subscription is disabled
     dispatch(fetchNotes());
     return { noteId, noteData };
-  }
+  },
 );
 
-export const deleteNoteAsync = createAsyncThunk(
-  'notes/deleteNote',
-  async (noteId: number, { dispatch }) => {
-    await notesApi.deleteNote(noteId);
-    // Manually refresh notes since subscription is disabled
-    dispatch(fetchNotes());
-    return noteId;
-  }
-);
+export const deleteNoteAsync = createAsyncThunk('notes/deleteNote', async (noteId: number, { dispatch }) => {
+  await notesApi.deleteNote(noteId);
+  // Manually refresh notes since subscription is disabled
+  dispatch(fetchNotes());
+  return noteId;
+});
 
 const notesSlice = createSlice({
   name: 'notes',
@@ -101,7 +92,8 @@ const notesSlice = createSlice({
         const note = {
           ...action.payload,
           date: typeof action.payload.date === 'string' ? action.payload.date : new Date().toISOString(),
-          lastEdited: typeof action.payload.lastEdited === 'string' ? action.payload.lastEdited : new Date().toISOString(),
+          lastEdited:
+            typeof action.payload.lastEdited === 'string' ? action.payload.lastEdited : new Date().toISOString(),
         };
         state.notes.unshift(note);
       })
@@ -117,7 +109,7 @@ const notesSlice = createSlice({
       .addCase(updateNoteAsync.fulfilled, (state, action) => {
         state.loading = false;
         const { noteId, noteData } = action.payload;
-        const index = state.notes.findIndex(note => note.id === noteId);
+        const index = state.notes.findIndex((note) => note.id === noteId);
         if (index !== -1) {
           state.notes[index] = {
             ...state.notes[index],
@@ -137,7 +129,7 @@ const notesSlice = createSlice({
       })
       .addCase(deleteNoteAsync.fulfilled, (state, action) => {
         state.loading = false;
-        state.notes = state.notes.filter(note => note.id !== action.payload);
+        state.notes = state.notes.filter((note) => note.id !== action.payload);
       })
       .addCase(deleteNoteAsync.rejected, (state, action) => {
         state.loading = false;
@@ -146,11 +138,6 @@ const notesSlice = createSlice({
   },
 });
 
-export const { 
-  setSearchQuery, 
-  setSelectedNote, 
-  clearError, 
-  updateNotesFromSubscription 
-} = notesSlice.actions;
+export const { setSearchQuery, setSelectedNote, clearError, updateNotesFromSubscription } = notesSlice.actions;
 
-export default notesSlice.reducer; 
+export default notesSlice.reducer;

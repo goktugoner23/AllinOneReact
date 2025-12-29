@@ -1,5 +1,5 @@
-import React, { Component, ReactNode } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { Component, ReactNode } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface Props {
   children: ReactNode;
@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log error to crash reporting service
-    console.error("Error caught by ErrorBoundary:", error, errorInfo);
+    console.error('Error caught by ErrorBoundary:', error, errorInfo);
 
     // Call custom error handler if provided
     if (this.props.onError) {
@@ -59,14 +59,9 @@ export class ErrorBoundary extends Component<Props, State> {
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
           <Text style={styles.errorMessage}>
-            {__DEV__ && this.state.error
-              ? this.state.error.message
-              : "An unexpected error occurred. Please try again."}
+            {__DEV__ && this.state.error ? this.state.error.message : 'An unexpected error occurred. Please try again.'}
           </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={this.handleRetry}
-          >
+          <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -80,42 +75,42 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   errorContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: '#f8f9fa',
   },
   errorTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#dc3545",
+    fontWeight: 'bold',
+    color: '#dc3545',
     marginBottom: 16,
-    textAlign: "center",
+    textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
-    color: "#6c757d",
-    textAlign: "center",
+    color: '#6c757d',
+    textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: '#007bff',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "#ffffff",
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
 });
 
 // Custom hook for handling async errors in functional components
 export const useErrorHandler = () => {
   const handleError = (error: Error, context?: string) => {
-    console.error(`Error${context ? ` in ${context}` : ""}:`, error);
+    console.error(`Error${context ? ` in ${context}` : ''}:`, error);
 
     // In production, report to error tracking service
     if (!__DEV__) {

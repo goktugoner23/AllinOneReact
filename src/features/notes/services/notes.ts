@@ -1,25 +1,18 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  getDocs,
   getDoc,
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  query, 
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
   orderBy,
   setDoc,
-  Timestamp 
+  Timestamp,
 } from 'firebase/firestore';
-import { 
-  ref, 
-  uploadBytes, 
-  uploadString,
-  getDownloadURL, 
-  deleteObject, 
-  listAll 
-} from 'firebase/storage';
+import { ref, uploadBytes, uploadString, getDownloadURL, deleteObject, listAll } from 'firebase/storage';
 import { getDb, getStorageInstance as getStorage } from '@shared/services/firebase/firebase';
 import { Note, NoteFormData } from '@features/notes/types/Note';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
@@ -38,18 +31,18 @@ const handleFirestoreError = (error: any, operation: string) => {
 const deleteAttachmentsFromStorage = async (noteId: number): Promise<void> => {
   try {
     console.log(`🗑️ Deleting attachments for note ${noteId} from Firebase Storage...`);
-    
+
     // Create a reference to the note's attachments folder
     const noteAttachmentsRef = ref(getStorage(), `notes/${noteId}/attachments`);
-    
+
     // List all files in the attachments folder
     const result = await listAll(noteAttachmentsRef);
-    
+
     if (result.items.length === 0) {
       console.log(`ℹ️ No attachments found for note ${noteId}`);
       return;
     }
-    
+
     // Delete all files in the folder
     const deletePromises = result.items.map(async (item) => {
       try {
@@ -60,10 +53,10 @@ const deleteAttachmentsFromStorage = async (noteId: number): Promise<void> => {
         // Continue with other deletions even if one fails
       }
     });
-    
+
     // Wait for all deletions to complete
     await Promise.all(deletePromises);
-    
+
     console.log(`✅ Successfully deleted ${result.items.length} attachments for note ${noteId}`);
   } catch (error) {
     console.error(`❌ Error deleting attachments for note ${noteId}:`, error);
@@ -91,10 +84,10 @@ export const deleteAttachmentByUri = async (uri: string): Promise<void> => {
 export const deleteAttachmentsByUris = async (uris: string[]): Promise<void> => {
   try {
     console.log(`🗑️ Deleting ${uris.length} attachments...`);
-    
-    const deletePromises = uris.map(uri => deleteAttachmentByUri(uri));
+
+    const deletePromises = uris.map((uri) => deleteAttachmentByUri(uri));
     await Promise.all(deletePromises);
-    
+
     console.log(`✅ Successfully deleted ${uris.length} attachments`);
   } catch (error) {
     console.error('❌ Error deleting attachments:', error);
@@ -104,8 +97,8 @@ export const deleteAttachmentsByUris = async (uris: string[]): Promise<void> => 
 // Helper function to normalize URIs for comparison
 const normalizeUris = (uris: string[]): string[] => {
   return uris
-    .map(uri => uri.trim())
-    .filter(uri => uri.length > 0)
+    .map((uri) => uri.trim())
+    .filter((uri) => uri.length > 0)
     .sort(); // Sort for consistent comparison
 };
 
@@ -118,7 +111,7 @@ const NOTES_COLLECTION = 'notes';
 // Convert Firestore document to Note
 const docToNote = (doc: any): Note => {
   const data = doc.data();
-  
+
   // Helper function to safely convert timestamp to ISO string
   const safeDateToISO = (timestamp: any): string => {
     try {
@@ -146,7 +139,7 @@ const docToNote = (doc: any): Note => {
     imageUris: data?.imageUris || null,
     videoUris: data?.videoUris || null,
     voiceNoteUris: data?.voiceNoteUris || null,
-  
+
     lastEdited: safeDateToISO(data?.lastEdited),
     isRichText: data?.isRichText ?? true,
   };
@@ -187,89 +180,102 @@ export const getNotes = async (): Promise<Note[]> => {
 // Add a new note
 export const addNote = async (noteData: NoteFormData, onProgress?: (progress: number) => void): Promise<Note> => {
   console.log('🔵 addNote called with:', { title: noteData.title, content: noteData.content?.substring(0, 50) });
-  
+
   // Prevent duplicate note creation
   if (isCreatingNote) {
     console.log('❌ Note creation already in progress');
     throw new Error('Note creation already in progress');
   }
-  
+
   // Check for duplicate content within last 5 seconds
   const now = Date.now();
-  if (lastCreatedNote && 
-      lastCreatedNote.title === noteData.title && 
-      lastCreatedNote.content === noteData.content &&
-      now - lastCreatedNote.timestamp < 5000) {
+  if (
+    lastCreatedNote &&
+    lastCreatedNote.title === noteData.title &&
+    lastCreatedNote.content === noteData.content &&
+    now - lastCreatedNote.timestamp < 5000
+  ) {
     console.log('❌ Duplicate note detected');
     throw new Error('Duplicate note detected');
   }
-  
+
   try {
     isCreatingNote = true;
     console.log('✅ Starting note creation...');
-    
+
     const noteId = await firebaseIdManager.getNextId('notes');
     const docRef = doc(getDb(), NOTES_COLLECTION, noteId.toString());
-    
+
     // Upload attachments to Firebase Storage if they exist
     let uploadedImageUris: string | null = null;
     let uploadedVideoUris: string | null = null;
     let uploadedVoiceUris: string | null = null;
-    
+
     // Collect all attachments that need uploading
     const attachmentsToUpload: { uri: string; type: 'image' | 'video' | 'audio' }[] = [];
-    
-    if (noteData.imageUris && noteData.imageUris.trim()) {
-      const imageUris = noteData.imageUris.split(',').map(uri => uri.trim()).filter(uri => uri);
-      imageUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'image' }));
-    }
-    
-    if (noteData.videoUris && noteData.videoUris.trim()) {
-      const videoUris = noteData.videoUris.split(',').map(uri => uri.trim()).filter(uri => uri);
-      videoUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'video' }));
-    }
-    
-    if (noteData.voiceNoteUris && noteData.voiceNoteUris.trim()) {
-      const voiceUris = noteData.voiceNoteUris.split(',').map(uri => uri.trim()).filter(uri => uri);
-      voiceUris.forEach(uri => attachmentsToUpload.push({ uri, type: 'audio' }));
-    }
-    
 
-    
+    if (noteData.imageUris && noteData.imageUris.trim()) {
+      const imageUris = noteData.imageUris
+        .split(',')
+        .map((uri) => uri.trim())
+        .filter((uri) => uri);
+      imageUris.forEach((uri) => attachmentsToUpload.push({ uri, type: 'image' }));
+    }
+
+    if (noteData.videoUris && noteData.videoUris.trim()) {
+      const videoUris = noteData.videoUris
+        .split(',')
+        .map((uri) => uri.trim())
+        .filter((uri) => uri);
+      videoUris.forEach((uri) => attachmentsToUpload.push({ uri, type: 'video' }));
+    }
+
+    if (noteData.voiceNoteUris && noteData.voiceNoteUris.trim()) {
+      const voiceUris = noteData.voiceNoteUris
+        .split(',')
+        .map((uri) => uri.trim())
+        .filter((uri) => uri);
+      voiceUris.forEach((uri) => attachmentsToUpload.push({ uri, type: 'audio' }));
+    }
+
     // Handle uploads: save note immediately with local URIs, then upload in background
     if (attachmentsToUpload.length > 0) {
       console.log(`📤 Will upload ${attachmentsToUpload.length} attachments in background...`);
-      
+
       // Use local URIs initially for immediate save
       uploadedImageUris = noteData.imageUris || null;
       uploadedVideoUris = noteData.videoUris || null;
       uploadedVoiceUris = noteData.voiceNoteUris || null;
-      
+
       // Start background upload after saving note
       setTimeout(async () => {
         try {
           console.log(`📤 Starting background upload for note ${noteId}...`);
           const uploadResult = await uploadAttachmentsWithProgress(noteId, attachmentsToUpload);
-          
+
           // Update note with uploaded URLs
           const uploadedImageUrls = uploadResult.images.length > 0 ? uploadResult.images.join(',') : null;
           const uploadedVideoUrls = uploadResult.videos.length > 0 ? uploadResult.videos.join(',') : null;
           const uploadedVoiceUrls = uploadResult.audio.length > 0 ? uploadResult.audio.join(',') : null;
-          
+
           // Update the note document with uploaded URLs
-          await setDoc(doc(getDb(), NOTES_COLLECTION, noteId.toString()), {
-            imageUris: uploadedImageUrls,
-            videoUris: uploadedVideoUrls,
-            voiceNoteUris: uploadedVoiceUrls,
-          }, { merge: true });
-          
+          await setDoc(
+            doc(getDb(), NOTES_COLLECTION, noteId.toString()),
+            {
+              imageUris: uploadedImageUrls,
+              videoUris: uploadedVideoUrls,
+              voiceNoteUris: uploadedVoiceUrls,
+            },
+            { merge: true },
+          );
+
           console.log(`✅ Background upload completed for note ${noteId}`);
         } catch (error) {
           console.error(`❌ Background upload failed for note ${noteId}:`, error);
         }
       }, 100); // Start upload after a short delay
     }
-    
+
     // Create note document with uploaded attachment URLs
     const noteDoc = {
       ...noteToDoc(noteData),
@@ -277,21 +283,20 @@ export const addNote = async (noteData: NoteFormData, onProgress?: (progress: nu
       imageUris: uploadedImageUris,
       videoUris: uploadedVideoUris,
       voiceNoteUris: uploadedVoiceUris,
-
     };
-    
+
     // Use merge option to prevent overwriting if document already exists
     await setDoc(docRef, noteDoc, { merge: false });
-    
+
     // Track the created note to prevent duplicates
     lastCreatedNote = {
       title: noteData.title,
       content: noteData.content,
-      timestamp: now
+      timestamp: now,
     };
-    
+
     console.log('✅ Note created successfully with ID:', noteId);
-    
+
     return {
       id: noteId,
       ...noteData,
@@ -322,108 +327,115 @@ export const addNote = async (noteData: NoteFormData, onProgress?: (progress: nu
 };
 
 // Update an existing note
-export const updateNote = async (noteId: number, noteData: NoteFormData, onProgress?: (progress: number) => void): Promise<void> => {
+export const updateNote = async (
+  noteId: number,
+  noteData: NoteFormData,
+  onProgress?: (progress: number) => void,
+): Promise<void> => {
   try {
     console.log(`📝 Updating note ${noteId}...`);
-    
+
     // Initialize final URIs
     let finalImageUris: string[] = [];
     let finalVideoUris: string[] = [];
     let finalAudioUris: string[] = [];
 
-    
     // First, get the original note data to compare attachments
     const docRef = doc(getDb(), NOTES_COLLECTION, noteId.toString());
     const originalNoteDoc = await getDoc(docRef);
-    
+
     if (originalNoteDoc.exists()) {
       const originalData = originalNoteDoc.data();
-      
+
       // Extract and normalize original attachment URIs
       const originalImageUris = normalizeUris(originalData.imageUris ? originalData.imageUris.split(',') : []);
       const originalVideoUris = normalizeUris(originalData.videoUris ? originalData.videoUris.split(',') : []);
       const originalAudioUris = normalizeUris(originalData.voiceNoteUris ? originalData.voiceNoteUris.split(',') : []);
-  
-      
+
       // Extract and normalize new attachment URIs
       const newImageUris = normalizeUris(noteData.imageUris ? noteData.imageUris.split(',') : []);
       const newVideoUris = normalizeUris(noteData.videoUris ? noteData.videoUris.split(',') : []);
       const newAudioUris = normalizeUris(noteData.voiceNoteUris ? noteData.voiceNoteUris.split(',') : []);
-  
-      
+
       // Find new attachments that need to be uploaded (not Firebase Storage URLs)
-      const newImageUrisToUpload = newImageUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
-      const newVideoUrisToUpload = newVideoUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
-      const newAudioUrisToUpload = newAudioUris.filter(uri => !uri.includes('firebasestorage.googleapis.com'));
-  
-      
+      const newImageUrisToUpload = newImageUris.filter((uri) => !uri.includes('firebasestorage.googleapis.com'));
+      const newVideoUrisToUpload = newVideoUris.filter((uri) => !uri.includes('firebasestorage.googleapis.com'));
+      const newAudioUrisToUpload = newAudioUris.filter((uri) => !uri.includes('firebasestorage.googleapis.com'));
+
       // Upload new attachments to Firebase Storage with progress tracking
       let uploadedImageUris: string[] = [];
       let uploadedVideoUris: string[] = [];
       let uploadedAudioUris: string[] = [];
-  
-      
+
       // Collect new attachments that need uploading
       const newAttachmentsToUpload: { uri: string; type: 'image' | 'video' | 'audio' }[] = [];
-      
-      newImageUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'image' }));
-      newVideoUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'video' }));
-      newAudioUrisToUpload.forEach(uri => newAttachmentsToUpload.push({ uri, type: 'audio' }));
-      
-      
+
+      newImageUrisToUpload.forEach((uri) => newAttachmentsToUpload.push({ uri, type: 'image' }));
+      newVideoUrisToUpload.forEach((uri) => newAttachmentsToUpload.push({ uri, type: 'video' }));
+      newAudioUrisToUpload.forEach((uri) => newAttachmentsToUpload.push({ uri, type: 'audio' }));
+
       if (newAttachmentsToUpload.length > 0) {
         console.log(`📤 Will upload ${newAttachmentsToUpload.length} new attachments in background...`);
-        
+
         // Use local URIs initially for immediate save
         uploadedImageUris = newImageUrisToUpload;
         uploadedVideoUris = newVideoUrisToUpload;
         uploadedAudioUris = newAudioUrisToUpload;
-        
+
         // Start background upload after saving note
         setTimeout(async () => {
           try {
             console.log(`📤 Starting background upload for updated note ${noteId}...`);
             const uploadResult = await uploadAttachmentsWithProgress(noteId, newAttachmentsToUpload);
-            
+
             // Get current final URIs
-            const currentFinalImageUris = [...newImageUris.filter(uri => uri.includes('firebasestorage.googleapis.com')), ...uploadResult.images];
-            const currentFinalVideoUris = [...newVideoUris.filter(uri => uri.includes('firebasestorage.googleapis.com')), ...uploadResult.videos];
-            const currentFinalAudioUris = [...newAudioUris.filter(uri => uri.includes('firebasestorage.googleapis.com')), ...uploadResult.audio];
-            
+            const currentFinalImageUris = [
+              ...newImageUris.filter((uri) => uri.includes('firebasestorage.googleapis.com')),
+              ...uploadResult.images,
+            ];
+            const currentFinalVideoUris = [
+              ...newVideoUris.filter((uri) => uri.includes('firebasestorage.googleapis.com')),
+              ...uploadResult.videos,
+            ];
+            const currentFinalAudioUris = [
+              ...newAudioUris.filter((uri) => uri.includes('firebasestorage.googleapis.com')),
+              ...uploadResult.audio,
+            ];
+
             // Update the note document with uploaded URLs
-            await setDoc(doc(getDb(), NOTES_COLLECTION, noteId.toString()), {
-              imageUris: currentFinalImageUris.length > 0 ? currentFinalImageUris.join(',') : null,
-              videoUris: currentFinalVideoUris.length > 0 ? currentFinalVideoUris.join(',') : null,
-              voiceNoteUris: currentFinalAudioUris.length > 0 ? currentFinalAudioUris.join(',') : null,
-            }, { merge: true });
-            
+            await setDoc(
+              doc(getDb(), NOTES_COLLECTION, noteId.toString()),
+              {
+                imageUris: currentFinalImageUris.length > 0 ? currentFinalImageUris.join(',') : null,
+                videoUris: currentFinalVideoUris.length > 0 ? currentFinalVideoUris.join(',') : null,
+                voiceNoteUris: currentFinalAudioUris.length > 0 ? currentFinalAudioUris.join(',') : null,
+              },
+              { merge: true },
+            );
+
             console.log(`✅ Background upload completed for updated note ${noteId}`);
           } catch (error) {
             console.error(`❌ Background upload failed for updated note ${noteId}:`, error);
           }
         }, 100); // Start upload after a short delay
-
       }
-      
+
       // Combine existing Firebase Storage URLs with newly uploaded ones
-      const existingImageUris = newImageUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
-      const existingVideoUris = newVideoUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
-      const existingAudioUris = newAudioUris.filter(uri => uri.includes('firebasestorage.googleapis.com'));
-  
-      
+      const existingImageUris = newImageUris.filter((uri) => uri.includes('firebasestorage.googleapis.com'));
+      const existingVideoUris = newVideoUris.filter((uri) => uri.includes('firebasestorage.googleapis.com'));
+      const existingAudioUris = newAudioUris.filter((uri) => uri.includes('firebasestorage.googleapis.com'));
+
       finalImageUris = [...existingImageUris, ...uploadedImageUris];
       finalVideoUris = [...existingVideoUris, ...uploadedVideoUris];
       finalAudioUris = [...existingAudioUris, ...uploadedAudioUris];
-  
-      
+
       // Find removed attachments
-      const removedImageUris = originalImageUris.filter(uri => !newImageUris.includes(uri));
-      const removedVideoUris = originalVideoUris.filter(uri => !newVideoUris.includes(uri));
-      const removedAudioUris = originalAudioUris.filter(uri => !newAudioUris.includes(uri));
-  
-      
-              const allRemovedUris = [...removedImageUris, ...removedVideoUris, ...removedAudioUris];
-      
+      const removedImageUris = originalImageUris.filter((uri) => !newImageUris.includes(uri));
+      const removedVideoUris = originalVideoUris.filter((uri) => !newVideoUris.includes(uri));
+      const removedAudioUris = originalAudioUris.filter((uri) => !newAudioUris.includes(uri));
+
+      const allRemovedUris = [...removedImageUris, ...removedVideoUris, ...removedAudioUris];
+
       if (allRemovedUris.length > 0) {
         console.log(`🗑️ Found ${allRemovedUris.length} removed attachments to delete:`, allRemovedUris);
         console.log(`📊 Attachment changes:`, {
@@ -431,14 +443,14 @@ export const updateNote = async (noteId: number, noteData: NoteFormData, onProgr
           videos: { original: originalVideoUris.length, new: newVideoUris.length, removed: removedVideoUris.length },
           audio: { original: originalAudioUris.length, new: newAudioUris.length, removed: removedAudioUris.length },
         });
-        
+
         // Delete removed attachments from Firebase Storage
         await deleteAttachmentsByUris(allRemovedUris);
       } else {
         console.log(`ℹ️ No attachments were removed from note ${noteId}`);
       }
     }
-    
+
     // Update the note document with final attachment URIs
     const updateData = {
       ...noteToDoc(noteData),
@@ -448,9 +460,9 @@ export const updateNote = async (noteId: number, noteData: NoteFormData, onProgr
 
       lastEdited: Timestamp.now(),
     };
-    
+
     await updateDoc(docRef, updateData);
-    
+
     console.log(`✅ Successfully updated note ${noteId}`);
   } catch (error) {
     if (handleFirestoreError(error, 'updateNote')) {
@@ -465,11 +477,11 @@ export const updateNote = async (noteId: number, noteData: NoteFormData, onProgr
 export const deleteNote = async (noteId: number): Promise<void> => {
   try {
     console.log(`🗑️ Deleting note ${noteId}...`);
-    
+
     // First, get the note data to extract attachment URIs
     const docRef = doc(getDb(), NOTES_COLLECTION, noteId.toString());
     const noteDoc = await getDoc(docRef);
-    
+
     if (noteDoc.exists()) {
       const noteData = noteDoc.data();
       console.log(`📝 Found note with attachments:`, {
@@ -478,13 +490,13 @@ export const deleteNote = async (noteId: number): Promise<void> => {
         audio: noteData.voiceNoteUris ? noteData.voiceNoteUris.split(',').length : 0,
       });
     }
-    
+
     // Delete all attachments from Firebase Storage
     await deleteAttachmentsFromStorage(noteId);
-    
+
     // Then delete the note document from Firestore
     await deleteDoc(docRef);
-    
+
     console.log(`✅ Successfully deleted note ${noteId}`);
   } catch (error) {
     if (handleFirestoreError(error, 'deleteNote')) {
@@ -499,32 +511,31 @@ export const deleteNote = async (noteId: number): Promise<void> => {
 export const subscribeToNotes = (callback: (notes: Note[]) => void) => {
   console.warn('⚠️ Notes subscription DISABLED due to Firestore assertion errors');
   console.warn('⚠️ Using manual fetch instead of real-time updates');
-  
+
   // Return empty array immediately and empty unsubscribe function
   setTimeout(() => callback([]), 0);
   return () => {
     console.log('📝 Notes subscription cleanup (no-op)');
   };
-}; 
+};
 
 // Helper function to upload multiple attachments with progress tracking
 export const uploadAttachmentsWithProgress = async (
   noteId: number,
   attachments: { uri: string; type: 'image' | 'video' | 'audio' }[],
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<{ images: string[]; videos: string[]; audio: string[] }> => {
   const uploadedImages: string[] = [];
   const uploadedVideos: string[] = [];
   const uploadedAudio: string[] = [];
 
-  
   const totalAttachments = attachments.length;
   let completedUploads = 0;
-  
+
   for (const attachment of attachments) {
     try {
       const fileName = `${attachment.type}_${Date.now()}_${Math.random()}.${attachment.type === 'image' ? 'jpg' : attachment.type === 'video' ? 'mp4' : attachment.type === 'audio' ? 'm4a' : 'svg'}`;
-      
+
       const downloadURL = await uploadAttachmentToStorage(noteId, attachment.uri, fileName, (progress) => {
         // Calculate overall progress
         const overallProgress = ((completedUploads + progress / 100) / totalAttachments) * 100;
@@ -532,7 +543,7 @@ export const uploadAttachmentsWithProgress = async (
           onProgress(Math.min(overallProgress, 99)); // Cap at 99% until all uploads complete
         }
       });
-      
+
       // Add to appropriate array
       if (attachment.type === 'image') {
         uploadedImages.push(downloadURL);
@@ -541,67 +552,66 @@ export const uploadAttachmentsWithProgress = async (
       } else if (attachment.type === 'audio') {
         uploadedAudio.push(downloadURL);
       }
-      
+
       completedUploads++;
-      
+
       // Update progress
       const overallProgress = (completedUploads / totalAttachments) * 100;
       if (onProgress) {
         onProgress(Math.min(overallProgress, 99));
       }
-      
     } catch (error) {
       console.error(`Failed to upload ${attachment.type} attachment:`, error);
       throw error;
     }
   }
-  
+
   // Report completion
   if (onProgress) {
     onProgress(100);
   }
-  
+
   return { images: uploadedImages, videos: uploadedVideos, audio: uploadedAudio };
 };
 
 // Firebase Storage functions for attachments
 export const uploadAttachmentToStorage = async (
-  noteId: number, 
-  fileUri: string, 
+  noteId: number,
+  fileUri: string,
   fileName: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<string> => {
   try {
     let blob: Blob;
-    
+
     // Handle SVG strings differently
     if (fileName.endsWith('.svg') && fileUri.startsWith('<?xml')) {
       // This is an SVG string, convert it to blob
       blob = new Blob([fileUri], { type: 'image/svg+xml' });
-      
+
       // Create storage reference with proper folder structure
       const storageRef = ref(getStorage(), `notes-attachments/${noteId}/${fileName}`);
-      
+
       // Upload the file with progress tracking
       const uploadResult = await uploadBytes(storageRef, blob, {
         customMetadata: {
           uploadedAt: new Date().toISOString(),
-        }
+        },
       });
-      
+
       // Report progress completion
       if (onProgress) {
         onProgress(100);
       }
-      
+
       // Get download URL
       const downloadURL = await getDownloadURL(uploadResult.ref);
-      
+
       console.log(`Attachment uploaded successfully: ${downloadURL}`);
       return downloadURL;
     } else if (fileUri.startsWith('file://') || fileUri.startsWith('content://')) {
       // This is a local file URI - use recommended fetch() → blob approach
-      
+
       // Determine proper Firebase content type based on file extension
       let contentType = 'application/octet-stream';
       if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
@@ -615,56 +625,56 @@ export const uploadAttachmentToStorage = async (
       } else if (fileName.endsWith('.wav')) {
         contentType = 'audio/wav';
       }
-      
+
       // Use recommended fetch() → blob approach for React Native
       console.log('Fetching local file for upload:', fileUri);
       const response = await fetch(fileUri);
       const blob = await response.blob();
-      
+
       // Create storage reference with proper folder structure
       const storageRef = ref(getStorage(), `notes-attachments/${noteId}/${fileName}`);
-      
+
       // Upload blob with proper content type
       const uploadResult = await uploadBytes(storageRef, blob, {
         contentType: contentType,
         customMetadata: {
           uploadedAt: new Date().toISOString(),
-        }
+        },
       });
-      
+
       // Report progress completion
       if (onProgress) {
         onProgress(100);
       }
-      
+
       // Get download URL
       const downloadURL = await getDownloadURL(uploadResult.ref);
-      
+
       console.log(`Attachment uploaded successfully: ${downloadURL}`);
       return downloadURL;
     } else {
       // This is a remote URL, fetch it
       const response = await fetch(fileUri);
       blob = await response.blob();
-      
+
       // Create storage reference with proper folder structure
       const storageRef = ref(getStorage(), `notes-attachments/${noteId}/${fileName}`);
-      
+
       // Upload the file with progress tracking
       const uploadResult = await uploadBytes(storageRef, blob, {
         customMetadata: {
           uploadedAt: new Date().toISOString(),
-        }
+        },
       });
-      
+
       // Report progress completion
       if (onProgress) {
         onProgress(100);
       }
-      
+
       // Get download URL
       const downloadURL = await getDownloadURL(uploadResult.ref);
-      
+
       console.log(`Attachment uploaded successfully: ${downloadURL}`);
       return downloadURL;
     }
@@ -683,10 +693,10 @@ export const deleteAttachmentFromStorage = async (fileUrl: string): Promise<void
       console.warn('Could not extract file path from URL:', fileUrl);
       return;
     }
-    
+
     const filePath = decodeURIComponent(pathMatch[1]);
     const storageRef = ref(getStorage(), filePath);
-    
+
     await deleteObject(storageRef);
     console.log(`Attachment deleted from storage: ${filePath}`);
   } catch (error) {
@@ -699,14 +709,14 @@ export const deleteAllAttachmentsFromStorage = async (noteId: number): Promise<v
   try {
     const folderRef = ref(getStorage(), `notes-attachments/${noteId}`);
     const result = await listAll(folderRef);
-    
+
     // Delete all files in the folder
-    const deletePromises = result.items.map(itemRef => deleteObject(itemRef));
+    const deletePromises = result.items.map((itemRef) => deleteObject(itemRef));
     await Promise.all(deletePromises);
-    
+
     console.log(`All attachments deleted for note ${noteId}`);
   } catch (error) {
     console.error('Error deleting all attachments from storage:', error);
     throw error;
   }
-}; 
+};

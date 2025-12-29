@@ -4,19 +4,15 @@
  */
 
 // Currency formatting with customizable options
-export const formatCurrency = (
-  amount: number | string,
-  currency: string = "USD",
-  locale: string = "en-US",
-): string => {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+export const formatCurrency = (amount: number | string, currency: string = 'USD', locale: string = 'en-US'): string => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
 
   if (isNaN(num)) {
-    return "$0.00";
+    return '$0.00';
   }
 
   return new Intl.NumberFormat(locale, {
-    style: "currency",
+    style: 'currency',
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -28,12 +24,12 @@ export const formatNumber = (
   value: string | number,
   minimumFractionDigits: number = 0,
   maximumFractionDigits: number = 8,
-  locale: string = "en-US",
+  locale: string = 'en-US',
 ): string => {
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  const num = typeof value === 'string' ? parseFloat(value) : value;
 
   if (isNaN(num)) {
-    return "0";
+    return '0';
   }
 
   return new Intl.NumberFormat(locale, {
@@ -46,16 +42,16 @@ export const formatNumber = (
 export const formatDate = (
   date: Date | string | number,
   options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   },
-  locale: string = "en-US",
+  locale: string = 'en-US',
 ): string => {
   const dateObj = date instanceof Date ? date : new Date(date);
 
   if (isNaN(dateObj.getTime())) {
-    return "Invalid Date";
+    return 'Invalid Date';
   }
 
   return new Intl.DateTimeFormat(locale, options).format(dateObj);
@@ -68,28 +64,25 @@ export const formatPercentage = (
   maximumFractionDigits: number = 2,
 ): string => {
   if (isNaN(value)) {
-    return "0%";
+    return '0%';
   }
 
-  return new Intl.NumberFormat("en-US", {
-    style: "percent",
+  return new Intl.NumberFormat('en-US', {
+    style: 'percent',
     minimumFractionDigits,
     maximumFractionDigits,
   }).format(value / 100);
 };
 
 // Compact number formatting (1K, 1M, etc.)
-export const formatCompactNumber = (
-  value: number,
-  locale: string = "en-US",
-): string => {
+export const formatCompactNumber = (value: number, locale: string = 'en-US'): string => {
   if (isNaN(value)) {
-    return "0";
+    return '0';
   }
 
   return new Intl.NumberFormat(locale, {
-    notation: "compact",
-    compactDisplay: "short",
+    notation: 'compact',
+    compactDisplay: 'short',
   }).format(value);
 };
 
@@ -97,15 +90,15 @@ export const formatCompactNumber = (
 export const formatTime = (
   date: Date | string | number,
   options: Intl.DateTimeFormatOptions = {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: '2-digit',
+    minute: '2-digit',
   },
-  locale: string = "en-US",
+  locale: string = 'en-US',
 ): string => {
   const dateObj = date instanceof Date ? date : new Date(date);
 
   if (isNaN(dateObj.getTime())) {
-    return "Invalid Time";
+    return 'Invalid Time';
   }
 
   return new Intl.DateTimeFormat(locale, options).format(dateObj);
@@ -116,10 +109,10 @@ export const formatTime = (
  */
 export const stripHtmlTags = (html: string): string => {
   if (!html) return '';
-  
+
   // Remove HTML tags
   const withoutTags = html.replace(/<[^>]*>/g, '');
-  
+
   // Decode common HTML entities
   const decoded = withoutTags
     .replace(/&nbsp;/g, ' ')
@@ -128,7 +121,7 @@ export const stripHtmlTags = (html: string): string => {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
-  
+
   // Remove extra whitespace
   return decoded.replace(/\s+/g, ' ').trim();
 };

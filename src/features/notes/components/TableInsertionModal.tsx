@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
-import {
-  Modal,
-  Portal,
-  Surface,
-  Text,
-  Button,
-  TextInput,
-  IconButton,
-  Chip,
-} from 'react-native-paper';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { Modal, Portal, Surface, Text, Button, TextInput, IconButton, Chip } from 'react-native-paper';
 
 interface TableInsertionModalProps {
   visible: boolean;
@@ -23,11 +10,7 @@ interface TableInsertionModalProps {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const TableInsertionModal: React.FC<TableInsertionModalProps> = ({
-  visible,
-  onDismiss,
-  onInsertTable,
-}) => {
+const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDismiss, onInsertTable }) => {
   const [rows, setRows] = useState('3');
   const [columns, setColumns] = useState('3');
 
@@ -48,19 +31,11 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({
 
   return (
     <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={styles.modalContainer}
-      >
+      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContainer}>
         <Surface style={styles.modalSurface}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Insert Table</Text>
-            <IconButton
-              icon="close"
-              size={20}
-              onPress={onDismiss}
-            />
+            <IconButton icon="close" size={20} onPress={onDismiss} />
           </View>
 
           <View style={styles.modalContent}>
@@ -113,9 +88,7 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({
                   <View key={rowIndex} style={styles.previewRow}>
                     {Array.from({ length: Math.min(parseInt(columns) || 3, 6) }).map((_, colIndex) => (
                       <View key={colIndex} style={styles.previewCell}>
-                        <Text style={styles.previewText}>
-                          {rowIndex === 0 ? 'H' : 'C'}
-                        </Text>
+                        <Text style={styles.previewText}>{rowIndex === 0 ? 'H' : 'C'}</Text>
                       </View>
                     ))}
                   </View>
@@ -128,11 +101,7 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({
             <Button onPress={onDismiss} style={styles.actionButton}>
               Cancel
             </Button>
-            <Button
-              mode="contained"
-              onPress={handleInsert}
-              style={styles.actionButton}
-            >
+            <Button mode="contained" onPress={handleInsert} style={styles.actionButton}>
               Insert Table
             </Button>
           </View>
@@ -241,4 +210,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TableInsertionModal; 
+export default TableInsertionModal;

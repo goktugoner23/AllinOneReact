@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { 
-  Dialog, 
-  Portal, 
-  TextInput, 
-  Button, 
-  Text, 
-  Chip,
-  useTheme
-} from 'react-native-paper';
+import { Dialog, Portal, TextInput, Button, Text, Chip, useTheme } from 'react-native-paper';
 import { TASK_GROUP_COLORS } from '@features/tasks/types/Task';
 
 interface AddTaskGroupDialogProps {
@@ -17,11 +9,7 @@ interface AddTaskGroupDialogProps {
   onConfirm: (groupData: { title: string; description?: string; color: string }) => void;
 }
 
-const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
-  visible,
-  onDismiss,
-  onConfirm,
-}) => {
+const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDismiss, onConfirm }) => {
   const theme = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -29,7 +17,7 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
 
   const handleConfirm = () => {
     if (!title.trim()) return;
-    
+
     onConfirm({
       title: title.trim(),
       description: description.trim() || undefined,
@@ -52,9 +40,9 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
 
   return (
     <Portal>
-      <Dialog 
-        visible={visible} 
-        onDismiss={handleDismiss} 
+      <Dialog
+        visible={visible}
+        onDismiss={handleDismiss}
         style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
       >
         <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>Add Task Group</Dialog.Title>
@@ -78,35 +66,23 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
                 style={styles.input}
               />
               <View style={styles.colorSection}>
-                <Text
-                  variant="bodyMedium"
-                  style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
-                >
+                <Text variant="bodyMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
                   Color
                 </Text>
                 <View style={styles.colorGrid}>
                   {TASK_GROUP_COLORS.map((colorOption) => {
                     const isSelected = selectedColor === colorOption.value;
-                    
+
                     return (
                       <View
                         key={colorOption.value}
-                        style={[
-                          styles.colorOption,
-                          isSelected && styles.selectedColorOption
-                        ]}
+                        style={[styles.colorOption, isSelected && styles.selectedColorOption]}
                       >
                         <View
-                          style={[
-                            styles.colorCircle,
-                            getColorStyle(colorOption.value)
-                          ]}
+                          style={[styles.colorCircle, getColorStyle(colorOption.value)]}
                           onTouchEnd={() => setSelectedColor(colorOption.value)}
                         />
-                        <Text
-                          variant="bodySmall"
-                          style={[styles.colorLabel, { color: theme.colors.onSurface }]}
-                        >
+                        <Text variant="bodySmall" style={[styles.colorLabel, { color: theme.colors.onSurface }]}>
                           {colorOption.label}
                         </Text>
                       </View>
@@ -118,7 +94,9 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>Cancel</Button>
+          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>
+            Cancel
+          </Button>
           <Button onPress={handleConfirm} disabled={!title.trim()} textColor={theme.colors.primary}>
             Add Group
           </Button>
@@ -142,15 +120,24 @@ const colorStyles = StyleSheet.create({
 
 const getColorStyle = (colorValue: string) => {
   switch (colorValue) {
-    case '#7C3AED': return colorStyles.purple;
-    case '#4CAF50': return colorStyles.green;
-    case '#F44336': return colorStyles.red;
-    case '#FF9800': return colorStyles.orange;
-    case '#2196F3': return colorStyles.blue;
-    case '#9C27B0': return colorStyles.deepPurple;
-    case '#607D8B': return colorStyles.blueGrey;
-    case '#795548': return colorStyles.brown;
-    default: return { backgroundColor: colorValue };
+    case '#7C3AED':
+      return colorStyles.purple;
+    case '#4CAF50':
+      return colorStyles.green;
+    case '#F44336':
+      return colorStyles.red;
+    case '#FF9800':
+      return colorStyles.orange;
+    case '#2196F3':
+      return colorStyles.blue;
+    case '#9C27B0':
+      return colorStyles.deepPurple;
+    case '#607D8B':
+      return colorStyles.blueGrey;
+    case '#795548':
+      return colorStyles.brown;
+    default:
+      return { backgroundColor: colorValue };
   }
 };
 

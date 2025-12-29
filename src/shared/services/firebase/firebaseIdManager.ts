@@ -21,7 +21,7 @@ export class FirebaseIdManager {
       // Use a standardized collection name for workout-related items
       const standardizedCollectionName = this.getStandardizedCollectionName(collectionName);
       console.log('FirebaseIdManager: Getting next ID for', collectionName, '->', standardizedCollectionName);
-      
+
       // Check if document exists
       const docRef = doc(this.db, this.countersCollection, standardizedCollectionName);
       const docSnap = await getDoc(docRef);
@@ -36,19 +36,19 @@ export class FirebaseIdManager {
 
       // Get the current count and atomically increment it
       await updateDoc(docRef, {
-        count: increment(1)
+        count: increment(1),
       });
-      
+
       // Retrieve the updated count
       const updatedDocSnap = await getDoc(docRef);
       const newCount = updatedDocSnap.data()?.count || 1;
-      
+
       console.log('FirebaseIdManager: Generated ID', newCount, 'for', standardizedCollectionName);
       return newCount;
     } catch (error) {
       // Log failure and handle gracefully
       console.error('FirebaseIdManager: Failed to get next ID:', error);
-      
+
       // In case of failure, generate a timestamp-based ID as fallback
       const fallbackId = Date.now();
       console.log('FirebaseIdManager: Using fallback ID:', fallbackId);
@@ -113,4 +113,4 @@ export class FirebaseIdManager {
 }
 
 // Export a singleton instance
-export const firebaseIdManager = new FirebaseIdManager(); 
+export const firebaseIdManager = new FirebaseIdManager();

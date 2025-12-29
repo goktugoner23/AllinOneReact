@@ -1,10 +1,22 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import {
-  fetchStudents, addStudent as addStudentToFirestore, updateStudent as updateStudentInFirestore, deleteStudent as deleteStudentFromFirestore,
-  fetchRegistrations, addRegistration as addRegistrationToFirestore, updateRegistration as updateRegistrationInFirestore, deleteRegistration as deleteRegistrationFromFirestore,
-  fetchLessons, addLesson as addLessonToFirestore, updateLesson as updateLessonInFirestore, deleteLesson as deleteLessonFromFirestore,
-  fetchSeminars, addSeminar as addSeminarToFirestore, updateSeminar as updateSeminarInFirestore, deleteSeminar as deleteSeminarFromFirestore
+  fetchStudents,
+  addStudent as addStudentToFirestore,
+  updateStudent as updateStudentInFirestore,
+  deleteStudent as deleteStudentFromFirestore,
+  fetchRegistrations,
+  addRegistration as addRegistrationToFirestore,
+  updateRegistration as updateRegistrationInFirestore,
+  deleteRegistration as deleteRegistrationFromFirestore,
+  fetchLessons,
+  addLesson as addLessonToFirestore,
+  updateLesson as updateLessonInFirestore,
+  deleteLesson as deleteLessonFromFirestore,
+  fetchSeminars,
+  addSeminar as addSeminarToFirestore,
+  updateSeminar as updateSeminarInFirestore,
+  deleteSeminar as deleteSeminarFromFirestore,
 } from '@features/wtregistry/services/wtRegistry';
 
 interface WTRegistryState {
@@ -23,6 +35,19 @@ const initialState: WTRegistryState = {
   seminars: [],
   loading: false,
   error: null,
+};
+
+// Helper to safely convert date to ISO string
+const toISOString = (date: Date | string): string => {
+  if (typeof date === 'string') return date;
+  return date.toISOString();
+};
+
+// Helper to safely convert optional date to ISO string
+const toISOStringOptional = (date?: Date | string): string | undefined => {
+  if (!date) return undefined;
+  if (typeof date === 'string') return date;
+  return date.toISOString();
 };
 
 // Async thunks for Students
@@ -48,26 +73,32 @@ export const deleteStudent = createAsyncThunk('wtRegistry/deleteStudent', async 
 export const loadRegistrations = createAsyncThunk('wtRegistry/loadRegistrations', async () => {
   const registrations = await fetchRegistrations();
   // Convert Date objects to ISO strings for Redux serialization
-  return registrations.map(registration => ({
+  return registrations.map((registration) => ({
     ...registration,
-    startDate: registration.startDate?.toISOString(),
-    endDate: registration.endDate?.toISOString(),
-    paymentDate: registration.paymentDate.toISOString(),
+    startDate: toISOStringOptional(registration.startDate),
+    endDate: toISOStringOptional(registration.endDate),
+    paymentDate: toISOString(registration.paymentDate),
   }));
 });
 
-export const addRegistration = createAsyncThunk('wtRegistry/addRegistration', async (registration: Omit<WTRegistration, 'id' | 'paymentDate'>) => {
-  const newRegistration = await addRegistrationToFirestore({
-    ...registration,
-    paymentDate: new Date(),
-  });
-  return newRegistration;
-});
+export const addRegistration = createAsyncThunk(
+  'wtRegistry/addRegistration',
+  async (registration: Omit<WTRegistration, 'id' | 'paymentDate'>) => {
+    const newRegistration = await addRegistrationToFirestore({
+      ...registration,
+      paymentDate: new Date(),
+    });
+    return newRegistration;
+  },
+);
 
-export const updateRegistration = createAsyncThunk('wtRegistry/updateRegistration', async (registration: WTRegistration) => {
-  await updateRegistrationInFirestore(registration);
-  return registration;
-});
+export const updateRegistration = createAsyncThunk(
+  'wtRegistry/updateRegistration',
+  async (registration: WTRegistration) => {
+    await updateRegistrationInFirestore(registration);
+    return registration;
+  },
+);
 
 export const deleteRegistration = createAsyncThunk('wtRegistry/deleteRegistration', async (registrationId: number) => {
   await deleteRegistrationFromFirestore(registrationId);
@@ -97,9 +128,9 @@ export const deleteLesson = createAsyncThunk('wtRegistry/deleteLesson', async (l
 export const loadSeminars = createAsyncThunk('wtRegistry/loadSeminars', async () => {
   const seminars = await fetchSeminars();
   // Convert dates to strings for Redux serialization
-  return seminars.map(seminar => ({
+  return seminars.map((seminar) => ({
     ...seminar,
-    date: seminar.date.toISOString(),
+    date: toISOString(seminar.date),
   }));
 });
 
@@ -108,7 +139,7 @@ export const addSeminar = createAsyncThunk('wtRegistry/addSeminar', async (semin
   // Convert date to string for Redux serialization
   return {
     ...result,
-    date: result.date.toISOString(),
+    date: toISOString(result.date),
   };
 });
 
@@ -117,7 +148,7 @@ export const updateSeminar = createAsyncThunk('wtRegistry/updateSeminar', async 
   // Convert date to string for Redux serialization
   return {
     ...seminar,
-    date: seminar.date.toISOString(),
+    date: toISOString(seminar.date),
   };
 });
 
@@ -137,13 +168,13 @@ const wtRegistrySlice = createSlice({
       state.students.push(action.payload);
     },
     updateStudentLocal: (state, action: PayloadAction<WTStudent>) => {
-      const index = state.students.findIndex(s => s.id === action.payload.id);
+      const index = state.students.findIndex((s) => s.id === action.payload.id);
       if (index !== -1) {
         state.students[index] = action.payload;
       }
     },
     deleteStudentLocal: (state, action: PayloadAction<number>) => {
-      state.students = state.students.filter(s => s.id !== action.payload);
+      state.students = state.students.filter((s) => s.id !== action.payload);
     },
     setRegistrations: (state, action: PayloadAction<WTRegistration[]>) => {
       state.registrations = action.payload;
@@ -152,13 +183,13 @@ const wtRegistrySlice = createSlice({
       state.registrations.push(action.payload);
     },
     updateRegistrationLocal: (state, action: PayloadAction<WTRegistration>) => {
-      const index = state.registrations.findIndex(r => r.id === action.payload.id);
+      const index = state.registrations.findIndex((r) => r.id === action.payload.id);
       if (index !== -1) {
         state.registrations[index] = action.payload;
       }
     },
     deleteRegistrationLocal: (state, action: PayloadAction<number>) => {
-      state.registrations = state.registrations.filter(r => r.id !== action.payload);
+      state.registrations = state.registrations.filter((r) => r.id !== action.payload);
     },
     setLessons: (state, action: PayloadAction<WTLesson[]>) => {
       state.lessons = action.payload;
@@ -167,13 +198,13 @@ const wtRegistrySlice = createSlice({
       state.lessons.push(action.payload);
     },
     updateLessonLocal: (state, action: PayloadAction<WTLesson>) => {
-      const index = state.lessons.findIndex(l => l.id === action.payload.id);
+      const index = state.lessons.findIndex((l) => l.id === action.payload.id);
       if (index !== -1) {
         state.lessons[index] = action.payload;
       }
     },
     deleteLessonLocal: (state, action: PayloadAction<number>) => {
-      state.lessons = state.lessons.filter(l => l.id !== action.payload);
+      state.lessons = state.lessons.filter((l) => l.id !== action.payload);
     },
     setSeminars: (state, action: PayloadAction<WTSeminar[]>) => {
       state.seminars = action.payload;
@@ -182,7 +213,7 @@ const wtRegistrySlice = createSlice({
       state.seminars.push(action.payload);
     },
     deleteSeminarLocal: (state, action: PayloadAction<number>) => {
-      state.seminars = state.seminars.filter(s => s.id !== action.payload);
+      state.seminars = state.seminars.filter((s) => s.id !== action.payload);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
@@ -210,13 +241,13 @@ const wtRegistrySlice = createSlice({
         state.students.push(action.payload);
       })
       .addCase(updateStudent.fulfilled, (state, action) => {
-        const index = state.students.findIndex(s => s.id === action.payload.id);
+        const index = state.students.findIndex((s) => s.id === action.payload.id);
         if (index !== -1) {
           state.students[index] = action.payload;
         }
       })
       .addCase(deleteStudent.fulfilled, (state, action) => {
-        state.students = state.students.filter(s => s.id !== action.payload);
+        state.students = state.students.filter((s) => s.id !== action.payload);
       })
       // Registrations
       .addCase(loadRegistrations.pending, (state) => {
@@ -235,13 +266,13 @@ const wtRegistrySlice = createSlice({
         state.registrations.push(action.payload);
       })
       .addCase(updateRegistration.fulfilled, (state, action) => {
-        const index = state.registrations.findIndex(r => r.id === action.payload.id);
+        const index = state.registrations.findIndex((r) => r.id === action.payload.id);
         if (index !== -1) {
           state.registrations[index] = action.payload;
         }
       })
       .addCase(deleteRegistration.fulfilled, (state, action) => {
-        state.registrations = state.registrations.filter(r => r.id !== action.payload);
+        state.registrations = state.registrations.filter((r) => r.id !== action.payload);
       })
       // Lessons
       .addCase(loadLessons.pending, (state) => {
@@ -260,13 +291,13 @@ const wtRegistrySlice = createSlice({
         state.lessons.push(action.payload);
       })
       .addCase(updateLesson.fulfilled, (state, action) => {
-        const index = state.lessons.findIndex(l => l.id === action.payload.id);
+        const index = state.lessons.findIndex((l) => l.id === action.payload.id);
         if (index !== -1) {
           state.lessons[index] = action.payload;
         }
       })
       .addCase(deleteLesson.fulfilled, (state, action) => {
-        state.lessons = state.lessons.filter(l => l.id !== action.payload);
+        state.lessons = state.lessons.filter((l) => l.id !== action.payload);
       })
       // Seminars
       .addCase(loadSeminars.pending, (state) => {
@@ -285,23 +316,35 @@ const wtRegistrySlice = createSlice({
         state.seminars.push(action.payload);
       })
       .addCase(updateSeminar.fulfilled, (state, action) => {
-        const index = state.seminars.findIndex(s => s.id === action.payload.id);
+        const index = state.seminars.findIndex((s) => s.id === action.payload.id);
         if (index !== -1) {
           state.seminars[index] = action.payload;
         }
       })
       .addCase(deleteSeminar.fulfilled, (state, action) => {
-        state.seminars = state.seminars.filter(s => s.id !== action.payload);
+        state.seminars = state.seminars.filter((s) => s.id !== action.payload);
       });
   },
 });
 
 export const {
-  setStudents, addStudentLocal, updateStudentLocal, deleteStudentLocal,
-  setRegistrations, addRegistrationLocal, updateRegistrationLocal, deleteRegistrationLocal,
-  setLessons, addLessonLocal, updateLessonLocal, deleteLessonLocal,
-  setSeminars, addSeminarLocal, deleteSeminarLocal,
-  setLoading, setError,
+  setStudents,
+  addStudentLocal,
+  updateStudentLocal,
+  deleteStudentLocal,
+  setRegistrations,
+  addRegistrationLocal,
+  updateRegistrationLocal,
+  deleteRegistrationLocal,
+  setLessons,
+  addLessonLocal,
+  updateLessonLocal,
+  deleteLessonLocal,
+  setSeminars,
+  addSeminarLocal,
+  deleteSeminarLocal,
+  setLoading,
+  setError,
 } = wtRegistrySlice.actions;
 
-export default wtRegistrySlice.reducer; 
+export default wtRegistrySlice.reducer;

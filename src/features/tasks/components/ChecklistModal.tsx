@@ -1,21 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  ScrollView,
-} from 'react-native';
-import {
-  Modal,
-  Portal,
-  Surface,
-  Text,
-  Button,
-  TextInput,
-  IconButton,
-  Chip,
-  List,
-} from 'react-native-paper';
+import { View, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { Modal, Portal, Surface, Text, Button, TextInput, IconButton, Chip, List } from 'react-native-paper';
 
 interface ChecklistModalProps {
   visible: boolean;
@@ -25,11 +10,7 @@ interface ChecklistModalProps {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const ChecklistModal: React.FC<ChecklistModalProps> = ({
-  visible,
-  onDismiss,
-  onInsertChecklist,
-}) => {
+const ChecklistModal: React.FC<ChecklistModalProps> = ({ visible, onDismiss, onInsertChecklist }) => {
   const [items, setItems] = useState<string[]>(['', '', '']);
 
   const addItem = () => {
@@ -50,7 +31,7 @@ const ChecklistModal: React.FC<ChecklistModalProps> = ({
   };
 
   const handleInsert = () => {
-    const validItems = items.filter(item => item.trim() !== '');
+    const validItems = items.filter((item) => item.trim() !== '');
     if (validItems.length > 0) {
       onInsertChecklist(validItems);
       onDismiss();
@@ -78,30 +59,18 @@ const ChecklistModal: React.FC<ChecklistModalProps> = ({
 
   return (
     <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={styles.modalContainer}
-      >
+      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContainer}>
         <Surface style={styles.modalSurface}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Create Checklist</Text>
-            <IconButton
-              icon="close"
-              size={20}
-              onPress={onDismiss}
-            />
+            <IconButton icon="close" size={20} onPress={onDismiss} />
           </View>
 
           <ScrollView style={styles.modalContent}>
             <Text style={styles.sectionTitle}>Quick Templates</Text>
             <View style={styles.chipContainer}>
               {quickTemplates.map((template, index) => (
-                <Chip
-                  key={index}
-                  onPress={() => setItems([...template.items, ''])}
-                  style={styles.chip}
-                >
+                <Chip key={index} onPress={() => setItems([...template.items, ''])} style={styles.chip}>
                   {template.name}
                 </Chip>
               ))}
@@ -110,13 +79,9 @@ const ChecklistModal: React.FC<ChecklistModalProps> = ({
             <View style={styles.itemsSection}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Checklist Items</Text>
-                <IconButton
-                  icon="plus"
-                  size={20}
-                  onPress={addItem}
-                />
+                <IconButton icon="plus" size={20} onPress={addItem} />
               </View>
-              
+
               {items.map((item, index) => (
                 <View key={index} style={styles.itemRow}>
                   <TextInput
@@ -126,12 +91,7 @@ const ChecklistModal: React.FC<ChecklistModalProps> = ({
                     mode="outlined"
                     style={styles.itemInput}
                     right={
-                      items.length > 1 ? (
-                        <TextInput.Icon
-                          icon="delete"
-                          onPress={() => removeItem(index)}
-                        />
-                      ) : undefined
+                      items.length > 1 ? <TextInput.Icon icon="delete" onPress={() => removeItem(index)} /> : undefined
                     }
                   />
                 </View>
@@ -147,7 +107,7 @@ const ChecklistModal: React.FC<ChecklistModalProps> = ({
               mode="contained"
               onPress={handleInsert}
               style={styles.actionButton}
-              disabled={items.filter(item => item.trim() !== '').length === 0}
+              disabled={items.filter((item) => item.trim() !== '').length === 0}
             >
               Insert Checklist
             </Button>
@@ -229,4 +189,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChecklistModal; 
+export default ChecklistModal;

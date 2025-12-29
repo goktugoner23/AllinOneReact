@@ -1,18 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  PermissionsAndroid,
-  Text,
-} from 'react-native';
-import {
-  ProgressBar,
-  Button,
-  IconButton,
-} from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, Text } from 'react-native';
+import { ProgressBar, Button, IconButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import RNFS from 'react-native-fs';
 import AudioRecorderPlayer, {
@@ -41,10 +29,7 @@ interface VoiceRecorderState {
   error: string | null;
 }
 
-const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
-  onRecordingComplete,
-  onCancel,
-}) => {
+const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCancel }) => {
   const [state, setState] = useState<VoiceRecorderState>({
     isRecording: false,
     isPlaying: false,
@@ -55,7 +40,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     hasPermission: false,
     error: null,
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
 
@@ -69,23 +54,20 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const checkPermission = async () => {
     if (Platform.OS === 'android') {
       try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          {
-            title: 'Microphone Permission',
-            message: 'This app needs access to your microphone to record voice notes.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
-        setState(prev => ({ ...prev, hasPermission: granted === PermissionsAndroid.RESULTS.GRANTED }));
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
+          title: 'Microphone Permission',
+          message: 'This app needs access to your microphone to record voice notes.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        });
+        setState((prev) => ({ ...prev, hasPermission: granted === PermissionsAndroid.RESULTS.GRANTED }));
       } catch (err) {
         console.warn(err);
-        setState(prev => ({ ...prev, hasPermission: false }));
+        setState((prev) => ({ ...prev, hasPermission: false }));
       }
     } else {
-      setState(prev => ({ ...prev, hasPermission: true }));
+      setState((prev) => ({ ...prev, hasPermission: true }));
     }
   };
 
@@ -116,12 +98,12 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       const recordingPath = Platform.select({
         ios: `${RNFS.DocumentDirectoryPath}/recording_${timestamp}.m4a`,
         android: `${RNFS.ExternalDirectoryPath}/recording_${timestamp}.mp4`,
-        default: `${RNFS.DocumentDirectoryPath}/recording_${timestamp}.m4a`
+        default: `${RNFS.DocumentDirectoryPath}/recording_${timestamp}.m4a`,
       });
 
       // Add record back listener first - using proper RecordBackType interface
       audioRecorderPlayer.current.addRecordBackListener((e: RecordBackType) => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           recordingTime: e.currentPosition, // Don't use Math.floor() for precise timing
         }));
@@ -130,10 +112,10 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       const uri = await audioRecorderPlayer.current.startRecorder(
         recordingPath,
         audioSet,
-        true // Enable metering
+        true, // Enable metering
       );
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isRecording: true,
         recordingTime: 0,
@@ -157,11 +139,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       // Stop recording and get the file URI
       const uri = await audioRecorderPlayer.current.stopRecorder();
-      
+
       // Check if the URI already has file:// prefix
       const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
-      
-      setState(prev => ({
+
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         recordedFilePath: fileUri,
@@ -172,7 +154,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     } catch (error) {
       console.error('Error stopping recording:', error);
       Alert.alert('Error', 'Failed to stop recording.');
-      setState(prev => ({ ...prev, isRecording: false }));
+      setState((prev) => ({ ...prev, isRecording: false }));
     } finally {
       setIsLoading(false);
     }
@@ -192,19 +174,19 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       // Add playback listener first - using proper PlayBackType interface
       audioRecorderPlayer.current.addPlayBackListener((e: PlayBackType) => {
         // Don't use Math.floor() - the library provides precise millisecond timing
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           playingTime: e.currentPosition,
           duration: e.duration,
         }));
-        
+
         // Check if playback has ended (within 500ms of duration to account for timing differences)
-        if (e.duration > 0 && e.currentPosition >= (e.duration - 500)) {
+        if (e.duration > 0 && e.currentPosition >= e.duration - 500) {
           setTimeout(() => {
-            setState(prev => ({ 
-              ...prev, 
-              isPlaying: false, 
-              playingTime: 0 
+            setState((prev) => ({
+              ...prev,
+              isPlaying: false,
+              playingTime: 0,
             }));
             audioRecorderPlayer.current.removePlayBackListener();
           }, 200);
@@ -215,14 +197,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       // Start playback
       await audioRecorderPlayer.current.startPlayer(cleanUri);
-      
-      setState(prev => ({ ...prev, isPlaying: true, playingTime: 0 }));
+
+      setState((prev) => ({ ...prev, isPlaying: true, playingTime: 0 }));
 
       console.log('Playing recording:', cleanUri);
     } catch (error) {
       console.error('Error playing recording:', error);
       Alert.alert('Error', 'Failed to play recording.');
-      setState(prev => ({ ...prev, isPlaying: false }));
+      setState((prev) => ({ ...prev, isPlaying: false }));
     } finally {
       setIsLoading(false);
     }
@@ -233,11 +215,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     try {
       // Stop playback
       await audioRecorderPlayer.current.stopPlayer();
-      
+
       // Remove listeners
       audioRecorderPlayer.current.removePlayBackListener();
-      
-      setState(prev => ({ ...prev, isPlaying: false, playingTime: 0 }));
+
+      setState((prev) => ({ ...prev, isPlaying: false, playingTime: 0 }));
     } catch (error) {
       console.error('Error stopping playback:', error);
     } finally {
@@ -287,9 +269,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   if (!state.hasPermission) {
     return (
       <View style={styles.container}>
-        <Text style={styles.permissionText}>
-          Microphone permission is required to record audio.
-        </Text>
+        <Text style={styles.permissionText}>Microphone permission is required to record audio.</Text>
         <Button mode="contained" onPress={checkPermission}>
           Grant Permission
         </Button>
@@ -302,79 +282,64 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       {state.isRecording ? (
         // Recording View
         <View style={styles.recordingContainer}>
-                <View style={styles.recordingIndicator}>
+          <View style={styles.recordingIndicator}>
             <Icon name="fiber-manual-record" size={24} color="#f44336" />
             <Text style={styles.recordingText}>Recording...</Text>
-            </View>
-            
+          </View>
+
           <Text style={styles.timeText}>{formatTime(state.recordingTime)}</Text>
 
-                <TouchableOpacity
+          <TouchableOpacity
             style={[styles.stopButton, isLoading && styles.disabledButton]}
-                  onPress={stopRecording}
+            onPress={stopRecording}
             disabled={isLoading}
-                >
+          >
             <Icon name="stop" size={32} color="white" />
-                </TouchableOpacity>
-          {isLoading && (
-            <Text style={styles.loadingText}>Stopping...</Text>
-              )}
-            </View>
+          </TouchableOpacity>
+          {isLoading && <Text style={styles.loadingText}>Stopping...</Text>}
+        </View>
       ) : state.recordedFilePath ? (
         // Playback View
         <View style={styles.playbackContainer}>
           <Text style={styles.playbackTitle}>Voice Recording</Text>
 
-            <View style={styles.progressContainer}>
-              <ProgressBar 
-                progress={getProgress()} 
-                style={styles.progressBar}
-              color="#2196f3"
-              />
-              <View style={styles.timeContainer}>
+          <View style={styles.progressContainer}>
+            <ProgressBar progress={getProgress()} style={styles.progressBar} color="#2196f3" />
+            <View style={styles.timeContainer}>
               <Text style={styles.timeText}>{formatTime(state.playingTime)}</Text>
               <Text style={styles.timeText}>{formatTime(state.duration)}</Text>
             </View>
-            </View>
+          </View>
 
-                     <View style={styles.controls}>
-             <IconButton
-               icon="stop"
-               size={24}
-               onPress={stopPlaying}
-               disabled={isLoading}
-             />
-             <IconButton
-               icon={state.isPlaying ? 'pause' : 'play'}
-               size={32}
-               iconColor="white"
-                  style={styles.playButton}
-               onPress={state.isPlaying ? stopPlaying : playRecording}
-               disabled={isLoading}
-             />
-             <IconButton
-               icon="refresh"
-               size={24}
-               onPress={() => {
-                 stopPlaying();
-                 setState(prev => ({
-                   ...prev,
-                   recordedFilePath: null,
-                   duration: 0,
-                   playingTime: 0,
-                 }));
-               }}
-               disabled={isLoading}
-             />
-            </View>
-           
-           {isLoading && (
-             <Text style={styles.loadingText}>
-               {state.isPlaying ? 'Stopping...' : 'Starting...'}
-             </Text>
-           )}
+          <View style={styles.controls}>
+            <IconButton icon="stop" size={24} onPress={stopPlaying} disabled={isLoading} />
+            <IconButton
+              icon={state.isPlaying ? 'pause' : 'play'}
+              size={32}
+              iconColor="white"
+              style={styles.playButton}
+              onPress={state.isPlaying ? stopPlaying : playRecording}
+              disabled={isLoading}
+            />
+            <IconButton
+              icon="refresh"
+              size={24}
+              onPress={() => {
+                stopPlaying();
+                setState((prev) => ({
+                  ...prev,
+                  recordedFilePath: null,
+                  duration: 0,
+                  playingTime: 0,
+                }));
+              }}
+              disabled={isLoading}
+            />
+          </View>
 
-            <View style={styles.actionButtons}>
+          {isLoading && <Text style={styles.loadingText}>{state.isPlaying ? 'Stopping...' : 'Starting...'}</Text>}
+
+          <View style={styles.actionButtons}>
             <Button mode="outlined" onPress={handleCancel}>
               Cancel
             </Button>
@@ -387,21 +352,19 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         // Start Recording View
         <View style={styles.startContainer}>
           <Text style={styles.startText}>Ready to record</Text>
-              <TouchableOpacity
+          <TouchableOpacity
             style={[styles.recordButton, isLoading && styles.disabledButton]}
             onPress={startRecording}
             disabled={isLoading}
-              >
+          >
             <Icon name="mic" size={32} color="white" />
-              </TouchableOpacity>
-          {isLoading && (
-            <Text style={styles.loadingText}>Starting...</Text>
-          )}
+          </TouchableOpacity>
+          {isLoading && <Text style={styles.loadingText}>Starting...</Text>}
           <Button mode="outlined" onPress={handleCancel}>
             Cancel
           </Button>
-          </View>
-        )}
+        </View>
+      )}
     </View>
   );
 };
@@ -506,4 +469,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoiceRecorder; 
+export default VoiceRecorder;

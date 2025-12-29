@@ -17,7 +17,4 @@ export interface NoteFormData {
   imageUris?: string;
   videoUris?: string;
   voiceNoteUris?: string;
-
 }
-
- 

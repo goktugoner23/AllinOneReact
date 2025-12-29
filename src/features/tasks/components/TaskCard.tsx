@@ -12,7 +12,7 @@ interface TaskCardProps {
 
 const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, onEdit, style }) => {
   const theme = useTheme();
-  
+
   // Check if task is overdue
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
 
@@ -51,14 +51,7 @@ const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, 
   };
 
   return (
-    <Card
-      style={[
-        styles.card,
-        { backgroundColor: getCardBackgroundColor() },
-        style
-      ]}
-      elevation={2}
-    >
+    <Card style={[styles.card, { backgroundColor: getCardBackgroundColor() }, style]} elevation={2}>
       <View style={styles.content}>
         <View style={styles.leftSection}>
           <Checkbox
@@ -76,7 +69,7 @@ const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, 
               {
                 color: getTextColor(),
                 textDecorationLine: task.completed ? 'line-through' : 'none',
-              }
+              },
             ]}
             numberOfLines={2}
           >
@@ -96,10 +89,7 @@ const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, 
           {task.dueDate && (
             <Text
               variant="bodySmall"
-              style={[
-                styles.dueDate,
-                { color: isOverdue ? theme.colors.error : theme.colors.onSurfaceVariant }
-              ]}
+              style={[styles.dueDate, { color: isOverdue ? theme.colors.error : theme.colors.onSurfaceVariant }]}
             >
               Due: {formatDueDate(task.dueDate)}
             </Text>

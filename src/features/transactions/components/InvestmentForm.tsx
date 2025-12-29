@@ -10,34 +10,22 @@ interface InvestmentFormProps {
   submitLabel: string;
 }
 
-export const InvestmentForm: React.FC<InvestmentFormProps> = ({
-  initial = {},
-  onSubmit,
-  onCancel,
-  submitLabel,
-}) => {
+export const InvestmentForm: React.FC<InvestmentFormProps> = ({ initial = {}, onSubmit, onCancel, submitLabel }) => {
   const [name, setName] = useState(initial.name || '');
   const [amount, setAmount] = useState(initial.amount?.toString() || '');
   const [type, setType] = useState(initial.type || '');
   const [description, setDescription] = useState(initial.description || '');
   const [imageUri, setImageUri] = useState(initial.imageUri || '');
   const [date, setDate] = useState(
-    initial.date
-      ? new Date(initial.date).toISOString().slice(0, 10)
-      : new Date().toISOString().slice(0, 10),
+    initial.date ? new Date(initial.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
   );
-  const [profitLoss, setProfitLoss] = useState(
-    initial.profitLoss?.toString() || '0',
-  );
-  const [currentValue, setCurrentValue] = useState(
-    initial.currentValue?.toString() || '0',
-  );
+  const [profitLoss, setProfitLoss] = useState(initial.profitLoss?.toString() || '0');
+  const [currentValue, setCurrentValue] = useState(initial.currentValue?.toString() || '0');
   const [error, setError] = useState('');
 
   function handleSubmit() {
     if (!name.trim()) return setError('Name is required');
-    if (!amount || isNaN(Number(amount)))
-      return setError('Amount must be a number');
+    if (!amount || isNaN(Number(amount))) return setError('Amount must be a number');
     if (!type.trim()) return setError('Type is required');
     setError('');
     onSubmit({
@@ -58,13 +46,7 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
       <Text variant="titleMedium" style={styles.title}>
         {submitLabel} Investment
       </Text>
-      <TextInput
-        label="Name*"
-        value={name}
-        onChangeText={setName}
-        mode="outlined"
-        style={styles.input}
-      />
+      <TextInput label="Name*" value={name} onChangeText={setName} mode="outlined" style={styles.input} />
       <TextInput
         label="Amount*"
         value={amount}
@@ -73,13 +55,7 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
         style={styles.input}
         keyboardType="numeric"
       />
-      <TextInput
-        label="Type*"
-        value={type}
-        onChangeText={setType}
-        mode="outlined"
-        style={styles.input}
-      />
+      <TextInput label="Type*" value={type} onChangeText={setType} mode="outlined" style={styles.input} />
       <TextInput
         label="Description"
         value={description}
@@ -87,20 +63,8 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
         mode="outlined"
         style={styles.input}
       />
-      <TextInput
-        label="Image URI"
-        value={imageUri}
-        onChangeText={setImageUri}
-        mode="outlined"
-        style={styles.input}
-      />
-      <TextInput
-        label="Date"
-        value={date}
-        onChangeText={setDate}
-        mode="outlined"
-        style={styles.input}
-      />
+      <TextInput label="Image URI" value={imageUri} onChangeText={setImageUri} mode="outlined" style={styles.input} />
+      <TextInput label="Date" value={date} onChangeText={setDate} mode="outlined" style={styles.input} />
       <TextInput
         label="Profit/Loss"
         value={profitLoss}

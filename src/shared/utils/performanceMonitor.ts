@@ -54,17 +54,25 @@ class PerformanceMonitor {
     metric.success = success;
     metric.error = error;
 
-    logger.debug(`Performance: ${operation} completed in ${metric.duration.toFixed(2)}ms`, {
-      duration: metric.duration,
-      success,
-      error,
-    }, 'PerformanceMonitor');
+    logger.debug(
+      `Performance: ${operation} completed in ${metric.duration.toFixed(2)}ms`,
+      {
+        duration: metric.duration,
+        success,
+        error,
+      },
+      'PerformanceMonitor',
+    );
 
     // Log warning for slow operations
     if (metric.duration > 1000) {
-      logger.warn(`Performance: Slow operation detected - ${operation} took ${metric.duration.toFixed(2)}ms`, {
-        duration: metric.duration,
-      }, 'PerformanceMonitor');
+      logger.warn(
+        `Performance: Slow operation detected - ${operation} took ${metric.duration.toFixed(2)}ms`,
+        {
+          duration: metric.duration,
+        },
+        'PerformanceMonitor',
+      );
     }
   }
 
@@ -86,7 +94,7 @@ class PerformanceMonitor {
    * Get average duration for an operation
    */
   getAverageDuration(operation: string): number {
-    const metrics = this.getMetrics().filter(m => m.operation === operation && m.duration);
+    const metrics = this.getMetrics().filter((m) => m.operation === operation && m.duration);
     if (metrics.length === 0) return 0;
 
     const totalDuration = metrics.reduce((sum, m) => sum + (m.duration || 0), 0);

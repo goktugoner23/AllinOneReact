@@ -38,7 +38,7 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
  */
 export const formatDate = (date: Date | string, options?: Intl.DateTimeFormatOptions): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'short',
@@ -53,7 +53,7 @@ export const formatDate = (date: Date | string, options?: Intl.DateTimeFormatOpt
  */
 export const formatTime = (date: Date | string): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+
   return dateObj.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
@@ -65,7 +65,7 @@ export const formatTime = (date: Date | string): string => {
  */
 export const formatDateTime = (date: Date | string): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+
   return dateObj.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -119,11 +119,11 @@ export const capitalizeWords = (text: string): string => {
  */
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 

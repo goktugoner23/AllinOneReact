@@ -1,19 +1,6 @@
 import React, { useState, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  Image,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import {
-  IconButton,
-  Text,
-  Surface,
-  Portal,
-  Modal,
-} from 'react-native-paper';
+import { View, StyleSheet, Dimensions, Image, TouchableOpacity, Alert } from 'react-native';
+import { IconButton, Text, Surface, Portal, Modal } from 'react-native-paper';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import AudioPlayer from '@shared/components/ui/AudioPlayer';
 
@@ -32,40 +19,23 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
   const renderMediaContent = () => {
     switch (attachment.type) {
       case MediaType.IMAGE:
-        return (
-          <Image
-            source={{ uri: attachment.uri }}
-            style={styles.image}
-            resizeMode="contain"
-          />
-        );
-      
+        return <Image source={{ uri: attachment.uri }} style={styles.image} resizeMode="contain" />;
+
       case MediaType.VIDEO:
         return (
           <View style={styles.videoContainer}>
             <Text style={styles.placeholderText}>Video Player</Text>
-            <Text style={styles.placeholderSubtext}>
-              Video playback will be implemented in Phase 4
-            </Text>
+            <Text style={styles.placeholderSubtext}>Video playback will be implemented in Phase 4</Text>
           </View>
         );
-      
+
       case MediaType.AUDIO:
         return (
           <View style={styles.audioContainer}>
             <AudioPlayer attachment={attachment} />
           </View>
         );
-      
-      
-        return (
-          <Image
-            source={{ uri: attachment.uri }}
-            style={styles.image}
-            resizeMode="contain"
-          />
-        );
-      
+
       default:
         return (
           <View style={styles.placeholderContainer}>
@@ -95,52 +65,25 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <IconButton
-            icon="close"
-            size={24}
-            iconColor="white"
-            onPress={onClose}
-          />
+          <IconButton icon="close" size={24} iconColor="white" onPress={onClose} />
           <Text style={styles.headerTitle}>{attachment.name}</Text>
         </View>
-        
+
         <View style={styles.headerRight}>
-          <IconButton
-            icon="share"
-            size={24}
-            iconColor="white"
-            onPress={handleShare}
-          />
-          <IconButton
-            icon="download"
-            size={24}
-            iconColor="white"
-            onPress={handleDownload}
-          />
+          <IconButton icon="share" size={24} iconColor="white" onPress={handleShare} />
+          <IconButton icon="download" size={24} iconColor="white" onPress={handleDownload} />
         </View>
       </View>
 
       {/* Media Content */}
-      <View style={styles.content}>
-        {renderMediaContent()}
-      </View>
+      <View style={styles.content}>{renderMediaContent()}</View>
 
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.metaInfo}>
-          <Text style={styles.metaText}>
-            Type: {attachment.type}
-          </Text>
-          {attachment.size && (
-            <Text style={styles.metaText}>
-              Size: {formatFileSize(attachment.size)}
-            </Text>
-          )}
-          {attachment.duration && (
-            <Text style={styles.metaText}>
-              Duration: {formatDuration(attachment.duration)}
-            </Text>
-          )}
+          <Text style={styles.metaText}>Type: {attachment.type}</Text>
+          {attachment.size && <Text style={styles.metaText}>Size: {formatFileSize(attachment.size)}</Text>}
+          {attachment.duration && <Text style={styles.metaText}>Duration: {formatDuration(attachment.duration)}</Text>}
         </View>
       </View>
     </View>
@@ -253,4 +196,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MediaViewer; 
+export default MediaViewer;

@@ -50,7 +50,7 @@ export interface LoadingState {
 }
 
 // Generic result type for async operations
-export type AsyncResult<T> = 
+export type AsyncResult<T> =
   | { type: 'success'; data: T }
   | { type: 'error'; message: string; cause?: Error }
   | { type: 'loading'; message?: string };

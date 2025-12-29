@@ -129,7 +129,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
           { text: 'Copy URL', onPress: () => console.log('Image URL:', instagramUrl) },
           { text: 'Retry', onPress: handleRetry },
           { text: 'Close', style: 'cancel' },
-        ]
+        ],
       );
     }
   };
@@ -138,41 +138,29 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   if (hasError) {
     if (fallbackUri) {
       return (
-        <TouchableOpacity 
-          style={[styles.container, style]} 
+        <TouchableOpacity
+          style={[styles.container, style]}
           onPress={onPress}
           onLongPress={handleDebugLongPress}
           activeOpacity={onPress ? 0.7 : 1}
         >
-          <Image
-            source={{ uri: fallbackUri }}
-            style={[styles.image, imageStyle]}
-            resizeMode={resizeMode}
-          />
+          <Image source={{ uri: fallbackUri }} style={[styles.image, imageStyle]} resizeMode={resizeMode} />
         </TouchableOpacity>
       );
     }
 
     if (errorComponent) {
-      return (
-        <View style={[styles.container, style]}>
-          {errorComponent}
-        </View>
-      );
+      return <View style={[styles.container, style]}>{errorComponent}</View>;
     }
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.container, styles.errorContainer, style, { backgroundColor: theme.colors.errorContainer }]}
         onPress={handleRetry}
         onLongPress={handleDebugLongPress}
       >
-        <Text style={[styles.errorText, { color: theme.colors.onErrorContainer }]}>
-          Failed to load image
-        </Text>
-        <Text style={[styles.retryText, { color: theme.colors.onErrorContainer }]}>
-          Tap to retry
-        </Text>
+        <Text style={[styles.errorText, { color: theme.colors.onErrorContainer }]}>Failed to load image</Text>
+        <Text style={[styles.retryText, { color: theme.colors.onErrorContainer }]}>Tap to retry</Text>
       </TouchableOpacity>
     );
   }
@@ -188,7 +176,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
         onError={handleImageError}
         resizeMode={resizeMode}
       />
-      
+
       {/* Loading overlay */}
       {isLoading && showLoadingIndicator && (
         <View style={[styles.loadingOverlay, style]}>
@@ -196,9 +184,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
             <>
               <ActivityIndicator size="small" color={theme.colors.primary} />
               {isRetrying && (
-                <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>
-                  Retrying...
-                </Text>
+                <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Retrying...</Text>
               )}
             </>
           )}
@@ -210,11 +196,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   // Wrap with TouchableOpacity if onPress is provided
   if (onPress) {
     return (
-      <TouchableOpacity 
-        onPress={onPress}
-        onLongPress={handleDebugLongPress}
-        activeOpacity={0.7}
-      >
+      <TouchableOpacity onPress={onPress} onLongPress={handleDebugLongPress} activeOpacity={0.7}>
         {imageComponent}
       </TouchableOpacity>
     );
@@ -223,10 +205,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   // Add long press for debugging even without onPress
   if (enableDebugLongPress && __DEV__) {
     return (
-      <TouchableOpacity 
-        onLongPress={handleDebugLongPress}
-        activeOpacity={1}
-      >
+      <TouchableOpacity onLongPress={handleDebugLongPress} activeOpacity={1}>
         {imageComponent}
       </TouchableOpacity>
     );
@@ -285,9 +264,11 @@ export default InstagramImage;
 /**
  * Higher-order component for Instagram images with fallback
  */
-export const InstagramImageWithFallback: React.FC<InstagramImageProps & { 
-  fallbackSrc: string;
-}> = ({ fallbackSrc, ...props }) => {
+export const InstagramImageWithFallback: React.FC<
+  InstagramImageProps & {
+    fallbackSrc: string;
+  }
+> = ({ fallbackSrc, ...props }) => {
   return <InstagramImage {...props} fallbackUri={fallbackSrc} />;
 };
 
@@ -303,5 +284,5 @@ export const InstagramImageOptimized: React.FC<InstagramImageProps> = React.memo
       prevProps.style === nextProps.style &&
       prevProps.imageStyle === nextProps.imageStyle
     );
-  }
+  },
 );

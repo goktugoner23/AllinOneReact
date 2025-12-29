@@ -28,8 +28,8 @@ export default function WorkoutTabs() {
             route.name === 'Exercise'
               ? 'barbell-outline'
               : route.name === 'Program'
-              ? 'list-outline'
-              : 'stats-chart-outline';
+                ? 'list-outline'
+                : 'stats-chart-outline';
           return <Ionicons name={icon} size={size} color={color} />;
         },
         tabBarActiveTintColor: theme.colors.primary,
@@ -42,5 +42,3 @@ export default function WorkoutTabs() {
     </Tab.Navigator>
   );
 }
-
-

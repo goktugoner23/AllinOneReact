@@ -1,17 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-} from 'react-native';
-import {
-  Text,
-  Card,
-  ActivityIndicator,
-  useTheme,
-  IconButton,
-} from 'react-native-paper';
+import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { Text, Card, ActivityIndicator, useTheme, IconButton } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramAnalytics, clearError } from '@features/instagram/store/instagramSlice';
@@ -20,7 +9,7 @@ import { formatNumber, getErrorMessage } from '@features/instagram/utils/instagr
 const InsightsTab: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
-  
+
   const { data: analytics, loading } = useSelector((state: RootState) => state.instagram.analytics);
 
   // Load analytics on mount
@@ -41,16 +30,12 @@ const InsightsTab: React.FC = () => {
     dispatch(fetchInstagramAnalytics());
   }, [dispatch]);
 
-
-
   // Render loading state
   if (loading.isLoading && !analytics) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>
-          Loading Instagram analytics...
-        </Text>
+        <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading Instagram analytics...</Text>
       </View>
     );
   }
@@ -59,18 +44,9 @@ const InsightsTab: React.FC = () => {
   if (loading.error && !analytics) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>
-          {getErrorMessage(loading.error)}
-        </Text>
-        <IconButton
-          icon="refresh"
-          size={24}
-          onPress={handleRetry}
-          style={styles.retryButton}
-        />
-        <Text style={[styles.retryText, { color: theme.colors.onBackground }]}>
-          Tap to retry
-        </Text>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{getErrorMessage(loading.error)}</Text>
+        <IconButton icon="refresh" size={24} onPress={handleRetry} style={styles.retryButton} />
+        <Text style={[styles.retryText, { color: theme.colors.onBackground }]}>Tap to retry</Text>
       </View>
     );
   }
@@ -79,12 +55,8 @@ const InsightsTab: React.FC = () => {
   if (!analytics) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.emptyText, { color: theme.colors.onBackground }]}>
-          No analytics data available
-        </Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-          Pull down to refresh
-        </Text>
+        <Text style={[styles.emptyText, { color: theme.colors.onBackground }]}>No analytics data available</Text>
+        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>Pull down to refresh</Text>
       </View>
     );
   }
@@ -111,40 +83,30 @@ const InsightsTab: React.FC = () => {
         />
         <Card.Content>
           <View style={styles.accountInfo}>
-            <Text style={[styles.username, { color: theme.colors.primary }]}>
-              @{analytics.account.username}
-            </Text>
+            <Text style={[styles.username, { color: theme.colors.primary }]}>@{analytics.account.username}</Text>
             {analytics.account.name && (
-              <Text style={[styles.accountName, { color: theme.colors.onSurface }]}>
-                {analytics.account.name}
-              </Text>
+              <Text style={[styles.accountName, { color: theme.colors.onSurface }]}>{analytics.account.name}</Text>
             )}
           </View>
-          
+
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.onSurface }]}>
                 {formatNumber(analytics.account.followersCount)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Followers
-              </Text>
+              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>Followers</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.onSurface }]}>
                 {formatNumber(analytics.account.followsCount)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Following
-              </Text>
+              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>Following</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.onSurface }]}>
                 {formatNumber(analytics.account.mediaCount)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Posts
-              </Text>
+              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>Posts</Text>
             </View>
           </View>
         </Card.Content>
@@ -163,25 +125,19 @@ const InsightsTab: React.FC = () => {
               <Text style={[styles.summaryNumber, { color: theme.colors.primary }]}>
                 {analytics.summary.totalPosts}
               </Text>
-              <Text style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Total Posts
-              </Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>Total Posts</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryNumber, { color: theme.colors.primary }]}>
                 {formatNumber(analytics.summary.totalEngagement)}
               </Text>
-              <Text style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Total Engagement
-              </Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>Total Engagement</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryNumber, { color: theme.colors.primary }]}>
                 {analytics.summary.avgEngagementRate.toFixed(1)}%
               </Text>
-              <Text style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Avg Engagement Rate
-              </Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>Avg Engagement Rate</Text>
             </View>
           </View>
         </Card.Content>
@@ -196,10 +152,7 @@ const InsightsTab: React.FC = () => {
             left={(props) => <IconButton {...props} icon="trophy" />}
           />
           <Card.Content>
-            <Text
-              style={[styles.topPostCaption, { color: theme.colors.onSurface }]}
-              numberOfLines={3}
-            >
+            <Text style={[styles.topPostCaption, { color: theme.colors.onSurface }]} numberOfLines={3}>
               {analytics.summary.topPerformingPost.caption}
             </Text>
             <View style={styles.topPostMetrics}>
@@ -207,17 +160,13 @@ const InsightsTab: React.FC = () => {
                 <Text style={[styles.topPostNumber, { color: theme.colors.primary }]}>
                   {analytics.summary.topPerformingPost.metrics.engagementRate.toFixed(1)}%
                 </Text>
-                <Text style={[styles.topPostLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Engagement Rate
-                </Text>
+                <Text style={[styles.topPostLabel, { color: theme.colors.onSurfaceVariant }]}>Engagement Rate</Text>
               </View>
               <View style={styles.topPostMetric}>
                 <Text style={[styles.topPostNumber, { color: theme.colors.primary }]}>
                   {formatNumber(analytics.summary.topPerformingPost.metrics.totalInteractions)}
                 </Text>
-                <Text style={[styles.topPostLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Total Interactions
-                </Text>
+                <Text style={[styles.topPostLabel, { color: theme.colors.onSurfaceVariant }]}>Total Interactions</Text>
               </View>
             </View>
           </Card.Content>
@@ -240,33 +189,25 @@ const InsightsTab: React.FC = () => {
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.totals.totalLikes)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Likes
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Likes</Text>
                 </View>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.totals.totalComments)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Comments
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Comments</Text>
                 </View>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.totals.totalShares)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Shares
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Shares</Text>
                 </View>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.totals.totalReach)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Reach
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Reach</Text>
                 </View>
               </View>
             </Card.Content>
@@ -285,33 +226,25 @@ const InsightsTab: React.FC = () => {
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.averages.avgLikes)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Avg Likes
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Avg Likes</Text>
                 </View>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.averages.avgComments)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Avg Comments
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Avg Comments</Text>
                 </View>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {analytics.summary.detailedMetrics.averages.avgEngagementRate.toFixed(1)}%
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Avg Engagement
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Avg Engagement</Text>
                 </View>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: theme.colors.onSurface }]}>
                     {formatNumber(analytics.summary.detailedMetrics.averages.avgReach)}
                   </Text>
-                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Avg Reach
-                  </Text>
+                  <Text style={[styles.metricLabel, { color: theme.colors.onSurfaceVariant }]}>Avg Reach</Text>
                 </View>
               </View>
             </Card.Content>
@@ -330,28 +263,28 @@ const InsightsTab: React.FC = () => {
           <Card.Content>
             <View style={styles.growthRow}>
               <View style={styles.growthItem}>
-                <Text style={[
-                  styles.growthNumber,
-                  { color: analytics.summary.recentGrowth.engagement >= 0 ? '#4CAF50' : '#F44336' }
-                ]}>
+                <Text
+                  style={[
+                    styles.growthNumber,
+                    { color: analytics.summary.recentGrowth.engagement >= 0 ? '#4CAF50' : '#F44336' },
+                  ]}
+                >
                   {analytics.summary.recentGrowth.engagement >= 0 ? '+' : ''}
                   {analytics.summary.recentGrowth.engagement.toFixed(1)}%
                 </Text>
-                <Text style={[styles.growthLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Engagement Growth
-                </Text>
+                <Text style={[styles.growthLabel, { color: theme.colors.onSurfaceVariant }]}>Engagement Growth</Text>
               </View>
               <View style={styles.growthItem}>
-                <Text style={[
-                  styles.growthNumber,
-                  { color: analytics.summary.recentGrowth.reach >= 0 ? '#4CAF50' : '#F44336' }
-                ]}>
+                <Text
+                  style={[
+                    styles.growthNumber,
+                    { color: analytics.summary.recentGrowth.reach >= 0 ? '#4CAF50' : '#F44336' },
+                  ]}
+                >
                   {analytics.summary.recentGrowth.reach >= 0 ? '+' : ''}
                   {analytics.summary.recentGrowth.reach.toFixed(1)}%
                 </Text>
-                <Text style={[styles.growthLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Reach Growth
-                </Text>
+                <Text style={[styles.growthLabel, { color: theme.colors.onSurfaceVariant }]}>Reach Growth</Text>
               </View>
             </View>
           </Card.Content>

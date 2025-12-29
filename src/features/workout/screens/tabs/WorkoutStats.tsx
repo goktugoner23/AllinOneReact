@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { Text, Button, Card, TextInput, Portal, Modal } from 'react-native-paper';
-import { AddFab } from '@shared/components';
+import { Text, TextInput, useTheme } from 'react-native-paper';
+import { Card, CardHeader, CardContent, Button, EmptyState, Dialog, FAB, Badge } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { StatsSnapshot } from '@features/workout/types/Workout';
 
 export default function WorkoutStats() {
+  const theme = useTheme();
   const [stats, setStats] = useState<StatsSnapshot[]>([]);
   const [visible, setVisible] = useState(false);
   const [height, setHeight] = useState<string>('');
@@ -30,9 +31,27 @@ export default function WorkoutStats() {
 
   const latest = useMemo(() => stats[0], [stats]);
 
+  const resetForm = () => {
+    setHeight('');
+    setWeight('');
+    setShoulder('');
+    setChest('');
+    setBicepsL('');
+    setBicepsR('');
+    setForearmL('');
+    setForearmR('');
+    setWaist('');
+    setHip('');
+    setUpperLegL('');
+    setUpperLegR('');
+    setCalfL('');
+    setCalfR('');
+    setNote('');
+  };
+
   const handleSave = async () => {
     const snapshot: StatsSnapshot = {
-      heightCm: latest?.heightCm ? undefined : (Number(height) || undefined),
+      heightCm: latest?.heightCm ? undefined : Number(height) || undefined,
       bodyWeightKg: Number(weight) || 0,
       measurements: {
         ...(shoulder ? { shoulder: Number(shoulder) } : {}),
@@ -52,90 +71,254 @@ export default function WorkoutStats() {
     };
     await workoutService.saveStatsSnapshot(snapshot);
     setStats(await workoutService.getStatsSnapshots());
-    setHeight('');
-    setWeight('');
-    setShoulder('');
-    setChest('');
-    setBicepsL('');
-    setBicepsR('');
-    setForearmL('');
-    setForearmR('');
-    setWaist('');
-    setHip('');
-    setUpperLegL('');
-    setUpperLegR('');
-    setCalfL('');
-    setCalfR('');
-    setNote('');
+    resetForm();
     setVisible(false);
   };
 
+  const formatMeasurementKey = (key: string): string => {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12, gap: 12 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 80 }}>
+      {/* Latest Stats Card */}
       <Card>
-        <Card.Title title="My Latest Stats" />
-        <Card.Content>
+        <CardHeader>
+          <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSurface }}>
+            My Latest Stats
+          </Text>
+        </CardHeader>
+        <CardContent>
           {latest ? (
-            <>
-              <Text>Bodyweight: {latest.bodyWeightKg} kg</Text>
-              {latest.measurements && Object.entries(latest.measurements).map(([k, v]) => (
-                <Text key={k}>{k}: {v} cm</Text>
-              ))}
-              <Text>Updated: {new Date(latest.createdAt || '').toLocaleString()}</Text>
-            </>
+            <View style={{ gap: 12 }}>
+              {/* Bodyweight */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>Bodyweight</Text>
+                <Badge size="lg">{latest.bodyWeightKg} kg</Badge>
+              </View>
+
+              {/* Height if available */}
+              {latest.heightCm && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: theme.colors.onSurfaceVariant }}>Height</Text>
+                  <Badge size="lg">{latest.heightCm} cm</Badge>
+                </View>
+              )}
+
+              {/* Measurements */}
+              {latest.measurements && Object.keys(latest.measurements).length > 0 && (
+                <View style={{ marginTop: 8 }}>
+                  <Text
+                    variant="titleSmall"
+                    style={{ fontWeight: '600', color: theme.colors.onSurface, marginBottom: 8 }}
+                  >
+                    Measurements
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {Object.entries(latest.measurements).map(([k, v]) => (
+                      <Card key={k} variant="filled" padding="sm" style={{ minWidth: '45%' }}>
+                        <CardContent>
+                          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                            {formatMeasurementKey(k)}
+                          </Text>
+                          <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>{v} cm</Text>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Updated date */}
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
+                Updated: {new Date(latest.createdAt || '').toLocaleString()}
+              </Text>
+            </View>
           ) : (
-            <Text>No stats yet.</Text>
+            <EmptyState
+              icon="stats-chart-outline"
+              title="No stats yet"
+              description="Track your body measurements and progress over time."
+              actionLabel="Add Stats"
+              onAction={() => setVisible(true)}
+              style={{ paddingVertical: 24 }}
+            />
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
 
-      <Portal>
-        <Modal
-          visible={visible}
-          onDismiss={() => setVisible(false)}
-          contentContainerStyle={{
-            backgroundColor: '#fff',
-            margin: 16,
-            borderRadius: 12,
-            padding: 12,
-            maxHeight: '75%',
-          }}
-        >
-          <ScrollView contentContainerStyle={{ paddingBottom: 12 }}>
-            <Text style={{ marginBottom: 8 }} variant="titleMedium">Update Stats</Text>
+      {/* Update Stats Dialog */}
+      <Dialog
+        visible={visible}
+        onClose={() => {
+          setVisible(false);
+          resetForm();
+        }}
+        title="Update Stats"
+      >
+        <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+          <View style={{ gap: 12 }}>
             {!latest?.heightCm && (
-              <TextInput mode="outlined" label="Height (cm)" keyboardType="numeric" value={height} onChangeText={setHeight} style={{ marginBottom: 8, backgroundColor: '#fff' }} />
+              <TextInput
+                mode="outlined"
+                label="Height (cm)"
+                keyboardType="numeric"
+                value={height}
+                onChangeText={setHeight}
+                style={{ backgroundColor: theme.colors.surface }}
+              />
             )}
-            <TextInput mode="outlined" label="Bodyweight (kg)" keyboardType="numeric" value={weight} onChangeText={setWeight} style={{ marginBottom: 8, backgroundColor: '#fff' }} />
-            <TextInput mode="outlined" label="Shoulder (cm)" keyboardType="numeric" value={shoulder} onChangeText={setShoulder} style={{ marginBottom: 8, backgroundColor: '#fff' }} />
-            <TextInput mode="outlined" label="Chest (cm)" keyboardType="numeric" value={chest} onChangeText={setChest} style={{ marginBottom: 8, backgroundColor: '#fff' }} />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Biceps L (cm)" keyboardType="numeric" value={bicepsL} onChangeText={setBicepsL} />
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Biceps R (cm)" keyboardType="numeric" value={bicepsR} onChangeText={setBicepsR} />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Forearm L (cm)" keyboardType="numeric" value={forearmL} onChangeText={setForearmL} />
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Forearm R (cm)" keyboardType="numeric" value={forearmR} onChangeText={setForearmR} />
-            </View>
-            <TextInput mode="outlined" style={{ marginTop: 8, backgroundColor: '#fff' }} label="Waist (cm)" keyboardType="numeric" value={waist} onChangeText={setWaist} />
-            <TextInput mode="outlined" style={{ marginTop: 8, backgroundColor: '#fff' }} label="Hip (cm)" keyboardType="numeric" value={hip} onChangeText={setHip} />
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Upper Leg L (cm)" keyboardType="numeric" value={upperLegL} onChangeText={setUpperLegL} />
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Upper Leg R (cm)" keyboardType="numeric" value={upperLegR} onChangeText={setUpperLegR} />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Calf L (cm)" keyboardType="numeric" value={calfL} onChangeText={setCalfL} />
-              <TextInput mode="outlined" style={{ flex: 1, backgroundColor: '#fff' }} label="Calf R (cm)" keyboardType="numeric" value={calfR} onChangeText={setCalfR} />
-            </View>
-            <TextInput mode="outlined" style={{ marginTop: 8, backgroundColor: '#fff' }} label="Note" value={note} onChangeText={setNote} />
-            <Button style={{ marginTop: 12 }} mode="contained" onPress={handleSave}>Save</Button>
-          </ScrollView>
-        </Modal>
-      </Portal>
+            <TextInput
+              mode="outlined"
+              label="Bodyweight (kg)"
+              keyboardType="numeric"
+              value={weight}
+              onChangeText={setWeight}
+              style={{ backgroundColor: theme.colors.surface }}
+            />
 
-              <AddFab onPress={() => setVisible(true)} />
+            {/* Upper Body */}
+            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+              Upper Body
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Shoulder (cm)"
+              keyboardType="numeric"
+              value={shoulder}
+              onChangeText={setShoulder}
+              style={{ backgroundColor: theme.colors.surface }}
+            />
+            <TextInput
+              mode="outlined"
+              label="Chest (cm)"
+              keyboardType="numeric"
+              value={chest}
+              onChangeText={setChest}
+              style={{ backgroundColor: theme.colors.surface }}
+            />
+
+            {/* Arms */}
+            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+              Arms
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Biceps L"
+                keyboardType="numeric"
+                value={bicepsL}
+                onChangeText={setBicepsL}
+              />
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Biceps R"
+                keyboardType="numeric"
+                value={bicepsR}
+                onChangeText={setBicepsR}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Forearm L"
+                keyboardType="numeric"
+                value={forearmL}
+                onChangeText={setForearmL}
+              />
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Forearm R"
+                keyboardType="numeric"
+                value={forearmR}
+                onChangeText={setForearmR}
+              />
+            </View>
+
+            {/* Core */}
+            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+              Core
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Waist (cm)"
+              keyboardType="numeric"
+              value={waist}
+              onChangeText={setWaist}
+              style={{ backgroundColor: theme.colors.surface }}
+            />
+            <TextInput
+              mode="outlined"
+              label="Hip (cm)"
+              keyboardType="numeric"
+              value={hip}
+              onChangeText={setHip}
+              style={{ backgroundColor: theme.colors.surface }}
+            />
+
+            {/* Legs */}
+            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+              Legs
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Upper Leg L"
+                keyboardType="numeric"
+                value={upperLegL}
+                onChangeText={setUpperLegL}
+              />
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Upper Leg R"
+                keyboardType="numeric"
+                value={upperLegR}
+                onChangeText={setUpperLegR}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Calf L"
+                keyboardType="numeric"
+                value={calfL}
+                onChangeText={setCalfL}
+              />
+              <TextInput
+                mode="outlined"
+                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                label="Calf R"
+                keyboardType="numeric"
+                value={calfR}
+                onChangeText={setCalfR}
+              />
+            </View>
+
+            {/* Note */}
+            <TextInput
+              mode="outlined"
+              label="Note (optional)"
+              value={note}
+              onChangeText={setNote}
+              style={{ backgroundColor: theme.colors.surface, marginTop: 8 }}
+              multiline
+            />
+
+            <Button variant="primary" fullWidth onPress={handleSave} style={{ marginTop: 8 }}>
+              Save Stats
+            </Button>
+          </View>
+        </ScrollView>
+      </Dialog>
+
+      <FAB icon="add" onPress={() => setVisible(true)} />
     </ScrollView>
   );
 }
-
-

@@ -1,4 +1,4 @@
-import { store } from '@shared/store/rootStore';
+import store from '@shared/store/rootStore';
 import { loadCachedBalance, calculateBalance } from '@features/transactions/store/balanceSlice';
 import { logger } from '@shared/utils/logger';
 
@@ -49,18 +49,22 @@ class BalancePreloader {
 
       // First, try to load from cache (fast)
       const cachedResult = await store.dispatch(loadCachedBalance());
-      
+
       if (cachedResult.payload && !cachedResult.payload.isStale) {
-        logger.debug('Balance loaded from cache', {
-          lastUpdated: cachedResult.payload.lastUpdated,
-        }, 'BalancePreloader');
+        logger.debug(
+          'Balance loaded from cache',
+          {
+            lastUpdated: cachedResult.payload.lastUpdated,
+          },
+          'BalancePreloader',
+        );
         return;
       }
 
       // If no cache or cache is stale, calculate fresh balance in background
       logger.debug('Cache miss or stale, calculating fresh balance', {}, 'BalancePreloader');
       await store.dispatch(calculateBalance());
-      
+
       logger.debug('Balance preload completed', {}, 'BalancePreloader');
     } catch (error) {
       logger.error('Error during balance preload', error, 'BalancePreloader');
@@ -82,4 +86,4 @@ class BalancePreloader {
   }
 }
 
-export default BalancePreloader; 
+export default BalancePreloader;

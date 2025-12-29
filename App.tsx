@@ -17,7 +17,9 @@ import {
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { Provider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
 import store from '@shared/store/rootStore';
+import { queryClient } from '@shared/lib';
 import { TransactionHomeScreen, InvestmentsTab, ReportsTab } from '@features/transactions/screens';
 import { WTRegistryScreen } from '@features/wtregistry/screens';
 import { CalendarScreen } from '@features/calendar/screens';
@@ -175,9 +177,10 @@ export default function App() {
   // Balance preloading removed - will load when needed
 
   return (
-    <Provider store={store}>
-      <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
-        <PaperProvider
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
+          <PaperProvider
           theme={{
             ...(isDark ? MD3DarkTheme : MD3LightTheme),
             colors: {
@@ -328,9 +331,10 @@ export default function App() {
               />
             </Drawer.Navigator>
           </NavigationContainer>
-        </PaperProvider>
-      </ThemeContext.Provider>
-    </Provider>
+          </PaperProvider>
+        </ThemeContext.Provider>
+      </Provider>
+    </QueryClientProvider>
   );
 }
 

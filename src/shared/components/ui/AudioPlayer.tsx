@@ -1,16 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
-import {
-  Card,
-  IconButton,
-  Text,
-  ProgressBar,
-  Surface,
-} from 'react-native-paper';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { Card, IconButton, Text, ProgressBar, Surface } from 'react-native-paper';
 
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import AudioRecorderPlayer, { PlayBackType } from 'react-native-audio-recorder-player';
@@ -54,10 +44,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     try {
       // Check if URI is valid
       if (!attachment.uri || attachment.uri.trim() === '') {
-        setState(prev => ({ 
-          ...prev, 
+        setState((prev) => ({
+          ...prev,
           error: 'Invalid audio file URI',
-          isLoaded: false 
+          isLoaded: false,
         }));
         return;
       }
@@ -70,20 +60,20 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
 
       // Use the attachment duration if available, otherwise use default
       let duration = attachment.duration || 30000; // Default to 30 seconds
-      
+
       // Just mark as loaded without trying to determine duration
       // The duration will be updated during playback if available
-      setState(prev => ({ 
-        ...prev, 
-        isLoaded: true, 
-        duration: duration
+      setState((prev) => ({
+        ...prev,
+        isLoaded: true,
+        duration: duration,
       }));
     } catch (error) {
       console.error('Audio loading error:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState((prev) => ({
+        ...prev,
         error: 'Failed to load audio file',
-        isLoaded: false 
+        isLoaded: false,
       }));
     }
   };
@@ -92,7 +82,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     if (!state.isLoaded) return;
 
     try {
-      setState(prev => ({ ...prev, isPlaying: true }));
+      setState((prev) => ({ ...prev, isPlaying: true }));
 
       // Set subscription duration for better progress tracking (recommended: 0.1)
       audioRecorderPlayer.current.setSubscriptionDuration(0.1);
@@ -106,19 +96,19 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
       // Add playback listener first - using proper PlayBackType interface
       audioRecorderPlayer.current.addPlayBackListener((e: PlayBackType) => {
         // Don't use Math.floor() - the library provides precise millisecond timing
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           currentTime: e.currentPosition,
           duration: e.duration,
         }));
-        
+
         // Check if playback has ended (within 500ms of duration to account for timing differences)
-        if (e.duration > 0 && e.currentPosition >= (e.duration - 500)) {
+        if (e.duration > 0 && e.currentPosition >= e.duration - 500) {
           setTimeout(() => {
-            setState(prev => ({ 
-              ...prev, 
-              isPlaying: false, 
-              currentTime: 0 
+            setState((prev) => ({
+              ...prev,
+              isPlaying: false,
+              currentTime: 0,
             }));
             audioRecorderPlayer.current.removePlayBackListener();
           }, 200);
@@ -129,10 +119,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
       await audioRecorderPlayer.current.startPlayer(cleanUri);
     } catch (error) {
       console.error('Playback error:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState((prev) => ({
+        ...prev,
         isPlaying: false,
-        error: 'Failed to play audio' 
+        error: 'Failed to play audio',
       }));
     }
   };
@@ -140,7 +130,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   const pauseAudio = async () => {
     try {
       await audioRecorderPlayer.current.pausePlayer();
-      setState(prev => ({ ...prev, isPlaying: false }));
+      setState((prev) => ({ ...prev, isPlaying: false }));
     } catch (error) {
       console.error('Pause error:', error);
     }
@@ -149,22 +139,22 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   const stopAudio = async () => {
     try {
       await audioRecorderPlayer.current.stopPlayer();
-      
+
       // Remove listeners
       audioRecorderPlayer.current.removePlayBackListener();
-      
-      setState(prev => ({ 
-        ...prev, 
-        isPlaying: false, 
-        currentTime: 0 
+
+      setState((prev) => ({
+        ...prev,
+        isPlaying: false,
+        currentTime: 0,
       }));
     } catch (error) {
       console.error('Stop error:', error);
       // Even if there's an error, reset the state
-      setState(prev => ({ 
-        ...prev, 
-        isPlaying: false, 
-        currentTime: 0 
+      setState((prev) => ({
+        ...prev,
+        isPlaying: false,
+        currentTime: 0,
       }));
     }
   };
@@ -175,7 +165,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     try {
       const seconds = (position / 100) * (state.duration / 1000);
       await audioRecorderPlayer.current.seekToPlayer(seconds);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         currentTime: seconds * 1000,
       }));
@@ -208,9 +198,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   const renderWaveform = () => {
     // Generate a simple waveform visualization
     const bars = 20;
-    const waveformData = Array.from({ length: bars }, () => 
-      Math.random() * 0.8 + 0.2
-    );
+    const waveformData = Array.from({ length: bars }, () => Math.random() * 0.8 + 0.2);
 
     return (
       <View style={styles.waveformContainer}>
@@ -246,9 +234,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   if (state.error) {
     return (
       <Card style={[styles.container, style]}>
-        <Card.Content>
-          {renderErrorView()}
-        </Card.Content>
+        <Card.Content>{renderErrorView()}</Card.Content>
       </Card>
     );
   }
@@ -256,9 +242,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   if (!state.isLoaded) {
     return (
       <Card style={[styles.container, style]}>
-        <Card.Content>
-          {renderLoadingView()}
-        </Card.Content>
+        <Card.Content>{renderLoadingView()}</Card.Content>
       </Card>
     );
   }
@@ -271,37 +255,21 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
             <Text style={styles.title}>{attachment.name}</Text>
             <Text style={styles.subtitle}>Audio File</Text>
           </View>
-          <IconButton
-            icon="music-note"
-            size={24}
-            iconColor="#2196f3"
-          />
+          <IconButton icon="music-note" size={24} iconColor="#2196f3" />
         </View>
 
         {renderWaveform()}
 
         <View style={styles.progressContainer}>
-          <ProgressBar
-            progress={getProgress()}
-            style={styles.progressBar}
-            color="#2196f3"
-          />
+          <ProgressBar progress={getProgress()} style={styles.progressBar} color="#2196f3" />
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>
-              {formatDuration(state.currentTime)}
-            </Text>
-            <Text style={styles.timeText}>
-              {formatDuration(state.duration)}
-            </Text>
+            <Text style={styles.timeText}>{formatDuration(state.currentTime)}</Text>
+            <Text style={styles.timeText}>{formatDuration(state.duration)}</Text>
           </View>
         </View>
 
         <View style={styles.controls}>
-          <IconButton
-            icon="skip-previous"
-            size={24}
-            onPress={stopAudio}
-          />
+          <IconButton icon="skip-previous" size={24} onPress={stopAudio} />
           <IconButton
             icon={state.isPlaying ? 'pause' : 'play'}
             size={32}
@@ -309,22 +277,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
             style={styles.playButton}
             onPress={state.isPlaying ? pauseAudio : playAudio}
           />
-          <IconButton
-            icon="skip-next"
-            size={24}
-            onPress={stopAudio}
-          />
+          <IconButton icon="skip-next" size={24} onPress={stopAudio} />
         </View>
 
         <View style={styles.metaContainer}>
-          <Text style={styles.metaText}>
-            Duration: {formatDuration(state.duration)}
-          </Text>
-          {attachment.size && (
-            <Text style={styles.metaText}>
-              Size: {formatFileSize(attachment.size)}
-            </Text>
-          )}
+          <Text style={styles.metaText}>Duration: {formatDuration(state.duration)}</Text>
+          {attachment.size && <Text style={styles.metaText}>Size: {formatFileSize(attachment.size)}</Text>}
         </View>
       </Card.Content>
     </Card>
@@ -426,4 +384,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AudioPlayer; 
+export default AudioPlayer;

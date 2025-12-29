@@ -50,7 +50,7 @@ export async function getUsdMOrders(symbol?: string, limit?: number, offset?: nu
   if (symbol) params.append('symbol', symbol);
   if (limit) params.append('limit', limit.toString());
   if (offset) params.append('offset', offset.toString());
-  
+
   const url = `${BASE_URL}/api/binance/futures/orders${params.toString() ? `?${params.toString()}` : ''}`;
   const res = await axios.get(url);
   if (res.data.success && res.data.data) return res.data.data;
@@ -62,7 +62,7 @@ export async function getCoinMOrders(symbol?: string, limit?: number, offset?: n
   if (symbol) params.append('symbol', symbol);
   if (limit) params.append('limit', limit.toString());
   if (offset) params.append('offset', offset.toString());
-  
+
   const url = `${BASE_URL}/api/binance/coinm/orders${params.toString() ? `?${params.toString()}` : ''}`;
   const res = await axios.get(url);
   if (res.data.success && res.data.data) return res.data.data;
@@ -150,18 +150,14 @@ export async function setCoinMTakeProfitStopLoss(data: {
 // Market Data Endpoints
 
 export async function getUsdMPrice(symbol?: string): Promise<any> {
-  const url = symbol 
-    ? `${BASE_URL}/api/binance/futures/price/${symbol}`
-    : `${BASE_URL}/api/binance/futures/price`;
+  const url = symbol ? `${BASE_URL}/api/binance/futures/price/${symbol}` : `${BASE_URL}/api/binance/futures/price`;
   const res = await axios.get(url);
   if (res.data.success && res.data.data) return res.data.data;
   throw new Error(res.data.error || 'Failed to fetch USD-M price');
 }
 
 export async function getCoinMPrice(symbol?: string): Promise<any> {
-  const url = symbol 
-    ? `${BASE_URL}/api/binance/coinm/price/${symbol}`
-    : `${BASE_URL}/api/binance/coinm/price`;
+  const url = symbol ? `${BASE_URL}/api/binance/coinm/price/${symbol}` : `${BASE_URL}/api/binance/coinm/price`;
   const res = await axios.get(url);
   if (res.data.success && res.data.data) return res.data.data;
   throw new Error(res.data.error || 'Failed to fetch COIN-M price');

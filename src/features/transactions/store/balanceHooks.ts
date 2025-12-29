@@ -19,7 +19,7 @@ export const useBalance = () => {
     const initializeBalance = async () => {
       // First, try to load from cache (fast)
       const cachedResult = await dispatch(loadCachedBalance());
-      
+
       // Only calculate fresh balance if no cache or cache is stale
       if (!cachedResult.payload || cachedResult.payload.isStale) {
         // Add a small delay to prevent rapid successive calls
@@ -38,7 +38,7 @@ export const useBalance = () => {
     if ((refreshBalance as any).timeoutId) {
       clearTimeout((refreshBalance as any).timeoutId);
     }
-    
+
     // Set a new timeout to debounce the call
     (refreshBalance as any).timeoutId = setTimeout(() => {
       dispatch(calculateBalance());
@@ -60,9 +60,12 @@ export const useBalance = () => {
   }, [dispatch]);
 
   // Function to update balance incrementally (for new transactions)
-  const updateBalance = useCallback((transaction: any) => {
-    dispatch(updateBalanceIncrementally(transaction));
-  }, [dispatch]);
+  const updateBalance = useCallback(
+    (transaction: any) => {
+      dispatch(updateBalanceIncrementally(transaction));
+    },
+    [dispatch],
+  );
 
   // Function to mark balance as stale (when data might be outdated)
   const markStale = useCallback(() => {
@@ -98,4 +101,4 @@ export const useBalanceLoading = () => {
 // Hook for components that need to know if balance is stale
 export const useBalanceStale = () => {
   return useSelector((state: RootState) => state.balance.isStale);
-}; 
+};

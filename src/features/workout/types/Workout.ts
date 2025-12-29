@@ -95,5 +95,3 @@ export interface StatsSnapshot {
   measurements: Record<string, number>;
   note?: string | null;
 }
-
-

@@ -21,10 +21,7 @@ const EVENTS_COLLECTION = 'events';
 // Get all events from Firebase
 export const getEvents = async (): Promise<Event[]> => {
   try {
-    const eventsQuery = query(
-      collection(getDb(), EVENTS_COLLECTION),
-      orderBy('date', 'desc')
-    );
+    const eventsQuery = query(collection(getDb(), EVENTS_COLLECTION), orderBy('date', 'desc'));
 
     const querySnapshot = await getDocs(eventsQuery);
     const events: Event[] = [];
@@ -86,10 +83,7 @@ export const addEvent = async (eventData: EventFormData): Promise<Event> => {
 // Update an existing event
 export const updateEvent = async (eventId: string, eventData: Partial<EventFormData>): Promise<void> => {
   try {
-    const eventsQuery = query(
-      collection(getDb(), EVENTS_COLLECTION),
-      where('id', '==', eventId)
-    );
+    const eventsQuery = query(collection(getDb(), EVENTS_COLLECTION), where('id', '==', eventId));
 
     const querySnapshot = await getDocs(eventsQuery);
     if (querySnapshot.empty) {
@@ -102,7 +96,8 @@ export const updateEvent = async (eventId: string, eventData: Partial<EventFormD
     if (eventData.title !== undefined) updateData.title = eventData.title;
     if (eventData.description !== undefined) updateData.description = eventData.description;
     if (eventData.date !== undefined) updateData.date = dateToTimestamp(eventData.date);
-    if (eventData.endDate !== undefined) updateData.endDate = eventData.endDate ? dateToTimestamp(eventData.endDate) : null;
+    if (eventData.endDate !== undefined)
+      updateData.endDate = eventData.endDate ? dateToTimestamp(eventData.endDate) : null;
     if (eventData.type !== undefined) updateData.type = eventData.type;
 
     await updateDoc(docRef, updateData);
@@ -116,10 +111,7 @@ export const updateEvent = async (eventId: string, eventData: Partial<EventFormD
 // Delete an event
 export const deleteEvent = async (eventId: string): Promise<void> => {
   try {
-    const eventsQuery = query(
-      collection(getDb(), EVENTS_COLLECTION),
-      where('id', '==', eventId)
-    );
+    const eventsQuery = query(collection(getDb(), EVENTS_COLLECTION), where('id', '==', eventId));
 
     const querySnapshot = await getDocs(eventsQuery);
     if (querySnapshot.empty) {
@@ -142,7 +134,7 @@ export const getEventsForDateRange = async (startDate: Date, endDate: Date): Pro
       collection(getDb(), EVENTS_COLLECTION),
       where('date', '>=', dateToTimestamp(startDate)),
       where('date', '<=', dateToTimestamp(endDate)),
-      orderBy('date', 'asc')
+      orderBy('date', 'asc'),
     );
 
     const querySnapshot = await getDocs(eventsQuery);
@@ -167,4 +159,4 @@ export const getEventsForDateRange = async (startDate: Date, endDate: Date): Pro
     logger.error('Error fetching events for date range:', error);
     throw error;
   }
-}; 
+};

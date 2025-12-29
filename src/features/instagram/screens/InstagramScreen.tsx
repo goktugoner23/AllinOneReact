@@ -46,74 +46,74 @@ const InstagramTabs: React.FC = () => {
         showHealthStatus={true}
         isHealthy={healthStatus?.overall ?? true}
       />
-      
+
       <Tab.Navigator
-      initialRouteName="Posts"
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ color, size }) => {
-          let iconName = '';
-          
-          switch (route.name) {
-            case 'Posts':
-              iconName = 'grid-outline';
-              break;
-            case 'Insights':
-              iconName = 'bar-chart-outline';
-              break;
-            case 'Ask AI':
-              iconName = 'chatbubble-ellipses-outline';
-              break;
-            case 'Profiler':
-              iconName = 'person-circle-outline';
-              break;
-            default:
-              iconName = 'help-outline';
-          }
-          
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurface,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.outline,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-      })}
-    >
-      <Tab.Screen 
-        name="Posts" 
-        component={PostsTab}
-        options={{
-          title: 'Posts',
-        }}
-      />
-      <Tab.Screen 
-        name="Insights" 
-        component={InsightsTab}
-        options={{
-          title: 'Insights',
-        }}
-      />
-      <Tab.Screen 
-        name="Ask AI" 
-        component={AskAITab}
-        options={{
-          title: 'Ask AI',
-        }}
-      />
-      <Tab.Screen 
-        name="Profiler" 
-        component={ProfilerTab}
-        options={{
-          title: 'Profiler',
-        }}
-      />
-    </Tab.Navigator>
+        initialRouteName="Posts"
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => {
+            let iconName = '';
+
+            switch (route.name) {
+              case 'Posts':
+                iconName = 'grid-outline';
+                break;
+              case 'Insights':
+                iconName = 'bar-chart-outline';
+                break;
+              case 'Ask AI':
+                iconName = 'chatbubble-ellipses-outline';
+                break;
+              case 'Profiler':
+                iconName = 'person-circle-outline';
+                break;
+              default:
+                iconName = 'help-outline';
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.onSurface,
+          tabBarStyle: {
+            backgroundColor: theme.colors.surface,
+            borderTopColor: theme.colors.outline,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+          },
+        })}
+      >
+        <Tab.Screen
+          name="Posts"
+          component={PostsTab}
+          options={{
+            title: 'Posts',
+          }}
+        />
+        <Tab.Screen
+          name="Insights"
+          component={InsightsTab}
+          options={{
+            title: 'Insights',
+          }}
+        />
+        <Tab.Screen
+          name="Ask AI"
+          component={AskAITab}
+          options={{
+            title: 'Ask AI',
+          }}
+        />
+        <Tab.Screen
+          name="Profiler"
+          component={ProfilerTab}
+          options={{
+            title: 'Profiler',
+          }}
+        />
+      </Tab.Navigator>
     </View>
   );
 };

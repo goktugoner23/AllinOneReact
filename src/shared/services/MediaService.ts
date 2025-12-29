@@ -1,5 +1,5 @@
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { getStorage } from '@shared/services/firebase/firebase';
+import { getStorageInstance } from '@shared/services/firebase/firebase';
 import { MediaType, MediaUploadResult } from '@shared/types/MediaAttachment';
 
 export class MediaService {
@@ -27,7 +27,7 @@ export class MediaService {
     uri: string,
     type: MediaType,
     originalName?: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<MediaUploadResult> {
     try {
       // Convert URI to blob
@@ -36,7 +36,7 @@ export class MediaService {
 
       // Generate file name
       const fileName = this.generateFileName(type, originalName);
-      const storageRef = ref(storage, `notes-media/${fileName}`);
+      const storageRef = ref(getStorageInstance(), `notes-media/${fileName}`);
 
       // Create upload task
       const uploadTask = uploadBytesResumable(storageRef, blob);
@@ -69,7 +69,7 @@ export class MediaService {
                 error: 'Failed to get download URL',
               });
             }
-          }
+          },
         );
       });
     } catch (error) {
@@ -83,7 +83,7 @@ export class MediaService {
 
   static async deleteMedia(uri: string): Promise<boolean> {
     try {
-      const storageRef = ref(storage, uri);
+      const storageRef = ref(getStorageInstance(), uri);
       await deleteObject(storageRef);
       return true;
     } catch (error) {
@@ -95,7 +95,7 @@ export class MediaService {
   static async uploadMultipleMedia(
     uris: string[],
     type: MediaType,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<MediaUploadResult[]> {
     const results: MediaUploadResult[] = [];
     let completed = 0;
@@ -118,4 +118,4 @@ export class MediaService {
 
     return results;
   }
-} 
+}

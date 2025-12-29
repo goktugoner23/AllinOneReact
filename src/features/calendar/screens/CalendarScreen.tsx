@@ -1,72 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert, ScrollView } from 'react-native';
-import {
-  Text,
-  Portal,
-  Dialog,
-  TextInput,
-  Button,
-  Card,
-  useTheme,
-  Surface,
-  Chip,
-  IconButton,
-} from 'react-native-paper';
-import { AddFab } from '@shared/components';
+import { View, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { Text, Portal, Dialog, useTheme, Surface, IconButton as PaperIconButton } from 'react-native-paper';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
-import {
-  generateCalendarEvents,
-  fetchFirebaseEvents,
-  addFirebaseEvent,
-  updateFirebaseEvent,
-  deleteFirebaseEvent,
-  setSelectedDate,
-  setShowEventModal,
-  setSelectedEvent,
-  setSelectedFirebaseEvent,
-} from '@features/calendar/store/calendarSlice';
-import {
-  loadStudents,
-  loadRegistrations,
-  loadLessons,
-  loadSeminars,
-} from '@features/wtregistry/store/wtRegistrySlice';
+import { generateCalendarEvents } from '@features/calendar/store/calendarSlice';
+import { loadStudents, loadRegistrations, loadLessons, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
 import { CalendarEvent } from '@features/wtregistry/types/WTRegistry';
-import { Event, EventFormData, SerializableEvent, serializableToEvent } from '@features/calendar/types/Event';
+import { Event, EventFormData, serializableToEvent } from '@features/calendar/types/Event';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useCalendarEvents, useAddCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent } from '@shared/hooks';
+import { Card, CardContent, Button, Input, Chip, EmptyState } from '@shared/components/ui';
 
 export function CalendarScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const theme = useTheme();
-  const { 
-    events, 
-    firebaseEvents, 
-    selectedDate, 
-    showEventModal, 
-    selectedEvent, 
-    selectedFirebaseEvent,
-    loading 
-  } = useSelector((state: RootState) => state.calendar);
-  const { students, registrations, lessons, seminars } = useSelector(
-    (state: RootState) => state.wtRegistry
-  );
 
-  // Remove noisy debug logging in production for performance
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log('Registrations with dates:', registrations.map(r => ({
-      id: r.id,
-      studentName: students.find(s => s.id === r.studentId)?.name,
-      startDate: r.startDate,
-      endDate: r.endDate,
-      hasStartDate: !!r.startDate,
-      hasEndDate: !!r.endDate
-    })));
-  }
+  // TanStack Query for Firebase events
+  const { data: firebaseEvents = [], isLoading: isLoadingEvents } = useCalendarEvents();
+  const addEventMutation = useAddCalendarEvent();
+  const updateEventMutation = useUpdateCalendarEvent();
+  const deleteEventMutation = useDeleteCalendarEvent();
 
+  // Redux state for WTRegistry events (different domain)
+  const { events: wtRegistrySerializableEvents } = useSelector((state: RootState) => state.calendar);
+  const { students, registrations, lessons, seminars } = useSelector((state: RootState) => state.wtRegistry);
 
+  // Local UI state
+  const [selectedDate, setSelectedDateState] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedFirebaseEvent, setSelectedFirebaseEvent] = useState<Event | null>(null);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -83,12 +47,11 @@ export function CalendarScreen() {
   });
 
   useEffect(() => {
-    // Load WTRegistry data and Firebase events on component mount
+    // Load WTRegistry data on component mount
     dispatch(loadStudents());
     dispatch(loadRegistrations());
     dispatch(loadLessons());
     dispatch(loadSeminars());
-    dispatch(fetchFirebaseEvents());
   }, [dispatch]);
 
   useEffect(() => {
@@ -96,23 +59,19 @@ export function CalendarScreen() {
     dispatch(generateCalendarEvents());
   }, [dispatch, students, registrations, lessons, seminars]);
 
-  // Convert serializable events to Event objects and combine with WTRegistry events
+  // Convert Firebase events (already Event objects) and WTRegistry events
   const allEvents = [
-    ...firebaseEvents.map(serializableEvent => {
-      const event = serializableToEvent(serializableEvent);
-      return {
-        id: `firebase-${event.id}`,
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        endDate: event.endDate,
-        type: event.type as CalendarEvent['type'],
-        isFirebaseEvent: true,
-        firebaseEvent: event,
-        serializableEvent,
-      };
-    }),
-    ...events.map(serializableEvent => {
+    ...firebaseEvents.map((event) => ({
+      id: `firebase-${event.id}`,
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      endDate: event.endDate,
+      type: event.type as CalendarEvent['type'],
+      isFirebaseEvent: true,
+      firebaseEvent: event as Event | undefined,
+    })),
+    ...wtRegistrySerializableEvents.map((serializableEvent) => {
       const event = serializableToEvent(serializableEvent);
       return {
         id: `wtregistry-${event.id}`,
@@ -122,29 +81,34 @@ export function CalendarScreen() {
         endDate: event.endDate,
         type: event.type as CalendarEvent['type'],
         isFirebaseEvent: false,
-        serializableEvent,
+        firebaseEvent: undefined as Event | undefined,
       };
-    })
+    }),
   ];
 
-
-
-
-
   const handleDayPress = (day: DateData) => {
-    dispatch(setSelectedDate(day.dateString));
+    setSelectedDateState(day.dateString);
     // Clear any selected events when date changes
-    dispatch(setSelectedEvent(null));
-    dispatch(setSelectedFirebaseEvent(null));
+    setSelectedEvent(null);
+    setSelectedFirebaseEvent(null);
   };
 
-  const handleEventPress = (event: any) => {
-    if (event.isFirebaseEvent) {
-      dispatch(setSelectedFirebaseEvent(event.serializableEvent));
+  const handleEventPress = (event: (typeof allEvents)[0]) => {
+    if (event.isFirebaseEvent && event.firebaseEvent) {
+      setSelectedFirebaseEvent(event.firebaseEvent);
+      setSelectedEvent(null);
     } else {
-      dispatch(setSelectedEvent(event.serializableEvent));
+      setSelectedEvent({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        endDate: event.endDate,
+        type: event.type,
+      });
+      setSelectedFirebaseEvent(null);
     }
-    dispatch(setShowEventModal(true));
+    setShowEventModal(true);
   };
 
   const handleAddEvent = () => {
@@ -176,7 +140,7 @@ export function CalendarScreen() {
     }
 
     try {
-      await dispatch(addFirebaseEvent(formData)).unwrap();
+      await addEventMutation.mutateAsync(formData);
       setShowAddDialog(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to add event');
@@ -192,11 +156,12 @@ export function CalendarScreen() {
     if (!selectedFirebaseEvent) return;
 
     try {
-      await dispatch(updateFirebaseEvent({
+      await updateEventMutation.mutateAsync({
         eventId: selectedFirebaseEvent.id,
-        eventData: formData
-      })).unwrap();
+        eventData: formData,
+      });
       setShowEditDialog(false);
+      setShowEventModal(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to update event');
     }
@@ -205,39 +170,36 @@ export function CalendarScreen() {
   const handleDeleteEvent = async () => {
     if (!selectedFirebaseEvent) return;
 
-    Alert.alert(
-      'Delete Event',
-      'Are you sure you want to delete this event?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteFirebaseEvent(selectedFirebaseEvent.id)).unwrap();
-              dispatch(setShowEventModal(false));
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete event');
-            }
-          },
+    Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteEventMutation.mutateAsync(selectedFirebaseEvent.id);
+            setShowEventModal(false);
+            setSelectedFirebaseEvent(null);
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete event');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (_event: unknown, newDate?: Date) => {
     setShowDatePicker(false);
-    if (selectedDate) {
-      setFormData({ ...formData, date: selectedDate, endDate: selectedDate });
+    if (newDate) {
+      setFormData({ ...formData, date: newDate, endDate: newDate });
     }
   };
 
-  const handleTimeChange = (event: any, selectedTime?: Date) => {
+  const handleTimeChange = (_event: unknown, selectedTime?: Date) => {
     if (selectedTime && showTimePicker) {
       const newDate = new Date(formData.date);
       newDate.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
-      
+
       if (showTimePicker === 'start') {
         setFormData({ ...formData, date: newDate });
       } else {
@@ -248,60 +210,68 @@ export function CalendarScreen() {
   };
 
   // Prepare calendar marks
-  const markedDates = allEvents.reduce((marks: any, event) => {
-    const dateKey = event.date.toISOString().split('T')[0];
-    
-    if (!marks[dateKey]) {
-      marks[dateKey] = { dots: [], colors: [] };
-    }
-    
-    let color = '#FFD700'; // yellow for other events (default)
-    
-    // Handle Firebase events (string types) and WTRegistry events (union types)
-    if (typeof event.type === 'string') {
-      // Firebase events and WTRegistry events (now both use string types)
-      if (event.type.includes('Registration Start')) {
-        color = '#4CAF50'; // green for registration start
-      } else if (event.type.includes('Registration End')) {
-        color = '#F44336'; // red for registration end
-      } else if (event.type.includes('lesson')) {
-        color = '#2196F3'; // blue for lessons
-      } else {
-        color = '#FFD700'; // yellow for other events
+  const markedDates = allEvents.reduce(
+    (
+      marks: Record<
+        string,
+        { dots?: { color: string }[]; colors?: string[]; selected?: boolean; selectedColor?: string }
+      >,
+      event,
+    ) => {
+      const dateKey = event.date.toISOString().split('T')[0];
+
+      if (!marks[dateKey]) {
+        marks[dateKey] = { dots: [], colors: [] };
       }
-    } else {
-      // Legacy WTRegistry events (union types) - fallback
-      switch (event.type) {
-        case 'registration_start':
+
+      let color = '#FFD700'; // yellow for other events (default)
+
+      // Handle Firebase events and WTRegistry events (both use string types)
+      if (typeof event.type === 'string') {
+        if (event.type.includes('Registration Start')) {
           color = '#4CAF50'; // green for registration start
-          break;
-        case 'registration_end':
+        } else if (event.type.includes('Registration End')) {
           color = '#F44336'; // red for registration end
-          break;
-        case 'lesson':
+        } else if (event.type.includes('lesson')) {
           color = '#2196F3'; // blue for lessons
-          break;
-        case 'seminar':
-          color = '#FFD700'; // yellow for seminars
-          break;
-        default:
+        } else {
           color = '#FFD700'; // yellow for other events
+        }
+      } else {
+        // Legacy WTRegistry events (union types) - fallback
+        switch (event.type) {
+          case 'registration_start':
+            color = '#4CAF50'; // green for registration start
+            break;
+          case 'registration_end':
+            color = '#F44336'; // red for registration end
+            break;
+          case 'lesson':
+            color = '#2196F3'; // blue for lessons
+            break;
+          case 'seminar':
+            color = '#FFD700'; // yellow for seminars
+            break;
+          default:
+            color = '#FFD700'; // yellow for other events
+        }
       }
-    }
-    
-    // Add color to the array for this date
-    marks[dateKey].colors.push(color);
-    
-    if (dateKey === selectedDate) {
-      marks[dateKey].selected = true;
-      marks[dateKey].selectedColor = theme.colors.primaryContainer;
-    }
-    
-    return marks;
-  }, {});
+
+      // Add color to the array for this date
+      marks[dateKey].colors?.push(color);
+
+      if (dateKey === selectedDate) {
+        marks[dateKey].selected = true;
+        marks[dateKey].selectedColor = theme.colors.primaryContainer;
+      }
+
+      return marks;
+    },
+    {},
+  );
 
   // Process the colors to show only one dot based on priority
-  Object.keys(markedDates).forEach(dateKey => {
+  Object.keys(markedDates).forEach((dateKey) => {
     const colors = markedDates[dateKey].colors || [];
     let priorityColor = '#FFD700'; // default yellow
 
@@ -318,7 +288,7 @@ export function CalendarScreen() {
 
     // Set only one dot with the highest priority color
     markedDates[dateKey].dots = [{ color: priorityColor }];
-    
+
     // Remove the temporary colors array
     delete markedDates[dateKey].colors;
   });
@@ -331,9 +301,7 @@ export function CalendarScreen() {
     };
   }
 
-  const selectedDateEvents = allEvents.filter(event => 
-    event.date.toISOString().split('T')[0] === selectedDate
-  );
+  const selectedDateEvents = allEvents.filter((event) => event.date.toISOString().split('T')[0] === selectedDate);
 
   const getEventTypeColor = (type: string) => {
     if (type === 'Registration Start') {
@@ -349,18 +317,31 @@ export function CalendarScreen() {
     }
   };
 
+  const getChipColor = (type: string): 'success' | 'error' | 'primary' | 'warning' | 'default' => {
+    if (type === 'Registration Start' || type === 'registration_start') {
+      return 'success';
+    } else if (type === 'Registration End' || type === 'registration_end') {
+      return 'error';
+    } else if (type === 'lesson') {
+      return 'primary';
+    } else if (type === 'seminar') {
+      return 'warning';
+    }
+    return 'default';
+  };
+
   const getEventTypeIcon = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'registration_start':
-        return '🟢';
+        return 'O';
       case 'registration_end':
-        return '🔴';
+        return 'X';
       case 'lesson':
-        return '📚';
+        return 'L';
       case 'seminar':
-        return '🎯';
+        return 'S';
       default:
-        return '📅';
+        return 'E';
     }
   };
 
@@ -390,10 +371,8 @@ export function CalendarScreen() {
 
       <Surface style={styles.eventsContainer} elevation={1}>
         <View style={styles.eventsHeader}>
-          <Text variant="titleMedium">
-            Events for {new Date(selectedDate).toLocaleDateString()}
-          </Text>
-          <IconButton
+          <Text variant="titleMedium">Events for {new Date(selectedDate).toLocaleDateString()}</Text>
+          <PaperIconButton
             icon="plus"
             size={20}
             onPress={handleAddEvent}
@@ -404,61 +383,53 @@ export function CalendarScreen() {
         </View>
 
         <ScrollView style={styles.eventsList} showsVerticalScrollIndicator={false}>
-          {selectedDateEvents.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text variant="bodyMedium" style={styles.emptyText}>
-                No events for this date
-              </Text>
-              <Text variant="bodySmall" style={styles.emptySubtext}>
-                Tap + to add an event
-              </Text>
+          {isLoadingEvents ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={styles.loadingText}>Loading events...</Text>
             </View>
+          ) : selectedDateEvents.length === 0 ? (
+            <EmptyState
+              icon="calendar-outline"
+              title="No events for this date"
+              description="Tap + to add an event"
+              style={styles.emptyState}
+            />
           ) : (
             selectedDateEvents.map((event) => (
               <Card
                 key={event.id}
-                style={[
-                  styles.eventCard,
-                  { backgroundColor: getEventTypeColor(event.type) }
-                ]}
-                mode="elevated"
+                variant="elevated"
+                padding="sm"
+                style={{ ...styles.eventCard, backgroundColor: getEventTypeColor(event.type) }}
                 onPress={() => handleEventPress(event)}
               >
-                <Card.Content>
+                <CardContent style={styles.eventContent}>
                   <View style={styles.eventHeader}>
-                    <Text style={styles.eventIcon}>
-                      {getEventTypeIcon(event.type)}
-                    </Text>
+                    <Text style={styles.eventIcon}>{getEventTypeIcon(event.type)}</Text>
                     <View style={styles.eventInfo}>
-                      <Text variant="titleSmall" style={[styles.eventTitle, { color: 'white' }]}>
-                        {event.title}
-                      </Text>
-                      <Text variant="bodySmall" style={[styles.eventTime, { color: 'white' }]}>
-                        {event.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {event.endDate && event.endDate.getTime() !== event.date.getTime() && 
-                          ` - ${event.endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                        }
+                      <Text style={[styles.eventTitle, { color: 'white' }]}>{event.title}</Text>
+                      <Text style={[styles.eventTime, { color: 'white' }]}>
+                        {event.date.toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                        {event.endDate &&
+                          event.endDate.getTime() !== event.date.getTime() &&
+                          ` - ${event.endDate.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}`}
                       </Text>
                       {event.description && (
-                        <Text variant="bodySmall" style={[styles.eventDescription, { color: 'white' }]}>
-                          {event.description}
-                        </Text>
+                        <Text style={[styles.eventDescription, { color: 'white' }]}>{event.description}</Text>
                       )}
                     </View>
-                                <Chip
-              mode="outlined"
-              style={{
-                backgroundColor: getEventTypeColor(event.type),
-                borderColor: getEventTypeColor(event.type)
-              }}
-              textStyle={{
-                color: 'white'
-              }}
-            >
-              {event.type === 'lesson' ? 'Lesson' : event.type.replace('_', ' ')}
-            </Chip>
+                    <Chip color={getChipColor(event.type)} size="sm" variant="filled">
+                      {event.type === 'lesson' ? 'Lesson' : event.type.replace('_', ' ')}
+                    </Chip>
                   </View>
-                </Card.Content>
+                </CardContent>
               </Card>
             ))
           )}
@@ -467,41 +438,34 @@ export function CalendarScreen() {
 
       {/* Event Details Modal */}
       <Portal>
-        <Dialog 
-          visible={showEventModal} 
-          onDismiss={() => dispatch(setShowEventModal(false))}
+        <Dialog
+          visible={showEventModal}
+          onDismiss={() => setShowEventModal(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
           <Dialog.Title>Event Details</Dialog.Title>
           <Dialog.Content>
             {selectedEvent && (
               <View>
-                {(() => {
-                  const event = serializableToEvent(selectedEvent);
-                  return (
-                    <>
-                      <Text variant="titleMedium" style={styles.modalTitle}>
-                        {event.title}
-                      </Text>
-                      <Text variant="bodyMedium" style={styles.modalDetail}>
-                        📅 {event.date.toLocaleString()}
-                      </Text>
-                      {event.endDate && event.endDate.getTime() !== event.date.getTime() && (
-                        <Text variant="bodyMedium" style={styles.modalDetail}>
-                          ⏰ Until {event.endDate.toLocaleString()}
-                        </Text>
-                      )}
-                      <Text variant="bodyMedium" style={styles.modalDetail}>
-                        🏷️ {event.type.replace('_', ' ')}
-                      </Text>
-                      {event.description && (
-                        <Text variant="bodyMedium" style={styles.modalDescription}>
-                          {event.description}
-                        </Text>
-                      )}
-                    </>
-                  );
-                })()}
+                <Text variant="titleMedium" style={styles.modalTitle}>
+                  {selectedEvent.title}
+                </Text>
+                <Text variant="bodyMedium" style={styles.modalDetail}>
+                  Date: {selectedEvent.date.toLocaleString()}
+                </Text>
+                {selectedEvent.endDate && selectedEvent.endDate.getTime() !== selectedEvent.date.getTime() && (
+                  <Text variant="bodyMedium" style={styles.modalDetail}>
+                    Until {selectedEvent.endDate.toLocaleString()}
+                  </Text>
+                )}
+                <Text variant="bodyMedium" style={styles.modalDetail}>
+                  Type: {selectedEvent.type.replace('_', ' ')}
+                </Text>
+                {selectedEvent.description && (
+                  <Text variant="bodyMedium" style={styles.modalDescription}>
+                    {selectedEvent.description}
+                  </Text>
+                )}
               </View>
             )}
             {selectedFirebaseEvent && (
@@ -510,15 +474,16 @@ export function CalendarScreen() {
                   {selectedFirebaseEvent.title}
                 </Text>
                 <Text variant="bodyMedium" style={styles.modalDetail}>
-                  📅 {new Date(selectedFirebaseEvent.date).toLocaleString()}
+                  Date: {selectedFirebaseEvent.date.toLocaleString()}
                 </Text>
-                {selectedFirebaseEvent.endDate && selectedFirebaseEvent.endDate !== selectedFirebaseEvent.date && (
-                  <Text variant="bodyMedium" style={styles.modalDetail}>
-                    ⏰ Until {new Date(selectedFirebaseEvent.endDate).toLocaleString()}
-                  </Text>
-                )}
+                {selectedFirebaseEvent.endDate &&
+                  selectedFirebaseEvent.endDate.getTime() !== selectedFirebaseEvent.date.getTime() && (
+                    <Text variant="bodyMedium" style={styles.modalDetail}>
+                      Until {selectedFirebaseEvent.endDate.toLocaleString()}
+                    </Text>
+                  )}
                 <Text variant="bodyMedium" style={styles.modalDetail}>
-                  🏷️ {selectedFirebaseEvent.type}
+                  Type: {selectedFirebaseEvent.type}
                 </Text>
                 {selectedFirebaseEvent.description && (
                   <Text variant="bodyMedium" style={styles.modalDescription}>
@@ -531,85 +496,78 @@ export function CalendarScreen() {
           <Dialog.Actions>
             {selectedFirebaseEvent && (
               <>
-                <Button onPress={() => handleEditEvent(serializableToEvent(selectedFirebaseEvent))}>Edit</Button>
-                <Button onPress={handleDeleteEvent} textColor={theme.colors.error}>Delete</Button>
+                <Button variant="ghost" onPress={() => handleEditEvent(selectedFirebaseEvent)}>
+                  Edit
+                </Button>
+                <Button variant="destructive" onPress={handleDeleteEvent} loading={deleteEventMutation.isPending}>
+                  Delete
+                </Button>
               </>
             )}
-            <Button onPress={() => {
-              dispatch(setShowEventModal(false));
-              dispatch(setSelectedEvent(null));
-              dispatch(setSelectedFirebaseEvent(null));
-            }}>Close</Button>
+            <Button
+              variant="outline"
+              onPress={() => {
+                setShowEventModal(false);
+                setSelectedEvent(null);
+                setSelectedFirebaseEvent(null);
+              }}
+            >
+              Close
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       {/* Add Event Modal */}
       <Portal>
-        <Dialog 
-          visible={showAddDialog} 
+        <Dialog
+          visible={showAddDialog}
           onDismiss={() => setShowAddDialog(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
           <Dialog.Title>Add Event</Dialog.Title>
           <Dialog.Content>
-            <TextInput
+            <Input
               label="Title *"
               value={formData.title}
               onChangeText={(text) => setFormData({ ...formData, title: text })}
-              style={styles.input}
-              mode="outlined"
+              placeholder="Enter event title"
             />
 
-            <TextInput
+            <Input
               label="Type"
               value={formData.type}
               onChangeText={(text) => setFormData({ ...formData, type: text })}
-              style={styles.input}
-              mode="outlined"
+              placeholder="Event type"
             />
 
-            <Button
-              mode="outlined"
-              onPress={() => setShowDatePicker(true)}
-              style={styles.dateButton}
-              icon="calendar"
-            >
+            <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
               Date: {formData.date.toLocaleDateString()}
             </Button>
 
             <View style={styles.timeContainer}>
-              <Button
-                mode="outlined"
-                onPress={() => setShowTimePicker('start')}
-                style={styles.timeButton}
-                icon="clock-outline"
-              >
+              <Button variant="outline" onPress={() => setShowTimePicker('start')} style={styles.timeButton}>
                 Start: {formData.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Button>
-              <Button
-                mode="outlined"
-                onPress={() => setShowTimePicker('end')}
-                style={styles.timeButton}
-                icon="clock-outline"
-              >
+              <Button variant="outline" onPress={() => setShowTimePicker('end')} style={styles.timeButton}>
                 End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
               </Button>
             </View>
 
-            <TextInput
+            <Input
               label="Description"
-              value={formData.description}
+              value={formData.description || ''}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
-              style={styles.input}
-              mode="outlined"
+              placeholder="Enter description"
               multiline
               numberOfLines={3}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button onPress={handleSaveEvent} mode="contained">
+            <Button variant="ghost" onPress={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onPress={handleSaveEvent} loading={addEventMutation.isPending}>
               Add Event
             </Button>
           </Dialog.Actions>
@@ -618,70 +576,54 @@ export function CalendarScreen() {
 
       {/* Edit Event Modal */}
       <Portal>
-        <Dialog 
-          visible={showEditDialog} 
+        <Dialog
+          visible={showEditDialog}
           onDismiss={() => setShowEditDialog(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
           <Dialog.Title>Edit Event</Dialog.Title>
           <Dialog.Content>
-            <TextInput
+            <Input
               label="Title *"
               value={formData.title}
               onChangeText={(text) => setFormData({ ...formData, title: text })}
-              style={styles.input}
-              mode="outlined"
+              placeholder="Enter event title"
             />
 
-            <TextInput
+            <Input
               label="Type"
               value={formData.type}
               onChangeText={(text) => setFormData({ ...formData, type: text })}
-              style={styles.input}
-              mode="outlined"
+              placeholder="Event type"
             />
 
-            <Button
-              mode="outlined"
-              onPress={() => setShowDatePicker(true)}
-              style={styles.dateButton}
-              icon="calendar"
-            >
+            <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
               Date: {formData.date.toLocaleDateString()}
             </Button>
 
             <View style={styles.timeContainer}>
-              <Button
-                mode="outlined"
-                onPress={() => setShowTimePicker('start')}
-                style={styles.timeButton}
-                icon="clock-outline"
-              >
+              <Button variant="outline" onPress={() => setShowTimePicker('start')} style={styles.timeButton}>
                 Start: {formData.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Button>
-              <Button
-                mode="outlined"
-                onPress={() => setShowTimePicker('end')}
-                style={styles.timeButton}
-                icon="clock-outline"
-              >
+              <Button variant="outline" onPress={() => setShowTimePicker('end')} style={styles.timeButton}>
                 End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
               </Button>
             </View>
 
-            <TextInput
+            <Input
               label="Description"
-              value={formData.description}
+              value={formData.description || ''}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
-              style={styles.input}
-              mode="outlined"
+              placeholder="Enter description"
               multiline
               numberOfLines={3}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowEditDialog(false)}>Cancel</Button>
-            <Button onPress={handleUpdateEvent} mode="contained">
+            <Button variant="ghost" onPress={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onPress={handleUpdateEvent} loading={updateEventMutation.isPending}>
               Update Event
             </Button>
           </Dialog.Actions>
@@ -689,17 +631,12 @@ export function CalendarScreen() {
       </Portal>
 
       {showDatePicker && (
-        <DateTimePicker
-          value={formData.date}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
+        <DateTimePicker value={formData.date} mode="date" display="default" onChange={handleDateChange} />
       )}
 
       {showTimePicker && (
         <DateTimePicker
-          value={showTimePicker === 'start' ? formData.date : (formData.endDate || formData.date)}
+          value={showTimePicker === 'start' ? formData.date : formData.endDate || formData.date}
           mode="time"
           is24Hour={true}
           display="default"
@@ -729,19 +666,13 @@ const styles = StyleSheet.create({
   eventsList: {
     flex: 1,
   },
-  emptyContainer: {
-    alignItems: 'center',
+  emptyState: {
     paddingVertical: 32,
-  },
-  emptyText: {
-    marginBottom: 4,
-    color: '#666',
-  },
-  emptySubtext: {
-    color: '#999',
   },
   eventCard: {
     marginBottom: 6,
+  },
+  eventContent: {
     paddingVertical: 4,
   },
   eventHeader: {
@@ -749,9 +680,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   eventIcon: {
-    fontSize: 20,
+    fontSize: 16,
+    fontWeight: 'bold',
     marginRight: 12,
     marginTop: 2,
+    color: 'white',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 24,
+    height: 24,
+    textAlign: 'center',
+    lineHeight: 24,
+    borderRadius: 12,
   },
   eventInfo: {
     flex: 1,
@@ -759,13 +698,16 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontWeight: 'bold',
+    fontSize: 14,
     marginBottom: 1,
   },
   eventTime: {
+    fontSize: 12,
     marginBottom: 2,
   },
   eventDescription: {
     fontStyle: 'italic',
+    fontSize: 12,
   },
   modalTitle: {
     fontWeight: 'bold',
@@ -779,9 +721,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#666',
   },
-  input: {
-    marginBottom: 16,
-  },
   dateButton: {
     marginBottom: 16,
     alignSelf: 'flex-start',
@@ -790,8 +729,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
+    gap: 8,
   },
   timeButton: {
-    flex: 0.48,
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  loadingText: {
+    marginTop: 8,
+    color: '#666',
   },
 });

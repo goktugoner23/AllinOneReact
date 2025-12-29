@@ -1,6 +1,10 @@
 import store from '@shared/store/rootStore';
 import { updateBalanceIncrementally, setStale } from '@features/transactions/store/balanceSlice';
-import { addTransaction as addTransactionToFirebase, deleteTransaction as deleteTransactionFromFirebase, updateTransaction as updateTransactionInFirebase } from '@features/transactions/services/transactions';
+import {
+  addTransaction as addTransactionToFirebase,
+  deleteTransaction as deleteTransactionFromFirebase,
+  updateTransaction as updateTransactionInFirebase,
+} from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { logger } from '@shared/utils/logger';
 
@@ -15,21 +19,25 @@ export class TransactionService {
     try {
       // Add transaction to Firebase
       await addTransactionToFirebase(transaction);
-      
+
       // Update balance cache incrementally
       const newTransaction: Transaction = {
         ...transaction,
         id: 'temp', // This will be replaced by the actual ID from Firebase
       };
-      
+
       // Mark balance as stale and update incrementally
       store.dispatch(setStale());
       store.dispatch(updateBalanceIncrementally(newTransaction));
-      
-      logger.debug('Transaction added and balance updated', {
-        amount: transaction.amount,
-        isIncome: transaction.isIncome,
-      }, 'TransactionService');
+
+      logger.debug(
+        'Transaction added and balance updated',
+        {
+          amount: transaction.amount,
+          isIncome: transaction.isIncome,
+        },
+        'TransactionService',
+      );
     } catch (error) {
       logger.error('Error in addTransaction service', error, 'TransactionService');
       throw error;
@@ -43,15 +51,15 @@ export class TransactionService {
     try {
       // Get the old transaction to calculate the difference
       const oldTransaction = await this.getTransactionById(transaction.id);
-      
+
       // Update transaction in Firebase
       await updateTransactionInFirebase(transaction);
-      
+
       if (oldTransaction) {
         // Calculate the difference and update balance
         const amountDifference = transaction.amount - oldTransaction.amount;
         const isIncomeDifference = transaction.isIncome ? amountDifference : -amountDifference;
-        
+
         // Create a temporary transaction for balance update
         const balanceUpdateTransaction: Transaction = {
           id: 'temp',
@@ -62,16 +70,20 @@ export class TransactionService {
           date: transaction.date,
           category: transaction.category,
         };
-        
+
         // Mark balance as stale and update incrementally
         store.dispatch(setStale());
         store.dispatch(updateBalanceIncrementally(balanceUpdateTransaction));
       }
-      
-      logger.debug('Transaction updated and balance updated', {
-        id: transaction.id,
-        amount: transaction.amount,
-      }, 'TransactionService');
+
+      logger.debug(
+        'Transaction updated and balance updated',
+        {
+          id: transaction.id,
+          amount: transaction.amount,
+        },
+        'TransactionService',
+      );
     } catch (error) {
       logger.error('Error in updateTransaction service', error, 'TransactionService');
       throw error;
@@ -85,26 +97,30 @@ export class TransactionService {
     try {
       // Get the transaction before deleting
       const transaction = await this.getTransactionById(transactionId);
-      
+
       if (transaction) {
         // Delete transaction from Firebase
         await deleteTransactionFromFirebase(transactionId);
-        
+
         // Create a reverse transaction for balance update
         const reverseTransaction: Transaction = {
           ...transaction,
           amount: transaction.amount,
           isIncome: !transaction.isIncome, // Reverse the income/expense
         };
-        
+
         // Mark balance as stale and update incrementally
         store.dispatch(setStale());
         store.dispatch(updateBalanceIncrementally(reverseTransaction));
-        
-        logger.debug('Transaction deleted and balance updated', {
-          id: transactionId,
-          amount: transaction.amount,
-        }, 'TransactionService');
+
+        logger.debug(
+          'Transaction deleted and balance updated',
+          {
+            id: transactionId,
+            amount: transaction.amount,
+          },
+          'TransactionService',
+        );
       } else {
         // If transaction not found, just delete from Firebase
         await deleteTransactionFromFirebase(transactionId);
@@ -123,10 +139,10 @@ export class TransactionService {
       const { fetchTransactions } = await import('./transactions');
       // Fetch with a reasonable limit and filter in memory for better performance
       const transactions = await fetchTransactions(1000);
-      return transactions.find(t => t.id === id) || null;
+      return transactions.find((t) => t.id === id) || null;
     } catch (error) {
       logger.error('Error getting transaction by ID', error, 'TransactionService');
       return null;
     }
   }
-} 
+}

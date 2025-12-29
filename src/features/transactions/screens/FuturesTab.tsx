@@ -1,16 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import {
-  Card,
-  Text,
-  Button,
-  ActivityIndicator,
-  Chip,
-  Divider,
-  IconButton,
-  useTheme,
-} from 'react-native-paper';
+import { Card, Text, Button, ActivityIndicator, Chip, Divider, IconButton, useTheme } from 'react-native-paper';
 import RefreshFab from '@shared/components/ui/RefreshFab';
 import BinanceWebSocketService from '../services/binanceWebSocket';
 import { logger } from '@shared/utils/logger';
@@ -40,8 +31,11 @@ interface EnhancedPositionData extends PositionData {
   calculations?: ReturnType<typeof calculatePositionMetrics>;
 }
 
-function FuturesPositionCard({ position, onSetTPSL }: { 
-  position: EnhancedPositionData; 
+function FuturesPositionCard({
+  position,
+  onSetTPSL,
+}: {
+  position: EnhancedPositionData;
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
   const theme = useTheme();
@@ -50,10 +44,10 @@ function FuturesPositionCard({ position, onSetTPSL }: {
   // Use explicit green for LONG and red for SHORT
   const positionSideColor = isLong ? '#4CAF50' : '#F44336';
   const riskLevel = getRiskLevel(calculations.marginRatio);
-  
+
   // Determine if this is COIN-M futures (check symbol pattern or contract type)
   const isCoinMFutures = position.symbol.includes('USD_PERP') || (position as any).contractType === 'COIN-M';
-  
+
   // Format P&L based on futures type
   const formatPnL = (pnl: number) => {
     if (isCoinMFutures) {
@@ -65,7 +59,7 @@ function FuturesPositionCard({ position, onSetTPSL }: {
       return `${pnl > 0 ? '+' : ''}${pnl.toFixed(2)} USDT`;
     }
   };
-  
+
   return (
     <Card style={styles.positionCard} mode="outlined">
       <Card.Content>
@@ -75,17 +69,20 @@ function FuturesPositionCard({ position, onSetTPSL }: {
             <Text variant="titleMedium" style={styles.symbol}>
               {position.symbol}
             </Text>
-            <Chip 
-              mode="flat" 
-              style={[styles.positionSideChip, { backgroundColor: positionSideColor, paddingHorizontal: 6, height: 26 }]} 
+            <Chip
+              mode="flat"
+              style={[
+                styles.positionSideChip,
+                { backgroundColor: positionSideColor, paddingHorizontal: 6, height: 26 },
+              ]}
               textStyle={{ color: 'white', fontWeight: 'bold', lineHeight: 16 }}
             >
               {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
             </Chip>
             {/* Only show COIN-M chip if it's actually COIN-M and has valid data */}
             {isCoinMFutures && position.symbol.includes('USD_PERP') && (
-              <Chip 
-                mode="outlined" 
+              <Chip
+                mode="outlined"
                 style={[styles.futuresTypeChip, { borderColor: theme.colors.secondary }]}
                 textStyle={{ color: theme.colors.secondary, fontSize: 10 }}
               >
@@ -93,12 +90,7 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               </Chip>
             )}
           </View>
-          <IconButton
-            icon="target"
-            size={20}
-            onPress={() => onSetTPSL(position)}
-            style={styles.tpslButton}
-          />
+          <IconButton icon="target" size={20} onPress={() => onSetTPSL(position)} style={styles.tpslButton} />
         </View>
 
         <Divider style={styles.divider} />
@@ -111,17 +103,17 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               {formatNumber(Math.abs(position.positionAmount))}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Entry Price:</Text>
             <Text style={styles.value}>{formatCurrency(position.entryPrice)}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Mark Price:</Text>
             <Text style={styles.value}>{formatCurrency(position.markPrice)}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Leverage:</Text>
             <Text style={styles.value}>{position.leverage}x</Text>
@@ -138,14 +130,14 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               {formatPnL(position.unrealizedProfit)}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>ROI:</Text>
             <Text style={[styles.value, { color: getValueColor(calculations.roi) }]}>
               {formatPercentage(calculations.roi)}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>ROE:</Text>
             <Text style={[styles.value, { color: getValueColor(calculations.roe) }]}>
@@ -164,14 +156,14 @@ function FuturesPositionCard({ position, onSetTPSL }: {
               {formatCurrency(calculations.liquidationPrice, 'USDT', 2)}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Distance to Liquidation:</Text>
             <Text style={[styles.value, { color: riskLevel.color }]}>
               {formatPercentage(calculations.distanceToLiquidation)}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Margin Ratio:</Text>
             <View style={styles.marginRatioContainer}>
@@ -190,17 +182,17 @@ function FuturesPositionCard({ position, onSetTPSL }: {
             <Text style={styles.label}>Notional Value:</Text>
             <Text style={styles.value}>{formatCurrency(calculations.notionalValue, 'USDT', 2)}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Initial Margin:</Text>
             <Text style={styles.value}>{formatCurrency(calculations.initialMargin, 'USDT', 2)}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Maintenance Margin:</Text>
             <Text style={styles.value}>{formatCurrency(calculations.maintMargin, 'USDT', 2)}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.label}>Margin Type:</Text>
             <Text style={styles.value}>{position.marginType}</Text>
@@ -211,24 +203,19 @@ function FuturesPositionCard({ position, onSetTPSL }: {
   );
 }
 
-function FuturesPositionsList({ 
-  positions, 
-  onSetTPSL 
-}: { 
-  positions: EnhancedPositionData[]; 
+function FuturesPositionsList({
+  positions,
+  onSetTPSL,
+}: {
+  positions: EnhancedPositionData[];
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
-  if (!positions.length)
-    return <Text style={styles.empty}>No open positions.</Text>;
-    
+  if (!positions.length) return <Text style={styles.empty}>No open positions.</Text>;
+
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
-      {positions.map(pos => (
-        <FuturesPositionCard 
-          key={pos.symbol + pos.positionSide} 
-          position={pos} 
-          onSetTPSL={onSetTPSL}
-        />
+      {positions.map((pos) => (
+        <FuturesPositionCard key={pos.symbol + pos.positionSide} position={pos} onSetTPSL={onSetTPSL} />
       ))}
     </ScrollView>
   );
@@ -236,12 +223,12 @@ function FuturesPositionsList({
 
 function FuturesAccountCard({ account }: { account: AccountData | null }) {
   if (!account) return null;
-  
+
   const totalBalance = account.totalWalletBalance;
   const unrealizedPnL = account.totalUnrealizedProfit;
   const marginBalance = account.totalMarginBalance;
   const availableBalance = totalBalance + unrealizedPnL;
-  
+
   return (
     <Card style={styles.accountCard} mode="outlined">
       <Card.Title title="Account Overview" titleVariant="titleMedium" />
@@ -253,21 +240,21 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
               {formatCurrency(totalBalance)}
             </Text>
           </View>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Unrealized PnL</Text>
             <Text style={[styles.accountValue, { color: getValueColor(unrealizedPnL) }]}>
               {formatCurrency(unrealizedPnL)}
             </Text>
           </View>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Margin Balance</Text>
             <Text style={[styles.accountValue, { color: getValueColor(marginBalance) }]}>
               {formatCurrency(marginBalance)}
             </Text>
           </View>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Available</Text>
             <Text style={[styles.accountValue, { color: getValueColor(availableBalance) }]}>
@@ -281,38 +268,42 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
 }
 
 // COIN-M specific account card that calculates USD values from coin balances
-function CoinMFuturesAccountCard({ account, positions }: { 
-  account: AccountData | null; 
+function CoinMFuturesAccountCard({
+  account,
+  positions,
+}: {
+  account: AccountData | null;
   positions: EnhancedPositionData[];
 }) {
   if (!account) return null;
-  
+
   // Calculate total USD value from coin balances
-  const totalCoinValue = account.assets?.reduce((total, asset) => {
-    if (asset.walletBalance > 0) {
-      // For COIN-M, we need to get the current price to convert to USD
-      // Since we don't have real-time prices here, we'll use a rough estimate
-      // In a real app, you'd fetch current prices for each coin
-      const estimatedPrice = getEstimatedCoinPrice(asset.asset);
-      return total + (asset.walletBalance * estimatedPrice);
-    }
-    return total;
-  }, 0) || 0;
-  
+  const totalCoinValue =
+    account.assets?.reduce((total, asset) => {
+      if (asset.walletBalance > 0) {
+        // For COIN-M, we need to get the current price to convert to USD
+        // Since we don't have real-time prices here, we'll use a rough estimate
+        // In a real app, you'd fetch current prices for each coin
+        const estimatedPrice = getEstimatedCoinPrice(asset.asset);
+        return total + asset.walletBalance * estimatedPrice;
+      }
+      return total;
+    }, 0) || 0;
+
   // Calculate total position value (contracts * $1 for COIN-M)
   const totalPositionValue = positions.reduce((total, pos) => {
     return total + Math.abs(pos.positionAmount); // Each contract = $1
   }, 0);
-  
+
   // Calculate total unrealized PnL in USD
   const totalUnrealizedPnL = positions.reduce((total, pos) => {
     // For COIN-M, unrealized PnL is in the coin itself, convert to USD
     const estimatedPrice = getEstimatedCoinPrice(pos.symbol.replace('USD_PERP', ''));
-    return total + (pos.unrealizedProfit * estimatedPrice);
+    return total + pos.unrealizedProfit * estimatedPrice;
   }, 0);
-  
+
   const totalValue = totalCoinValue + totalPositionValue + totalUnrealizedPnL;
-  
+
   return (
     <Card style={styles.accountCard} mode="outlined">
       <Card.Title title="COIN-M Account Overview" titleVariant="titleMedium" />
@@ -324,21 +315,21 @@ function CoinMFuturesAccountCard({ account, positions }: {
               {formatCurrency(totalCoinValue)}
             </Text>
           </View>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Position Value</Text>
             <Text style={[styles.accountValue, { color: getValueColor(totalPositionValue) }]}>
               {formatCurrency(totalPositionValue)}
             </Text>
           </View>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Unrealized PnL</Text>
             <Text style={[styles.accountValue, { color: getValueColor(totalUnrealizedPnL) }]}>
               {formatCurrency(totalUnrealizedPnL)}
             </Text>
           </View>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Total Value</Text>
             <Text style={[styles.accountValue, { color: getValueColor(totalValue) }]}>
@@ -346,17 +337,19 @@ function CoinMFuturesAccountCard({ account, positions }: {
             </Text>
           </View>
         </View>
-        
+
         {/* Show individual coin balances */}
-        {account.assets?.filter(asset => asset.walletBalance > 0).map(asset => (
-          <View key={asset.asset} style={styles.coinBalanceRow}>
-            <Text style={styles.coinSymbol}>{asset.asset}</Text>
-            <Text style={styles.coinAmount}>{asset.walletBalance.toFixed(6)}</Text>
-            <Text style={styles.coinValue}>
-              {formatCurrency(asset.walletBalance * getEstimatedCoinPrice(asset.asset))}
-            </Text>
-          </View>
-        ))}
+        {account.assets
+          ?.filter((asset) => asset.walletBalance > 0)
+          .map((asset) => (
+            <View key={asset.asset} style={styles.coinBalanceRow}>
+              <Text style={styles.coinSymbol}>{asset.asset}</Text>
+              <Text style={styles.coinAmount}>{asset.walletBalance.toFixed(6)}</Text>
+              <Text style={styles.coinValue}>
+                {formatCurrency(asset.walletBalance * getEstimatedCoinPrice(asset.asset))}
+              </Text>
+            </View>
+          ))}
       </Card.Content>
     </Card>
   );
@@ -365,9 +358,9 @@ function CoinMFuturesAccountCard({ account, positions }: {
 // Helper function to get estimated coin prices (in a real app, fetch from API)
 function getEstimatedCoinPrice(symbol: string): number {
   const prices: { [key: string]: number } = {
-    'SOL': 188.37, // Current SOL price
-    'BTC': 117349.5, // Current BTC price
-    'ETH': 4412.87, // Current ETH price
+    SOL: 188.37, // Current SOL price
+    BTC: 117349.5, // Current BTC price
+    ETH: 4412.87, // Current ETH price
     // Add more coins as needed
   };
   return prices[symbol] || 1; // Default to $1 if unknown
@@ -384,15 +377,28 @@ function UsdMFuturesScreen() {
   const [selectedPosition, setSelectedPosition] = useState<EnhancedPositionData | null>(null);
   const [tpslLoading, setTpslLoading] = useState(false);
   const [wsConnectedLocal, setWsConnectedLocal] = useState(false);
-  
+
   // Shared WebSocket: subscribe and react to events
-  const { connected: wsConnected, addListener, removeListener, subscribeToPositions, subscribeToOrders, subscribeToBalance, subscribeToTicker } = useFuturesWebSocket();
-  useEffect(() => { setWsConnectedLocal(wsConnected); }, [wsConnected]);
+  const {
+    connected: wsConnected,
+    addListener,
+    removeListener,
+    subscribeToPositions,
+    subscribeToOrders,
+    subscribeToBalance,
+    subscribeToTicker,
+  } = useFuturesWebSocket();
+  useEffect(() => {
+    setWsConnectedLocal(wsConnected);
+  }, [wsConnected]);
 
   useEffect(() => {
     const handlePositions = () => loadData();
     const handleOrders = () => loadData();
-    const handleBalance = () => getUsdMAccount().then(setAccount).catch(() => {});
+    const handleBalance = () =>
+      getUsdMAccount()
+        .then(setAccount)
+        .catch(() => {});
 
     addListener('positions_update', handlePositions);
     addListener('order_update', handleOrders);
@@ -411,26 +417,23 @@ function UsdMFuturesScreen() {
       removeListener('order_update', handleOrders);
       removeListener('balance_update', handleBalance);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [pos, acc] = await Promise.all([
-        getUsdMPositions(),
-        getUsdMAccount(),
-      ]);
-      
+      const [pos, acc] = await Promise.all([getUsdMPositions(), getUsdMAccount()]);
+
       // Filter positions and add calculations
       const enhancedPositions = pos
-        .filter(p => p.positionAmount !== 0)
-        .map(p => ({
+        .filter((p) => p.positionAmount !== 0)
+        .map((p) => ({
           ...p,
-          calculations: calculatePositionMetrics(p, acc?.totalMarginBalance || 0)
+          calculations: calculatePositionMetrics(p, acc?.totalMarginBalance || 0),
         }));
-      
+
       setPositions(enhancedPositions);
       setAccount(acc);
     } catch (e: any) {
@@ -447,7 +450,7 @@ function UsdMFuturesScreen() {
 
   const handleTPSLConfirm = async (takeProfit: number, stopLoss: number) => {
     if (!selectedPosition) return;
-    
+
     setTpslLoading(true);
     try {
       const tpslData: TakeProfitStopLossData = {
@@ -457,7 +460,7 @@ function UsdMFuturesScreen() {
         stopLossPrice: stopLoss,
         quantity: Math.abs(selectedPosition.positionAmount),
       };
-      
+
       await setTakeProfitStopLoss(tpslData);
       setTpslModalVisible(false);
       setSelectedPosition(null);
@@ -482,17 +485,13 @@ function UsdMFuturesScreen() {
   return (
     <View style={styles.container}>
       {error && (
-        <Chip
-          icon="alert"
-          style={{ marginBottom: 8 }}
-          onClose={() => setError(null)}
-        >
+        <Chip icon="alert" style={{ marginBottom: 8 }} onClose={() => setError(null)}>
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for USD-M Futures */}
       <Chip
-        icon={wsConnectedLocal ? "wifi" : "wifi-off"}
+        icon={wsConnectedLocal ? 'wifi' : 'wifi-off'}
         style={{
           marginBottom: 8,
           backgroundColor: wsConnectedLocal ? '#4CAF50' : '#FF9800',
@@ -505,7 +504,7 @@ function UsdMFuturesScreen() {
       <FuturesAccountCard account={account} />
       {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
-      
+
       <TPSLModal
         visible={tpslModalVisible}
         position={selectedPosition}
@@ -513,7 +512,7 @@ function UsdMFuturesScreen() {
         onConfirm={handleTPSLConfirm}
         loading={tpslLoading}
       />
-      
+
       <RefreshFab onPress={loadData} />
     </View>
   );
@@ -529,12 +528,23 @@ function CoinMFuturesScreen() {
   const [selectedPosition, setSelectedPosition] = useState<EnhancedPositionData | null>(null);
   const [tpslLoading, setTpslLoading] = useState(false);
   // Shared WebSocket for COIN-M
-  const { connected: wsConnectedCoin, addListener: addListenerCoin, removeListener: removeListenerCoin, subscribeToPositions: subPosCoin, subscribeToOrders: subOrdCoin, subscribeToBalance: subBalCoin, subscribeToTicker: subTickerCoin } = useFuturesWebSocket();
+  const {
+    connected: wsConnectedCoin,
+    addListener: addListenerCoin,
+    removeListener: removeListenerCoin,
+    subscribeToPositions: subPosCoin,
+    subscribeToOrders: subOrdCoin,
+    subscribeToBalance: subBalCoin,
+    subscribeToTicker: subTickerCoin,
+  } = useFuturesWebSocket();
 
   useEffect(() => {
     const handlePositions = () => loadData();
     const handleOrders = () => loadData();
-    const handleBalance = () => getCoinMAccount().then(setAccount).catch(() => {});
+    const handleBalance = () =>
+      getCoinMAccount()
+        .then(setAccount)
+        .catch(() => {});
 
     addListenerCoin('positions_update', handlePositions);
     addListenerCoin('order_update', handleOrders);
@@ -550,26 +560,23 @@ function CoinMFuturesScreen() {
       removeListenerCoin('order_update', handleOrders);
       removeListenerCoin('balance_update', handleBalance);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [pos, acc] = await Promise.all([
-        getCoinMPositions(),
-        getCoinMAccount(),
-      ]);
-      
+      const [pos, acc] = await Promise.all([getCoinMPositions(), getCoinMAccount()]);
+
       // Filter positions and add calculations
       const enhancedPositions = pos
-        .filter(p => p.positionAmount !== 0)
-        .map(p => ({
+        .filter((p) => p.positionAmount !== 0)
+        .map((p) => ({
           ...p,
-          calculations: calculatePositionMetrics(p, acc?.totalMarginBalance || 0)
+          calculations: calculatePositionMetrics(p, acc?.totalMarginBalance || 0),
         }));
-      
+
       setPositions(enhancedPositions);
       setAccount(acc);
     } catch (e: any) {
@@ -586,7 +593,7 @@ function CoinMFuturesScreen() {
 
   const handleTPSLConfirm = async (takeProfit: number, stopLoss: number) => {
     if (!selectedPosition) return;
-    
+
     setTpslLoading(true);
     try {
       const tpslData: TakeProfitStopLossData = {
@@ -596,7 +603,7 @@ function CoinMFuturesScreen() {
         stopLossPrice: stopLoss,
         quantity: Math.abs(selectedPosition.positionAmount),
       };
-      
+
       await setCoinMTakeProfitStopLoss(tpslData);
       setTpslModalVisible(false);
       setSelectedPosition(null);
@@ -620,17 +627,13 @@ function CoinMFuturesScreen() {
   return (
     <View style={styles.container}>
       {error && (
-        <Chip
-          icon="alert"
-          style={{ marginBottom: 8 }}
-          onClose={() => setError(null)}
-        >
+        <Chip icon="alert" style={{ marginBottom: 8 }} onClose={() => setError(null)}>
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for COIN-M Futures */}
       <Chip
-        icon={wsConnectedCoin ? "wifi" : "wifi-off"}
+        icon={wsConnectedCoin ? 'wifi' : 'wifi-off'}
         style={{
           marginBottom: 8,
           backgroundColor: wsConnectedCoin ? '#4CAF50' : '#FF9800',
@@ -643,7 +646,7 @@ function CoinMFuturesScreen() {
       <CoinMFuturesAccountCard account={account} positions={positions} />
       {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
-      
+
       <TPSLModal
         visible={tpslModalVisible}
         position={selectedPosition}
@@ -651,7 +654,7 @@ function CoinMFuturesScreen() {
         onConfirm={handleTPSLConfirm}
         loading={tpslLoading}
       />
-      
+
       <RefreshFab onPress={loadData} />
     </View>
   );

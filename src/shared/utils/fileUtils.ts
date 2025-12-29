@@ -3,7 +3,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { getDownloadURL, ref } from 'firebase/storage';
-import { getStorage } from '@shared/services/firebase/firebase';
+import { getStorageInstance } from '@shared/services/firebase/firebase';
 
 /**
  * Download a file from Firebase Storage URL and open it
@@ -13,22 +13,23 @@ import { getStorage } from '@shared/services/firebase/firebase';
 export async function downloadAndOpenFile(fileUrl: string, fileName?: string): Promise<void> {
   try {
     // Check if this is already a local file URI
-    if (fileUrl.startsWith('file://') || fileUrl.startsWith(FileSystem.cacheDirectory)) {
+    const cacheDir = FileSystem.cacheDirectory || '';
+    if (fileUrl.startsWith('file://') || (cacheDir && fileUrl.startsWith(cacheDir))) {
       // It's already a local file, open it directly
       const extractedFileName = fileName || fileUrl.split('/').pop() || 'download';
       await openFile(fileUrl, extractedFileName);
       return;
     }
-    
+
     // Extract filename from URL if not provided
     const extractedFileName = fileName || fileUrl.split('/').pop() || 'download';
-    
+
     // Create a temporary file path
     const fileUri = `${FileSystem.cacheDirectory}${extractedFileName}`;
-    
+
     // Download the file
     const downloadResult = await FileSystem.downloadAsync(fileUrl, fileUri);
-    
+
     if (downloadResult.status === 200) {
       // Try to open the file with the appropriate app
       await openFile(downloadResult.uri, extractedFileName);
@@ -50,25 +51,22 @@ export async function openFile(fileUri: string, fileName: string): Promise<void>
   try {
     // Get file info
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
-    
+
     if (!fileInfo.exists) {
       throw new Error('File does not exist');
     }
-    
+
     // Determine MIME type based on file extension
     const mimeType = getMimeType(fileName);
-    
+
     if (Platform.OS === 'android') {
       // Use Intent Launcher for Android
-      const result = await IntentLauncher.startActivityAsync(
-        IntentLauncher.ActivityAction.View,
-        {
-          data: fileUri,
-          type: mimeType,
-          flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-        }
-      );
-      
+      const result = await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+        data: fileUri,
+        type: mimeType,
+        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+      });
+
       if (result.resultCode !== IntentLauncher.ResultCode.Success) {
         // Fallback to sharing if intent launcher fails
         await Sharing.shareAsync(fileUri, {
@@ -96,7 +94,7 @@ export async function openFile(fileUri: string, fileName: string): Promise<void>
  */
 function getMimeType(fileName: string): string {
   const extension = fileName.toLowerCase().split('.').pop();
-  
+
   switch (extension) {
     case 'pdf':
       return 'application/pdf';
@@ -153,7 +151,7 @@ export async function getLocalFileUri(fileUrl: string): Promise<string | null> {
     const fileName = fileUrl.split('/').pop() || 'download';
     const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
-    
+
     if (fileInfo.exists) {
       return fileUri;
     }
@@ -162,4 +160,4 @@ export async function getLocalFileUri(fileUrl: string): Promise<string | null> {
     console.error('Error getting local file URI:', error);
     return null;
   }
-} 
+}

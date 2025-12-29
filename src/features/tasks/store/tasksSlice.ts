@@ -1,24 +1,21 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Task, TaskGroup } from '@features/tasks/types/Task';
-import { 
-  getTasks, 
-  saveTask, 
-  deleteTask, 
-  getTaskGroups, 
-  saveTaskGroup, 
+import {
+  getTasks,
+  saveTask,
+  deleteTask,
+  getTaskGroups,
+  saveTaskGroup,
   deleteTaskGroup,
   subscribeToTasks,
-  subscribeToTaskGroups
+  subscribeToTaskGroups,
 } from '@features/tasks/services/tasks';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 
 // Async thunks
-export const fetchTasks = createAsyncThunk(
-  'tasks/fetchTasks',
-  async () => {
-    return await getTasks();
-  }
-);
+export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
+  return await getTasks();
+});
 
 export const addTask = createAsyncThunk(
   'tasks/addTask',
@@ -35,40 +32,28 @@ export const addTask = createAsyncThunk(
     };
     await saveTask(task);
     return task;
-  }
+  },
 );
 
-export const updateTask = createAsyncThunk(
-  'tasks/updateTask',
-  async (task: Task) => {
-    await saveTask(task);
-    return task;
-  }
-);
+export const updateTask = createAsyncThunk('tasks/updateTask', async (task: Task) => {
+  await saveTask(task);
+  return task;
+});
 
-export const removeTask = createAsyncThunk(
-  'tasks/removeTask',
-  async (taskId: string) => {
-    await deleteTask(taskId);
-    return taskId;
-  }
-);
+export const removeTask = createAsyncThunk('tasks/removeTask', async (taskId: string) => {
+  await deleteTask(taskId);
+  return taskId;
+});
 
-export const toggleTaskCompleted = createAsyncThunk(
-  'tasks/toggleTaskCompleted',
-  async (task: Task) => {
-    const updatedTask = { ...task, completed: !task.completed };
-    await saveTask(updatedTask);
-    return updatedTask;
-  }
-);
+export const toggleTaskCompleted = createAsyncThunk('tasks/toggleTaskCompleted', async (task: Task) => {
+  const updatedTask = { ...task, completed: !task.completed };
+  await saveTask(updatedTask);
+  return updatedTask;
+});
 
-export const fetchTaskGroups = createAsyncThunk(
-  'tasks/fetchTaskGroups',
-  async () => {
-    return await getTaskGroups();
-  }
-);
+export const fetchTaskGroups = createAsyncThunk('tasks/fetchTaskGroups', async () => {
+  return await getTaskGroups();
+});
 
 export const addTaskGroup = createAsyncThunk(
   'tasks/addTaskGroup',
@@ -84,24 +69,18 @@ export const addTaskGroup = createAsyncThunk(
     };
     await saveTaskGroup(taskGroup);
     return taskGroup;
-  }
+  },
 );
 
-export const updateTaskGroup = createAsyncThunk(
-  'tasks/updateTaskGroup',
-  async (taskGroup: TaskGroup) => {
-    await saveTaskGroup(taskGroup);
-    return taskGroup;
-  }
-);
+export const updateTaskGroup = createAsyncThunk('tasks/updateTaskGroup', async (taskGroup: TaskGroup) => {
+  await saveTaskGroup(taskGroup);
+  return taskGroup;
+});
 
-export const removeTaskGroup = createAsyncThunk(
-  'tasks/removeTaskGroup',
-  async (groupId: string) => {
-    await deleteTaskGroup(groupId);
-    return groupId;
-  }
-);
+export const removeTaskGroup = createAsyncThunk('tasks/removeTaskGroup', async (groupId: string) => {
+  await deleteTaskGroup(groupId);
+  return groupId;
+});
 
 // State interface
 interface TasksState {
@@ -127,14 +106,17 @@ const tasksSlice = createSlice({
     setTasks: (state, action: PayloadAction<Task[]>) => {
       state.tasks = action.payload;
       // Update grouped tasks
-      const grouped = action.payload.reduce((acc, task) => {
-        const groupKey = task.groupId || 'ungrouped';
-        if (!acc[groupKey]) {
-          acc[groupKey] = [];
-        }
-        acc[groupKey].push(task);
-        return acc;
-      }, {} as Record<string, Task[]>);
+      const grouped = action.payload.reduce(
+        (acc, task) => {
+          const groupKey = task.groupId || 'ungrouped';
+          if (!acc[groupKey]) {
+            acc[groupKey] = [];
+          }
+          acc[groupKey].push(task);
+          return acc;
+        },
+        {} as Record<string, Task[]>,
+      );
       state.groupedTasks = grouped;
     },
     setTaskGroups: (state, action: PayloadAction<TaskGroup[]>) => {
@@ -158,14 +140,17 @@ const tasksSlice = createSlice({
         state.tasks = action.payload;
         state.loading = false;
         // Update grouped tasks
-        const grouped = action.payload.reduce((acc, task) => {
-          const groupKey = task.groupId || 'ungrouped';
-          if (!acc[groupKey]) {
-            acc[groupKey] = [];
-          }
-          acc[groupKey].push(task);
-          return acc;
-        }, {} as Record<string, Task[]>);
+        const grouped = action.payload.reduce(
+          (acc, task) => {
+            const groupKey = task.groupId || 'ungrouped';
+            if (!acc[groupKey]) {
+              acc[groupKey] = [];
+            }
+            acc[groupKey].push(task);
+            return acc;
+          },
+          {} as Record<string, Task[]>,
+        );
         state.groupedTasks = grouped;
       })
       .addCase(fetchTasks.rejected, (state, action) => {
@@ -191,18 +176,21 @@ const tasksSlice = createSlice({
     // Update task
     builder
       .addCase(updateTask.fulfilled, (state, action) => {
-        const index = state.tasks.findIndex(task => task.id === action.payload.id);
+        const index = state.tasks.findIndex((task) => task.id === action.payload.id);
         if (index !== -1) {
           state.tasks[index] = action.payload;
           // Update grouped tasks
-          const grouped = state.tasks.reduce((acc, task) => {
-            const groupKey = task.groupId || 'ungrouped';
-            if (!acc[groupKey]) {
-              acc[groupKey] = [];
-            }
-            acc[groupKey].push(task);
-            return acc;
-          }, {} as Record<string, Task[]>);
+          const grouped = state.tasks.reduce(
+            (acc, task) => {
+              const groupKey = task.groupId || 'ungrouped';
+              if (!acc[groupKey]) {
+                acc[groupKey] = [];
+              }
+              acc[groupKey].push(task);
+              return acc;
+            },
+            {} as Record<string, Task[]>,
+          );
           state.groupedTasks = grouped;
         }
       })
@@ -213,16 +201,19 @@ const tasksSlice = createSlice({
     // Remove task
     builder
       .addCase(removeTask.fulfilled, (state, action) => {
-        state.tasks = state.tasks.filter(task => task.id !== action.payload);
+        state.tasks = state.tasks.filter((task) => task.id !== action.payload);
         // Update grouped tasks
-        const grouped = state.tasks.reduce((acc, task) => {
-          const groupKey = task.groupId || 'ungrouped';
-          if (!acc[groupKey]) {
-            acc[groupKey] = [];
-          }
-          acc[groupKey].push(task);
-          return acc;
-        }, {} as Record<string, Task[]>);
+        const grouped = state.tasks.reduce(
+          (acc, task) => {
+            const groupKey = task.groupId || 'ungrouped';
+            if (!acc[groupKey]) {
+              acc[groupKey] = [];
+            }
+            acc[groupKey].push(task);
+            return acc;
+          },
+          {} as Record<string, Task[]>,
+        );
         state.groupedTasks = grouped;
       })
       .addCase(removeTask.rejected, (state, action) => {
@@ -232,18 +223,21 @@ const tasksSlice = createSlice({
     // Toggle task completed
     builder
       .addCase(toggleTaskCompleted.fulfilled, (state, action) => {
-        const index = state.tasks.findIndex(task => task.id === action.payload.id);
+        const index = state.tasks.findIndex((task) => task.id === action.payload.id);
         if (index !== -1) {
           state.tasks[index] = action.payload;
           // Update grouped tasks
-          const grouped = state.tasks.reduce((acc, task) => {
-            const groupKey = task.groupId || 'ungrouped';
-            if (!acc[groupKey]) {
-              acc[groupKey] = [];
-            }
-            acc[groupKey].push(task);
-            return acc;
-          }, {} as Record<string, Task[]>);
+          const grouped = state.tasks.reduce(
+            (acc, task) => {
+              const groupKey = task.groupId || 'ungrouped';
+              if (!acc[groupKey]) {
+                acc[groupKey] = [];
+              }
+              acc[groupKey].push(task);
+              return acc;
+            },
+            {} as Record<string, Task[]>,
+          );
           state.groupedTasks = grouped;
         }
       })
@@ -278,7 +272,7 @@ const tasksSlice = createSlice({
     // Update task group
     builder
       .addCase(updateTaskGroup.fulfilled, (state, action) => {
-        const index = state.taskGroups.findIndex(group => group.id === action.payload.id);
+        const index = state.taskGroups.findIndex((group) => group.id === action.payload.id);
         if (index !== -1) {
           state.taskGroups[index] = action.payload;
         }
@@ -290,20 +284,23 @@ const tasksSlice = createSlice({
     // Remove task group
     builder
       .addCase(removeTaskGroup.fulfilled, (state, action) => {
-        state.taskGroups = state.taskGroups.filter(group => group.id !== action.payload);
+        state.taskGroups = state.taskGroups.filter((group) => group.id !== action.payload);
         // Remove tasks from this group (set groupId to null)
-        state.tasks = state.tasks.map(task => 
-          task.groupId === action.payload ? { ...task, groupId: undefined } : task
+        state.tasks = state.tasks.map((task) =>
+          task.groupId === action.payload ? { ...task, groupId: undefined } : task,
         );
         // Update grouped tasks
-        const grouped = state.tasks.reduce((acc, task) => {
-          const groupKey = task.groupId || 'ungrouped';
-          if (!acc[groupKey]) {
-            acc[groupKey] = [];
-          }
-          acc[groupKey].push(task);
-          return acc;
-        }, {} as Record<string, Task[]>);
+        const grouped = state.tasks.reduce(
+          (acc, task) => {
+            const groupKey = task.groupId || 'ungrouped';
+            if (!acc[groupKey]) {
+              acc[groupKey] = [];
+            }
+            acc[groupKey].push(task);
+            return acc;
+          },
+          {} as Record<string, Task[]>,
+        );
         state.groupedTasks = grouped;
       })
       .addCase(removeTaskGroup.rejected, (state, action) => {

@@ -11,16 +11,10 @@ const EmptyTasksState: React.FC<EmptyTasksStateProps> = ({ onCreateTask }) => {
 
   return (
     <View style={styles.container}>
-      <Text
-        variant="headlineSmall"
-        style={[styles.title, { color: theme.colors.onSurfaceVariant }]}
-      >
+      <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurfaceVariant }]}>
         No Tasks Yet
       </Text>
-      <Text
-        variant="bodyMedium"
-        style={[styles.description, { color: theme.colors.onSurfaceVariant }]}
-      >
+      <Text variant="bodyMedium" style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
         Create your first task to get started with task management.
       </Text>
       <Button

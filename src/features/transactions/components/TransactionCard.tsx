@@ -7,10 +7,7 @@ interface TransactionCardProps {
   onLongPress: (transaction: Transaction) => void;
 }
 
-export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({
-  transaction,
-  onLongPress,
-}) => {
+export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({ transaction, onLongPress }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
@@ -27,32 +24,20 @@ export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({
   };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onLongPress={() => onLongPress(transaction)}
-      delayLongPress={500}
-    >
+    <TouchableOpacity style={styles.card} onLongPress={() => onLongPress(transaction)} delayLongPress={500}>
       <View style={styles.row}>
         <View style={styles.leftColumn}>
           <Text style={styles.typeText}>{transaction.type}</Text>
-          {transaction.description && (
-            <Text style={styles.descriptionText}>{transaction.description}</Text>
-          )}
+          {transaction.description && <Text style={styles.descriptionText}>{transaction.description}</Text>}
           <Text style={styles.dateText}>{formatDate(transaction.date)}</Text>
         </View>
-        
+
         <View style={styles.rightColumn}>
-          <Text
-            style={[
-              styles.amountText,
-              { color: transaction.isIncome ? '#4CAF50' : '#F44336' },
-            ]}
-          >
-            {transaction.isIncome ? '+' : '-'}{formatCurrency(transaction.amount)}
+          <Text style={[styles.amountText, { color: transaction.isIncome ? '#4CAF50' : '#F44336' }]}>
+            {transaction.isIncome ? '+' : '-'}
+            {formatCurrency(transaction.amount)}
           </Text>
-          <Text style={styles.trendIcon}>
-            {transaction.isIncome ? '↗' : '↘'}
-          </Text>
+          <Text style={styles.trendIcon}>{transaction.isIncome ? '↗' : '↘'}</Text>
         </View>
       </View>
     </TouchableOpacity>

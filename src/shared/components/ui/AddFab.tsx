@@ -12,7 +12,10 @@ export default function AddFab({ iconName = 'plus', style, ...rest }: AddFabProp
     <FAB
       icon={iconName}
       color="#FFFFFF"
-      style={[{ position: 'absolute', right: 16, bottom: 16, backgroundColor: (theme as any).colors?.primary || '#6C63FF' }, style]}
+      style={[
+        { position: 'absolute', right: 16, bottom: 16, backgroundColor: (theme as any).colors?.primary || '#6C63FF' },
+        style,
+      ]}
       {...rest}
     />
   );

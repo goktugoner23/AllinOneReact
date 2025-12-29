@@ -2,7 +2,14 @@ import { collection, doc, getDocs, setDoc, orderBy, query, Timestamp, deleteDoc 
 import { getDb } from '@shared/services/firebase/firebase';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { StorageService } from '@shared/services/storage/asyncStorage';
-import { CompletedWorkout, Program, ProgramExerciseSpec, StatsSnapshot, WorkoutExercise, WorkoutSession } from '@features/workout/types/Workout';
+import {
+  CompletedWorkout,
+  Program,
+  ProgramExerciseSpec,
+  StatsSnapshot,
+  WorkoutExercise,
+  WorkoutSession,
+} from '@features/workout/types/Workout';
 
 const COLLECTIONS = {
   workouts: 'workouts',
@@ -47,6 +54,14 @@ export const workoutService = {
     return (await StorageService.getItem<WorkoutSession>(STORAGE_KEYS.activeSession)) || null;
   },
 
+  async saveProgram(program: Program): Promise<void> {
+    const docRef = doc(getDb(), COLLECTIONS.programs, program.id.toString());
+    await setDoc(docRef, {
+      id: program.id,
+      name: program.name,
+      exercises: program.exercises,
+    });
+  },
   async deleteProgram(programId: number): Promise<void> {
     const ref = doc(getDb(), COLLECTIONS.programs, programId.toString());
     await deleteDoc(ref);
@@ -131,5 +146,3 @@ export const workoutService = {
     }
   },
 };
-
-

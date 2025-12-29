@@ -1,32 +1,27 @@
 import React, { useEffect, useCallback } from 'react';
-import {
-  View,
-  RefreshControl,
-  StyleSheet,
-} from 'react-native';
+import { View, RefreshControl, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import {
-  Text,
-  Card,
-  ActivityIndicator,
-  useTheme,
-  Chip,
-  IconButton,
-} from 'react-native-paper';
+import { Text, Card, ActivityIndicator, useTheme, Chip, IconButton } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramPosts, clearError } from '@features/instagram/store/instagramSlice';
 import { InstagramPost } from '@features/instagram/types/Instagram';
 import { useNavigation } from '@react-navigation/native';
-import { formatNumber, getMediaTypeIcon, formatRelativeTime, getErrorMessage, formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
+import {
+  formatNumber,
+  getMediaTypeIcon,
+  formatRelativeTime,
+  getErrorMessage,
+  formatHashtagForDisplay,
+} from '@features/instagram/utils/instagramHelpers';
 import InstagramImage from '@features/instagram/components/InstagramImage';
 
 const PostsTab: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
-  
+
   const { data: posts, loading } = useSelector((state: RootState) => state.instagram.posts);
 
   // Load posts on mount
@@ -48,22 +43,24 @@ const PostsTab: React.FC = () => {
   }, [dispatch]);
 
   // Render post item
-  const handleOpenDetails = useCallback((post: InstagramPost) => {
-    navigation.navigate('PostDetail', { post });
-  }, [navigation]);
+  const handleOpenDetails = useCallback(
+    (post: InstagramPost) => {
+      navigation.navigate('PostDetail', { post });
+    },
+    [navigation],
+  );
 
-  const renderPostItem = useCallback(({ item }: { item: InstagramPost }) => (
-    <PostCard post={item} onPress={() => handleOpenDetails(item)} />
-  ), [handleOpenDetails]);
+  const renderPostItem = useCallback(
+    ({ item }: { item: InstagramPost }) => <PostCard post={item} onPress={() => handleOpenDetails(item)} />,
+    [handleOpenDetails],
+  );
 
   // Render loading state
   if (loading.isLoading && !posts) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>
-          Loading Instagram posts...
-        </Text>
+        <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading Instagram posts...</Text>
       </View>
     );
   }
@@ -72,18 +69,9 @@ const PostsTab: React.FC = () => {
   if (loading.error && !posts) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>
-          {getErrorMessage(loading.error)}
-        </Text>
-        <IconButton
-          icon="refresh"
-          size={24}
-          onPress={handleRetry}
-          style={styles.retryButton}
-        />
-        <Text style={[styles.retryText, { color: theme.colors.onBackground }]}>
-          Tap to retry
-        </Text>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{getErrorMessage(loading.error)}</Text>
+        <IconButton icon="refresh" size={24} onPress={handleRetry} style={styles.retryButton} />
+        <Text style={[styles.retryText, { color: theme.colors.onBackground }]}>Tap to retry</Text>
       </View>
     );
   }
@@ -92,12 +80,8 @@ const PostsTab: React.FC = () => {
   if (posts && posts.posts.length === 0) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.emptyText, { color: theme.colors.onBackground }]}>
-          No Instagram posts found
-        </Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-          Pull down to refresh
-        </Text>
+        <Text style={[styles.emptyText, { color: theme.colors.onBackground }]}>No Instagram posts found</Text>
+        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>Pull down to refresh</Text>
       </View>
     );
   }
@@ -107,15 +91,8 @@ const PostsTab: React.FC = () => {
       {/* Header with sync info */}
       {posts && (
         <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
-            {posts.count} Posts
-          </Text>
-          <Chip
-            mode="outlined"
-            compact
-            style={styles.sourceChip}
-            textStyle={{ fontSize: 12 }}
-          >
+          <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>{posts.count} Posts</Text>
+          <Chip mode="outlined" compact style={styles.sourceChip} textStyle={{ fontSize: 12 }}>
             {posts.source}
           </Chip>
         </View>
@@ -178,10 +155,7 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
           />
         ) : null}
 
-        <Text
-          style={[styles.postCaption, { color: theme.colors.onSurface }]}
-          numberOfLines={3}
-        >
+        <Text style={[styles.postCaption, { color: theme.colors.onSurface }]} numberOfLines={3}>
           {post.caption}
         </Text>
 
@@ -219,13 +193,7 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
         {post.hashtags.length > 0 ? (
           <View style={styles.hashtagsContainer}>
             {post.hashtags.slice(0, 3).map((hashtag, index) => (
-              <Chip
-                key={index}
-                mode="outlined"
-                compact
-                style={styles.hashtagChip}
-                textStyle={styles.hashtagText}
-              >
+              <Chip key={index} mode="outlined" compact style={styles.hashtagChip} textStyle={styles.hashtagText}>
                 {formatHashtagForDisplay(hashtag)}
               </Chip>
             ))}

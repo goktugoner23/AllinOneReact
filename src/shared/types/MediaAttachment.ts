@@ -12,7 +12,6 @@ export enum MediaType {
   IMAGE = 'IMAGE',
   VIDEO = 'VIDEO',
   AUDIO = 'AUDIO',
-
 }
 
 export interface MediaAttachmentsState {
@@ -26,4 +25,4 @@ export interface MediaUploadResult {
   success: boolean;
   uri?: string;
   error?: string;
-} 
+}

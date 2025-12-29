@@ -21,14 +21,24 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={[styles.dialog, { backgroundColor: theme.colors.surface }]}>
+      <Dialog
+        visible={visible}
+        onDismiss={onDismiss}
+        style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
+      >
         <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>{title}</Dialog.Title>
         <Dialog.Content>
-          <Text variant="bodyMedium" style={[styles.message, { color: theme.colors.onSurface }]}>{message}</Text>
+          <Text variant="bodyMedium" style={[styles.message, { color: theme.colors.onSurface }]}>
+            {message}
+          </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss} textColor={theme.colors.onSurfaceVariant}>Cancel</Button>
-          <Button onPress={onConfirm} textColor={theme.colors.error}>Delete</Button>
+          <Button onPress={onDismiss} textColor={theme.colors.onSurfaceVariant}>
+            Cancel
+          </Button>
+          <Button onPress={onConfirm} textColor={theme.colors.error}>
+            Delete
+          </Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>

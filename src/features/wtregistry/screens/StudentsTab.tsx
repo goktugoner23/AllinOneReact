@@ -34,7 +34,7 @@ export function StudentsTab() {
   const [editingStudent, setEditingStudent] = useState<WTStudent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showActiveOnly, setShowActiveOnly] = useState(true);
-  
+
   // New states for detailed modal and photo options
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<WTStudent | null>(null);
@@ -52,14 +52,15 @@ export function StudentsTab() {
     photoUri: '',
   });
 
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.phoneNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.instagram?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesActiveFilter = showActiveOnly ? student.isActive : true;
-    
+
     return matchesSearch && matchesActiveFilter;
   });
 
@@ -103,10 +104,12 @@ export function StudentsTab() {
 
     try {
       if (editingStudent) {
-        await dispatch(updateStudent({
-          ...editingStudent,
-          ...formData,
-        })).unwrap();
+        await dispatch(
+          updateStudent({
+            ...editingStudent,
+            ...formData,
+          }),
+        ).unwrap();
       } else {
         await dispatch(addStudent(formData)).unwrap();
       }
@@ -117,24 +120,20 @@ export function StudentsTab() {
   };
 
   const handleDelete = (student: WTStudent) => {
-    Alert.alert(
-      'Delete Student',
-      `Are you sure you want to delete ${student.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteStudent(student.id)).unwrap();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete student');
-            }
-          },
+    Alert.alert('Delete Student', `Are you sure you want to delete ${student.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await dispatch(deleteStudent(student.id)).unwrap();
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete student');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Contact action handlers
@@ -191,7 +190,7 @@ export function StudentsTab() {
 
   const handleDownloadFromInstagram = async () => {
     setShowPhotoOptions(false);
-    
+
     if (!formData.instagram?.trim()) {
       Alert.alert('Error', 'Please enter an Instagram handle first');
       return;
@@ -199,10 +198,10 @@ export function StudentsTab() {
 
     try {
       Alert.alert('Downloading...', 'Fetching profile picture from Instagram');
-      
+
       const { instagramApiService } = await import('@features/instagram/services/InstagramApiService');
       const response = await instagramApiService.getProfilePicture(formData.instagram.trim());
-      
+
       if (response.success && response.data?.imageUrl) {
         setFormData({ ...formData, photoUri: response.data.imageUrl });
         Alert.alert('Success', 'Instagram profile picture downloaded successfully!');
@@ -224,15 +223,11 @@ export function StudentsTab() {
       onLongPress={() => {
         setSelectedStudent(student);
         // Show edit/delete options
-        Alert.alert(
-          'Student Options',
-          `What would you like to do with ${student.name}?`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Edit', onPress: () => handleOpenDialog(student) },
-            { text: 'Delete', style: 'destructive', onPress: () => handleDelete(student) },
-          ]
-        );
+        Alert.alert('Student Options', `What would you like to do with ${student.name}?`, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Edit', onPress: () => handleOpenDialog(student) },
+          { text: 'Delete', style: 'destructive', onPress: () => handleDelete(student) },
+        ]);
       }}
       activeOpacity={0.7}
     >
@@ -256,15 +251,17 @@ export function StudentsTab() {
                 mode="outlined"
                 style={[
                   styles.statusChip,
-                  { backgroundColor: student.isActive ? theme.colors.primaryContainer : theme.colors.errorContainer }
+                  { backgroundColor: student.isActive ? theme.colors.primaryContainer : theme.colors.errorContainer },
                 ]}
-                textStyle={{ color: student.isActive ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer }}
+                textStyle={{
+                  color: student.isActive ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
+                }}
               >
                 {student.isActive ? 'Active' : 'Inactive'}
               </Chip>
             </View>
           </View>
-          
+
           {student.phoneNumber && (
             <Text variant="bodySmall" style={styles.contactInfo}>
               📞 {student.phoneNumber}
@@ -296,10 +293,7 @@ export function StudentsTab() {
         />
         <View style={styles.filterContainer}>
           <Text variant="bodyMedium">Show active only</Text>
-          <Switch
-            value={showActiveOnly}
-            onValueChange={setShowActiveOnly}
-          />
+          <Switch value={showActiveOnly} onValueChange={setShowActiveOnly} />
         </View>
       </Surface>
 
@@ -312,7 +306,7 @@ export function StudentsTab() {
         estimatedItemSize={110}
       />
 
-              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
+      <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Detailed Student Modal */}
       <Portal>
@@ -502,7 +496,9 @@ export function StudentsTab() {
           <Dialog.Actions>
             <Button onPress={handleViewPhoto}>View Photo</Button>
             <Button onPress={handleChangePhoto}>Change Photo</Button>
-            <Button onPress={handleRemovePhoto} textColor="red">Remove Photo</Button>
+            <Button onPress={handleRemovePhoto} textColor="red">
+              Remove Photo
+            </Button>
             {formData.instagram?.trim() && (
               <Button onPress={handleDownloadFromInstagram} textColor="primary">
                 Download from Instagram
@@ -514,25 +510,17 @@ export function StudentsTab() {
 
       {/* Fullscreen Photo Modal */}
       <Portal>
-        <Dialog 
-          visible={showFullscreenPhoto} 
+        <Dialog
+          visible={showFullscreenPhoto}
           onDismiss={() => setShowFullscreenPhoto(false)}
           style={styles.fullscreenDialog}
         >
           <Dialog.Content style={styles.fullscreenContent}>
             {selectedStudent?.photoUri && (
-              <Image 
-                source={{ uri: selectedStudent.photoUri }} 
-                style={styles.fullscreenPhoto}
-                resizeMode="contain"
-              />
+              <Image source={{ uri: selectedStudent.photoUri }} style={styles.fullscreenPhoto} resizeMode="contain" />
             )}
             {formData.photoUri && (
-              <Image 
-                source={{ uri: formData.photoUri }} 
-                style={styles.fullscreenPhoto}
-                resizeMode="contain"
-              />
+              <Image source={{ uri: formData.photoUri }} style={styles.fullscreenPhoto} resizeMode="contain" />
             )}
           </Dialog.Content>
         </Dialog>
@@ -703,4 +691,4 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 100, // Ensure a minimum height for multiline text input
   },
-}); 
+});

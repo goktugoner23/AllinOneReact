@@ -1,8 +1,4 @@
-export type HistoryItemType =
-  | 'TRANSACTION_INCOME'
-  | 'TRANSACTION_EXPENSE'
-  | 'INVESTMENT'
-  | 'REGISTRATION';
+export type HistoryItemType = 'TRANSACTION_INCOME' | 'TRANSACTION_EXPENSE' | 'INVESTMENT' | 'REGISTRATION';
 
 export interface HistoryItem {
   id: string;

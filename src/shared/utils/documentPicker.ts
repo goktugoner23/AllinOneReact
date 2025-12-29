@@ -11,7 +11,7 @@ export interface DocumentPickerResult {
 export const pickDocument = async (): Promise<DocumentPickerResult | null> => {
   try {
     console.log('🔍 Opening file/document picker...');
-    
+
     // Use proper document picker to open file manager
     const result = await pick({
       type: [types.allFiles],
@@ -21,7 +21,7 @@ export const pickDocument = async (): Promise<DocumentPickerResult | null> => {
       name: result[0]?.name,
       type: result[0]?.type,
       uri: result[0]?.uri,
-      size: result[0]?.size
+      size: result[0]?.size,
     });
 
     if (result && result[0]) {
@@ -41,23 +41,19 @@ export const pickDocument = async (): Promise<DocumentPickerResult | null> => {
       console.log('✅ User cancelled document picker (normal behavior)');
       return null;
     }
-    
+
     // Also check for string-based cancellation messages
     if (error instanceof Error && error.message.includes('canceled')) {
       console.log('✅ User cancelled document picker (normal behavior)');
       return null;
     }
-    
+
     // Only log and show alert for actual errors, not cancellations
     console.error('❌ Error picking document:', error);
-    Alert.alert(
-      'File Selection Error',
-      'Failed to open file picker. Please try again.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Try Again', onPress: () => pickDocument() }
-      ]
-    );
+    Alert.alert('File Selection Error', 'Failed to open file picker. Please try again.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Try Again', onPress: () => pickDocument() },
+    ]);
     return null;
   }
 };

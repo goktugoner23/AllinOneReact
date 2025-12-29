@@ -85,10 +85,7 @@ export class StorageService {
    */
   static async multiSet(keyValuePairs: Array<[string, any]>): Promise<void> {
     try {
-      const jsonPairs: Array<[string, string]> = keyValuePairs.map(([key, value]) => [
-        key,
-        JSON.stringify(value),
-      ]);
+      const jsonPairs: Array<[string, string]> = keyValuePairs.map(([key, value]) => [key, JSON.stringify(value)]);
       await AsyncStorage.multiSet(jsonPairs);
     } catch (error) {
       console.error('Failed to store multiple items:', error);
@@ -102,13 +99,10 @@ export class StorageService {
   static async multiGet<T>(keys: string[]): Promise<Array<[string, T | null]>> {
     try {
       const results = await AsyncStorage.multiGet(keys);
-      return results.map(([key, value]) => [
-        key,
-        value ? JSON.parse(value) : null,
-      ]);
+      return results.map(([key, value]) => [key, value ? JSON.parse(value) : null]);
     } catch (error) {
       console.error('Failed to retrieve multiple items:', error);
-      return keys.map(key => [key, null]);
+      return keys.map((key) => [key, null]);
     }
   }
 }
@@ -123,4 +117,4 @@ export const STORAGE_KEYS = {
   INSTAGRAM_PROFILER_USERNAMES: 'instagram_profiler_usernames',
 } as const;
 
-export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
+export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

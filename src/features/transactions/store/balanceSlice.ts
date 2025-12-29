@@ -1,6 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchTransactions, getTransactionTotals, getCurrentMonthTransactionTotals } from '@features/transactions/services/transactions';
+import {
+  fetchTransactions,
+  getTransactionTotals,
+  getCurrentMonthTransactionTotals,
+} from '@features/transactions/services/transactions';
 import { fetchInvestments } from '@features/transactions/services/investments';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { Investment } from '@features/transactions/types/Investment';
@@ -37,122 +41,118 @@ const BALANCE_CACHE_KEY = 'balance_cache';
 const BALANCE_LAST_UPDATED_KEY = 'balance_last_updated';
 
 // Load cached balance from AsyncStorage
-export const loadCachedBalance = createAsyncThunk(
-  'balance/loadCached',
-  async () => {
-    const performanceMonitor = PerformanceMonitor.getInstance();
-    performanceMonitor.startTimer('loadCachedBalance');
-    
-    try {
-      const [cachedBalance, lastUpdated] = await Promise.all([
-        AsyncStorage.getItem(BALANCE_CACHE_KEY),
-        AsyncStorage.getItem(BALANCE_LAST_UPDATED_KEY),
-      ]);
+export const loadCachedBalance = createAsyncThunk('balance/loadCached', async () => {
+  const performanceMonitor = PerformanceMonitor.getInstance();
+  performanceMonitor.startTimer('loadCachedBalance');
 
-      if (cachedBalance && lastUpdated) {
-        const balance = JSON.parse(cachedBalance);
-        const lastUpdateTime = new Date(lastUpdated);
-        const now = new Date();
-        const hoursSinceUpdate = (now.getTime() - lastUpdateTime.getTime()) / (1000 * 60 * 60);
+  try {
+    const [cachedBalance, lastUpdated] = await Promise.all([
+      AsyncStorage.getItem(BALANCE_CACHE_KEY),
+      AsyncStorage.getItem(BALANCE_LAST_UPDATED_KEY),
+    ]);
 
-        // Consider cache stale after 30 minutes (reduced from 1 hour)
-        const isStale = hoursSinceUpdate > 0.5;
+    if (cachedBalance && lastUpdated) {
+      const balance = JSON.parse(cachedBalance);
+      const lastUpdateTime = new Date(lastUpdated);
+      const now = new Date();
+      const hoursSinceUpdate = (now.getTime() - lastUpdateTime.getTime()) / (1000 * 60 * 60);
 
-        performanceMonitor.endTimer('loadCachedBalance', true);
-        
-        return {
-          ...balance,
-          lastUpdated,
-          isStale,
-        };
-      }
-      
+      // Consider cache stale after 30 minutes (reduced from 1 hour)
+      const isStale = hoursSinceUpdate > 0.5;
+
       performanceMonitor.endTimer('loadCachedBalance', true);
-      return null;
-    } catch (error) {
-      performanceMonitor.endTimer('loadCachedBalance', false, error.message);
-      console.error('Error loading cached balance:', error);
-      return null;
+
+      return {
+        ...balance,
+        lastUpdated,
+        isStale,
+      };
     }
+
+    performanceMonitor.endTimer('loadCachedBalance', true);
+    return null;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    performanceMonitor.endTimer('loadCachedBalance', false, errorMessage);
+    console.error('Error loading cached balance:', error);
+    return null;
   }
-);
+});
 
 // Calculate balance from transactions and investments
-export const calculateBalance = createAsyncThunk(
-  'balance/calculate',
-  async (_, { getState }) => {
-    const performanceMonitor = PerformanceMonitor.getInstance();
-    performanceMonitor.startTimer('calculateBalance');
-    
-    try {
-      // Check if we have cached data that's not stale
-      const state = getState() as { balance: BalanceState };
-      const currentBalance = state.balance;
-      
-      // If we have recent cached data and it's not stale, use it
-      if (currentBalance.lastUpdated && !currentBalance.isStale) {
-        const lastUpdated = new Date(currentBalance.lastUpdated);
-        const now = new Date();
-        const timeDiff = now.getTime() - lastUpdated.getTime();
-        const twoMinutes = 2 * 60 * 1000; // 2 minutes in milliseconds (reduced from 5)
-        
-        if (timeDiff < twoMinutes) {
-          performanceMonitor.endTimer('calculateBalance', true);
-          return {
-            totalIncome: currentBalance.totalIncome,
-            totalExpense: currentBalance.totalExpense,
-            balance: currentBalance.balance,
-            lastUpdated: currentBalance.lastUpdated,
-            isStale: false,
-          };
-        }
+export const calculateBalance = createAsyncThunk('balance/calculate', async (_, { getState }) => {
+  const performanceMonitor = PerformanceMonitor.getInstance();
+  performanceMonitor.startTimer('calculateBalance');
+
+  try {
+    // Check if we have cached data that's not stale
+    const state = getState() as { balance: BalanceState };
+    const currentBalance = state.balance;
+
+    // If we have recent cached data and it's not stale, use it
+    if (currentBalance.lastUpdated && !currentBalance.isStale) {
+      const lastUpdated = new Date(currentBalance.lastUpdated);
+      const now = new Date();
+      const timeDiff = now.getTime() - lastUpdated.getTime();
+      const twoMinutes = 2 * 60 * 1000; // 2 minutes in milliseconds (reduced from 5)
+
+      if (timeDiff < twoMinutes) {
+        performanceMonitor.endTimer('calculateBalance', true);
+        return {
+          totalIncome: currentBalance.totalIncome,
+          totalExpense: currentBalance.totalExpense,
+          balance: currentBalance.balance,
+          currentMonthIncome: currentBalance.currentMonthIncome,
+          currentMonthExpense: currentBalance.currentMonthExpense,
+          currentMonthBalance: currentBalance.currentMonthBalance,
+          lastUpdated: currentBalance.lastUpdated,
+          isStale: false,
+        };
       }
-
-      // Fetch investments and get transaction totals in parallel
-      const [investments, transactionTotals, currentMonthTotals] = await Promise.all([
-        fetchInvestments(100),   // Limit to 100 investments
-        getTransactionTotals(),  // Get totals from all transactions efficiently
-        getCurrentMonthTransactionTotals(),  // Get current month totals
-      ]);
-
-      const { totalIncome, totalExpense } = transactionTotals;
-      const { totalIncome: currentMonthIncome, totalExpense: currentMonthExpense } = currentMonthTotals;
-
-      // Add investment profits/losses using reduce for better performance
-      const investmentProfit = investments.reduce(
-        (sum: number, inv: Investment) => sum + (inv.profitLoss || 0),
-        0
-      );
-
-      const balance = totalIncome - totalExpense + investmentProfit;
-      const currentMonthBalance = currentMonthIncome - currentMonthExpense;
-
-      const balanceData = {
-        totalIncome,
-        totalExpense,
-        balance,
-        currentMonthIncome,
-        currentMonthExpense,
-        currentMonthBalance,
-        lastUpdated: new Date().toISOString(),
-        isStale: false,
-      };
-
-      // Cache the result
-      await Promise.all([
-        AsyncStorage.setItem(BALANCE_CACHE_KEY, JSON.stringify(balanceData)),
-        AsyncStorage.setItem(BALANCE_LAST_UPDATED_KEY, balanceData.lastUpdated),
-      ]);
-
-      performanceMonitor.endTimer('calculateBalance', true);
-      return balanceData;
-    } catch (error) {
-      performanceMonitor.endTimer('calculateBalance', false, error.message);
-      console.error('Error calculating balance:', error);
-      throw error;
     }
+
+    // Fetch investments and get transaction totals in parallel
+    const [investments, transactionTotals, currentMonthTotals] = await Promise.all([
+      fetchInvestments(100), // Limit to 100 investments
+      getTransactionTotals(), // Get totals from all transactions efficiently
+      getCurrentMonthTransactionTotals(), // Get current month totals
+    ]);
+
+    const { totalIncome, totalExpense } = transactionTotals;
+    const { totalIncome: currentMonthIncome, totalExpense: currentMonthExpense } = currentMonthTotals;
+
+    // Add investment profits/losses using reduce for better performance
+    const investmentProfit = investments.reduce((sum: number, inv: Investment) => sum + (inv.profitLoss || 0), 0);
+
+    const balance = totalIncome - totalExpense + investmentProfit;
+    const currentMonthBalance = currentMonthIncome - currentMonthExpense;
+
+    const balanceData = {
+      totalIncome,
+      totalExpense,
+      balance,
+      currentMonthIncome,
+      currentMonthExpense,
+      currentMonthBalance,
+      lastUpdated: new Date().toISOString(),
+      isStale: false,
+    };
+
+    // Cache the result
+    await Promise.all([
+      AsyncStorage.setItem(BALANCE_CACHE_KEY, JSON.stringify(balanceData)),
+      AsyncStorage.setItem(BALANCE_LAST_UPDATED_KEY, balanceData.lastUpdated),
+    ]);
+
+    performanceMonitor.endTimer('calculateBalance', true);
+    return balanceData;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    performanceMonitor.endTimer('calculateBalance', false, errorMessage);
+    console.error('Error calculating balance:', error);
+    throw error;
   }
-);
+});
 
 // Update balance incrementally (for new transactions)
 export const updateBalanceIncrementally = createAsyncThunk(
@@ -187,32 +187,27 @@ export const updateBalanceIncrementally = createAsyncThunk(
     ]);
 
     return balanceData;
-  }
+  },
 );
 
 // Invalidate cache and force fresh calculation
-export const invalidateBalanceCache = createAsyncThunk(
-  'balance/invalidateCache',
-  async () => {
-    const performanceMonitor = PerformanceMonitor.getInstance();
-    performanceMonitor.startTimer('invalidateBalanceCache');
-    
-    try {
-      // Clear cached data
-      await Promise.all([
-        AsyncStorage.removeItem(BALANCE_CACHE_KEY),
-        AsyncStorage.removeItem(BALANCE_LAST_UPDATED_KEY),
-      ]);
-      
-      performanceMonitor.endTimer('invalidateBalanceCache', true);
-      return true;
-    } catch (error) {
-      performanceMonitor.endTimer('invalidateBalanceCache', false, error.message);
-      console.error('Error invalidating balance cache:', error);
-      throw error;
-    }
+export const invalidateBalanceCache = createAsyncThunk('balance/invalidateCache', async () => {
+  const performanceMonitor = PerformanceMonitor.getInstance();
+  performanceMonitor.startTimer('invalidateBalanceCache');
+
+  try {
+    // Clear cached data
+    await Promise.all([AsyncStorage.removeItem(BALANCE_CACHE_KEY), AsyncStorage.removeItem(BALANCE_LAST_UPDATED_KEY)]);
+
+    performanceMonitor.endTimer('invalidateBalanceCache', true);
+    return true;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    performanceMonitor.endTimer('invalidateBalanceCache', false, errorMessage);
+    console.error('Error invalidating balance cache:', error);
+    throw error;
   }
-);
+});
 
 const balanceSlice = createSlice({
   name: 'balance',
@@ -311,4 +306,4 @@ const balanceSlice = createSlice({
 });
 
 export const { setStale, clearError, resetBalance, forceInvalidateCache } = balanceSlice.actions;
-export default balanceSlice.reducer; 
+export default balanceSlice.reducer;

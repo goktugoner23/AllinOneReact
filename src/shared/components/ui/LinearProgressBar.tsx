@@ -8,22 +8,14 @@ interface LinearProgressBarProps {
   indeterminate?: boolean;
 }
 
-export default function LinearProgressBar({
-  visible = true,
-  color,
-  indeterminate = true
-}: LinearProgressBarProps) {
+export default function LinearProgressBar({ visible = true, color, indeterminate = true }: LinearProgressBarProps) {
   const theme = useTheme();
 
   if (!visible) return null;
 
   return (
     <View style={styles.container}>
-      <ProgressBar
-        indeterminate={indeterminate}
-        color={color || theme.colors.primary}
-        style={styles.progressBar}
-      />
+      <ProgressBar indeterminate={indeterminate} color={color || theme.colors.primary} style={styles.progressBar} />
     </View>
   );
 }

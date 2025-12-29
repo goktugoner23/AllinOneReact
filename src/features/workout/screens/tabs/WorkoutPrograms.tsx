@@ -1,12 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, ScrollView } from 'react-native';
-import { Text, Button, Card, Portal, Modal, TextInput, Dialog, IconButton } from 'react-native-paper';
-import { AddFab } from '@shared/components';
+import { Text, TextInput, useTheme } from 'react-native-paper';
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+  Button,
+  IconButton,
+  EmptyState,
+  Dialog,
+  AlertDialog,
+  FAB,
+  Badge,
+} from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { Program, ProgramExerciseSpec } from '@features/workout/types/Workout';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 
 export default function WorkoutPrograms() {
+  const theme = useTheme();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState<Program | null>(null);
@@ -20,6 +33,32 @@ export default function WorkoutPrograms() {
     workoutService.getPrograms().then(setPrograms);
   }, []);
 
+  const handleCloseForm = () => {
+    setAddOpen(false);
+    setEditOpen(null);
+    setNewName('');
+    setNewExercises([]);
+  };
+
+  const handleSaveProgram = async () => {
+    if (!newName.trim()) return;
+    let id = editOpen?.id;
+    if (!id) id = await firebaseIdManager.getNextId('programs');
+    const program: Program = { id, name: newName.trim(), exercises: newExercises };
+    await workoutService.saveProgram(program);
+    const fresh = await workoutService.getPrograms();
+    setPrograms(fresh);
+    handleCloseForm();
+  };
+
+  const handleDeleteProgram = async () => {
+    if (confirmDeleteOpen) {
+      await workoutService.deleteProgram(confirmDeleteOpen.id);
+      setPrograms(programs.filter((p) => p.id !== confirmDeleteOpen.id));
+    }
+    setConfirmDeleteOpen(null);
+  };
+
   return (
     <View style={{ flex: 1, padding: 12 }}>
       <FlatList
@@ -27,116 +66,216 @@ export default function WorkoutPrograms() {
         keyExtractor={(p) => p.id.toString()}
         renderItem={({ item }) => (
           <Card
-            style={{ marginBottom: 10, backgroundColor: '#fff' }}
+            style={{ marginBottom: 10 }}
             onPress={() => setDetailsOpen(item)}
             onLongPress={() => setOptionsOpen(item)}
           >
-            <Card.Title title={item.name} titleStyle={{ fontWeight: '700', color: '#000' }} subtitle={`${item.exercises.length} exercises`} />
+            <CardContent>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '700', color: theme.colors.onSurface }}>{item.name}</Text>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {item.exercises.length} exercises
+                  </Text>
+                </View>
+                <Badge>{item.exercises.length}</Badge>
+              </View>
+            </CardContent>
           </Card>
         )}
-        ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 40 }}>No programs yet.</Text>}
+        ListEmptyComponent={
+          <EmptyState
+            icon="list-outline"
+            title="No programs yet"
+            description="Create your first workout program to get started."
+            actionLabel="Create Program"
+            onAction={() => setAddOpen(true)}
+          />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
       />
 
-      {/* Add/Edit Program modal */}
-      <Portal>
-        <Modal visible={addOpen || !!editOpen} onDismiss={() => { setAddOpen(false); setEditOpen(null); setNewName(''); setNewExercises([]); }} contentContainerStyle={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 12, maxHeight: '85%' }}>
-          <Text variant="titleMedium" style={{ marginBottom: 8 }}>{editOpen ? 'Edit Program' : 'Add Program'}</Text>
-          <TextInput mode="outlined" label="Program Name" value={newName} onChangeText={setNewName} style={{ backgroundColor: '#fff', marginBottom: 8 }} />
-          <ScrollView style={{ maxHeight: 380 }}>
+      {/* Add/Edit Program Dialog */}
+      <Dialog
+        visible={addOpen || !!editOpen}
+        onClose={handleCloseForm}
+        title={editOpen ? 'Edit Program' : 'Add Program'}
+      >
+        <View style={{ gap: 12 }}>
+          <TextInput
+            mode="outlined"
+            label="Program Name"
+            value={newName}
+            onChangeText={setNewName}
+            style={{ backgroundColor: theme.colors.surface }}
+          />
+          <ScrollView style={{ maxHeight: 320 }}>
             {newExercises.map((item, index) => (
-              <Card key={index} style={{ marginBottom: 8 }}>
-                <Card.Content>
-                  <TextInput mode="outlined" label="Exercise Name" value={item.exerciseName} onChangeText={(t) => {
-                    const arr = [...newExercises]; arr[index] = { ...arr[index], exerciseName: t }; setNewExercises(arr);
-                  }} style={{ backgroundColor: '#fff', marginBottom: 8 }} />
-                  <TextInput mode="outlined" label="Muscle Group" value={item.muscleGroup || ''} onChangeText={(t) => {
-                    const arr = [...newExercises]; arr[index] = { ...arr[index], muscleGroup: t }; setNewExercises(arr);
-                  }} style={{ backgroundColor: '#fff', marginBottom: 8 }} />
-                  <TextInput mode="outlined" keyboardType="number-pad" label="Sets (optional)" value={item.sets?.toString() || ''} onChangeText={(t) => {
-                    const arr = [...newExercises]; arr[index] = { ...arr[index], sets: t ? Number(t) : null }; setNewExercises(arr);
-                  }} style={{ backgroundColor: '#fff', marginBottom: 8 }} />
-                  <TextInput mode="outlined" keyboardType="number-pad" label="Reps (optional)" value={item.reps?.toString() || ''} onChangeText={(t) => {
-                    const arr = [...newExercises]; arr[index] = { ...arr[index], reps: t ? Number(t) : null }; setNewExercises(arr);
-                  }} style={{ backgroundColor: '#fff', marginBottom: 8 }} />
-                  <TextInput mode="outlined" label="Weight (optional)" value={item.weight || ''} onChangeText={(t) => {
-                    const arr = [...newExercises]; arr[index] = { ...arr[index], weight: t || null }; setNewExercises(arr);
-                  }} style={{ backgroundColor: '#fff', marginBottom: 8 }} placeholder="e.g., 20 or bodyweight" />
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                    <IconButton icon="delete" onPress={() => setNewExercises(newExercises.filter((_, i) => i !== index))} />
+              <Card key={index} variant="outlined" padding="sm" style={{ marginBottom: 8 }}>
+                <CardContent style={{ gap: 8 }}>
+                  <TextInput
+                    mode="outlined"
+                    label="Exercise Name"
+                    value={item.exerciseName}
+                    onChangeText={(t) => {
+                      const arr = [...newExercises];
+                      arr[index] = { ...arr[index], exerciseName: t };
+                      setNewExercises(arr);
+                    }}
+                    style={{ backgroundColor: theme.colors.surface }}
+                  />
+                  <TextInput
+                    mode="outlined"
+                    label="Muscle Group"
+                    value={item.muscleGroup || ''}
+                    onChangeText={(t) => {
+                      const arr = [...newExercises];
+                      arr[index] = { ...arr[index], muscleGroup: t };
+                      setNewExercises(arr);
+                    }}
+                    style={{ backgroundColor: theme.colors.surface }}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      mode="outlined"
+                      keyboardType="number-pad"
+                      label="Sets"
+                      value={item.sets?.toString() || ''}
+                      onChangeText={(t) => {
+                        const arr = [...newExercises];
+                        arr[index] = { ...arr[index], sets: t ? Number(t) : null };
+                        setNewExercises(arr);
+                      }}
+                      style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      keyboardType="number-pad"
+                      label="Reps"
+                      value={item.reps?.toString() || ''}
+                      onChangeText={(t) => {
+                        const arr = [...newExercises];
+                        arr[index] = { ...arr[index], reps: t ? Number(t) : null };
+                        setNewExercises(arr);
+                      }}
+                      style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                    />
                   </View>
-                </Card.Content>
+                  <TextInput
+                    mode="outlined"
+                    label="Weight (optional)"
+                    value={item.weight || ''}
+                    onChangeText={(t) => {
+                      const arr = [...newExercises];
+                      arr[index] = { ...arr[index], weight: t || null };
+                      setNewExercises(arr);
+                    }}
+                    style={{ backgroundColor: theme.colors.surface }}
+                    placeholder="e.g., 20 or bodyweight"
+                  />
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                    <IconButton
+                      icon="trash-outline"
+                      size="sm"
+                      variant="ghost"
+                      color={theme.colors.error}
+                      onPress={() => setNewExercises(newExercises.filter((_, i) => i !== index))}
+                    />
+                  </View>
+                </CardContent>
               </Card>
             ))}
           </ScrollView>
-          <Button onPress={() => setNewExercises([...newExercises, { exerciseId: Date.now(), exerciseName: '', muscleGroup: '', sets: null, reps: null, weight: null }])}>Add Exercise</Button>
-          <Button mode="contained" style={{ marginTop: 8 }} onPress={async () => {
-            if (!newName.trim()) return;
-            let id = editOpen?.id;
-            if (!id) id = await firebaseIdManager.getNextId('programs');
-            const program: Program = { id, name: newName.trim(), exercises: newExercises };
-            await workoutService.saveProgram(program);
-            const fresh = await workoutService.getPrograms();
-            setPrograms(fresh);
-            setAddOpen(false); setEditOpen(null); setNewName(''); setNewExercises([]);
-          }}>{editOpen ? 'Save Changes' : 'Save Program'}</Button>
-        </Modal>
-      </Portal>
+          <Button
+            variant="outline"
+            onPress={() =>
+              setNewExercises([
+                ...newExercises,
+                { exerciseId: Date.now(), exerciseName: '', muscleGroup: '', sets: null, reps: null, weight: null },
+              ])
+            }
+          >
+            Add Exercise
+          </Button>
+          <Button variant="primary" fullWidth onPress={handleSaveProgram}>
+            {editOpen ? 'Save Changes' : 'Save Program'}
+          </Button>
+        </View>
+      </Dialog>
 
-      {/* Program details modal */}
-      <Portal>
-        <Modal visible={!!detailsOpen} onDismiss={() => setDetailsOpen(null)} contentContainerStyle={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 12, maxHeight: '80%' }}>
-          {detailsOpen && (
-            <View>
-              <Text style={{ fontWeight: '700', fontSize: 18, color: '#000' }}>{detailsOpen.name}</Text>
-              <ScrollView style={{ marginTop: 8, maxHeight: 380 }}>
-                {detailsOpen.exercises.map((ex, idx) => (
-                  <Card key={idx} style={{ marginBottom: 8, backgroundColor: '#fff' }}>
-                    <Card.Content>
-                      <Text style={{ fontWeight: '700', color: '#000' }}>{ex.exerciseName}</Text>
-                      <Text style={{ color: '#000' }}>Muscle: {ex.muscleGroup || '-'}</Text>
-                      <Text style={{ color: '#000' }}>Sets: {ex.sets ?? '-'}</Text>
-                      <Text style={{ color: '#000' }}>Reps: {ex.reps ?? '-'}</Text>
-                      <Text style={{ color: '#000' }}>Weight: {ex.weight ?? '-'}</Text>
-                    </Card.Content>
-                  </Card>
-                ))}
-              </ScrollView>
+      {/* Program Details Dialog */}
+      <Dialog
+        visible={!!detailsOpen}
+        onClose={() => setDetailsOpen(null)}
+        title={detailsOpen?.name || 'Program Details'}
+      >
+        {detailsOpen && (
+          <ScrollView style={{ maxHeight: 400 }}>
+            <View style={{ gap: 8 }}>
+              {detailsOpen.exercises.map((ex, idx) => (
+                <Card key={idx} variant="filled" padding="sm">
+                  <CardContent>
+                    <Text style={{ fontWeight: '700', color: theme.colors.onSurface }}>{ex.exerciseName}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                      {ex.muscleGroup && <Badge variant="info">{ex.muscleGroup}</Badge>}
+                      {ex.sets && <Badge>{ex.sets} sets</Badge>}
+                      {ex.reps && <Badge>{ex.reps} reps</Badge>}
+                      {ex.weight && <Badge variant="default">{ex.weight}</Badge>}
+                    </View>
+                  </CardContent>
+                </Card>
+              ))}
             </View>
-          )}
-        </Modal>
-      </Portal>
+          </ScrollView>
+        )}
+      </Dialog>
 
-      {/* Long-press options dialog */}
-      <Portal>
-        <Dialog visible={!!optionsOpen} onDismiss={() => setOptionsOpen(null)}>
-          <Dialog.Title>Program Options</Dialog.Title>
-          <Dialog.Content>
-            <Button onPress={() => { if (optionsOpen) { setEditOpen(optionsOpen); setNewName(optionsOpen.name); setNewExercises(optionsOpen.exercises); } setOptionsOpen(null); }}>Edit</Button>
-            <Button textColor="#d00" onPress={() => { setConfirmDeleteOpen(optionsOpen); setOptionsOpen(null); }}>Delete</Button>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setOptionsOpen(null)}>Close</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      {/* Long-press Options Dialog */}
+      <Dialog visible={!!optionsOpen} onClose={() => setOptionsOpen(null)} title="Program Options">
+        <View style={{ gap: 8 }}>
+          <Button
+            variant="secondary"
+            fullWidth
+            onPress={() => {
+              if (optionsOpen) {
+                setEditOpen(optionsOpen);
+                setNewName(optionsOpen.name);
+                setNewExercises(optionsOpen.exercises);
+              }
+              setOptionsOpen(null);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            fullWidth
+            onPress={() => {
+              setConfirmDeleteOpen(optionsOpen);
+              setOptionsOpen(null);
+            }}
+          >
+            Delete
+          </Button>
+          <Button variant="ghost" fullWidth onPress={() => setOptionsOpen(null)}>
+            Close
+          </Button>
+        </View>
+      </Dialog>
 
-      {/* Delete confirmation */}
-      <Portal>
-        <Dialog visible={!!confirmDeleteOpen} onDismiss={() => setConfirmDeleteOpen(null)}>
-          <Dialog.Title>Delete Program</Dialog.Title>
-          <Dialog.Content>
-            <Text>Are you sure you want to delete this program?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setConfirmDeleteOpen(null)}>Cancel</Button>
-            <Button textColor="#d00" onPress={async () => { if (confirmDeleteOpen) { await workoutService.deleteProgram(confirmDeleteOpen.id); setPrograms(programs.filter(p => p.id !== confirmDeleteOpen.id)); } setConfirmDeleteOpen(null); }}>Delete</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        visible={!!confirmDeleteOpen}
+        title="Delete Program"
+        description="Are you sure you want to delete this program? This action cannot be undone."
+        onClose={() => setConfirmDeleteOpen(null)}
+        onConfirm={handleDeleteProgram}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
 
-              <AddFab onPress={() => setAddOpen(true)} />
+      <FAB icon="add" onPress={() => setAddOpen(true)} />
     </View>
   );
 }
-
-

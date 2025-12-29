@@ -1,78 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
-  ActivityIndicator,
-  Image,
-  Share,
-} from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, Alert, Image, Share } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-// Avoid importing heavy video component on the list screen to reduce memory and startup cost
 import { useNavigation } from '@react-navigation/native';
-import { Searchbar, Card, IconButton, Chip, Portal, Modal } from 'react-native-paper';
+import { Searchbar, Chip } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNotes } from '@features/notes/store/notesHooks';
+import { useNotes, useDeleteNote } from '@shared/hooks';
 import { Note } from '@features/notes/types/Note';
 import { formatDate, stripHtmlTags } from '@shared/utils/formatters';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import { NavigationProps, NotesStackParamList } from '@shared/types/navigation';
 import { Video } from 'react-native-video';
+import { Card, CardContent, IconButton, Button, Skeleton, SkeletonCard, EmptyState } from '@shared/components/ui';
 
 const NotesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProps<NotesStackParamList>>();
-  const {
-    notes,
-    loading,
-    error,
-    searchQuery,
-    loadNotes,
-    deleteNote,
-    setSearch,
-    clearError,
-  } = useNotes();
+
+  // TanStack Query hooks
+  const { data: notes = [], isLoading, error, refetch } = useNotes();
+  const deleteNoteMutation = useDeleteNote();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [showAttachmentGallery, setShowAttachmentGallery] = useState(false);
   const [selectedAttachments, setSelectedAttachments] = useState<MediaAttachment[]>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
 
-  useEffect(() => {
-    loadNotes();
-  }, [loadNotes]);
+  // Filter notes based on search query
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery) return notes;
+    const query = searchQuery.toLowerCase();
+    return notes.filter(
+      (note) => note.title.toLowerCase().includes(query) || note.content?.toLowerCase().includes(query),
+    );
+  }, [notes, searchQuery]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadNotes();
+    await refetch();
     setRefreshing(false);
   };
 
   const handleDeleteNote = (note: Note) => {
-    Alert.alert(
-      'Delete Note',
-      `Are you sure you want to delete "${note.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteNote(note.id),
-        },
-      ]
-    );
+    Alert.alert('Delete Note', `Are you sure you want to delete "${note.title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteNoteMutation.mutate(note.id),
+      },
+    ]);
   };
 
   const handleShareNote = async (note: Note) => {
     try {
       const cleanContent = stripHtmlTags(note.content);
       const shareContent = `Title: ${note.title}\n\nContent: ${cleanContent}`;
-      
+
       await Share.share({
         message: shareContent,
         title: note.title,
@@ -107,14 +93,14 @@ const NotesScreen: React.FC = () => {
 
     const handleAttachmentPress = (uri: string) => {
       // Find the index of the clicked attachment
-      const clickedIndex = allAttachments.findIndex(att => att === uri);
-      
+      const clickedIndex = allAttachments.findIndex((att) => att === uri);
+
       // Create attachments array for the gallery
       const attachments: MediaAttachment[] = allAttachments.map((att, idx) => {
         const isImage = imageUris.includes(att);
         const isVideo = videoUris.includes(att);
         const isAudio = voiceUris.includes(att);
-        
+
         return {
           id: `${item.id}_${idx}`,
           uri: att,
@@ -122,130 +108,114 @@ const NotesScreen: React.FC = () => {
           name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`,
         };
       });
-      
+
       setSelectedAttachments(attachments);
       setSelectedAttachmentIndex(clickedIndex);
       setShowAttachmentGallery(true);
     };
 
     return (
-      <Card
-        style={styles.noteCard}
-        onPress={() => handleNotePress(item)}
-      >
-        <Card.Content>
-          <View style={styles.noteHeader}>
-            <Text style={styles.noteTitle} numberOfLines={2}>
-              {item.title || 'Untitled Note'}
-            </Text>
-            <View style={styles.noteActions}>
-              <IconButton
-                icon="share"
-                size={20}
-                onPress={() => handleShareNote(item)}
-                style={styles.actionButton}
-              />
-              <IconButton
-                icon="delete"
-                size={20}
-                onPress={() => handleDeleteNote(item)}
-                style={styles.deleteButton}
-              />
-            </View>
-          </View>
-          
-          <Text style={styles.noteContent} numberOfLines={3}>
-            {stripHtmlTags(item.content) || 'No content'}
+      <Card style={styles.noteCard} onPress={() => handleNotePress(item)} variant="elevated" padding="md">
+        <View style={styles.noteHeader}>
+          <Text style={styles.noteTitle} numberOfLines={2}>
+            {item.title || 'Untitled Note'}
           </Text>
-          
-          {/* Attachment Previews */}
-          {allAttachments.length > 0 && (
-            <View style={styles.attachmentPreviews}>
-              {allAttachments.slice(0, 3).map((uri, index) => {
-                const isImage = imageUris.includes(uri);
-                const isVideo = videoUris.includes(uri);
-                const isAudio = voiceUris.includes(uri);
-                
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.attachmentPreview}
-                    onPress={() => handleAttachmentPress(uri)}
-                  >
-                    {isImage ? (
-                      <Image source={{ uri }} style={styles.previewImage} />
-                    ) : isVideo ? (
-                      <View style={styles.previewVideo}>
-                        <Video
-                          source={{ uri }}
-                          style={styles.previewVideoThumbnail}
-                          resizeMode="cover"
-                          paused={true}
-                          muted={true}
-                        />
-                        <View style={styles.playOverlay}>
-                          <Icon name="play-arrow" size={16} color="white" />
-                        </View>
+          <View style={styles.noteActions}>
+            <IconButton icon="share-social-outline" size="sm" variant="ghost" onPress={() => handleShareNote(item)} />
+            <IconButton
+              icon="trash-outline"
+              size="sm"
+              variant="ghost"
+              color="#FF3B30"
+              onPress={() => handleDeleteNote(item)}
+              loading={deleteNoteMutation.isPending}
+            />
+          </View>
+        </View>
+
+        <Text style={styles.noteContent} numberOfLines={3}>
+          {stripHtmlTags(item.content) || 'No content'}
+        </Text>
+
+        {/* Attachment Previews */}
+        {allAttachments.length > 0 && (
+          <View style={styles.attachmentPreviews}>
+            {allAttachments.slice(0, 3).map((uri, index) => {
+              const isImage = imageUris.includes(uri);
+              const isVideo = videoUris.includes(uri);
+              const isAudio = voiceUris.includes(uri);
+
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.attachmentPreview}
+                  onPress={() => handleAttachmentPress(uri)}
+                >
+                  {isImage ? (
+                    <Image source={{ uri }} style={styles.previewImage} />
+                  ) : isVideo ? (
+                    <View style={styles.previewVideo}>
+                      <Video
+                        source={{ uri }}
+                        style={styles.previewVideoThumbnail}
+                        resizeMode="cover"
+                        paused={true}
+                        muted={true}
+                      />
+                      <View style={styles.playOverlay}>
+                        <Icon name="play-arrow" size={16} color="white" />
                       </View>
-                    ) : (
-                      <View style={styles.previewAudio}>
-                        <Icon name="music-note" size={20} color="#666" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-              {allAttachments.length > 3 && (
-                <View style={styles.moreAttachments}>
-                  <Text style={styles.moreAttachmentsText}>+{allAttachments.length - 3}</Text>
-                </View>
-              )}
-            </View>
-          )}
-          
-          <View style={styles.noteFooter}>
-            <Text style={styles.noteDate}>
-              {formatDate(item.lastEdited)}
-            </Text>
-            
-            {hasAttachments && (
-              <Chip
-                icon="attachment"
-                mode="outlined"
-                compact
-                style={styles.attachmentChip}
-              >
-                {attachmentCount}
-              </Chip>
+                    </View>
+                  ) : (
+                    <View style={styles.previewAudio}>
+                      <Icon name="music-note" size={20} color="#666" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            {allAttachments.length > 3 && (
+              <View style={styles.moreAttachments}>
+                <Text style={styles.moreAttachmentsText}>+{allAttachments.length - 3}</Text>
+              </View>
             )}
           </View>
-        </Card.Content>
+        )}
+
+        <View style={styles.noteFooter}>
+          <Text style={styles.noteDate}>{formatDate(item.lastEdited)}</Text>
+
+          {hasAttachments && (
+            <Chip icon="attachment" mode="outlined" compact style={styles.attachmentChip}>
+              {attachmentCount}
+            </Chip>
+          )}
+        </View>
       </Card>
     );
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Text style={styles.emptyStateTitle}>No Notes Yet</Text>
-      <Text style={styles.emptyStateSubtitle}>
-        Create your first note to get started
-      </Text>
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={handleCreateNote}
-      >
-        <Text style={styles.createButtonText}>Create Note</Text>
-      </TouchableOpacity>
+    <EmptyState
+      icon="document-text-outline"
+      title="No Notes Yet"
+      description="Create your first note to get started"
+      actionLabel="Create Note"
+      onAction={handleCreateNote}
+      style={styles.emptyState}
+    />
+  );
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      {[1, 2, 3].map((i) => (
+        <SkeletonCard key={i} />
+      ))}
     </View>
   );
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading notes...</Text>
-      </View>
-    );
+  if (isLoading && !refreshing) {
+    return <View style={styles.container}>{renderLoadingState()}</View>;
   }
 
   return (
@@ -253,7 +223,7 @@ const NotesScreen: React.FC = () => {
       {showSearch && (
         <Searchbar
           placeholder="Search notes..."
-          onChangeText={setSearch}
+          onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.searchBar}
           onIconPress={() => setShowSearch(false)}
@@ -262,13 +232,11 @@ const NotesScreen: React.FC = () => {
       )}
 
       <FlashList
-        data={notes}
+        data={filteredNotes}
         renderItem={renderNoteCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={180}
@@ -412,42 +380,12 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyStateTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyStateSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  createButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  createButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    minHeight: 400,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    padding: 16,
+    gap: 12,
   },
   fabContainer: {
     position: 'absolute',
@@ -470,4 +408,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NotesScreen; 
+export default NotesScreen;

@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { 
-  Dialog, 
-  Portal, 
-  TextInput, 
-  Button, 
-  Text, 
-  Chip,
-  useTheme
-} from 'react-native-paper';
+import { Dialog, Portal, TextInput, Button, Text, Chip, useTheme } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Task, TaskGroup, TASK_GROUP_COLORS } from '@features/tasks/types/Task';
 
@@ -20,13 +12,7 @@ interface AddTaskDialogProps {
   onCreateGroup?: (groupData: { title: string; description?: string; color: string }) => void;
 }
 
-const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
-  visible,
-  onDismiss,
-  onConfirm,
-  taskGroups,
-  onCreateGroup,
-}) => {
+const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ visible, onDismiss, onConfirm, taskGroups, onCreateGroup }) => {
   const theme = useTheme();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -99,18 +85,18 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
   const getSelectedGroup = () => {
     if (!selectedGroupId) return null;
-    return taskGroups.find(group => group.id === selectedGroupId);
+    return taskGroups.find((group) => group.id === selectedGroupId);
   };
 
   const handleCreateGroup = () => {
     if (!newGroupTitle.trim()) return;
-    
+
     onCreateGroup?.({
       title: newGroupTitle.trim(),
       description: newGroupDescription.trim() || undefined,
       color: selectedGroupColor,
     });
-    
+
     // Reset form
     setNewGroupTitle('');
     setNewGroupDescription('');
@@ -125,22 +111,16 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
   return (
     <Portal>
-      <Dialog 
-        visible={visible} 
-        onDismiss={handleDismiss} 
+      <Dialog
+        visible={visible}
+        onDismiss={handleDismiss}
         style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
       >
         <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>Add Task</Dialog.Title>
         <Dialog.Content>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.form}>
-              <TextInput
-                label="Task Name"
-                value={name}
-                onChangeText={setName}
-                mode="outlined"
-                style={styles.input}
-              />
+              <TextInput label="Task Name" value={name} onChangeText={setName} mode="outlined" style={styles.input} />
 
               <TextInput
                 label="Description (Optional)"
@@ -157,31 +137,16 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                 value={dueDate ? formatDate(dueDate) : ''}
                 mode="outlined"
                 style={styles.input}
-                right={
-                  <TextInput.Icon
-                    icon="calendar"
-                    onPress={() => setShowDatePicker(true)}
-                  />
-                }
-                left={
-                  dueDate ? (
-                    <TextInput.Icon
-                      icon="close"
-                      onPress={clearDueDate}
-                    />
-                  ) : undefined
-                }
+                right={<TextInput.Icon icon="calendar" onPress={() => setShowDatePicker(true)} />}
+                left={dueDate ? <TextInput.Icon icon="close" onPress={clearDueDate} /> : undefined}
                 editable={false}
               />
 
               <View style={styles.groupSection}>
-                <Text
-                  variant="bodyMedium"
-                  style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
-                >
+                <Text variant="bodyMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
                   Group (Optional)
                 </Text>
-                
+
                 <TouchableOpacity
                   style={[styles.dropdownButton, { backgroundColor: theme.colors.surfaceVariant }]}
                   onPress={() => setShowGroupDropdown(!showGroupDropdown)}
@@ -195,14 +160,16 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                 </TouchableOpacity>
 
                 {showGroupDropdown && (
-                  <View style={[styles.dropdownList, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outline }]}>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => handleGroupSelect(undefined)}
-                    >
+                  <View
+                    style={[
+                      styles.dropdownList,
+                      { backgroundColor: theme.colors.surface, borderColor: theme.colors.outline },
+                    ]}
+                  >
+                    <TouchableOpacity style={styles.dropdownItem} onPress={() => handleGroupSelect(undefined)}>
                       <Text style={[styles.dropdownItemText, { color: theme.colors.onSurface }]}>No Group</Text>
                     </TouchableOpacity>
-                    
+
                     {taskGroups.map((group) => (
                       <TouchableOpacity
                         key={group.id}
@@ -212,9 +179,9 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                         <Text style={[styles.dropdownItemText, { color: group.color }]}>{group.title}</Text>
                       </TouchableOpacity>
                     ))}
-                    
+
                     <View style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
-                    
+
                     <TouchableOpacity
                       style={styles.dropdownItem}
                       onPress={() => {
@@ -231,7 +198,9 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>Cancel</Button>
+          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>
+            Cancel
+          </Button>
           <Button onPress={handleConfirm} disabled={!name.trim()} textColor={theme.colors.primary}>
             Add Task
           </Button>
@@ -239,8 +208,8 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
       </Dialog>
 
       {/* Create Group Dialog */}
-      <Dialog 
-        visible={showCreateGroupDialog} 
+      <Dialog
+        visible={showCreateGroupDialog}
         onDismiss={() => setShowCreateGroupDialog(false)}
         style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
       >
@@ -264,10 +233,7 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               style={styles.input}
             />
             <View style={styles.colorSection}>
-              <Text
-                variant="bodyMedium"
-                style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
-              >
+              <Text variant="bodyMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
                 Color
               </Text>
               <View style={styles.colorContainer}>
@@ -298,22 +264,12 @@ const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
       {/* Date Picker */}
       {showDatePicker && (
-        <DateTimePicker
-          value={dueDate || new Date()}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
+        <DateTimePicker value={dueDate || new Date()} mode="date" display="default" onChange={handleDateChange} />
       )}
 
       {/* Time Picker */}
       {showTimePicker && (
-        <DateTimePicker
-          value={dueDate || new Date()}
-          mode="time"
-          display="default"
-          onChange={handleTimeChange}
-        />
+        <DateTimePicker value={dueDate || new Date()} mode="time" display="default" onChange={handleTimeChange} />
       )}
     </Portal>
   );

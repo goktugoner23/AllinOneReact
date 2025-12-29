@@ -6,10 +6,7 @@ interface YinYangIconProps {
   color?: string;
 }
 
-export const YinYangIcon: React.FC<YinYangIconProps> = ({ 
-  size = 24, 
-  color = '#F44336' 
-}) => {
+export const YinYangIcon: React.FC<YinYangIconProps> = ({ size = 24, color = '#F44336' }) => {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
@@ -18,4 +15,4 @@ export const YinYangIcon: React.FC<YinYangIconProps> = ({
       />
     </Svg>
   );
-}; 
+};

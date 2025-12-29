@@ -7,18 +7,10 @@ interface InvestmentSummaryCardProps {
   investments: Investment[];
 }
 
-export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({
-  investments,
-}) => {
+export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({ investments }) => {
   const total = investments.reduce((sum, i) => sum + i.amount, 0);
-  const profitLoss = investments.reduce(
-    (sum, i) => sum + (i.profitLoss || 0),
-    0,
-  );
-  const currentValue = investments.reduce(
-    (sum, i) => sum + (i.currentValue || 0),
-    0,
-  );
+  const profitLoss = investments.reduce((sum, i) => sum + (i.profitLoss || 0), 0);
+  const currentValue = investments.reduce((sum, i) => sum + (i.currentValue || 0), 0);
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
 
@@ -33,10 +25,7 @@ export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({
           </View>
           <View style={styles.column}>
             <Text variant="labelLarge">Profit/Loss</Text>
-            <Text
-              variant="titleMedium"
-              style={{ color: profitLoss >= 0 ? '#2ecc71' : '#e74c3c' }}
-            >
+            <Text variant="titleMedium" style={{ color: profitLoss >= 0 ? '#2ecc71' : '#e74c3c' }}>
               {formatCurrency(profitLoss)}
             </Text>
           </View>

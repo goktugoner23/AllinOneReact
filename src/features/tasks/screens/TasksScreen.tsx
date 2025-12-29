@@ -1,30 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { 
-  Appbar, 
-  Text, 
-  IconButton, 
-  ActivityIndicator,
-  useTheme
-} from 'react-native-paper';
+import { Appbar, Text, ActivityIndicator, useTheme } from 'react-native-paper';
 import { AddFab } from '@shared/components';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '@shared/store/rootStore';
-import { 
-  fetchTasks, 
-  fetchTaskGroups, 
-  addTask, 
-  updateTask, 
-  removeTask, 
-  toggleTaskCompleted,
-  addTaskGroup,
-  updateTaskGroup,
-  removeTaskGroup,
-  setTasks,
-  setTaskGroups
-} from '@features/tasks/store/tasksSlice';
-import { subscribeToTasks, subscribeToTaskGroups } from '@features/tasks/services/tasks';
+import {
+  useTasks,
+  useTaskGroups,
+  useAddTask,
+  useUpdateTask,
+  useDeleteTask,
+  useToggleTaskCompleted,
+  useAddTaskGroup,
+  useDeleteTaskGroup,
+  useGroupedTasks,
+} from '@shared/hooks';
 import { Task, TaskGroup } from '@features/tasks/types/Task';
 import TaskCard from '@features/tasks/components/TaskCard';
 import TaskGroupHeader from '@features/tasks/components/TaskGroupHeader';
@@ -34,26 +23,24 @@ import EditTaskDialog from '@features/tasks/components/EditTaskDialog';
 import AddTaskGroupDialog from '@features/tasks/components/AddTaskGroupDialog';
 import DeleteConfirmationDialog from '@shared/components/ui/DeleteConfirmationDialog';
 
-
 const TasksScreen: React.FC = () => {
   const theme = useTheme();
-  const dispatch = useDispatch<AppDispatch>();
 
-  // Redux state
-  const { tasks, taskGroups, loading, error, groupedTasks } = useSelector(
-    (state: RootState) => state.tasks
-  );
+  // TanStack Query hooks
+  const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
+  const { data: taskGroups = [], isLoading: groupsLoading, refetch: refetchGroups } = useTaskGroups();
+  const groupedTasks = useGroupedTasks();
 
-  // Debug logging
-  useEffect(() => {
-    console.log('TasksScreen: State updated -', {
-      tasksCount: tasks.length,
-      taskGroupsCount: taskGroups.length,
-      loading,
-      error,
-      groupedTasksKeys: Object.keys(groupedTasks)
-    });
-  }, [tasks, taskGroups, loading, error, groupedTasks]);
+  // Mutation hooks
+  const addTaskMutation = useAddTask();
+  const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
+  const toggleTaskMutation = useToggleTaskCompleted();
+  const addTaskGroupMutation = useAddTaskGroup();
+  const deleteTaskGroupMutation = useDeleteTaskGroup();
+
+  // Combined loading state
+  const loading = tasksLoading || groupsLoading;
 
   // Local state
   const [isGroupedView, setIsGroupedView] = useState(false);
@@ -66,112 +53,99 @@ const TasksScreen: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<TaskGroup | null>(null);
 
-  // Initialize data
-  useEffect(() => {
-    console.log('TasksScreen: Initializing data...');
-    dispatch(fetchTasks());
-    dispatch(fetchTaskGroups());
-  }, [dispatch]);
-
-  // Set up real-time listeners
-  useEffect(() => {
-    const unsubscribeTasks = subscribeToTasks((tasks) => {
-      dispatch(setTasks(tasks));
-    });
-
-    const unsubscribeGroups = subscribeToTaskGroups((taskGroups) => {
-      dispatch(setTaskGroups(taskGroups));
-    });
-
-    return () => {
-      unsubscribeTasks();
-      unsubscribeGroups();
-    };
-  }, [dispatch]);
-
   // Handle pull to refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([
-      dispatch(fetchTasks()),
-      dispatch(fetchTaskGroups()),
-    ]);
+    await Promise.all([refetchTasks(), refetchGroups()]);
     setRefreshing(false);
-  }, [dispatch]);
+  }, [refetchTasks, refetchGroups]);
 
   // Task actions
-  const handleToggleTaskComplete = (task: Task) => {
-    dispatch(toggleTaskCompleted(task));
-  };
+  const handleToggleTaskComplete = useCallback(
+    (task: Task) => {
+      toggleTaskMutation.mutate(task);
+    },
+    [toggleTaskMutation],
+  );
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = useCallback((task: Task) => {
     setSelectedTask(task);
     setShowEditTaskDialog(true);
-  };
+  }, []);
 
-  const handleUpdateTask = (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
-    if (selectedTask) {
-      const updatedTask: Task = {
-        ...selectedTask,
-        name: taskData.name,
-        description: taskData.description,
-        dueDate: taskData.dueDate?.toISOString(),
-        groupId: taskData.groupId,
-      };
-      dispatch(updateTask(updatedTask));
-    }
-    setShowEditTaskDialog(false);
-    setSelectedTask(null);
-  };
+  const handleUpdateTask = useCallback(
+    (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
+      if (selectedTask) {
+        const updatedTask: Task = {
+          ...selectedTask,
+          name: taskData.name,
+          description: taskData.description,
+          dueDate: taskData.dueDate?.toISOString(),
+          groupId: taskData.groupId,
+        };
+        updateTaskMutation.mutate(updatedTask);
+      }
+      setShowEditTaskDialog(false);
+      setSelectedTask(null);
+    },
+    [selectedTask, updateTaskMutation],
+  );
 
-  const handleDeleteTask = () => {
+  const handleDeleteTask = useCallback(() => {
     if (selectedTask) {
-      dispatch(removeTask(selectedTask.id));
+      deleteTaskMutation.mutate(selectedTask.id);
     }
     setShowDeleteTaskDialog(false);
     setSelectedTask(null);
-  };
+  }, [selectedTask, deleteTaskMutation]);
 
-  const handleAddTask = (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
-    dispatch(addTask(taskData));
-    setShowAddTaskDialog(false);
-  };
+  const handleAddTask = useCallback(
+    (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
+      addTaskMutation.mutate(taskData);
+      setShowAddTaskDialog(false);
+    },
+    [addTaskMutation],
+  );
 
   // Group actions
-  const handleEditGroup = (group: TaskGroup) => {
+  const handleEditGroup = useCallback((group: TaskGroup) => {
     setSelectedGroup(group);
     // For now, we'll just show delete dialog
     setShowDeleteGroupDialog(true);
-  };
+  }, []);
 
-  const handleDeleteGroup = () => {
+  const handleDeleteGroup = useCallback(() => {
     if (selectedGroup) {
-      dispatch(removeTaskGroup(selectedGroup.id));
+      deleteTaskGroupMutation.mutate(selectedGroup.id);
     }
     setShowDeleteGroupDialog(false);
     setSelectedGroup(null);
-  };
+  }, [selectedGroup, deleteTaskGroupMutation]);
 
-  const handleAddGroup = (groupData: { title: string; description?: string; color: string }) => {
-    dispatch(addTaskGroup(groupData));
-    setShowAddGroupDialog(false);
-  };
+  const handleAddGroup = useCallback(
+    (groupData: { title: string; description?: string; color: string }) => {
+      addTaskGroupMutation.mutate(groupData);
+      setShowAddGroupDialog(false);
+    },
+    [addTaskGroupMutation],
+  );
 
   // Sort tasks by due date
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-    const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-    return aDate - bDate;
-  });
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      return aDate - bDate;
+    });
+  }, [tasks]);
 
   // Render task item
-  const renderTaskItem = useCallback(({ item }: { item: Task }) => (
-    <TaskCard
-      task={item}
-      onToggleComplete={handleToggleTaskComplete}
-      onEdit={handleEditTask}
-    />
-  ), [handleToggleTaskComplete, handleEditTask]);
+  const renderTaskItem = useCallback(
+    ({ item }: { item: Task }) => (
+      <TaskCard task={item} onToggleComplete={handleToggleTaskComplete} onEdit={handleEditTask} />
+    ),
+    [handleToggleTaskComplete, handleEditTask],
+  );
 
   // Render grouped tasks
   const renderGroupedTasks = () => {
@@ -182,21 +156,21 @@ const TasksScreen: React.FC = () => {
       if (groupId === 'ungrouped') {
         if (groupTasks.length > 0) {
           items.push({ type: 'header', title: 'Ungrouped Tasks', id: 'ungrouped-header' });
-          groupTasks.forEach(task => {
+          groupTasks.forEach((task) => {
             items.push({ type: 'task', data: task, id: `task-${task.id}` });
           });
         }
       } else {
-        const group = taskGroups.find(g => g.id === groupId);
+        const group = taskGroups.find((g) => g.id === groupId);
         if (group && groupTasks.length > 0) {
-          items.push({ 
-            type: 'group-header', 
-            data: group, 
+          items.push({
+            type: 'group-header',
+            data: group,
             taskCount: groupTasks.length,
-            completedCount: groupTasks.filter(t => t.completed).length,
-            id: `group-${groupId}` 
+            completedCount: groupTasks.filter((t) => t.completed).length,
+            id: `group-${groupId}`,
           });
-          groupTasks.forEach(task => {
+          groupTasks.forEach((task) => {
             items.push({ type: 'task', data: task, id: `task-${task.id}`, groupId });
           });
         }
@@ -229,10 +203,7 @@ const TasksScreen: React.FC = () => {
           } else if (item.type === 'header') {
             return (
               <View style={styles.ungroupedHeader}>
-                <Text
-                  variant="titleMedium"
-                  style={[styles.ungroupedTitle, { color: theme.colors.onSurface }]}
-                >
+                <Text variant="titleMedium" style={[styles.ungroupedTitle, { color: theme.colors.onSurface }]}>
                   {item.title}
                 </Text>
               </View>
@@ -240,9 +211,7 @@ const TasksScreen: React.FC = () => {
           }
           return null;
         }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={styles.listContainer}
         estimatedItemSize={100}
       />
@@ -255,9 +224,7 @@ const TasksScreen: React.FC = () => {
       data={sortedTasks}
       keyExtractor={(item) => item.id}
       renderItem={renderTaskItem}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       contentContainerStyle={styles.listContainer}
       estimatedItemSize={90}
     />
@@ -284,21 +251,18 @@ const TasksScreen: React.FC = () => {
           icon={isGroupedView ? 'view-list' : 'view-module'}
           onPress={() => setIsGroupedView(!isGroupedView)}
         />
-        {isGroupedView && (
-          <Appbar.Action
-            icon="folder-plus"
-            onPress={() => setShowAddGroupDialog(true)}
-          />
-        )}
+        {isGroupedView && <Appbar.Action icon="folder-plus" onPress={() => setShowAddGroupDialog(true)} />}
       </Appbar.Header>
 
       {tasks.length === 0 ? (
         <EmptyTasksState onCreateTask={() => setShowAddTaskDialog(true)} />
+      ) : isGroupedView ? (
+        renderGroupedTasks()
       ) : (
-        isGroupedView ? renderGroupedTasks() : renderSimpleTasks()
+        renderSimpleTasks()
       )}
 
-              <AddFab style={styles.fab} onPress={() => setShowAddTaskDialog(true)} />
+      <AddFab style={styles.fab} onPress={() => setShowAddTaskDialog(true)} />
 
       {/* Dialogs */}
       <AddTaskDialog

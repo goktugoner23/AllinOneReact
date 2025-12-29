@@ -14,7 +14,13 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { Card, Button, Chip, Divider, useTheme } from 'react-native-paper';
 import { AddFab } from '@shared/components';
-import { fetchInvestments, addInvestment, updateInvestment, deleteInvestment, addInvestmentWithAttachments } from '@features/transactions/services/investments';
+import {
+  fetchInvestments,
+  addInvestment,
+  updateInvestment,
+  deleteInvestment,
+  addInvestmentWithAttachments,
+} from '@features/transactions/services/investments';
 import { Investment } from '@features/transactions/types/Investment';
 import { FuturesTab } from './FuturesTab';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
@@ -27,8 +33,6 @@ import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { uploadInvestmentAttachments } from '@features/transactions/services/investmentAttachments';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
 import { TransactionService } from '@features/transactions/services/transactionService';
-
-
 
 function InvestmentsContent() {
   const theme = useTheme();
@@ -179,28 +183,22 @@ function InvestmentsContent() {
   };
 
   const renderInvestment = ({ item }: { item: Investment }) => (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onLongPress={() => handleLongPress(item)}
-      delayLongPress={300}
-    >
+    <TouchableOpacity activeOpacity={0.8} onLongPress={() => handleLongPress(item)} delayLongPress={300}>
       <Card style={styles.card} mode="outlined">
         <Card.Content>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text style={[styles.title, { flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
-            <Chip
-              mode="outlined"
-              style={{ height: 24 }}
-              textStyle={{ fontSize: 12, fontWeight: '700' }}
-            >
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}
+          >
+            <Text style={[styles.title, { flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+              {item.name}
+            </Text>
+            <Chip mode="outlined" style={{ height: 24 }} textStyle={{ fontSize: 12, fontWeight: '700' }}>
               {(item.type || '').toUpperCase()}
             </Chip>
           </View>
           <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
           {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-          <Text style={styles.date}>
-            {new Date(item.date).toLocaleDateString()}
-          </Text>
+          <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
           {/* Attachment Previews */}
           {(() => {
             const imageUris = item.imageUris?.split(',').filter(Boolean) || [];
@@ -217,7 +215,7 @@ function InvestmentsContent() {
               const currentVoiceUris = currentItem.voiceNoteUris?.split(',').filter(Boolean) || [];
               const currentAllAttachments = [...currentImageUris, ...currentVideoUris, ...currentVoiceUris];
 
-              const clickedIndex = currentAllAttachments.findIndex(att => att === clickedUri);
+              const clickedIndex = currentAllAttachments.findIndex((att) => att === clickedUri);
               const attachments: MediaAttachment[] = currentAllAttachments.map((att, idx) => {
                 const isImage = currentImageUris.includes(att);
                 const isVideo = currentVideoUris.includes(att);
@@ -280,11 +278,10 @@ function InvestmentsContent() {
           {item.isPast && (
             <View style={styles.profitLossContainer}>
               <Text style={[styles.profitLoss, (item.profitLoss || 0) >= 0 ? styles.profit : styles.loss]}>
-                {(item.profitLoss || 0) >= 0 ? '+' : ''}{formatCurrency(item.profitLoss || 0)}
+                {(item.profitLoss || 0) >= 0 ? '+' : ''}
+                {formatCurrency(item.profitLoss || 0)}
               </Text>
-              <Text style={styles.currentValue}>
-                Current: {formatCurrency(item.currentValue || item.amount)}
-              </Text>
+              <Text style={styles.currentValue}>Current: {formatCurrency(item.currentValue || item.amount)}</Text>
             </View>
           )}
         </Card.Content>
@@ -300,12 +297,8 @@ function InvestmentsContent() {
         data={investments}
         renderItem={renderInvestment}
         keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <Text style={styles.empty}>No investments yet</Text>
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListEmptyComponent={<Text style={styles.empty}>No investments yet</Text>}
         estimatedItemSize={120}
       />
 
@@ -354,14 +347,14 @@ function InvestmentsContent() {
               style={styles.input}
               placeholder="Name"
               value={addForm.name}
-              onChangeText={text => setAddForm(f => ({ ...f, name: text }))}
+              onChangeText={(text) => setAddForm((f) => ({ ...f, name: text }))}
             />
             <TextInput
               style={styles.input}
               placeholder="Amount"
               keyboardType="numeric"
               value={addForm.amount}
-              onChangeText={text => setAddForm(f => ({ ...f, amount: text }))}
+              onChangeText={(text) => setAddForm((f) => ({ ...f, amount: text }))}
             />
             {/* Investment Type Dropdown (Add) */}
             <View style={styles.dropdownContainer}>
@@ -380,7 +373,11 @@ function InvestmentsContent() {
                 animationType="fade"
                 onRequestClose={() => setShowTypeDropdownAdd(false)}
               >
-                <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setShowTypeDropdownAdd(false)}>
+                <TouchableOpacity
+                  style={styles.modalBg}
+                  activeOpacity={1}
+                  onPress={() => setShowTypeDropdownAdd(false)}
+                >
                   <View style={styles.confirmModal}>
                     <Text style={styles.confirmTitle}>Select Investment Type</Text>
                     <View style={{ width: '100%' }}>
@@ -389,7 +386,7 @@ function InvestmentsContent() {
                           key={type}
                           style={styles.modalItem}
                           onPress={() => {
-                            setAddForm(f => ({ ...f, type }));
+                            setAddForm((f) => ({ ...f, type }));
                             setShowTypeDropdownAdd(false);
                           }}
                         >
@@ -406,7 +403,7 @@ function InvestmentsContent() {
               style={styles.input}
               placeholder="Description"
               value={addForm.description}
-              onChangeText={text => setAddForm(f => ({ ...f, description: text }))}
+              onChangeText={(text) => setAddForm((f) => ({ ...f, description: text }))}
             />
 
             {/* Past Investment Switch (Add) */}
@@ -421,14 +418,14 @@ function InvestmentsContent() {
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
                     if (response.assets) {
-                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                      const newAttachments: MediaAttachment[] = response.assets.map((a) => ({
                         id: `img_${Date.now()}_${Math.random()}`,
                         uri: a.uri!,
                         type: MediaType.IMAGE,
                         name: a.fileName || 'Image',
                         size: a.fileSize,
                       }));
-                      setAddAttachments(prev => [...prev, ...newAttachments]);
+                      setAddAttachments((prev) => [...prev, ...newAttachments]);
                     }
                   });
                 }}
@@ -442,14 +439,14 @@ function InvestmentsContent() {
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'video', selectionLimit: 3 }, (response) => {
                     if (response.assets) {
-                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                      const newAttachments: MediaAttachment[] = response.assets.map((a) => ({
                         id: `vid_${Date.now()}_${Math.random()}`,
                         uri: a.uri!,
                         type: MediaType.VIDEO,
                         name: a.fileName || 'Video',
                         size: a.fileSize,
                       }));
-                      setAddAttachments(prev => [...prev, ...newAttachments]);
+                      setAddAttachments((prev) => [...prev, ...newAttachments]);
                     }
                   });
                 }}
@@ -458,10 +455,7 @@ function InvestmentsContent() {
                 <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.attachmentButton}
-                onPress={() => setShowVoiceRecorder(true)}
-              >
+              <TouchableOpacity style={styles.attachmentButton} onPress={() => setShowVoiceRecorder(true)}>
                 <Icon name="mic" size={20} color={theme.colors.primary} />
                 <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Voice</Text>
               </TouchableOpacity>
@@ -475,8 +469,16 @@ function InvestmentsContent() {
                       <Image source={{ uri: att.uri }} style={styles.previewImage} />
                     ) : att.type === MediaType.VIDEO ? (
                       <View style={styles.previewVideo}>
-                        <Video source={{ uri: att.uri }} style={styles.previewVideoThumbnail} resizeMode="cover" paused muted />
-                        <View style={styles.playOverlay}><Icon name="play-arrow" size={16} color="white" /></View>
+                        <Video
+                          source={{ uri: att.uri }}
+                          style={styles.previewVideoThumbnail}
+                          resizeMode="cover"
+                          paused
+                          muted
+                        />
+                        <View style={styles.playOverlay}>
+                          <Icon name="play-arrow" size={16} color="white" />
+                        </View>
                       </View>
                     ) : (
                       <View style={styles.previewAudio}>
@@ -508,7 +510,7 @@ function InvestmentsContent() {
                         currentValue: parseFloat(addForm.amount || '0'),
                         imageUri: '',
                       },
-                      addAttachments
+                      addAttachments,
                     );
                     if (!addIsPast) {
                       await TransactionService.addTransaction({
@@ -553,7 +555,7 @@ function InvestmentsContent() {
           <View style={styles.editModal}>
             <VoiceRecorder
               onRecordingComplete={(filePath: string) => {
-                setEditAttachments(prev => [
+                setEditAttachments((prev) => [
                   ...prev,
                   { id: `aud_${Date.now()}`, uri: filePath, type: MediaType.AUDIO, name: 'Voice Recording' },
                 ]);
@@ -579,14 +581,14 @@ function InvestmentsContent() {
               style={styles.input}
               placeholder="Name"
               value={editForm.name}
-              onChangeText={text => setEditForm(f => ({ ...f, name: text }))}
+              onChangeText={(text) => setEditForm((f) => ({ ...f, name: text }))}
             />
             <TextInput
               style={styles.input}
               placeholder="Amount"
               keyboardType="numeric"
               value={editForm.amount}
-              onChangeText={text => setEditForm(f => ({ ...f, amount: text }))}
+              onChangeText={(text) => setEditForm((f) => ({ ...f, amount: text }))}
             />
             {/* Investment Type Dropdown (Edit) */}
             <View style={styles.dropdownContainer}>
@@ -605,7 +607,11 @@ function InvestmentsContent() {
                 animationType="fade"
                 onRequestClose={() => setShowTypeDropdownEdit(false)}
               >
-                <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setShowTypeDropdownEdit(false)}>
+                <TouchableOpacity
+                  style={styles.modalBg}
+                  activeOpacity={1}
+                  onPress={() => setShowTypeDropdownEdit(false)}
+                >
                   <View style={styles.confirmModal}>
                     <Text style={styles.confirmTitle}>Select Investment Type</Text>
                     <View style={{ width: '100%' }}>
@@ -614,7 +620,7 @@ function InvestmentsContent() {
                           key={type}
                           style={styles.modalItem}
                           onPress={() => {
-                            setEditForm(f => ({ ...f, type }));
+                            setEditForm((f) => ({ ...f, type }));
                             setShowTypeDropdownEdit(false);
                           }}
                         >
@@ -631,7 +637,7 @@ function InvestmentsContent() {
               style={styles.input}
               placeholder="Description"
               value={editForm.description}
-              onChangeText={text => setEditForm(f => ({ ...f, description: text }))}
+              onChangeText={(text) => setEditForm((f) => ({ ...f, description: text }))}
             />
             {/* Past Investment Switch (Edit) */}
             <View style={styles.switchRow}>
@@ -646,14 +652,14 @@ function InvestmentsContent() {
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
                     if (response.assets) {
-                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                      const newAttachments: MediaAttachment[] = response.assets.map((a) => ({
                         id: `img_${Date.now()}_${Math.random()}`,
                         uri: a.uri!,
                         type: MediaType.IMAGE,
                         name: a.fileName || 'Image',
                         size: a.fileSize,
                       }));
-                      setEditAttachments(prev => [...prev, ...newAttachments]);
+                      setEditAttachments((prev) => [...prev, ...newAttachments]);
                     }
                   });
                 }}
@@ -667,14 +673,14 @@ function InvestmentsContent() {
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'video', selectionLimit: 3 }, (response) => {
                     if (response.assets) {
-                      const newAttachments: MediaAttachment[] = response.assets.map(a => ({
+                      const newAttachments: MediaAttachment[] = response.assets.map((a) => ({
                         id: `vid_${Date.now()}_${Math.random()}`,
                         uri: a.uri!,
                         type: MediaType.VIDEO,
                         name: a.fileName || 'Video',
                         size: a.fileSize,
                       }));
-                      setEditAttachments(prev => [...prev, ...newAttachments]);
+                      setEditAttachments((prev) => [...prev, ...newAttachments]);
                     }
                   });
                 }}
@@ -683,10 +689,7 @@ function InvestmentsContent() {
                 <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.attachmentButton}
-                onPress={() => setShowVoiceRecorder(true)}
-              >
+              <TouchableOpacity style={styles.attachmentButton} onPress={() => setShowVoiceRecorder(true)}>
                 <Icon name="mic" size={20} color={theme.colors.primary} />
                 <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Voice</Text>
               </TouchableOpacity>
@@ -700,8 +703,16 @@ function InvestmentsContent() {
                       <Image source={{ uri: att.uri }} style={styles.previewImage} />
                     ) : att.type === MediaType.VIDEO ? (
                       <View style={styles.previewVideo}>
-                        <Video source={{ uri: att.uri }} style={styles.previewVideoThumbnail} resizeMode="cover" paused muted />
-                        <View style={styles.playOverlay}><Icon name="play-arrow" size={16} color="white" /></View>
+                        <Video
+                          source={{ uri: att.uri }}
+                          style={styles.previewVideoThumbnail}
+                          resizeMode="cover"
+                          paused
+                          muted
+                        />
+                        <View style={styles.playOverlay}>
+                          <Icon name="play-arrow" size={16} color="white" />
+                        </View>
                       </View>
                     ) : (
                       <View style={styles.previewAudio}>
@@ -734,7 +745,9 @@ function InvestmentsContent() {
         <View style={styles.modalBg}>
           <View style={styles.confirmModal}>
             <Text style={styles.confirmTitle}>Delete Investment</Text>
-            <Text style={styles.confirmText}>Are you sure you want to delete "{selectedInvestment?.name}"? This action cannot be undone.</Text>
+            <Text style={styles.confirmText}>
+              Are you sure you want to delete "{selectedInvestment?.name}"? This action cannot be undone.
+            </Text>
             <View style={styles.modalActions}>
               <Button mode="contained" onPress={confirmDelete}>
                 Delete
@@ -757,7 +770,10 @@ function InvestmentsContent() {
         <View style={styles.modalBg}>
           <View style={styles.confirmModal}>
             <Text style={styles.confirmTitle}>Liquidate Investment</Text>
-            <Text style={styles.confirmText}>Are you sure you want to liquidate "{selectedInvestment?.name}"? This will remove the investment without affecting your transaction history.</Text>
+            <Text style={styles.confirmText}>
+              Are you sure you want to liquidate "{selectedInvestment?.name}"? This will remove the investment without
+              affecting your transaction history.
+            </Text>
             <View style={styles.modalActions}>
               <Button mode="contained" onPress={confirmLiquidate}>
                 Liquidate
@@ -770,12 +786,10 @@ function InvestmentsContent() {
         </View>
       </Modal>
       {/* Add Investment FAB */}
-              <AddFab style={styles.fab} onPress={() => setAddModalVisible(true)} />
+      <AddFab style={styles.fab} onPress={() => setAddModalVisible(true)} />
     </View>
   );
 }
-
-
 
 export const InvestmentsTab: React.FC = () => {
   const theme = useTheme();
@@ -786,40 +800,24 @@ export const InvestmentsTab: React.FC = () => {
       {/* Custom Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'investments' && { borderBottomColor: theme.colors.primary }
-          ]}
+          style={[styles.tabButton, activeTab === 'investments' && { borderBottomColor: theme.colors.primary }]}
           onPress={() => setActiveTab('investments')}
         >
-          <Text style={[
-            styles.tabButtonText,
-            activeTab === 'investments' && styles.activeTabButtonText
-          ]}>
+          <Text style={[styles.tabButtonText, activeTab === 'investments' && styles.activeTabButtonText]}>
             Investments
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'futures' && { borderBottomColor: theme.colors.primary }
-          ]}
+          style={[styles.tabButton, activeTab === 'futures' && { borderBottomColor: theme.colors.primary }]}
           onPress={() => setActiveTab('futures')}
         >
-          <Text style={[
-            styles.tabButtonText,
-            activeTab === 'futures' && styles.activeTabButtonText
-          ]}>
-            Futures
-          </Text>
+          <Text style={[styles.tabButtonText, activeTab === 'futures' && styles.activeTabButtonText]}>Futures</Text>
         </TouchableOpacity>
       </View>
 
       {/* Tab Content */}
-      <View style={styles.tabContent}>
-        {activeTab === 'investments' ? <InvestmentsContent /> : <FuturesTab />}
-      </View>
+      <View style={styles.tabContent}>{activeTab === 'investments' ? <InvestmentsContent /> : <FuturesTab />}</View>
     </View>
   );
 };
@@ -1130,5 +1128,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-
 });

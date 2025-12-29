@@ -1,18 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
-import {
-  Portal,
-  Modal,
-  Surface,
-  TextInput,
-  Button,
-  Text,
-  IconButton,
-} from 'react-native-paper';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { Portal, Modal, Surface, TextInput, Button, Text, IconButton } from 'react-native-paper';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -22,11 +10,7 @@ interface LinkInsertionModalProps {
   onInsertLink: (url: string, text: string) => void;
 }
 
-const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({
-  visible,
-  onDismiss,
-  onInsertLink,
-}) => {
+const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDismiss, onInsertLink }) => {
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [urlError, setUrlError] = useState('');
@@ -61,7 +45,7 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({
 
     const linkText = text.trim() || finalUrl;
     onInsertLink(finalUrl, linkText);
-    
+
     // Reset form
     setUrl('');
     setText('');
@@ -85,19 +69,11 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({
 
   return (
     <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={handleCancel}
-        contentContainerStyle={styles.modalContainer}
-      >
+      <Modal visible={visible} onDismiss={handleCancel} contentContainerStyle={styles.modalContainer}>
         <Surface style={styles.modalSurface}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Insert Link</Text>
-            <IconButton
-              icon="close"
-              size={20}
-              onPress={handleCancel}
-            />
+            <IconButton icon="close" size={20} onPress={handleCancel} />
           </View>
 
           <View style={styles.modalContent}>
@@ -114,9 +90,7 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({
                 keyboardType="url"
                 returnKeyType="next"
               />
-              {urlError ? (
-                <Text style={styles.errorText}>{urlError}</Text>
-              ) : null}
+              {urlError ? <Text style={styles.errorText}>{urlError}</Text> : null}
             </View>
 
             <View style={styles.inputContainer}>
@@ -131,36 +105,21 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({
                 returnKeyType="done"
                 onSubmitEditing={handleInsert}
               />
-              <Text style={styles.helpText}>
-                If left empty, the URL will be used as the link text
-              </Text>
+              <Text style={styles.helpText}>If left empty, the URL will be used as the link text</Text>
             </View>
 
             <View style={styles.previewContainer}>
               <Text style={styles.previewLabel}>Preview:</Text>
-              <Text style={styles.previewText}>
-                {text.trim() || url.trim() || 'No link text'}
-              </Text>
-              <Text style={styles.previewUrl}>
-                → {url.trim() || 'No URL'}
-              </Text>
+              <Text style={styles.previewText}>{text.trim() || url.trim() || 'No link text'}</Text>
+              <Text style={styles.previewUrl}>→ {url.trim() || 'No URL'}</Text>
             </View>
           </View>
 
           <View style={styles.modalActions}>
-            <Button
-              mode="outlined"
-              onPress={handleCancel}
-              style={styles.actionButton}
-            >
+            <Button mode="outlined" onPress={handleCancel} style={styles.actionButton}>
               Cancel
             </Button>
-            <Button
-              mode="contained"
-              onPress={handleInsert}
-              style={styles.actionButton}
-              disabled={!url.trim()}
-            >
+            <Button mode="contained" onPress={handleInsert} style={styles.actionButton} disabled={!url.trim()}>
               Insert Link
             </Button>
           </View>
@@ -259,4 +218,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LinkInsertionModal; 
+export default LinkInsertionModal;

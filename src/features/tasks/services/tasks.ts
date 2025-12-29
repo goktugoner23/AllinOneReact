@@ -1,16 +1,16 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  getDocs,
   getDoc,
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  query, 
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
   orderBy,
   setDoc,
-  Timestamp 
+  Timestamp,
 } from 'firebase/firestore';
 import { getDb } from '@shared/services/firebase/firebase';
 import { Task, TaskGroup } from '@features/tasks/types/Task';
@@ -101,9 +101,9 @@ export const getTasks = async (): Promise<Task[]> => {
     console.log('Tasks: Fetching all tasks');
     const tasksRef = collection(db, 'tasks');
     const snapshot = await getDocs(tasksRef);
-    
+
     const tasks = snapshot.docs.map(docToTask);
-    
+
     console.log('Tasks: Fetched', tasks.length, 'tasks');
     return tasks;
   } catch (error) {
@@ -120,7 +120,7 @@ export const saveTask = async (task: Task): Promise<void> => {
     console.log('Tasks: Saving task:', { id: task.id, name: task.name });
     const taskRef = doc(db, 'tasks', task.id);
     const taskData = taskToDoc(task);
-    
+
     await setDoc(taskRef, taskData);
     console.log('Tasks: Task saved successfully:', task.id);
   } catch (error) {
@@ -153,9 +153,9 @@ export const getTaskGroups = async (): Promise<TaskGroup[]> => {
     console.log('Tasks: Fetching all task groups');
     const groupsRef = collection(db, 'taskGroups');
     const snapshot = await getDocs(groupsRef);
-    
+
     const taskGroups = snapshot.docs.map(docToTaskGroup);
-    
+
     console.log('Tasks: Fetched', taskGroups.length, 'task groups');
     return taskGroups;
   } catch (error) {
@@ -172,7 +172,7 @@ export const saveTaskGroup = async (taskGroup: TaskGroup): Promise<void> => {
     console.log('Tasks: Saving task group:', { id: taskGroup.id, title: taskGroup.title });
     const groupRef = doc(db, 'taskGroups', taskGroup.id);
     const groupData = taskGroupToDoc(taskGroup);
-    
+
     await setDoc(groupRef, groupData);
     console.log('Tasks: Task group saved successfully:', taskGroup.id);
   } catch (error) {
@@ -204,16 +204,20 @@ export const subscribeToTasks = (callback: (tasks: Task[]) => void) => {
   try {
     console.log('Tasks: Setting up real-time listener for tasks');
     const tasksRef = collection(db, 'tasks');
-    
-    return onSnapshot(tasksRef, (snapshot) => {
-      const tasks = snapshot.docs.map(docToTask);
-      console.log('Tasks: Real-time update -', tasks.length, 'tasks');
-      callback(tasks);
-    }, (error) => {
-      if (!handleFirestoreError(error, 'subscribeToTasks')) {
-        console.error('Tasks: Error in real-time listener:', error);
-      }
-    });
+
+    return onSnapshot(
+      tasksRef,
+      (snapshot) => {
+        const tasks = snapshot.docs.map(docToTask);
+        console.log('Tasks: Real-time update -', tasks.length, 'tasks');
+        callback(tasks);
+      },
+      (error) => {
+        if (!handleFirestoreError(error, 'subscribeToTasks')) {
+          console.error('Tasks: Error in real-time listener:', error);
+        }
+      },
+    );
   } catch (error) {
     console.error('Tasks: Error setting up real-time listener:', error);
     // Return a no-op function to prevent crashes
@@ -225,16 +229,20 @@ export const subscribeToTaskGroups = (callback: (taskGroups: TaskGroup[]) => voi
   try {
     console.log('Tasks: Setting up real-time listener for task groups');
     const groupsRef = collection(db, 'taskGroups');
-    
-    return onSnapshot(groupsRef, (snapshot) => {
-      const taskGroups = snapshot.docs.map(docToTaskGroup);
-      console.log('Tasks: Real-time update -', taskGroups.length, 'task groups');
-      callback(taskGroups);
-    }, (error) => {
-      if (!handleFirestoreError(error, 'subscribeToTaskGroups')) {
-        console.error('Tasks: Error in real-time listener:', error);
-      }
-    });
+
+    return onSnapshot(
+      groupsRef,
+      (snapshot) => {
+        const taskGroups = snapshot.docs.map(docToTaskGroup);
+        console.log('Tasks: Real-time update -', taskGroups.length, 'task groups');
+        callback(taskGroups);
+      },
+      (error) => {
+        if (!handleFirestoreError(error, 'subscribeToTaskGroups')) {
+          console.error('Tasks: Error in real-time listener:', error);
+        }
+      },
+    );
   } catch (error) {
     console.error('Tasks: Error setting up real-time listener:', error);
     // Return a no-op function to prevent crashes

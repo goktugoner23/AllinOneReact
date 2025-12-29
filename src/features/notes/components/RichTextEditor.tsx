@@ -1,23 +1,7 @@
 import React, { useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import {
-  View,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  Dimensions,
-  Linking,
-} from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, Dimensions, Linking } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
-import { 
-  IconButton, 
-  Portal, 
-  Modal, 
-  Button, 
-  Chip,
-  Divider,
-  Text,
-  Surface,
-} from 'react-native-paper';
+import { IconButton, Portal, Modal, Button, Chip, Divider, Text, Surface } from 'react-native-paper';
 import TableInsertionModal from '@features/notes/components/TableInsertionModal';
 import ChecklistModal from '@features/tasks/components/ChecklistModal';
 import LinkInsertionModal from '@features/notes/components/LinkInsertionModal';
@@ -39,79 +23,75 @@ export interface RichTextEditorHandle {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({ 
-  value,
-  onChange,
-  placeholder = 'Start writing your note...',
-  style,
-}, ref) => {
-  const richText = useRef<RichEditor>(null);
-  const [showAdvancedToolbar, setShowAdvancedToolbar] = useState(false);
-  const [showTableModal, setShowTableModal] = useState(false);
-  const [showChecklistModal, setShowChecklistModal] = useState(false);
-  const [showLinkModal, setShowLinkModal] = useState(false);
+const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
+  ({ value, onChange, placeholder = 'Start writing your note...', style }, ref) => {
+    const richText = useRef<RichEditor>(null);
+    const [showAdvancedToolbar, setShowAdvancedToolbar] = useState(false);
+    const [showTableModal, setShowTableModal] = useState(false);
+    const [showChecklistModal, setShowChecklistModal] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
 
-  // Expose imperative API to parents
-  useImperativeHandle(ref, () => ({
-    focus: () => {
-      // RichEditor exposes focusContentEditor in most versions
-      // Fallback to focus() if available
-      // @ts-expect-error library method
-      richText.current?.focusContentEditor?.();
-      // @ts-expect-error fallback
-      richText.current?.focus?.();
-    },
-    blur: () => {
-      // @ts-expect-error library method
-      richText.current?.blurContentEditor?.();
-    },
-    insertHTML: (html: string) => {
-      richText.current?.insertHTML?.(html);
-    },
-    insertLink: (text: string, url: string) => {
-      richText.current?.insertLink?.(text, url);
-    },
-    getHtml: async () => {
-      // Some versions expose getContentHtml()
-      // @ts-expect-error library method
-      if (typeof richText.current?.getContentHtml === 'function') {
-        // @ts-expect-error library method
-        return await richText.current.getContentHtml();
-      }
-      return undefined;
-    },
-  }), []);
-  const handleChange = (text: string) => {
-    onChange(text);
-  };
+    // Expose imperative API to parents
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          // RichEditor exposes focusContentEditor in most versions
+          // Fallback to focus() if available
+          (richText.current as any)?.focusContentEditor?.();
+          (richText.current as any)?.focus?.();
+        },
+        blur: () => {
+          (richText.current as any)?.blurContentEditor?.();
+        },
+        insertHTML: (html: string) => {
+          richText.current?.insertHTML?.(html);
+        },
+        insertLink: (text: string, url: string) => {
+          richText.current?.insertLink?.(text, url);
+        },
+        getHtml: async () => {
+          // Some versions expose getContentHtml()
+          const editor = richText.current as any;
+          if (typeof editor?.getContentHtml === 'function') {
+            return await editor.getContentHtml();
+          }
+          return undefined;
+        },
+      }),
+      [],
+    );
+    const handleChange = (text: string) => {
+      onChange(text);
+    };
 
-  // Basic formatting actions
-  const handleBold = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("bold", false, null)');
-  }, []);
+    // Basic formatting actions
+    const handleBold = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("bold", false, null)');
+    }, []);
 
-  const handleItalic = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("italic", false, null)');
-  }, []);
+    const handleItalic = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("italic", false, null)');
+    }, []);
 
-  const handleUnderline = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("underline", false, null)');
-  }, []);
+    const handleUnderline = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("underline", false, null)');
+    }, []);
 
-  const handleStrikethrough = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("strikethrough", false, null)');
-  }, []);
+    const handleStrikethrough = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("strikethrough", false, null)');
+    }, []);
 
-  const handleBullets = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("insertUnorderedList", false, null)');
-  }, []);
+    const handleBullets = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("insertUnorderedList", false, null)');
+    }, []);
 
-  const handleNumbers = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("insertOrderedList", false, null)');
-  }, []);
+    const handleNumbers = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("insertOrderedList", false, null)');
+    }, []);
 
-  const handleHeading1 = useCallback(() => {
-    richText.current?.commandDOM(`
+    const handleHeading1 = useCallback(() => {
+      richText.current?.commandDOM(`
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -149,10 +129,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({
         document.execCommand("formatBlock", false, "h1");
       }
     `);
-  }, []);
+    }, []);
 
-  const handleHeading2 = useCallback(() => {
-    richText.current?.commandDOM(`
+    const handleHeading2 = useCallback(() => {
+      richText.current?.commandDOM(`
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -190,10 +170,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({
         document.execCommand("formatBlock", false, "h2");
       }
     `);
-  }, []);
+    }, []);
 
-  const handleHeading3 = useCallback(() => {
-    richText.current?.commandDOM(`
+    const handleHeading3 = useCallback(() => {
+      richText.current?.commandDOM(`
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -231,277 +211,193 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({
         document.execCommand("formatBlock", false, "h3");
       }
     `);
-  }, []);
+    }, []);
 
-  const handleBlockquote = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("formatBlock", false, "blockquote")');
-  }, []);
+    const handleBlockquote = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("formatBlock", false, "blockquote")');
+    }, []);
 
-  const handleCode = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("formatBlock", false, "pre")');
-  }, []);
+    const handleCode = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("formatBlock", false, "pre")');
+    }, []);
 
-  const handleAlignLeft = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("justifyLeft", false, null)');
-  }, []);
+    const handleAlignLeft = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("justifyLeft", false, null)');
+    }, []);
 
-  const handleAlignCenter = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("justifyCenter", false, null)');
-  }, []);
+    const handleAlignCenter = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("justifyCenter", false, null)');
+    }, []);
 
-  const handleAlignRight = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("justifyRight", false, null)');
-  }, []);
+    const handleAlignRight = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("justifyRight", false, null)');
+    }, []);
 
-  const handleUndo = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("undo", false, null)');
-  }, []);
+    const handleUndo = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("undo", false, null)');
+    }, []);
 
-  const handleRedo = useCallback(() => {
-    richText.current?.commandDOM('document.execCommand("redo", false, null)');
-  }, []);
+    const handleRedo = useCallback(() => {
+      richText.current?.commandDOM('document.execCommand("redo", false, null)');
+    }, []);
 
+    const onPressLink = () => {
+      setShowLinkModal(true);
+    };
 
-
-  const onPressLink = () => {
-    setShowLinkModal(true);
-  };
-
-  const handleInsertLink = (url: string, text: string) => {
-    if (richText.current) {
-      richText.current.insertLink(text, url);
-    }
-  };
-
-  const onPressTable = () => {
-    setShowTableModal(true);
-  };
-
-  const handleInsertTable = (rows: number, columns: number) => {
-    if (richText.current) {
-      // Create HTML table
-      let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0;">';
-      
-      for (let i = 0; i < rows; i++) {
-        tableHTML += '<tr>';
-        for (let j = 0; j < columns; j++) {
-          if (i === 0) {
-            tableHTML += '<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f5f5f5; font-weight: bold;">Header</th>';
-          } else {
-            tableHTML += '<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">Cell</td>';
-          }
-        }
-        tableHTML += '</tr>';
+    const handleInsertLink = (url: string, text: string) => {
+      if (richText.current) {
+        richText.current.insertLink(text, url);
       }
-      tableHTML += '</table>';
-      
-              richText.current?.insertHTML(tableHTML);
-    }
-  };
+    };
 
-  const onPressChecklist = () => {
-    setShowChecklistModal(true);
-  };
+    const onPressTable = () => {
+      setShowTableModal(true);
+    };
 
-  const handleInsertChecklist = (items: string[]) => {
-    if (richText.current) {
-      // Create HTML checklist
-      let checklistHTML = '<ul style="list-style-type: none; padding-left: 0; margin: 16px 0;">';
-      
-      items.forEach(item => {
-        checklistHTML += `
+    const handleInsertTable = (rows: number, columns: number) => {
+      if (richText.current) {
+        // Create HTML table
+        let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0;">';
+
+        for (let i = 0; i < rows; i++) {
+          tableHTML += '<tr>';
+          for (let j = 0; j < columns; j++) {
+            if (i === 0) {
+              tableHTML +=
+                '<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f5f5f5; font-weight: bold;">Header</th>';
+            } else {
+              tableHTML += '<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">Cell</td>';
+            }
+          }
+          tableHTML += '</tr>';
+        }
+        tableHTML += '</table>';
+
+        richText.current?.insertHTML(tableHTML);
+      }
+    };
+
+    const onPressChecklist = () => {
+      setShowChecklistModal(true);
+    };
+
+    const handleInsertChecklist = (items: string[]) => {
+      if (richText.current) {
+        // Create HTML checklist
+        let checklistHTML = '<ul style="list-style-type: none; padding-left: 0; margin: 16px 0;">';
+
+        items.forEach((item) => {
+          checklistHTML += `
           <li style="margin: 8px 0; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">
             <input type="checkbox" style="margin-right: 8px;" />
             <span>${item}</span>
           </li>
         `;
-      });
-      
-      checklistHTML += '</ul>';
-      
-              richText.current?.insertHTML(checklistHTML);
-    }
-  };
+        });
 
-  return (
-    <View style={[styles.container, style]}>
-      {/* Basic Toolbar */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.toolbarContainer}
-        contentContainerStyle={styles.toolbarContent}
-      >
-        {/* Text Formatting */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="format-bold"
-            size={20}
-            onPress={handleBold}
-          />
-          <IconButton
-            icon="format-italic"
-            size={20}
-            onPress={handleItalic}
-          />
-          <IconButton
-            icon="format-underline"
-            size={20}
-            onPress={handleUnderline}
-          />
-          <IconButton
-            icon="format-strikethrough"
-            size={20}
-            onPress={handleStrikethrough}
-          />
-        </View>
+        checklistHTML += '</ul>';
 
-        <Divider style={styles.toolbarDivider} />
+        richText.current?.insertHTML(checklistHTML);
+      }
+    };
 
-        {/* Headings */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="format-header-1"
-            size={20}
-            onPress={handleHeading1}
-          />
-          <IconButton
-            icon="format-header-2"
-            size={20}
-            onPress={handleHeading2}
-          />
-          <IconButton
-            icon="format-header-3"
-            size={20}
-            onPress={handleHeading3}
-          />
-        </View>
+    return (
+      <View style={[styles.container, style]}>
+        {/* Basic Toolbar */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.toolbarContainer}
+          contentContainerStyle={styles.toolbarContent}
+        >
+          {/* Text Formatting */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="format-bold" size={20} onPress={handleBold} />
+            <IconButton icon="format-italic" size={20} onPress={handleItalic} />
+            <IconButton icon="format-underline" size={20} onPress={handleUnderline} />
+            <IconButton icon="format-strikethrough" size={20} onPress={handleStrikethrough} />
+          </View>
 
-        <Divider style={styles.toolbarDivider} />
+          <Divider style={styles.toolbarDivider} />
 
-        {/* Lists */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="format-list-bulleted"
-            size={20}
-            onPress={handleBullets}
-          />
-          <IconButton
-            icon="format-list-numbered"
-            size={20}
-            onPress={handleNumbers}
-          />
-          <IconButton
-            icon="format-list-checks"
-            size={20}
-            onPress={onPressChecklist}
-          />
-        </View>
+          {/* Headings */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="format-header-1" size={20} onPress={handleHeading1} />
+            <IconButton icon="format-header-2" size={20} onPress={handleHeading2} />
+            <IconButton icon="format-header-3" size={20} onPress={handleHeading3} />
+          </View>
 
-        <Divider style={styles.toolbarDivider} />
+          <Divider style={styles.toolbarDivider} />
 
-        {/* Alignment */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="format-align-left"
-            size={20}
-            onPress={handleAlignLeft}
-          />
-          <IconButton
-            icon="format-align-center"
-            size={20}
-            onPress={handleAlignCenter}
-          />
-          <IconButton
-            icon="format-align-right"
-            size={20}
-            onPress={handleAlignRight}
-          />
-        </View>
+          {/* Lists */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="format-list-bulleted" size={20} onPress={handleBullets} />
+            <IconButton icon="format-list-numbered" size={20} onPress={handleNumbers} />
+            <IconButton icon="format-list-checks" size={20} onPress={onPressChecklist} />
+          </View>
 
-        <Divider style={styles.toolbarDivider} />
+          <Divider style={styles.toolbarDivider} />
 
-        {/* Special Formatting */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="format-quote-close"
-            size={20}
-            onPress={handleBlockquote}
-          />
-          <IconButton
-            icon="code-tags"
-            size={20}
-            onPress={handleCode}
-          />
-          <IconButton
-            icon="link"
-            size={20}
-            onPress={onPressLink}
-          />
-          <IconButton
-            icon="table"
-            size={20}
-            onPress={onPressTable}
-          />
-        </View>
+          {/* Alignment */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="format-align-left" size={20} onPress={handleAlignLeft} />
+            <IconButton icon="format-align-center" size={20} onPress={handleAlignCenter} />
+            <IconButton icon="format-align-right" size={20} onPress={handleAlignRight} />
+          </View>
 
-        <Divider style={styles.toolbarDivider} />
+          <Divider style={styles.toolbarDivider} />
 
-        {/* History */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="undo"
-            size={20}
-            onPress={handleUndo}
-          />
-          <IconButton
-            icon="redo"
-            size={20}
-            onPress={handleRedo}
-          />
-        </View>
+          {/* Special Formatting */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="format-quote-close" size={20} onPress={handleBlockquote} />
+            <IconButton icon="code-tags" size={20} onPress={handleCode} />
+            <IconButton icon="link" size={20} onPress={onPressLink} />
+            <IconButton icon="table" size={20} onPress={onPressTable} />
+          </View>
 
+          <Divider style={styles.toolbarDivider} />
 
+          {/* History */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="undo" size={20} onPress={handleUndo} />
+            <IconButton icon="redo" size={20} onPress={handleRedo} />
+          </View>
 
-        {/* Advanced Toolbar Toggle */}
-        <View style={styles.toolbarSection}>
-          <IconButton
-            icon="dots-horizontal"
-            size={20}
-            onPress={() => setShowAdvancedToolbar(true)}
-          />
-        </View>
-      </ScrollView>
+          {/* Advanced Toolbar Toggle */}
+          <View style={styles.toolbarSection}>
+            <IconButton icon="dots-horizontal" size={20} onPress={() => setShowAdvancedToolbar(true)} />
+          </View>
+        </ScrollView>
 
-      {/* Rich Text Editor */}
-      <RichEditor
-        ref={richText}
-        onChange={handleChange}
-        placeholder={placeholder}
-        style={styles.editor}
-        initialContentHTML={value}
-        useContainer={false}
-        initialHeight={250}
-        disabled={false}
-        onLink={(url) => {
-          // Handle link clicks - open in browser or show options
-          Alert.alert(
-            'Open Link',
-            `Do you want to open: ${url}`,
-            [
+        {/* Rich Text Editor */}
+        <RichEditor
+          ref={richText}
+          onChange={handleChange}
+          placeholder={placeholder}
+          style={styles.editor}
+          initialContentHTML={value}
+          useContainer={false}
+          initialHeight={250}
+          disabled={false}
+          onLink={(url) => {
+            // Handle link clicks - open in browser or show options
+            Alert.alert('Open Link', `Do you want to open: ${url}`, [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Open', onPress: () => {
-                Linking.openURL(url).catch(err => {
-                  console.error('Error opening URL:', err);
-                  Alert.alert('Error', 'Could not open the link');
-                });
-              }},
-            ]
-          );
-        }}
-        editorStyle={{
-          backgroundColor: 'transparent',
-          contentCSSText: `
+              {
+                text: 'Open',
+                onPress: () => {
+                  Linking.openURL(url).catch((err) => {
+                    console.error('Error opening URL:', err);
+                    Alert.alert('Error', 'Could not open the link');
+                  });
+                },
+              },
+            ]);
+          }}
+          editorStyle={{
+            backgroundColor: 'transparent',
+            contentCSSText: `
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 16px;
             line-height: 1.6;
@@ -564,109 +460,144 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({
             }
             th { background-color: #f5f5f5; font-weight: bold; }
           `,
-        }}
-      />
+          }}
+        />
 
-      {/* Advanced Toolbar Modal */}
-      <Portal>
-        <Modal
-          visible={showAdvancedToolbar}
-          onDismiss={() => setShowAdvancedToolbar(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Surface style={styles.modalSurface}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Advanced Formatting</Text>
-              <IconButton
-                icon="close"
-                size={20}
-                onPress={() => setShowAdvancedToolbar(false)}
-              />
-            </View>
-            
-            <ScrollView style={styles.modalContent}>
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Text Formatting</Text>
-                <View style={styles.chipContainer}>
-                  <Chip onPress={handleBold} style={styles.chip}>Bold</Chip>
-                  <Chip onPress={handleItalic} style={styles.chip}>Italic</Chip>
-                  <Chip onPress={handleUnderline} style={styles.chip}>Underline</Chip>
-                  <Chip onPress={handleStrikethrough} style={styles.chip}>Strikethrough</Chip>
-                </View>
+        {/* Advanced Toolbar Modal */}
+        <Portal>
+          <Modal
+            visible={showAdvancedToolbar}
+            onDismiss={() => setShowAdvancedToolbar(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Surface style={styles.modalSurface}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Advanced Formatting</Text>
+                <IconButton icon="close" size={20} onPress={() => setShowAdvancedToolbar(false)} />
               </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Headings</Text>
-                <View style={styles.chipContainer}>
-                  <Chip onPress={handleHeading1} style={styles.chip}>Heading 1</Chip>
-                  <Chip onPress={handleHeading2} style={styles.chip}>Heading 2</Chip>
-                  <Chip onPress={handleHeading3} style={styles.chip}>Heading 3</Chip>
+              <ScrollView style={styles.modalContent}>
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>Text Formatting</Text>
+                  <View style={styles.chipContainer}>
+                    <Chip onPress={handleBold} style={styles.chip}>
+                      Bold
+                    </Chip>
+                    <Chip onPress={handleItalic} style={styles.chip}>
+                      Italic
+                    </Chip>
+                    <Chip onPress={handleUnderline} style={styles.chip}>
+                      Underline
+                    </Chip>
+                    <Chip onPress={handleStrikethrough} style={styles.chip}>
+                      Strikethrough
+                    </Chip>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Lists</Text>
-                <View style={styles.chipContainer}>
-                  <Chip onPress={handleBullets} style={styles.chip}>Bullet List</Chip>
-                  <Chip onPress={handleNumbers} style={styles.chip}>Numbered List</Chip>
-                  <Chip onPress={onPressChecklist} style={styles.chip}>Checklist</Chip>
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>Headings</Text>
+                  <View style={styles.chipContainer}>
+                    <Chip onPress={handleHeading1} style={styles.chip}>
+                      Heading 1
+                    </Chip>
+                    <Chip onPress={handleHeading2} style={styles.chip}>
+                      Heading 2
+                    </Chip>
+                    <Chip onPress={handleHeading3} style={styles.chip}>
+                      Heading 3
+                    </Chip>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Alignment</Text>
-                <View style={styles.chipContainer}>
-                  <Chip onPress={handleAlignLeft} style={styles.chip}>Left</Chip>
-                  <Chip onPress={handleAlignCenter} style={styles.chip}>Center</Chip>
-                  <Chip onPress={handleAlignRight} style={styles.chip}>Right</Chip>
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>Lists</Text>
+                  <View style={styles.chipContainer}>
+                    <Chip onPress={handleBullets} style={styles.chip}>
+                      Bullet List
+                    </Chip>
+                    <Chip onPress={handleNumbers} style={styles.chip}>
+                      Numbered List
+                    </Chip>
+                    <Chip onPress={onPressChecklist} style={styles.chip}>
+                      Checklist
+                    </Chip>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Special</Text>
-                <View style={styles.chipContainer}>
-                  <Chip onPress={handleBlockquote} style={styles.chip}>Quote</Chip>
-                  <Chip onPress={handleCode} style={styles.chip}>Code</Chip>
-                  <Chip onPress={onPressLink} style={styles.chip}>Link</Chip>
-                  <Chip onPress={onPressTable} style={styles.chip}>Table</Chip>
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>Alignment</Text>
+                  <View style={styles.chipContainer}>
+                    <Chip onPress={handleAlignLeft} style={styles.chip}>
+                      Left
+                    </Chip>
+                    <Chip onPress={handleAlignCenter} style={styles.chip}>
+                      Center
+                    </Chip>
+                    <Chip onPress={handleAlignRight} style={styles.chip}>
+                      Right
+                    </Chip>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>History</Text>
-                <View style={styles.chipContainer}>
-                  <Chip onPress={handleUndo} style={styles.chip}>Undo</Chip>
-                  <Chip onPress={handleRedo} style={styles.chip}>Redo</Chip>
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>Special</Text>
+                  <View style={styles.chipContainer}>
+                    <Chip onPress={handleBlockquote} style={styles.chip}>
+                      Quote
+                    </Chip>
+                    <Chip onPress={handleCode} style={styles.chip}>
+                      Code
+                    </Chip>
+                    <Chip onPress={onPressLink} style={styles.chip}>
+                      Link
+                    </Chip>
+                    <Chip onPress={onPressTable} style={styles.chip}>
+                      Table
+                    </Chip>
+                  </View>
                 </View>
-              </View>
-            </ScrollView>
-          </Surface>
-        </Modal>
-      </Portal>
 
-      {/* Table Insertion Modal */}
-      <TableInsertionModal
-        visible={showTableModal}
-        onDismiss={() => setShowTableModal(false)}
-        onInsertTable={handleInsertTable}
-      />
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>History</Text>
+                  <View style={styles.chipContainer}>
+                    <Chip onPress={handleUndo} style={styles.chip}>
+                      Undo
+                    </Chip>
+                    <Chip onPress={handleRedo} style={styles.chip}>
+                      Redo
+                    </Chip>
+                  </View>
+                </View>
+              </ScrollView>
+            </Surface>
+          </Modal>
+        </Portal>
 
-      {/* Checklist Modal */}
-      <ChecklistModal
-        visible={showChecklistModal}
-        onDismiss={() => setShowChecklistModal(false)}
-        onInsertChecklist={handleInsertChecklist}
-      />
+        {/* Table Insertion Modal */}
+        <TableInsertionModal
+          visible={showTableModal}
+          onDismiss={() => setShowTableModal(false)}
+          onInsertTable={handleInsertTable}
+        />
 
-      {/* Link Insertion Modal */}
-      <LinkInsertionModal
-        visible={showLinkModal}
-        onDismiss={() => setShowLinkModal(false)}
-        onInsertLink={handleInsertLink}
-      />
-    </View>
-  );
-});
+        {/* Checklist Modal */}
+        <ChecklistModal
+          visible={showChecklistModal}
+          onDismiss={() => setShowChecklistModal(false)}
+          onInsertChecklist={handleInsertChecklist}
+        />
+
+        {/* Link Insertion Modal */}
+        <LinkInsertionModal
+          visible={showLinkModal}
+          onDismiss={() => setShowLinkModal(false)}
+          onInsertLink={handleInsertLink}
+        />
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {

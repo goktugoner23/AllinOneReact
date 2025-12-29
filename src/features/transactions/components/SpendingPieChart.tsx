@@ -15,8 +15,8 @@ interface CategoryData {
 
 export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions }) => {
   // Only consider expenses for the pie chart
-  const expenses = transactions.filter(t => !t.isIncome);
-  
+  const expenses = transactions.filter((t) => !t.isIncome);
+
   if (expenses.length === 0) {
     return (
       <View style={styles.container}>
@@ -29,11 +29,14 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
   }
 
   // Group expenses by category and calculate totals
-  const categoryTotals = expenses.reduce((acc, transaction) => {
-    const category = transaction.category || 'Uncategorized';
-    acc[category] = (acc[category] || 0) + transaction.amount;
-    return acc;
-  }, {} as Record<string, number>);
+  const categoryTotals = expenses.reduce(
+    (acc, transaction) => {
+      const category = transaction.category || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + transaction.amount;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const totalExpenses = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0);
 
@@ -42,12 +45,12 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
     .map(([category, amount]) => ({
       category,
       amount,
-      percentage: (amount / totalExpenses) * 100
+      percentage: (amount / totalExpenses) * 100,
     }))
     .sort((a, b) => b.amount - a.amount)
     .map((item, index) => ({
       ...item,
-      color: getCategoryColor(index)
+      color: getCategoryColor(index),
     }));
 
   // Take top 5 categories and group the rest as "Others"
@@ -59,7 +62,7 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
       category: 'Others',
       amount: othersAmount,
       percentage: othersPercentage,
-      color: '#808080'
+      color: '#808080',
     });
   }
 
@@ -75,7 +78,8 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
               <View style={styles.categoryInfo}>
                 <Text style={styles.categoryName}>{item.category}</Text>
                 <Text style={styles.categoryAmount}>
-                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)} ({item.percentage.toFixed(1)}%)
+                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)} (
+                  {item.percentage.toFixed(1)}%)
                 </Text>
               </View>
             </View>
@@ -97,7 +101,7 @@ const getCategoryColor = (index: number): string => {
     '#FFCE56', // Yellow
     '#FF8A65', // Orange
     '#BA68C8', // Light Purple
-    '#81C784'  // Green
+    '#81C784', // Green
   ];
   return colors[index % colors.length];
 };
@@ -157,4 +161,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontStyle: 'italic',
   },
-}); 
+});

@@ -1,22 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Dimensions,
-} from 'react-native';
-import {
-  Card,
-  IconButton,
-  Text,
-  Button,
-  ProgressBar,
-  Chip,
-  Portal,
-  Modal,
-  Surface,
-} from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Dimensions, TouchableOpacity } from 'react-native';
+import { Card, IconButton, Text, Button, ProgressBar, Chip, Portal, Modal, Surface } from 'react-native-paper';
 import { launchImageLibrary, launchCamera, MediaType as ImagePickerMediaType } from 'react-native-image-picker';
 import { MediaAttachment, MediaType, MediaAttachmentsState } from '@shared/types/MediaAttachment';
 import { MediaService } from '@shared/services/MediaService';
@@ -31,19 +15,18 @@ interface MediaAttachmentManagerProps {
   onViewAttachment?: (attachment: MediaAttachment, index: number) => void;
 }
 
-const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
-  state,
-  onStateChange,
-  onViewAttachment,
-}) => {
+const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, onStateChange, onViewAttachment }) => {
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<MediaAttachment | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
-  const updateState = useCallback((updates: Partial<MediaAttachmentsState>) => {
-    onStateChange({ ...state, ...updates });
-  }, [state, onStateChange]);
+  const updateState = useCallback(
+    (updates: Partial<MediaAttachmentsState>) => {
+      onStateChange({ ...state, ...updates });
+    },
+    [state, onStateChange],
+  );
 
   const handleImagePicker = useCallback(async (mediaType: ImagePickerMediaType) => {
     try {
@@ -55,7 +38,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
       });
 
       if (result.assets && result.assets.length > 0) {
-        const uris = result.assets.map(asset => asset.uri!).filter(Boolean);
+        const uris = result.assets.map((asset) => asset.uri!).filter(Boolean);
         await uploadMedia(uris, mediaType === 'video' ? MediaType.VIDEO : MediaType.IMAGE);
       }
     } catch (error) {
@@ -82,52 +65,53 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
     }
   }, []);
 
-  const uploadMedia = useCallback(async (uris: string[], type: MediaType) => {
-    updateState({ isUploading: true, uploadProgress: 0, error: undefined });
+  const uploadMedia = useCallback(
+    async (uris: string[], type: MediaType) => {
+      updateState({ isUploading: true, uploadProgress: 0, error: undefined });
 
-    try {
-      const results = await MediaService.uploadMultipleMedia(uris, type, (progress) => {
-        updateState({ uploadProgress: progress });
-      });
+      try {
+        const results = await MediaService.uploadMultipleMedia(uris, type, (progress) => {
+          updateState({ uploadProgress: progress });
+        });
 
-      const successfulResults = results.filter(result => result.success);
-      const failedResults = results.filter(result => !result.success);
+        const successfulResults = results.filter((result) => result.success);
+        const failedResults = results.filter((result) => !result.success);
 
-      if (failedResults.length > 0) {
-        updateState({ error: `Failed to upload ${failedResults.length} files` });
-      }
+        if (failedResults.length > 0) {
+          updateState({ error: `Failed to upload ${failedResults.length} files` });
+        }
 
-      if (successfulResults.length > 0) {
-        const newAttachments: MediaAttachment[] = successfulResults.map((result, index) => ({
-          id: `attachment_${Date.now()}_${index}`,
-          uri: result.uri!,
-          type,
-          name: `Media ${state.attachments.length + index + 1}`,
-        }));
+        if (successfulResults.length > 0) {
+          const newAttachments: MediaAttachment[] = successfulResults.map((result, index) => ({
+            id: `attachment_${Date.now()}_${index}`,
+            uri: result.uri!,
+            type,
+            name: `Media ${state.attachments.length + index + 1}`,
+          }));
 
+          updateState({
+            attachments: [...state.attachments, ...newAttachments],
+            isUploading: false,
+            uploadProgress: 0,
+          });
+        } else {
+          updateState({ isUploading: false, uploadProgress: 0 });
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
         updateState({
-          attachments: [...state.attachments, ...newAttachments],
           isUploading: false,
           uploadProgress: 0,
+          error: 'Upload failed',
         });
-      } else {
-        updateState({ isUploading: false, uploadProgress: 0 });
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      updateState({
-        isUploading: false,
-        uploadProgress: 0,
-        error: 'Upload failed',
-      });
-    }
-  }, [state.attachments, updateState]);
+    },
+    [state.attachments, updateState],
+  );
 
-  const removeAttachment = useCallback(async (attachment: MediaAttachment, index: number) => {
-    Alert.alert(
-      'Remove Attachment',
-      'Are you sure you want to remove this attachment?',
-      [
+  const removeAttachment = useCallback(
+    async (attachment: MediaAttachment, index: number) => {
+      Alert.alert('Remove Attachment', 'Are you sure you want to remove this attachment?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
@@ -135,29 +119,43 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
           onPress: async () => {
             // Remove from Firebase Storage
             await MediaService.deleteMedia(attachment.uri);
-            
+
             // Remove from local state
             const newAttachments = state.attachments.filter((_, i) => i !== index);
             updateState({ attachments: newAttachments });
           },
         },
-      ]
-    );
-  }, [state.attachments, updateState]);
+      ]);
+    },
+    [state.attachments, updateState],
+  );
 
-  const handleAttachmentPress = useCallback((attachment: MediaAttachment, index: number) => {
-    setSelectedAttachment(attachment);
-    setSelectedIndex(index);
-    setShowMediaViewer(true);
-    onViewAttachment?.(attachment, index);
-  }, [onViewAttachment]);
+  const handleAttachmentPress = useCallback(
+    (attachment: MediaAttachment, index: number) => {
+      setSelectedAttachment(attachment);
+      setSelectedIndex(index);
+      setShowMediaViewer(true);
+      onViewAttachment?.(attachment, index);
+    },
+    [onViewAttachment],
+  );
 
-  const handleRecordingComplete = useCallback((attachment: MediaAttachment) => {
-    updateState({
-      attachments: [...state.attachments, attachment],
-    });
-    setShowVoiceRecorder(false);
-  }, [state.attachments, updateState]);
+  const handleRecordingComplete = useCallback(
+    (filePath: string, duration: number) => {
+      const attachment: MediaAttachment = {
+        id: `voice_${Date.now()}`,
+        uri: filePath,
+        type: MediaType.AUDIO,
+        name: `Voice Recording ${new Date().toLocaleTimeString()}`,
+        duration,
+      };
+      updateState({
+        attachments: [...state.attachments, attachment],
+      });
+      setShowVoiceRecorder(false);
+    },
+    [state.attachments, updateState],
+  );
 
   const getMediaIcon = (type: MediaType) => {
     switch (type) {
@@ -167,8 +165,6 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
         return 'video';
       case MediaType.AUDIO:
         return 'music-note';
-      
-        return 'brush';
       default:
         return 'file';
     }
@@ -202,7 +198,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
         >
           Add Images
         </Button>
-        
+
         <Button
           mode="outlined"
           icon="video"
@@ -212,7 +208,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
         >
           Add Videos
         </Button>
-        
+
         <Button
           mode="outlined"
           icon="camera"
@@ -222,7 +218,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
         >
           Camera
         </Button>
-        
+
         <Button
           mode="outlined"
           icon="microphone"
@@ -255,50 +251,39 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
       {/* Attachments List */}
       {state.attachments.length > 0 && (
         <View style={styles.attachmentsContainer}>
-          <Text style={styles.sectionTitle}>
-            Attachments ({state.attachments.length})
-          </Text>
-          
+          <Text style={styles.sectionTitle}>Attachments ({state.attachments.length})</Text>
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.attachmentsList}>
               {state.attachments.map((attachment, index) => (
                 <Card key={attachment.id} style={styles.attachmentCard}>
-                  <Card.Cover
-                    source={{ uri: attachment.thumbnailUri || attachment.uri }}
-                    style={styles.attachmentImage}
-                    onPress={() => handleAttachmentPress(attachment, index)}
-                  />
-                  
+                  <TouchableOpacity onPress={() => handleAttachmentPress(attachment, index)}>
+                    <Card.Cover
+                      source={{ uri: attachment.thumbnailUri || attachment.uri }}
+                      style={styles.attachmentImage}
+                    />
+                  </TouchableOpacity>
+
                   <Card.Content style={styles.attachmentContent}>
                     <Text style={styles.attachmentName} numberOfLines={1}>
                       {attachment.name}
                     </Text>
-                    
+
                     <View style={styles.attachmentMeta}>
                       <Chip icon={getMediaIcon(attachment.type)} compact>
                         {attachment.type}
                       </Chip>
-                      
-                      {attachment.size && (
-                        <Text style={styles.metaText}>
-                          {formatFileSize(attachment.size)}
-                        </Text>
-                      )}
-                      
+
+                      {attachment.size && <Text style={styles.metaText}>{formatFileSize(attachment.size)}</Text>}
+
                       {attachment.duration && (
-                        <Text style={styles.metaText}>
-                          {formatDuration(attachment.duration)}
-                        </Text>
+                        <Text style={styles.metaText}>{formatDuration(attachment.duration)}</Text>
                       )}
                     </View>
                   </Card.Content>
-                  
+
                   <Card.Actions style={styles.attachmentActions}>
-                    <IconButton
-                      icon="delete"
-                      size={16}
-                      onPress={() => removeAttachment(attachment, index)}
-                    />
+                    <IconButton icon="delete" size={16} onPress={() => removeAttachment(attachment, index)} />
                   </Card.Actions>
                 </Card>
               ))}
@@ -315,10 +300,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
           contentContainerStyle={styles.modalContainer}
         >
           {selectedAttachment && (
-            <MediaViewer
-              attachment={selectedAttachment}
-              onClose={() => setShowMediaViewer(false)}
-            />
+            <MediaViewer attachment={selectedAttachment} onClose={() => setShowMediaViewer(false)} />
           )}
         </Modal>
       </Portal>
@@ -331,9 +313,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({
           contentContainerStyle={styles.modalContainer}
         >
           <Surface style={styles.modalSurface}>
-            <VoiceRecorder
-              onRecordingComplete={handleRecordingComplete}
-            />
+            <VoiceRecorder onRecordingComplete={handleRecordingComplete} onCancel={() => setShowVoiceRecorder(false)} />
           </Surface>
         </Modal>
       </Portal>
@@ -433,4 +413,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MediaAttachmentManager; 
+export default MediaAttachmentManager;

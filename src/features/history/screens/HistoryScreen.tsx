@@ -1,19 +1,14 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
 import { TransactionService } from '@features/transactions/services/transactionService';
 import { updateInvestment, fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
 import { FlashList } from '@shopify/flash-list';
-import { fetchRegistrations, fetchStudents, deleteRegistrationWithTransactions } from '@features/wtregistry/services/wtRegistry';
+import {
+  fetchRegistrations,
+  fetchStudents,
+  deleteRegistrationWithTransactions,
+} from '@features/wtregistry/services/wtRegistry';
 import { HistoryItem, HistoryItemType } from '@features/history/types/HistoryItem';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { WTRegistration } from '@features/wtregistry/types/WTRegistry';
@@ -40,11 +35,18 @@ function transactionToHistoryItem(tx: Transaction): HistoryItem {
 }
 
 function registrationToHistoryItem(reg: WTRegistration, studentName: string): HistoryItem {
+  // Convert date to ISO string, handling both Date and string types
+  const getDateString = (date?: Date | string): string => {
+    if (!date) return new Date().toISOString();
+    if (typeof date === 'string') return date;
+    return date.toISOString();
+  };
+
   return {
     id: reg.id.toString(),
     title: `Registration: ${studentName}`,
     description: 'Course Registration',
-    date: reg.startDate ? reg.startDate.toISOString() : new Date().toISOString(),
+    date: getDateString(reg.startDate),
     amount: reg.amount,
     type: 'Wing Tzun',
     imageUri: reg.attachmentUri,
@@ -82,15 +84,17 @@ export const HistoryScreen: React.FC = () => {
         fetchStudents(),
       ]);
       const studentMap: Record<string, string> = {};
-      students.forEach(s => {
+      students.forEach((s) => {
         studentMap[s.id.toString()] = s.name;
       });
       const txItems = transactions.map(transactionToHistoryItem);
-      const regItems = registrations.map(reg =>
-        registrationToHistoryItem(reg, studentMap[reg.studentId.toString()] || 'Unknown')
+      const regItems = registrations.map((reg) =>
+        registrationToHistoryItem(reg, studentMap[reg.studentId.toString()] || 'Unknown'),
       );
       const invItems = investments.map(investmentToHistoryItem);
-      const allItems = [...txItems, ...invItems, ...regItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const allItems = [...txItems, ...invItems, ...regItems].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
       setHistoryItems(allItems);
     } catch (error) {
       setHistoryItems([]);
@@ -104,7 +108,7 @@ export const HistoryScreen: React.FC = () => {
   }, [loadHistory]);
 
   const filteredItems = useMemo(() => {
-    return historyItems.filter(item => {
+    return historyItems.filter((item) => {
       // Search filter
       const matchesSearch =
         !search ||
@@ -112,56 +116,49 @@ export const HistoryScreen: React.FC = () => {
         item.description.toLowerCase().includes(search.toLowerCase()) ||
         (item.amount !== undefined && item.amount.toString().includes(search));
       // Type filter
-      const matchesType =
-        selectedFilters.length === 0 || selectedFilters.includes(item.itemType);
+      const matchesType = selectedFilters.length === 0 || selectedFilters.includes(item.itemType);
       return matchesSearch && matchesType;
     });
   }, [historyItems, search, selectedFilters]);
 
   const toggleFilter = (type: HistoryItemType) => {
-    setSelectedFilters(filters =>
-      filters.includes(type)
-        ? filters.filter(f => f !== type)
-        : [...filters, type]
-    );
+    setSelectedFilters((filters) => (filters.includes(type) ? filters.filter((f) => f !== type) : [...filters, type]));
   };
 
   const handleDelete = async (item: HistoryItem) => {
-    Alert.alert(
-      'Delete',
-      `Are you sure you want to delete this item?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive', onPress: async () => {
-            try {
-              if (item.itemType === 'TRANSACTION_INCOME' || item.itemType === 'TRANSACTION_EXPENSE') {
-                // Revert transaction effect on investment if linked
-                const txs = await fetchTransactions(1000);
-                const tx = txs.find(t => t.id === item.id);
-                if (tx && (tx as any).relatedInvestmentId) {
-                  const invs = await fetchInvestments(1000);
-                  const inv = invs.find(i => i.id === (tx as any).relatedInvestmentId);
-                  if (inv) {
-                    const amount = tx.amount;
-                    const adjustedAmount = tx.isIncome ? (inv.amount + amount) : (inv.amount - amount);
-                    await updateInvestment({ ...inv, amount: adjustedAmount, currentValue: adjustedAmount });
-                  }
+    Alert.alert('Delete', `Are you sure you want to delete this item?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (item.itemType === 'TRANSACTION_INCOME' || item.itemType === 'TRANSACTION_EXPENSE') {
+              // Revert transaction effect on investment if linked
+              const txs = await fetchTransactions(1000);
+              const tx = txs.find((t) => t.id === item.id);
+              if (tx && (tx as any).relatedInvestmentId) {
+                const invs = await fetchInvestments(1000);
+                const inv = invs.find((i) => i.id === (tx as any).relatedInvestmentId);
+                if (inv) {
+                  const amount = tx.amount;
+                  const adjustedAmount = tx.isIncome ? inv.amount + amount : inv.amount - amount;
+                  await updateInvestment({ ...inv, amount: adjustedAmount, currentValue: adjustedAmount });
                 }
-                await TransactionService.deleteTransaction(item.id);
-              } else if (item.itemType === 'INVESTMENT') {
-                await deleteInvestment(item.id);
-              } else if (item.itemType === 'REGISTRATION') {
-                await deleteRegistrationWithTransactions(Number(item.id));
               }
-              loadHistory();
-            } catch (e) {
-              Alert.alert('Error', 'Failed to delete item.');
+              await TransactionService.deleteTransaction(item.id);
+            } else if (item.itemType === 'INVESTMENT') {
+              await deleteInvestment(item.id);
+            } else if (item.itemType === 'REGISTRATION') {
+              await deleteRegistrationWithTransactions(Number(item.id));
             }
+            loadHistory();
+          } catch (e) {
+            Alert.alert('Error', 'Failed to delete item.');
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const renderItem = ({ item }: { item: HistoryItem }) => (
@@ -174,20 +171,20 @@ export const HistoryScreen: React.FC = () => {
                 item.itemType === 'TRANSACTION_INCOME'
                   ? 'arrow-down'
                   : item.itemType === 'TRANSACTION_EXPENSE'
-                  ? 'arrow-up'
-                  : item.itemType === 'INVESTMENT'
-                  ? 'trending-up'
-                  : 'school'
+                    ? 'arrow-up'
+                    : item.itemType === 'INVESTMENT'
+                      ? 'trending-up'
+                      : 'school'
               }
               size={24}
               color={
                 item.itemType === 'TRANSACTION_INCOME'
                   ? theme.income
                   : item.itemType === 'TRANSACTION_EXPENSE'
-                  ? theme.expense
-                  : item.itemType === 'INVESTMENT'
-                  ? theme.investment
-                  : theme.registration
+                    ? theme.expense
+                    : item.itemType === 'INVESTMENT'
+                      ? theme.investment
+                      : theme.registration
               }
             />
           </View>
@@ -202,10 +199,10 @@ export const HistoryScreen: React.FC = () => {
                 item.itemType === 'TRANSACTION_INCOME'
                   ? { color: theme.income }
                   : item.itemType === 'TRANSACTION_EXPENSE'
-                  ? { color: theme.expense }
-                  : item.itemType === 'INVESTMENT'
-                  ? { color: theme.investment }
-                  : { color: theme.registration },
+                    ? { color: theme.expense }
+                    : item.itemType === 'INVESTMENT'
+                      ? { color: theme.investment }
+                      : { color: theme.registration },
               ]}
             >
               {new Intl.NumberFormat('tr-TR', {
@@ -245,13 +242,15 @@ export const HistoryScreen: React.FC = () => {
       </View>
       {/* Filter Chips */}
       <View style={styles.filterRow}>
-        {FILTERS.map(f => (
+        {FILTERS.map((f) => (
           <TouchableOpacity
             key={f.type}
             style={[styles.chip, { backgroundColor: selectedFilters.includes(f.type) ? theme.primary : theme.chip }]}
             onPress={() => toggleFilter(f.type)}
           >
-            <Text style={[styles.chipText, { color: selectedFilters.includes(f.type) ? theme.onPrimary : theme.chipText }]}>
+            <Text
+              style={[styles.chipText, { color: selectedFilters.includes(f.type) ? theme.onPrimary : theme.chipText }]}
+            >
               {f.label}
             </Text>
           </TouchableOpacity>
@@ -260,7 +259,7 @@ export const HistoryScreen: React.FC = () => {
       {/* History List */}
       <FlashList
         data={filteredItems}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadHistory} />}
         ListEmptyComponent={

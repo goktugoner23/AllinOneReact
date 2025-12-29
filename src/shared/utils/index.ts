@@ -2,7 +2,8 @@
 export * from './formatting';
 export * from './validation';
 export * from './constants';
-export * from './formatters';
+// Note: formatters.ts has overlapping exports with formatting.ts - only export unique functions
+export { formatCompactNumber, stripHtmlTags } from './formatters';
 export * from './performanceMonitor';
 export * from './logger';
 export * from './documentPicker';

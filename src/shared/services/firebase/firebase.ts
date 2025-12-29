@@ -30,17 +30,13 @@ const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
 });
 const storage = getFirebaseStorage(app);
-import {
-  Timestamp,
-} from "firebase/firestore";
+import { Timestamp } from 'firebase/firestore';
 
 // Get Firestore database instance
 export const getDb = () => db;
 
 // Get Firebase Storage instance
 export const getStorageInstance = () => storage;
-
-
 
 // Helper function to convert Date to Firestore Timestamp
 export const dateToTimestamp = (date: Date): Timestamp => {

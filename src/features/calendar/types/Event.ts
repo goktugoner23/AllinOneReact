@@ -43,4 +43,4 @@ export const serializableToEvent = (serializableEvent: SerializableEvent): Event
   date: new Date(serializableEvent.date),
   endDate: serializableEvent.endDate ? new Date(serializableEvent.endDate) : undefined,
   type: serializableEvent.type,
-}); 
+});

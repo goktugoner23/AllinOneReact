@@ -21,37 +21,20 @@ const InstagramHeader: React.FC<InstagramHeaderProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.titleContainer}>
-        <Ionicons 
-          name="logo-instagram" 
-          size={24} 
-          color={theme.colors.primary} 
-          style={styles.icon}
-        />
+        <Ionicons name="logo-instagram" size={24} color={theme.colors.primary} style={styles.icon} />
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text style={[styles.subtitle, { color: theme.colors.onSurface }]}>
-              {subtitle}
-            </Text>
-          )}
+          <Text style={[styles.title, { color: theme.colors.onSurface }]}>{title}</Text>
+          {subtitle && <Text style={[styles.subtitle, { color: theme.colors.onSurface }]}>{subtitle}</Text>}
         </View>
       </View>
-      
+
       {showHealthStatus && (
         <Chip
           mode="outlined"
           compact
           icon={isHealthy ? 'check-circle' : 'alert-circle'}
-          style={[
-            styles.healthChip,
-            { borderColor: isHealthy ? '#4CAF50' : '#F44336' }
-          ]}
-          textStyle={[
-            styles.healthText,
-            { color: isHealthy ? '#4CAF50' : '#F44336' }
-          ]}
+          style={[styles.healthChip, { borderColor: isHealthy ? '#4CAF50' : '#F44336' }]}
+          textStyle={[styles.healthText, { color: isHealthy ? '#4CAF50' : '#F44336' }]}
         >
           {isHealthy ? 'Online' : 'Offline'}
         </Chip>

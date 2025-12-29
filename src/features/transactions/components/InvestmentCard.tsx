@@ -25,34 +25,18 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
       <Card.Title
         title={investment.name}
         subtitle={investment.type}
-        right={props => (
+        right={(props) => (
           <>
-            <IconButton
-              icon="pencil"
-              onPress={() => onEditClick(investment)}
-              {...props}
-            />
-            <IconButton
-              icon="delete"
-              onPress={() => onDeleteClick(investment)}
-              {...props}
-            />
-            <IconButton
-              icon="cash-refund"
-              onPress={() => onLiquidateClick(investment)}
-              {...props}
-            />
+            <IconButton icon="pencil" onPress={() => onEditClick(investment)} {...props} />
+            <IconButton icon="delete" onPress={() => onDeleteClick(investment)} {...props} />
+            <IconButton icon="cash-refund" onPress={() => onLiquidateClick(investment)} {...props} />
           </>
         )}
       />
       <Card.Content>
         <Text variant="bodyMedium">Amount: {formatCurrency(investment.amount)}</Text>
-        {investment.description ? (
-          <Text variant="bodySmall">{investment.description}</Text>
-        ) : null}
-        <Text variant="bodySmall">
-          Date: {new Date(investment.date).toLocaleDateString()}
-        </Text>
+        {investment.description ? <Text variant="bodySmall">{investment.description}</Text> : null}
+        <Text variant="bodySmall">Date: {new Date(investment.date).toLocaleDateString()}</Text>
         <Text variant="bodySmall">Profit/Loss: {formatCurrency(investment.profitLoss || 0)}</Text>
         <Text variant="bodySmall">Current Value: {formatCurrency(investment.currentValue || 0)}</Text>
       </Card.Content>

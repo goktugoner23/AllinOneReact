@@ -7,7 +7,6 @@ import {
   Alert,
   RefreshControl,
   Modal,
-  TextInput,
   ScrollView,
   Image,
   Platform,
@@ -16,11 +15,29 @@ import {
   Dimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Card, Button, Chip, Divider, Portal, Dialog, useTheme, Switch } from 'react-native-paper';
+import { Portal, Dialog, useTheme, Switch } from 'react-native-paper';
 import { AddFab } from '@shared/components';
+import {
+  Card as UICard,
+  CardContent,
+  Button,
+  EmptyState,
+  Avatar,
+  IconButton,
+  AlertDialog,
+  Input,
+} from '@shared/components/ui';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '@features/wtregistry/services/wtRegistry';
-import { fetchRegistrations, addRegistration, updateRegistration, deleteRegistration, deleteRegistrationWithTransactions, updateRegistrationPaymentStatus, addRegistrationWithTransaction } from '@features/wtregistry/services/wtRegistry';
+import {
+  fetchRegistrations,
+  addRegistration,
+  updateRegistration,
+  deleteRegistration,
+  deleteRegistrationWithTransactions,
+  updateRegistrationPaymentStatus,
+  addRegistrationWithTransaction,
+} from '@features/wtregistry/services/wtRegistry';
 import { WTStudent, WTRegistration } from '@features/wtregistry/types/WTRegistry';
 // import DocumentPicker, { isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 import { pickDocument, isValidReceiptFile } from '@shared/utils/documentPicker';
@@ -50,17 +67,14 @@ const FullscreenImage: React.FC<FullscreenImageProps> = ({ uri, onClose }) => {
 
   const handleTouch = (evt: any) => {
     const touches = evt.nativeEvent.touches;
-    
+
     if (touches.length === 2) {
       // Two finger pinch
       const touch1 = touches[0];
       const touch2 = touches[1];
-      
-      const distance = Math.sqrt(
-        Math.pow(touch2.pageX - touch1.pageX, 2) + 
-        Math.pow(touch2.pageY - touch1.pageY, 2)
-      );
-      
+
+      const distance = Math.sqrt(Math.pow(touch2.pageX - touch1.pageX, 2) + Math.pow(touch2.pageY - touch1.pageY, 2));
+
       if (!isPinching) {
         // Start of pinch gesture
         setInitialDistance(distance);
@@ -71,7 +85,7 @@ const FullscreenImage: React.FC<FullscreenImageProps> = ({ uri, onClose }) => {
         const newScale = Math.max(1, Math.min(3, scaleChange));
         setScale(newScale);
         setIsZoomed(newScale > 1);
-        
+
         // No position reset needed since we removed panning
       }
     } else if (touches.length === 1) {
@@ -117,20 +131,18 @@ const FullscreenImage: React.FC<FullscreenImageProps> = ({ uri, onClose }) => {
       >
         <View
           style={{
-            transform: [
-              { scale },
-            ],
+            transform: [{ scale }],
           }}
         >
-                      <Image
-              source={{ uri }}
-              style={{
-                width: Dimensions.get('window').width * 0.9,
-                height: Dimensions.get('window').height * 0.8,
-                resizeMode: 'contain',
-              }}
-            />
-          </View>
+          <Image
+            source={{ uri }}
+            style={{
+              width: Dimensions.get('window').width * 0.9,
+              height: Dimensions.get('window').height * 0.8,
+              resizeMode: 'contain',
+            }}
+          />
+        </View>
       </View>
     </View>
   );
@@ -202,26 +214,22 @@ const StudentsTab: React.FC = () => {
   };
 
   const handleDeleteStudent = async (student: WTStudent) => {
-    Alert.alert(
-      'Delete Student',
-      `Are you sure you want to delete ${student.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteStudent(student.id);
-              loadStudents();
-            } catch (error) {
-              console.error('Error deleting student:', error);
-              Alert.alert('Error', 'Failed to delete student');
-            }
-          },
+    Alert.alert('Delete Student', `Are you sure you want to delete ${student.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteStudent(student.id);
+            loadStudents();
+          } catch (error) {
+            console.error('Error deleting student:', error);
+            Alert.alert('Error', 'Failed to delete student');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Contact action handlers
@@ -285,7 +293,10 @@ const StudentsTab: React.FC = () => {
   };
 
   const renderStudent = ({ item }: { item: WTStudent }) => (
-    <TouchableOpacity
+    <UICard
+      style={styles.card}
+      variant="elevated"
+      padding="sm"
       onPress={() => {
         setSelectedStudent(item);
         setShowDetailModal(true);
@@ -294,67 +305,59 @@ const StudentsTab: React.FC = () => {
         setSelectedStudent(item);
         setShowOptionsModal(true);
       }}
-      activeOpacity={0.7}
     >
-      <Card style={styles.card} mode="elevated">
-        <Card.Content style={{ padding: 8 }}>
-          <View style={styles.studentHeader}>
-                            <View style={styles.studentPhotoContainer}>
-                  {item.photoUri ? (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedStudent(item);
-                        setShowFullscreenPhoto(true);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Image source={{ uri: item.photoUri }} style={styles.studentPhoto} />
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={styles.defaultPhoto}>
-                      <Ionicons name="person" size={24} color="#666" />
-                    </View>
-                  )}
-                </View>
-            <View style={styles.studentInfo}>
-              <Text style={styles.studentName}>{item.name}</Text>
-              {item.phoneNumber && (
-                <Text style={styles.studentDetail}>{item.phoneNumber}</Text>
-              )}
-            </View>
-            <View style={[styles.statusIndicator, { backgroundColor: item.isActive ? '#4CAF50' : '#F44336' }]} />
-          </View>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
+      <View style={styles.studentHeader}>
+        <TouchableOpacity
+          style={styles.studentPhotoContainer}
+          onPress={() => {
+            if (item.photoUri) {
+              setSelectedStudent(item);
+              setShowFullscreenPhoto(true);
+            }
+          }}
+          activeOpacity={item.photoUri ? 0.7 : 1}
+        >
+          <Avatar source={item.photoUri ? { uri: item.photoUri } : undefined} name={item.name} size="lg" />
+        </TouchableOpacity>
+        <View style={styles.studentInfo}>
+          <Text style={[styles.studentName, { color: theme.colors.onSurface }]}>{item.name}</Text>
+          {item.phoneNumber && (
+            <Text style={[styles.studentDetail, { color: theme.colors.onSurfaceVariant }]}>{item.phoneNumber}</Text>
+          )}
+        </View>
+        <View
+          style={[
+            styles.statusIndicator,
+            { backgroundColor: item.isActive ? theme.colors.primary : theme.colors.error },
+          ]}
+        />
+      </View>
+    </UICard>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlashList
         data={students}
         renderItem={renderStudent}
         keyExtractor={(item) => item.id.toString()}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No students yet</Text>
-            <Text style={styles.emptySubtext}>Add your first student to get started</Text>
-          </View>
+          <EmptyState
+            icon="people-outline"
+            title="No students yet"
+            description="Add your first student to get started"
+            actionLabel="Add Student"
+            onAction={() => setShowAddDialog(true)}
+          />
         }
         estimatedItemSize={110}
       />
-      
+
       <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
 
       {/* Add Student Dialog */}
-      <AddStudentDialog
-        visible={showAddDialog}
-        onDismiss={() => setShowAddDialog(false)}
-        onSave={handleAddStudent}
-      />
+      <AddStudentDialog visible={showAddDialog} onDismiss={() => setShowAddDialog(false)} onSave={handleAddStudent} />
 
       {/* Edit Student Dialog */}
       {selectedStudent && (
@@ -371,8 +374,8 @@ const StudentsTab: React.FC = () => {
 
       {/* Detailed Student Modal */}
       <Portal>
-        <Dialog 
-          visible={showDetailModal} 
+        <Dialog
+          visible={showDetailModal}
           onDismiss={() => setShowDetailModal(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
@@ -388,13 +391,11 @@ const StudentsTab: React.FC = () => {
                   }}
                   style={{ marginBottom: 16 }}
                 >
-                  {selectedStudent.photoUri ? (
-                    <Image source={{ uri: selectedStudent.photoUri }} style={{ width: 100, height: 100, borderRadius: 50 }} />
-                  ) : (
-                    <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
-                      <Ionicons name="person" size={60} color="#666" />
-                    </View>
-                  )}
+                  <Avatar
+                    source={selectedStudent.photoUri ? { uri: selectedStudent.photoUri } : undefined}
+                    name={selectedStudent.name}
+                    size="xl"
+                  />
                 </TouchableOpacity>
 
                 {/* Name */}
@@ -410,39 +411,38 @@ const StudentsTab: React.FC = () => {
                   {selectedStudent.instagram && (
                     <Text style={{ marginBottom: 8 }}>Instagram: @{selectedStudent.instagram}</Text>
                   )}
-                  <Text style={{ marginBottom: 8 }}>
-                    Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
-                  </Text>
-                  <Text style={{ marginBottom: 8 }}>
-                    Registration: Registered
-                  </Text>
+                  <Text style={{ marginBottom: 8 }}>Status: {selectedStudent.isActive ? 'Active' : 'Passive'}</Text>
+                  <Text style={{ marginBottom: 8 }}>Registration: Registered</Text>
                 </View>
 
                 {/* Action Buttons */}
                 <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
                   {selectedStudent.phoneNumber && (
-                    <TouchableOpacity
-                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#4CAF50', justifyContent: 'center', alignItems: 'center' }}
+                    <IconButton
+                      icon="call"
+                      size="lg"
+                      variant="filled"
+                      style={{ backgroundColor: '#4CAF50' }}
                       onPress={() => handleCall(selectedStudent.phoneNumber!)}
-                    >
-                      <Ionicons name="call" size={24} color="white" />
-                    </TouchableOpacity>
+                    />
                   )}
                   {selectedStudent.phoneNumber && (
-                    <TouchableOpacity
-                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#25D366', justifyContent: 'center', alignItems: 'center' }}
+                    <IconButton
+                      icon="logo-whatsapp"
+                      size="lg"
+                      variant="filled"
+                      style={{ backgroundColor: '#25D366' }}
                       onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
-                    >
-                      <Ionicons name="logo-whatsapp" size={24} color="white" />
-                    </TouchableOpacity>
+                    />
                   )}
                   {selectedStudent.instagram && (
-                    <TouchableOpacity
-                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#E4405F', justifyContent: 'center', alignItems: 'center' }}
+                    <IconButton
+                      icon="logo-instagram"
+                      size="lg"
+                      variant="filled"
+                      style={{ backgroundColor: '#E4405F' }}
                       onPress={() => handleInstagram(selectedStudent.instagram!)}
-                    >
-                      <Ionicons name="logo-instagram" size={24} color="white" />
-                    </TouchableOpacity>
+                    />
                   )}
                 </View>
               </View>
@@ -453,30 +453,21 @@ const StudentsTab: React.FC = () => {
 
       {/* Photo Options Dialog */}
       <Portal>
-        <Dialog 
-          visible={showPhotoOptions} 
+        <Dialog
+          visible={showPhotoOptions}
           onDismiss={() => setShowPhotoOptions(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
           <Dialog.Title>Photo Options</Dialog.Title>
           <Dialog.Content>
             <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-              <TouchableOpacity 
-                style={styles.photoOptionButton}
-                onPress={handleViewPhoto}
-              >
+              <TouchableOpacity style={styles.photoOptionButton} onPress={handleViewPhoto}>
                 <Text style={styles.photoOptionText}>View Photo</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.photoOptionButton}
-                onPress={handleChangePhoto}
-              >
+              <TouchableOpacity style={styles.photoOptionButton} onPress={handleChangePhoto}>
                 <Text style={styles.photoOptionText}>Change Photo</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.photoOptionButton}
-                onPress={handleRemovePhoto}
-              >
+              <TouchableOpacity style={styles.photoOptionButton} onPress={handleRemovePhoto}>
                 <Text style={[styles.photoOptionText, { color: theme.colors.error }]}>Remove Photo</Text>
               </TouchableOpacity>
             </View>
@@ -496,41 +487,41 @@ const StudentsTab: React.FC = () => {
 
       {/* Student Options Modal */}
       <Portal>
-        <Dialog 
-          visible={showOptionsModal} 
+        <Dialog
+          visible={showOptionsModal}
           onDismiss={() => setShowOptionsModal(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
           <Dialog.Title>Student Options</Dialog.Title>
           <Dialog.Content>
-            <Text>What would you like to do with {selectedStudent?.name}?</Text>
+            <Text style={{ color: theme.colors.onSurface }}>
+              What would you like to do with {selectedStudent?.name}?
+            </Text>
           </Dialog.Content>
-          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-            <Button 
+          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+            <Button
+              variant="outline"
+              fullWidth
               onPress={() => {
                 setShowOptionsModal(false);
                 setShowEditDialog(true);
               }}
-              style={{ marginBottom: 8 }}
             >
               Edit
             </Button>
-            <Button 
+            <Button
+              variant="destructive"
+              fullWidth
               onPress={() => {
                 setShowOptionsModal(false);
                 if (selectedStudent) {
                   handleDeleteStudent(selectedStudent);
                 }
               }}
-              textColor="red"
-              style={{ marginBottom: 8 }}
             >
               Delete
             </Button>
-            <Button 
-              onPress={() => setShowOptionsModal(false)}
-              textColor="red"
-            >
+            <Button variant="ghost" fullWidth onPress={() => setShowOptionsModal(false)}>
               Cancel
             </Button>
           </Dialog.Actions>
@@ -542,6 +533,7 @@ const StudentsTab: React.FC = () => {
 
 // Register Tab with File Attachments
 const RegisterTab: React.FC = () => {
+  const theme = useTheme();
   const [registrations, setRegistrations] = useState<WTRegistration[]>([]);
   const [students, setStudents] = useState<WTStudent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -558,16 +550,24 @@ const RegisterTab: React.FC = () => {
 
   // Month names array like in Kotlin app
   const monthNames = [
-    "All Months", "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    'All Months',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   const loadData = async () => {
     try {
-      const [regData, studentsData] = await Promise.all([
-        fetchRegistrations(),
-        fetchStudents()
-      ]);
+      const [regData, studentsData] = await Promise.all([fetchRegistrations(), fetchStudents()]);
       setRegistrations(regData);
       setStudents(studentsData);
     } catch (error) {
@@ -584,7 +584,7 @@ const RegisterTab: React.FC = () => {
     if (selectedMonth === null) {
       return registrations;
     } else {
-      return registrations.filter(registration => {
+      return registrations.filter((registration) => {
         if (registration.startDate) {
           const startDate = new Date(registration.startDate);
           // selectedMonth is 1-based (1 = January), getMonth() is 0-based (0 = January)
@@ -634,7 +634,7 @@ const RegisterTab: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!selectedRegistration) return;
-    
+
     try {
       await deleteRegistrationWithTransactions(selectedRegistration.id);
       setShowDeleteDialog(false);
@@ -647,21 +647,20 @@ const RegisterTab: React.FC = () => {
   };
 
   const getStudentName = (studentId: number) => {
-    const student = students.find(s => s.id === studentId);
+    const student = students.find((s) => s.id === studentId);
     return student?.name || 'Unknown Student';
   };
 
   const handleViewAttachment = async (attachmentUri: string) => {
     try {
       setIsDownloading(true);
-      
+
       // For now, use a simple approach that works with React Native
       // This will open the file URL in the device's default browser or app
       const fileName = attachmentUri.split('/').pop() || 'file';
-      
+
       // Open the file directly without any confirmation
       await Linking.openURL(attachmentUri);
-      
     } catch (error) {
       console.error('Error handling attachment:', error);
       Alert.alert('Error', 'Failed to open file. Please try again.');
@@ -683,9 +682,10 @@ const RegisterTab: React.FC = () => {
   };
 
   const renderRegistration = ({ item }: { item: WTRegistration }) => (
-    <Card 
-      style={styles.card} 
-      mode="elevated"
+    <UICard
+      style={styles.card}
+      variant="elevated"
+      padding="md"
       onPress={() => {
         setSelectedRegistration(item);
         setShowDetailsDialog(true);
@@ -695,229 +695,256 @@ const RegisterTab: React.FC = () => {
         setShowContextMenu(true);
       }}
     >
-      <Card.Content style={{ padding: 12 }}>
-        {/* Header Row: Student Name and Status Chip */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginRight: 8 }}>
-            {getStudentName(item.studentId)}
-          </Text>
-          <TouchableOpacity
-            onPress={() => handlePaymentStatusToggle(item)}
-            style={{ 
-              backgroundColor: item.isPaid ? '#4CAF50' : '#FF9800',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-              alignSelf: 'flex-start'
+      {/* Header Row: Student Name and Status Chip */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginRight: 8, color: theme.colors.onSurface }}>
+          {getStudentName(item.studentId)}
+        </Text>
+        <TouchableOpacity
+          onPress={() => handlePaymentStatusToggle(item)}
+          style={{
+            backgroundColor: item.isPaid ? theme.colors.primary : theme.colors.tertiary,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 16,
+            alignSelf: 'flex-start',
+          }}
+        >
+          <Text
+            style={{
+              color: item.isPaid ? theme.colors.onPrimary : theme.colors.onTertiary,
+              fontSize: 12,
+              fontWeight: 'bold',
             }}
           >
-            <Text style={{ 
-              color: 'white', 
-              fontSize: 12, 
-              fontWeight: 'bold' 
-            }}>
-              {item.isPaid ? 'Paid' : 'Unpaid'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {item.isPaid ? 'Paid' : 'Unpaid'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Amount */}
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 4 }}>
-          Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
+      {/* Amount */}
+      <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 4, color: theme.colors.primary }}>
+        Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
+      </Text>
+
+      {/* Date Information */}
+      {item.startDate && (
+        <Text style={{ fontSize: 14, color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>
+          Start: {new Date(item.startDate).toLocaleDateString()}
         </Text>
+      )}
+      {item.endDate && (
+        <Text style={{ fontSize: 14, color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>
+          End: {new Date(item.endDate).toLocaleDateString()}
+        </Text>
+      )}
 
-        {/* Date Information */}
-        {item.startDate && (
-          <Text style={{ fontSize: 14, color: '#666', marginBottom: 2 }}>
-            Start: {new Date(item.startDate).toLocaleDateString()}
-          </Text>
-        )}
-        {item.endDate && (
-          <Text style={{ fontSize: 14, color: '#666', marginBottom: 2 }}>
-            End: {new Date(item.endDate).toLocaleDateString()}
-          </Text>
-        )}
+      {/* Notes */}
+      {item.notes && (
+        <Text style={{ fontSize: 12, fontStyle: 'italic', color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
+          {item.notes}
+        </Text>
+      )}
 
-        {/* Notes */}
-        {item.notes && (
-          <Text style={{ fontSize: 12, fontStyle: 'italic', color: '#888', marginTop: 8 }}>
-            {item.notes}
+      {/* Attachment Indicator */}
+      {item.attachmentUri && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+          <IconButton
+            icon={isDownloading ? 'hourglass' : 'document'}
+            size="sm"
+            variant="ghost"
+            color={isDownloading ? theme.colors.onSurfaceDisabled : theme.colors.primary}
+            onPress={() => handleViewAttachment(item.attachmentUri!)}
+            disabled={isDownloading}
+          />
+          <Text style={{ fontSize: 12, color: theme.colors.onSurfaceVariant, marginLeft: 4 }}>
+            {isDownloading ? 'Opening...' : 'Receipt attached'}
           </Text>
-        )}
-
-        {/* Attachment Indicator */}
-        {item.attachmentUri && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-            <TouchableOpacity
-              onPress={() => handleViewAttachment(item.attachmentUri!)}
-              disabled={isDownloading}
-            >
-              <Ionicons 
-                name={isDownloading ? "hourglass" : "document"} 
-                size={16} 
-                color={isDownloading ? "#999" : "#2196F3"} 
-              />
-            </TouchableOpacity>
-            <Text style={{ fontSize: 12, color: '#666', marginLeft: 4 }}>
-              {isDownloading ? 'Opening...' : 'Receipt attached'}
-            </Text>
-          </View>
-        )}
-      </Card.Content>
-    </Card>
+        </View>
+      )}
+    </UICard>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Filter Section */}
-      <Card style={[styles.card, { marginHorizontal: 16, marginTop: 16, marginBottom: 8 }]} mode="elevated">
-        <Card.Content>
-          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>Filters</Text>
-          
-          {/* Month Filter Dropdown */}
-          <TouchableOpacity
+      <UICard style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 8 }} variant="elevated">
+        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12, color: theme.colors.onSurface }}>
+          Filters
+        </Text>
+
+        {/* Month Filter Dropdown */}
+        <TouchableOpacity
+          style={{
+            borderWidth: 1,
+            borderColor: theme.colors.outline,
+            borderRadius: 12,
+            padding: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: theme.colors.surface,
+          }}
+          onPress={() => setShowMonthPicker(true)}
+        >
+          <Text style={{ color: theme.colors.onSurface }}>{monthNames[selectedMonth || 0]}</Text>
+          <Ionicons name="chevron-down" size={20} color={theme.colors.onSurfaceVariant} />
+        </TouchableOpacity>
+
+        {/* Total Amount Display */}
+        <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.colors.primary }}>Total Amount:</Text>
+          <Text
             style={{
-              borderWidth: 1,
-              borderColor: '#ddd',
-              borderRadius: 4,
-              padding: 12,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'white'
+              fontSize: 18,
+              fontWeight: 'bold',
+              color:
+                totalAmount < 10000
+                  ? theme.colors.error
+                  : totalAmount < 20000
+                    ? theme.colors.tertiary
+                    : theme.colors.primary,
             }}
-            onPress={() => setShowMonthPicker(true)}
           >
-            <Text style={{ color: '#333' }}>
-              {monthNames[selectedMonth || 0]}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#666" />
-          </TouchableOpacity>
-          
-          {/* Total Amount Display */}
-          <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#7C3AED' }}>
-              Total Amount: 
-            </Text>
-            <Text style={{ 
-              fontSize: 18, 
-              fontWeight: 'bold', 
-              color: totalAmount < 10000 ? '#B71C1C' : 
-                     totalAmount < 20000 ? '#FF9800' : '#2E7D32'
-            }}>
-              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
+            {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
+          </Text>
+        </View>
+      </UICard>
 
       <FlashList
         data={filteredRegistrations}
         renderItem={renderRegistration}
         keyExtractor={(item) => item.id.toString()}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              {selectedMonth ? `No registrations in ${monthNames[selectedMonth]}` : 'No registrations yet'}
-            </Text>
-            <Text style={styles.emptySubtext}>
-              {selectedMonth ? 'Try selecting a different month or add a new registration' : 'Add your first registration to get started'}
-            </Text>
-          </View>
+          <EmptyState
+            icon="document-text-outline"
+            title={selectedMonth ? `No registrations in ${monthNames[selectedMonth]}` : 'No registrations yet'}
+            description={
+              selectedMonth
+                ? 'Try selecting a different month or add a new registration'
+                : 'Add your first registration to get started'
+            }
+            actionLabel="Add Registration"
+            onAction={() => setShowAddDialog(true)}
+          />
         }
         estimatedItemSize={120}
       />
-      
+
       <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
 
       {/* Context Menu */}
       <Portal>
-        <Dialog visible={showContextMenu} onDismiss={() => setShowContextMenu(false)} style={{ backgroundColor: 'white' }}>
+        <Dialog
+          visible={showContextMenu}
+          onDismiss={() => setShowContextMenu(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
           <Dialog.Title>Registration Options</Dialog.Title>
           <Dialog.Content>
-            <Text>What would you like to do with this registration?</Text>
+            <Text style={{ color: theme.colors.onSurface }}>What would you like to do with this registration?</Text>
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => {
-              setShowContextMenu(false);
-              setShowEditDialog(true);
-            }}>Edit</Button>
-            <Button onPress={() => {
-              setShowContextMenu(false);
-              handleDeleteRegistration(selectedRegistration!);
-            }} textColor="red">Delete</Button>
-            <Button onPress={() => setShowContextMenu(false)}>Cancel</Button>
+          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+            <Button
+              variant="outline"
+              fullWidth
+              onPress={() => {
+                setShowContextMenu(false);
+                setShowEditDialog(true);
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              fullWidth
+              onPress={() => {
+                setShowContextMenu(false);
+                handleDeleteRegistration(selectedRegistration!);
+              }}
+            >
+              Delete
+            </Button>
+            <Button variant="ghost" fullWidth onPress={() => setShowContextMenu(false)}>
+              Cancel
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       {/* Delete Confirmation Dialog */}
-      <Portal>
-        <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)} style={{ backgroundColor: 'white' }}>
-          <Dialog.Title>Delete Registration</Dialog.Title>
-          <Dialog.Content>
-            <Text>
-              Are you sure you want to delete this registration for {selectedRegistration?.studentName}? 
-              This will also delete any related transactions.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button onPress={confirmDelete} textColor="red">Delete</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <AlertDialog
+        visible={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        title="Delete Registration"
+        description={`Are you sure you want to delete this registration for ${getStudentName(selectedRegistration?.studentId || 0)}? This will also delete any related transactions.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
 
       {/* Details Dialog */}
       <Portal>
-        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)} style={{ backgroundColor: 'white' }}>
+        <Dialog
+          visible={showDetailsDialog}
+          onDismiss={() => setShowDetailsDialog(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
           <Dialog.Title>Registration Details</Dialog.Title>
           <Dialog.Content>
             {selectedRegistration && (
               <View>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: theme.colors.onSurface }}>
                   {getStudentName(selectedRegistration.studentId)}
                 </Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
-                  Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedRegistration.amount)}
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: theme.colors.primary }}>
+                  Amount:{' '}
+                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
+                    selectedRegistration.amount,
+                  )}
                 </Text>
-                <Text style={{ marginBottom: 4 }}>
+                <Text style={{ marginBottom: 4, color: theme.colors.onSurface }}>
                   Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
                 </Text>
-                <Text style={{ marginBottom: 4 }}>
+                <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
                   Payment Date: {new Date(selectedRegistration.paymentDate).toLocaleDateString()}
                 </Text>
                 {selectedRegistration.startDate && (
-                  <Text style={{ marginBottom: 4 }}>
+                  <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
                     Start: {new Date(selectedRegistration.startDate).toLocaleDateString()}
                   </Text>
                 )}
                 {selectedRegistration.endDate && (
-                  <Text style={{ marginBottom: 4 }}>
+                  <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
                     End: {new Date(selectedRegistration.endDate).toLocaleDateString()}
                   </Text>
                 )}
                 {selectedRegistration.notes && (
-                  <Text style={{ marginBottom: 4 }}>
+                  <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
                     Notes: {selectedRegistration.notes}
                   </Text>
                 )}
                 {selectedRegistration.attachmentUri && (
-                  <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ marginBottom: 4 }}>
-                      Receipt: Attached
-                    </Text>
+                  <View
+                    style={{
+                      marginTop: 16,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Text style={{ marginBottom: 4, color: theme.colors.onSurface }}>Receipt: Attached</Text>
                     <Button
-                      mode="outlined"
+                      variant="outline"
+                      size="sm"
+                      loading={isDownloading}
+                      disabled={isDownloading}
                       onPress={() => {
                         setShowDetailsDialog(false);
                         handleViewAttachment(selectedRegistration.attachmentUri!);
                       }}
-                      loading={isDownloading}
-                      disabled={isDownloading}
                     >
                       {isDownloading ? 'Opening...' : 'View Receipt'}
                     </Button>
@@ -926,22 +953,22 @@ const RegisterTab: React.FC = () => {
               </View>
             )}
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDetailsDialog(false)}>Close</Button>
-            <Button 
+          <Dialog.Actions style={{ gap: 8 }}>
+            <Button variant="ghost" onPress={() => setShowDetailsDialog(false)}>
+              Close
+            </Button>
+            <Button
+              variant="primary"
               onPress={() => {
                 setShowDetailsDialog(false);
                 setShowEditDialog(true);
               }}
-              mode="contained"
             >
               Edit
             </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
-
-
 
       {/* Add Registration Dialog */}
       <AddRegistrationDialog
@@ -967,7 +994,11 @@ const RegisterTab: React.FC = () => {
 
       {/* Month Picker Dialog */}
       <Portal>
-        <Dialog visible={showMonthPicker} onDismiss={() => setShowMonthPicker(false)} style={{ backgroundColor: 'white' }}>
+        <Dialog
+          visible={showMonthPicker}
+          onDismiss={() => setShowMonthPicker(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
           <Dialog.Title>Select Month</Dialog.Title>
           <Dialog.Content>
             <ScrollView style={{ maxHeight: 300 }}>
@@ -977,19 +1008,28 @@ const RegisterTab: React.FC = () => {
                   style={{
                     padding: 16,
                     borderBottomWidth: 1,
-                    borderBottomColor: '#eee',
-                    backgroundColor: selectedMonth === index ? '#e3f2fd' : 'transparent'
+                    borderBottomColor: theme.colors.outlineVariant,
+                    backgroundColor:
+                      selectedMonth === index || (index === 0 && selectedMonth === null)
+                        ? theme.colors.primaryContainer
+                        : 'transparent',
                   }}
                   onPress={() => {
                     setSelectedMonth(index === 0 ? null : index);
                     setShowMonthPicker(false);
                   }}
                 >
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: selectedMonth === index ? 'bold' : 'normal',
-                    color: selectedMonth === index ? '#1976d2' : '#000'
-                  }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight:
+                        selectedMonth === index || (index === 0 && selectedMonth === null) ? 'bold' : 'normal',
+                      color:
+                        selectedMonth === index || (index === 0 && selectedMonth === null)
+                          ? theme.colors.onPrimaryContainer
+                          : theme.colors.onSurface,
+                    }}
+                  >
                     {month}
                   </Text>
                 </TouchableOpacity>
@@ -997,17 +1037,15 @@ const RegisterTab: React.FC = () => {
             </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowMonthPicker(false)}>Cancel</Button>
+            <Button variant="ghost" onPress={() => setShowMonthPicker(false)}>
+              Cancel
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
     </View>
   );
 };
-
-
-
-
 
 // Dialog Components
 interface AddStudentDialogProps {
@@ -1065,7 +1103,11 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}>
+      <Dialog
+        visible={visible}
+        onDismiss={onDismiss}
+        style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}
+      >
         <Dialog.Title>Add Student</Dialog.Title>
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
@@ -1083,52 +1125,44 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Name *"
-              placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Phone Number *"
-              placeholderTextColor="#999"
+            <Input label="Name" placeholder="Enter student name" value={name} onChangeText={setName} />
+            <Input
+              label="Phone Number"
+              placeholder="Enter phone number"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
+            <Input
+              label="Email"
+              placeholder="Enter email (optional)"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Instagram"
-              placeholderTextColor="#999"
+            <Input
+              label="Instagram"
+              placeholder="Enter Instagram handle (optional)"
               value={instagram}
               onChangeText={setInstagram}
             />
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              placeholder="Notes"
-              placeholderTextColor="#999"
+            <Input
+              label="Notes"
+              placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={4}
-              scrollEnabled={true}
-              textAlignVertical="top"
             />
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleSave}>Add</Button>
+        <Dialog.Actions style={{ gap: 8 }}>
+          <Button variant="ghost" onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave}>
+            Add
+          </Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>
@@ -1200,7 +1234,7 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
 
   const handleEditDownloadFromInstagram = async () => {
     setShowEditPhotoOptions(false);
-    
+
     if (!instagram.trim()) {
       Alert.alert('Error', 'Please enter an Instagram handle first');
       return;
@@ -1208,10 +1242,10 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
 
     try {
       Alert.alert('Downloading...', 'Fetching profile picture from Instagram');
-      
+
       const { instagramApiService } = await import('@features/instagram/services/InstagramApiService');
       const response = await instagramApiService.getProfilePicture(instagram.trim());
-      
+
       if (response.success && response.data?.imageUrl) {
         setPhotoUri(response.data.imageUrl);
         Alert.alert('Success', 'Instagram profile picture downloaded successfully!');
@@ -1242,15 +1276,19 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
     });
   };
 
-      return (
-      <Portal>
-        <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}>
+  return (
+    <Portal>
+      <Dialog
+        visible={visible}
+        onDismiss={onDismiss}
+        style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}
+      >
         <Dialog.Title>Edit Student</Dialog.Title>
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Photo Section */}
             <View style={styles.photoSection}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   if (photoUri) {
                     setShowEditFullscreenPhoto(true);
@@ -1273,98 +1311,75 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
               </Text>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Name *"
-              placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Phone Number *"
-              placeholderTextColor="#999"
+            <Input label="Name" placeholder="Enter student name" value={name} onChangeText={setName} />
+            <Input
+              label="Phone Number"
+              placeholder="Enter phone number"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
+            <Input
+              label="Email"
+              placeholder="Enter email (optional)"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Instagram"
-              placeholderTextColor="#999"
+            <Input
+              label="Instagram"
+              placeholder="Enter Instagram handle (optional)"
               value={instagram}
               onChangeText={setInstagram}
             />
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              placeholder="Notes"
-              placeholderTextColor="#999"
+            <Input
+              label="Notes"
+              placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={4}
-              scrollEnabled={true}
-              textAlignVertical="top"
             />
-            
+
             {/* Active Status */}
             <View style={styles.switchContainer}>
-              <Text style={styles.switchLabel}>Active</Text>
-              <Switch
-                value={isActive}
-                onValueChange={setIsActive}
-              />
+              <Text style={[styles.switchLabel, { color: theme.colors.onSurface }]}>Active</Text>
+              <Switch value={isActive} onValueChange={setIsActive} />
             </View>
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleSave}>Save</Button>
+        <Dialog.Actions style={{ gap: 8 }}>
+          <Button variant="ghost" onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave}>
+            Save
+          </Button>
         </Dialog.Actions>
       </Dialog>
 
       {/* Edit Photo Options Dialog */}
-      <Dialog 
-        visible={showEditPhotoOptions} 
+      <Dialog
+        visible={showEditPhotoOptions}
         onDismiss={() => setShowEditPhotoOptions(false)}
         style={{ backgroundColor: theme.colors.surface }}
       >
         <Dialog.Title>Photo Options</Dialog.Title>
         <Dialog.Content>
-          <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-            <TouchableOpacity 
-              style={styles.photoOptionButton}
-              onPress={handleEditViewPhoto}
-            >
-              <Text style={styles.photoOptionText}>View Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.photoOptionButton}
-              onPress={handleEditChangePhoto}
-            >
-              <Text style={styles.photoOptionText}>Change Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.photoOptionButton}
-              onPress={handleEditRemovePhoto}
-            >
-              <Text style={[styles.photoOptionText, { color: theme.colors.error }]}>Remove Photo</Text>
-            </TouchableOpacity>
+          <View style={{ alignItems: 'center', paddingVertical: 16, gap: 8 }}>
+            <Button variant="outline" fullWidth onPress={handleEditViewPhoto}>
+              View Photo
+            </Button>
+            <Button variant="outline" fullWidth onPress={handleEditChangePhoto}>
+              Change Photo
+            </Button>
+            <Button variant="destructive" fullWidth onPress={handleEditRemovePhoto}>
+              Remove Photo
+            </Button>
             {instagram.trim() && (
-              <TouchableOpacity 
-                style={styles.photoOptionButton}
-                onPress={handleEditDownloadFromInstagram}
-              >
-                <Text style={[styles.photoOptionText, { color: theme.colors.primary }]}>Download from Instagram</Text>
-              </TouchableOpacity>
+              <Button variant="secondary" fullWidth onPress={handleEditDownloadFromInstagram}>
+                Download from Instagram
+              </Button>
             )}
           </View>
         </Dialog.Content>
@@ -1377,7 +1392,7 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
         animationType="fade"
         onRequestClose={() => setShowEditFullscreenPhoto(false)}
       >
-                 <FullscreenImage uri={photoUri || ''} onClose={() => setShowEditFullscreenPhoto(false)} />
+        <FullscreenImage uri={photoUri || ''} onClose={() => setShowEditFullscreenPhoto(false)} />
       </Modal>
     </Portal>
   );
@@ -1419,17 +1434,14 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
   const handlePickAttachment = async () => {
     try {
       const result = await pickDocument();
-      
+
       if (result && result.uri) {
         const fileName = result.name || result.uri.split('/').pop() || '';
-        
+
         if (isValidReceiptFile(fileName)) {
           setAttachmentUri(result.uri);
         } else {
-          Alert.alert(
-            'Invalid File Type', 
-            'Please select only PDF or image files (JPG, PNG, BMP, WEBP).'
-          );
+          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
         }
       }
     } catch (error) {
@@ -1479,19 +1491,15 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Student Selection */}
             <Text style={styles.label}>Student *</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowStudentPicker(true)}
-            >
+            <TouchableOpacity style={styles.input} onPress={() => setShowStudentPicker(true)}>
               <Text style={{ color: studentId ? '#000' : '#999' }}>
-                {studentId ? students.find(s => s.id === studentId)?.name || 'Unknown Student' : 'Select Student'}
+                {studentId ? students.find((s) => s.id === studentId)?.name || 'Unknown Student' : 'Select Student'}
               </Text>
             </TouchableOpacity>
 
             {/* Amount Field */}
-            <Text style={styles.label}>Amount *</Text>
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Amount"
               placeholder="Enter amount"
               value={amount}
               onChangeText={setAmount}
@@ -1500,45 +1508,29 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
 
             {/* Start Date */}
             <Text style={styles.label}>Start Date</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowStartDatePicker(true)}
-            >
-              <Text style={{ color: startDate ? '#000' : '#999' }}>
-                {startDate || 'Select Start Date'}
-              </Text>
+            <TouchableOpacity style={styles.input} onPress={() => setShowStartDatePicker(true)}>
+              <Text style={{ color: startDate ? '#000' : '#999' }}>{startDate || 'Select Start Date'}</Text>
             </TouchableOpacity>
 
             {/* End Date */}
             <Text style={styles.label}>End Date</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowEndDatePicker(true)}
-            >
-              <Text style={{ color: endDate ? '#000' : '#999' }}>
-                {endDate || 'Select End Date'}
-              </Text>
+            <TouchableOpacity style={styles.input} onPress={() => setShowEndDatePicker(true)}>
+              <Text style={{ color: endDate ? '#000' : '#999' }}>{endDate || 'Select End Date'}</Text>
             </TouchableOpacity>
 
             {/* Notes */}
-            <Text style={styles.label}>Notes</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
+            <Input
+              label="Notes"
               placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={4}
-              scrollEnabled={true}
-              textAlignVertical="top"
             />
 
             {/* Payment Status */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-              <Switch
-                value={isPaid}
-                onValueChange={setIsPaid}
-              />
+              <Switch value={isPaid} onValueChange={setIsPaid} />
               <Text style={{ marginLeft: 8 }}>Paid</Text>
             </View>
 
@@ -1548,25 +1540,25 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
                 <Text style={styles.label}>Receipt</Text>
                 <TouchableOpacity onPress={handlePickAttachment} style={styles.attachmentButton}>
                   <Ionicons name="document" size={24} color="#2196F3" />
-                  <Text style={styles.attachmentText}>
-                    {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
-                  </Text>
+                  <Text style={styles.attachmentText}>{attachmentUri ? 'Change Receipt' : 'Add Receipt'}</Text>
                 </TouchableOpacity>
                 {attachmentUri && (
                   <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: 8 }}>
                     <Ionicons name="close-circle" size={24} color="#FF0000" />
                   </TouchableOpacity>
                 )}
-                {attachmentUri && (
-                  <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>
-                )}
+                {attachmentUri && <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>}
               </View>
             )}
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleSave}>Save</Button>
+        <Dialog.Actions style={{ gap: 8 }}>
+          <Button variant="ghost" onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave}>
+            Save
+          </Button>
         </Dialog.Actions>
       </Dialog>
 
@@ -1591,29 +1583,35 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
       {/* Student Picker */}
       {showStudentPicker && (
         <Portal>
-          <Dialog visible={showStudentPicker} onDismiss={() => setShowStudentPicker(false)} style={{ backgroundColor: 'white' }}>
+          <Dialog
+            visible={showStudentPicker}
+            onDismiss={() => setShowStudentPicker(false)}
+            style={{ backgroundColor: 'white' }}
+          >
             <Dialog.Title>Select Student</Dialog.Title>
             <Dialog.Content>
               <ScrollView style={{ maxHeight: 300 }}>
-                {students.map(student => (
+                {students.map((student) => (
                   <TouchableOpacity
                     key={student.id}
                     style={{
                       padding: 16,
                       borderBottomWidth: 1,
                       borderBottomColor: '#eee',
-                      backgroundColor: studentId === student.id ? '#e3f2fd' : 'transparent'
+                      backgroundColor: studentId === student.id ? '#e3f2fd' : 'transparent',
                     }}
                     onPress={() => {
                       setStudentId(student.id);
                       setShowStudentPicker(false);
                     }}
                   >
-                    <Text style={{
-                      fontSize: 16,
-                      fontWeight: studentId === student.id ? 'bold' : 'normal',
-                      color: studentId === student.id ? '#1976d2' : '#000'
-                    }}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: studentId === student.id ? 'bold' : 'normal',
+                        color: studentId === student.id ? '#1976d2' : '#000',
+                      }}
+                    >
                       {student.name}
                     </Text>
                   </TouchableOpacity>
@@ -1621,7 +1619,9 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
               </ScrollView>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setShowStudentPicker(false)}>Cancel</Button>
+              <Button variant="ghost" onPress={() => setShowStudentPicker(false)}>
+                Cancel
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -1638,11 +1638,27 @@ interface EditRegistrationDialogProps {
   onSave: (registration: WTRegistration) => void;
 }
 
-const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible, registration, students, onDismiss, onSave }) => {
+// Helper to convert string | Date to Date
+const toDateValue = (date: string | Date): Date => {
+  if (typeof date === 'string') return new Date(date);
+  return date;
+};
+
+const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
+  visible,
+  registration,
+  students,
+  onDismiss,
+  onSave,
+}) => {
   const [studentId, setStudentId] = useState(registration.studentId);
   const [amount, setAmount] = useState(registration.amount.toString());
-  const [startDate, setStartDate] = useState(registration.startDate ? registration.startDate.toISOString().split('T')[0] : '');
-  const [endDate, setEndDate] = useState(registration.endDate ? registration.endDate.toISOString().split('T')[0] : '');
+  const [startDate, setStartDate] = useState(
+    registration.startDate ? toDateValue(registration.startDate).toISOString().split('T')[0] : '',
+  );
+  const [endDate, setEndDate] = useState(
+    registration.endDate ? toDateValue(registration.endDate).toISOString().split('T')[0] : '',
+  );
   const [notes, setNotes] = useState(registration.notes || '');
   const [attachmentUri, setAttachmentUri] = useState<string | null>(registration.attachmentUri || null);
   const [isPaid, setIsPaid] = useState(registration.isPaid);
@@ -1666,17 +1682,14 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
   const handlePickAttachment = async () => {
     try {
       const result = await pickDocument();
-      
+
       if (result && result.uri) {
         const fileName = result.name || result.uri.split('/').pop() || '';
-        
+
         if (isValidReceiptFile(fileName)) {
           setAttachmentUri(result.uri);
         } else {
-          Alert.alert(
-            'Invalid File Type', 
-            'Please select only PDF or image files (JPG, PNG, BMP, WEBP).'
-          );
+          Alert.alert('Invalid File Type', 'Please select only PDF or image files (JPG, PNG, BMP, WEBP).');
         }
       }
     } catch (error) {
@@ -1700,7 +1713,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
     try {
       // Check if payment status changed
       const paymentStatusChanged = registration.isPaid !== isPaid;
-      
+
       if (paymentStatusChanged) {
         // Use the new function to handle payment status change
         await updateRegistrationPaymentStatus(
@@ -1715,7 +1728,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
             isPaid,
           },
           isPaid,
-          registration.isPaid
+          registration.isPaid,
         );
         // Close dialog and reload data after payment status change
         onDismiss();
@@ -1745,57 +1758,43 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Student Display (Read-only) */}
-            <Text style={styles.label}>Student *</Text>
-            <Text style={[styles.input, { color: '#666', backgroundColor: '#f5f5f5' }]}>
-              {students.find(s => s.id === studentId)?.name || 'Unknown Student'}
-            </Text>
+            <Input
+              label="Student"
+              value={students.find((s) => s.id === studentId)?.name || 'Unknown Student'}
+              editable={false}
+              variant="filled"
+            />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Amount *"
+            <Input
+              label="Amount"
+              placeholder="Enter amount"
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
             />
 
             <Text style={styles.label}>Start Date</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowStartDatePicker(true)}
-            >
-              <Text style={{ color: startDate ? '#000' : '#999' }}>
-                {startDate || 'Select Start Date'}
-              </Text>
+            <TouchableOpacity style={styles.input} onPress={() => setShowStartDatePicker(true)}>
+              <Text style={{ color: startDate ? '#000' : '#999' }}>{startDate || 'Select Start Date'}</Text>
             </TouchableOpacity>
 
             <Text style={styles.label}>End Date</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowEndDatePicker(true)}
-            >
-              <Text style={{ color: endDate ? '#000' : '#999' }}>
-                {endDate || 'Select End Date'}
-              </Text>
+            <TouchableOpacity style={styles.input} onPress={() => setShowEndDatePicker(true)}>
+              <Text style={{ color: endDate ? '#000' : '#999' }}>{endDate || 'Select End Date'}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.label}>Notes</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
+            <Input
+              label="Notes"
               placeholder="Enter notes (optional)"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={4}
-              scrollEnabled={true}
-              textAlignVertical="top"
             />
 
             {/* Payment Status */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-              <Switch
-                value={isPaid}
-                onValueChange={setIsPaid}
-              />
+              <Switch value={isPaid} onValueChange={setIsPaid} />
               <Text style={{ marginLeft: 8 }}>Paid</Text>
             </View>
 
@@ -1804,25 +1803,25 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
               <View style={styles.attachmentSection}>
                 <TouchableOpacity onPress={handlePickAttachment} style={styles.attachmentButton}>
                   <Ionicons name="document" size={24} color="#2196F3" />
-                  <Text style={styles.attachmentText}>
-                    {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
-                  </Text>
+                  <Text style={styles.attachmentText}>{attachmentUri ? 'Change Receipt' : 'Add Receipt'}</Text>
                 </TouchableOpacity>
                 {attachmentUri && (
                   <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: 8 }}>
                     <Ionicons name="close-circle" size={24} color="#FF0000" />
                   </TouchableOpacity>
                 )}
-                {attachmentUri && (
-                  <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>
-                )}
+                {attachmentUri && <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>}
               </View>
             )}
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleSave}>Save</Button>
+        <Dialog.Actions style={{ gap: 8 }}>
+          <Button variant="ghost" onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave}>
+            Save
+          </Button>
         </Dialog.Actions>
       </Dialog>
 
@@ -1849,7 +1848,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({ visible
 
 export function WTRegistryScreen() {
   const theme = useTheme();
-  
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({

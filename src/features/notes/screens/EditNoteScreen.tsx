@@ -5,37 +5,26 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  ActivityIndicator,
   Image,
   TouchableOpacity,
   Platform,
   PermissionsAndroid,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import {
-  TextInput,
-  Button,
-  Appbar,
-  Snackbar,
-  Portal,
-  Modal,
-  Dialog,
-  ProgressBar,
-} from 'react-native-paper';
-import { useNotes } from '@features/notes/store/notesHooks';
+import { TextInput, Appbar, Snackbar, Portal, Modal, Dialog, Button as PaperButton } from 'react-native-paper';
+import { useNotes, useAddNote, useUpdateNote } from '@shared/hooks';
 import { NoteFormData } from '@features/notes/types/Note';
 import RichTextEditor from '@features/notes/components/RichTextEditor';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
-// import DrawingScreen from './DrawingScreen'; // DISABLED: Drawing functionality temporarily removed
 import { MediaAttachmentsState, MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { Button, Skeleton, SkeletonCard, ProgressBar } from '@shared/components/ui';
 
 import { Video } from 'react-native-video';
 import ViewShot from 'react-native-view-shot';
 import RNFS from 'react-native-fs';
-// import { saveDrawingToGallery } from '../utils/svgToPng'; // DISABLED: Drawing functionality temporarily removed
 
 interface RouteParams {
   noteId?: number;
@@ -46,14 +35,14 @@ const EditNoteScreen: React.FC = () => {
   const route = useRoute();
   const { noteId } = (route.params as RouteParams) || {};
 
-  const {
-    notes,
-    loading,
-    error,
-    addNote,
-    updateNote,
-    clearError,
-  } = useNotes();
+  // TanStack Query hooks
+  const { data: notes = [], isLoading } = useNotes();
+  const addNoteMutation = useAddNote();
+  const updateNoteMutation = useUpdateNote();
+
+  const [error, setError] = useState<string | null>(null);
+
+  const clearError = () => setError(null);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -84,47 +73,56 @@ const EditNoteScreen: React.FC = () => {
     if (existingNote) {
       setTitle(existingNote.title);
       setContent(existingNote.content);
-      
+
       // Load existing media attachments
       const existingAttachments: MediaAttachment[] = [];
-      
+
       // Process images
       if (existingNote.imageUris) {
-        existingNote.imageUris.split(',').filter(Boolean).forEach((uri: string) => {
-          existingAttachments.push({
-            id: `image_${Date.now()}_${Math.random()}`,
-            uri: uri.trim(),
-            type: MediaType.IMAGE,
-            name: 'Image'
+        existingNote.imageUris
+          .split(',')
+          .filter(Boolean)
+          .forEach((uri: string) => {
+            existingAttachments.push({
+              id: `image_${Date.now()}_${Math.random()}`,
+              uri: uri.trim(),
+              type: MediaType.IMAGE,
+              name: 'Image',
+            });
           });
-        });
       }
-      
+
       // Process videos
       if (existingNote.videoUris) {
-        existingNote.videoUris.split(',').filter(Boolean).forEach((uri: string) => {
-          existingAttachments.push({
-            id: `video_${Date.now()}_${Math.random()}`,
-            uri: uri.trim(),
-            type: MediaType.VIDEO,
-            name: 'Video'
+        existingNote.videoUris
+          .split(',')
+          .filter(Boolean)
+          .forEach((uri: string) => {
+            existingAttachments.push({
+              id: `video_${Date.now()}_${Math.random()}`,
+              uri: uri.trim(),
+              type: MediaType.VIDEO,
+              name: 'Video',
+            });
           });
-        });
       }
-      
+
       // Process voice notes
       if (existingNote.voiceNoteUris) {
-        existingNote.voiceNoteUris.split(',').filter(Boolean).forEach((uri: string) => {
-          existingAttachments.push({
-            id: `audio_${Date.now()}_${Math.random()}`,
-            uri: uri.trim(),
-            type: MediaType.AUDIO,
-            name: 'Voice Note',
-            duration: 30000 // Default duration, will be updated when played
+        existingNote.voiceNoteUris
+          .split(',')
+          .filter(Boolean)
+          .forEach((uri: string) => {
+            existingAttachments.push({
+              id: `audio_${Date.now()}_${Math.random()}`,
+              uri: uri.trim(),
+              type: MediaType.AUDIO,
+              name: 'Voice Note',
+              duration: 30000, // Default duration, will be updated when played
+            });
           });
-        });
       }
-      
+
       // DISABLED: Drawing functionality temporarily removed
       /*
       // Process drawings
@@ -139,7 +137,7 @@ const EditNoteScreen: React.FC = () => {
         });
       }
       */
-      
+
       setMediaAttachments({
         attachments: existingAttachments,
         isUploading: false,
@@ -150,9 +148,10 @@ const EditNoteScreen: React.FC = () => {
 
   useEffect(() => {
     // Check if there are changes compared to the existing note
-    const hasChanges = title.trim() !== (existingNote?.title || '') ||
-                      content.trim() !== (existingNote?.content || '') ||
-                      hasAttachmentChanges();
+    const hasChanges =
+      title.trim() !== (existingNote?.title || '') ||
+      content.trim() !== (existingNote?.content || '') ||
+      hasAttachmentChanges();
     setHasUnsavedChanges(hasChanges);
   }, [title, content, mediaAttachments.attachments, existingNote]);
 
@@ -160,7 +159,7 @@ const EditNoteScreen: React.FC = () => {
   useEffect(() => {
     return () => {
       // Stop all playing media
-      Object.values(mediaRefs).forEach(ref => {
+      Object.values(mediaRefs).forEach((ref) => {
         if (ref && typeof ref.stop === 'function') {
           ref.stop();
         }
@@ -178,20 +177,20 @@ const EditNoteScreen: React.FC = () => {
 
     // For existing notes, compare current attachments with original ones
     const currentImageUris = mediaAttachments.attachments
-      .filter(att => att.type === MediaType.IMAGE)
-      .map(att => att.uri)
+      .filter((att) => att.type === MediaType.IMAGE)
+      .map((att) => att.uri)
       .join(',');
-    
+
     const currentVideoUris = mediaAttachments.attachments
-      .filter(att => att.type === MediaType.VIDEO)
-      .map(att => att.uri)
+      .filter((att) => att.type === MediaType.VIDEO)
+      .map((att) => att.uri)
       .join(',');
-    
+
     const currentVoiceUris = mediaAttachments.attachments
-      .filter(att => att.type === MediaType.AUDIO)
-      .map(att => att.uri)
+      .filter((att) => att.type === MediaType.AUDIO)
+      .map((att) => att.uri)
       .join(',');
-    
+
     // DISABLED: Drawing functionality temporarily removed
     /*
     const currentDrawingUris = mediaAttachments.attachments
@@ -200,10 +199,12 @@ const EditNoteScreen: React.FC = () => {
       .join(',');
     */
 
-    return currentImageUris !== (existingNote.imageUris || '') ||
-           currentVideoUris !== (existingNote.videoUris || '') ||
-           currentVoiceUris !== (existingNote.voiceNoteUris || '');
-           // currentDrawingUris !== (existingNote.drawingUris || ''); // DISABLED: Drawing functionality removed
+    return (
+      currentImageUris !== (existingNote.imageUris || '') ||
+      currentVideoUris !== (existingNote.videoUris || '') ||
+      currentVoiceUris !== (existingNote.voiceNoteUris || '')
+    );
+    // currentDrawingUris !== (existingNote.drawingUris || ''); // DISABLED: Drawing functionality removed
   };
 
   const handleSave = async () => {
@@ -220,50 +221,50 @@ const EditNoteScreen: React.FC = () => {
         title: title.trim(),
         content: content.trim(),
         imageUris: mediaAttachments.attachments
-          .filter(att => att.type === MediaType.IMAGE)
-          .map(att => att.uri)
+          .filter((att) => att.type === MediaType.IMAGE)
+          .map((att) => att.uri)
           .join(','),
         videoUris: mediaAttachments.attachments
-          .filter(att => att.type === MediaType.VIDEO)
-          .map(att => att.uri)
+          .filter((att) => att.type === MediaType.VIDEO)
+          .map((att) => att.uri)
           .join(','),
         voiceNoteUris: mediaAttachments.attachments
-          .filter(att => att.type === MediaType.AUDIO)
-          .map(att => att.uri)
+          .filter((att) => att.type === MediaType.AUDIO)
+          .map((att) => att.uri)
           .join(','),
-        // drawingUris: mediaAttachments.attachments
-        //   .filter(att => att.type === MediaType.DRAWING)
-        //   .map(att => att.uri)
-        //   .join(','), // DISABLED: Drawing functionality temporarily removed
       };
 
       // Show upload progress if we have attachments
       const hasAttachments = mediaAttachments.attachments.length > 0;
-      
+
       if (hasAttachments) {
         // Show upload progress simulation for immediate feedback
         const progressInterval = setInterval(() => {
-          setUploadProgress(prev => Math.min(prev + 15, 95));
+          setUploadProgress((prev) => Math.min(prev + 15, 95));
         }, 50);
-        
+
         // Complete progress after a short time
         setTimeout(() => {
           clearInterval(progressInterval);
           setUploadProgress(100);
         }, 800);
       }
-      
-      // Save note (uploads will happen in background)
-      if (noteId) {
-        await updateNote(noteId, noteData);
+
+      // Save note using TanStack Query mutations
+      if (noteId && existingNote) {
+        await updateNoteMutation.mutateAsync({
+          noteId: existingNote.id,
+          noteData,
+        });
       } else {
-        await addNote(noteData);
+        await addNoteMutation.mutateAsync(noteData);
       }
-      
+
       // Navigate back immediately after saving
       navigation.goBack();
-    } catch (error) {
-      console.error('Error saving note:', error);
+    } catch (err) {
+      console.error('Error saving note:', err);
+      setError('Failed to save note. Please try again.');
       Alert.alert('Error', 'Failed to save note. Please try again.');
     } finally {
       setSaving(false);
@@ -291,7 +292,7 @@ const EditNoteScreen: React.FC = () => {
   const handlePlayMedia = (attachmentId: string, mediaType: string) => {
     // Only handle video playback now - audio files open preview modal instead
     if (mediaType !== 'VIDEO') return;
-    
+
     if (playingMedia === attachmentId) {
       // Stop current video
       if (mediaRefs[attachmentId]) {
@@ -301,21 +302,21 @@ const EditNoteScreen: React.FC = () => {
     } else {
       // Stop any currently playing video
       if (playingMedia && mediaRefs[playingMedia]) {
-        const currentType = mediaAttachments.attachments.find(att => att.id === playingMedia)?.type;
+        const currentType = mediaAttachments.attachments.find((att) => att.id === playingMedia)?.type;
         if (currentType === MediaType.VIDEO) {
           mediaRefs[playingMedia].seek(0);
         }
       }
-      
+
       // Start new video
       setPlayingMedia(attachmentId);
     }
   };
 
   const handleMediaRef = (attachmentId: string, ref: any) => {
-    setMediaRefs(prev => ({
+    setMediaRefs((prev) => ({
       ...prev,
-      [attachmentId]: ref
+      [attachmentId]: ref,
     }));
   };
 
@@ -330,16 +331,13 @@ const EditNoteScreen: React.FC = () => {
   const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
       try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA,
-          {
-            title: 'Camera Permission',
-            message: 'This app needs access to your camera to take photos and videos.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+          title: 'Camera Permission',
+          message: 'This app needs access to your camera to take photos and videos.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        });
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       } catch (err) {
         console.warn(err);
@@ -352,16 +350,13 @@ const EditNoteScreen: React.FC = () => {
   const requestAudioPermission = async () => {
     if (Platform.OS === 'android') {
       try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          {
-            title: 'Microphone Permission',
-            message: 'This app needs access to your microphone to record videos.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
+          title: 'Microphone Permission',
+          message: 'This app needs access to your microphone to record videos.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        });
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       } catch (err) {
         console.warn(err);
@@ -372,26 +367,25 @@ const EditNoteScreen: React.FC = () => {
   };
 
   const handleAddImage = async () => {
-    Alert.alert(
-      'Add Image',
-      'Choose image source',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Camera', 
-          onPress: async () => {
-            const hasPermission = await requestCameraPermission();
-            if (!hasPermission) {
-              Alert.alert('Permission Denied', 'Camera permission is required to take photos.');
-              return;
-            }
-            
-            launchCamera({
+    Alert.alert('Add Image', 'Choose image source', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Camera',
+        onPress: async () => {
+          const hasPermission = await requestCameraPermission();
+          if (!hasPermission) {
+            Alert.alert('Permission Denied', 'Camera permission is required to take photos.');
+            return;
+          }
+
+          launchCamera(
+            {
               mediaType: 'photo',
               quality: 0.8,
               includeBase64: false,
               saveToPhotos: true,
-            }, (response) => {
+            },
+            (response) => {
               if (response.didCancel) {
                 console.log('User cancelled camera');
               } else if (response.errorCode) {
@@ -406,71 +400,74 @@ const EditNoteScreen: React.FC = () => {
                     name: asset.fileName || 'Image',
                     size: asset.fileSize,
                   };
-                  setMediaAttachments(prev => ({
+                  setMediaAttachments((prev) => ({
                     ...prev,
-                    attachments: [...prev.attachments, newAttachment]
+                    attachments: [...prev.attachments, newAttachment],
                   }));
                 }
               }
-            });
-          }
+            },
+          );
         },
-        { 
-          text: 'Gallery', 
-          onPress: () => launchImageLibrary({
-            mediaType: 'photo',
-            quality: 0.8,
-            includeBase64: false,
-            selectionLimit: 10,
-          }, (response) => {
-            if (response.assets) {
-              const newAttachments: MediaAttachment[] = response.assets.map(asset => ({
-                id: `image_${Date.now()}_${Math.random()}`,
-                uri: asset.uri!,
-                type: MediaType.IMAGE,
-                name: asset.fileName || 'Image',
-                size: asset.fileSize,
-              }));
-              setMediaAttachments(prev => ({
-                ...prev,
-                attachments: [...prev.attachments, ...newAttachments]
-              }));
-            }
-          })
-        },
-      ]
-    );
+      },
+      {
+        text: 'Gallery',
+        onPress: () =>
+          launchImageLibrary(
+            {
+              mediaType: 'photo',
+              quality: 0.8,
+              includeBase64: false,
+              selectionLimit: 10,
+            },
+            (response) => {
+              if (response.assets) {
+                const newAttachments: MediaAttachment[] = response.assets.map((asset) => ({
+                  id: `image_${Date.now()}_${Math.random()}`,
+                  uri: asset.uri!,
+                  type: MediaType.IMAGE,
+                  name: asset.fileName || 'Image',
+                  size: asset.fileSize,
+                }));
+                setMediaAttachments((prev) => ({
+                  ...prev,
+                  attachments: [...prev.attachments, ...newAttachments],
+                }));
+              }
+            },
+          ),
+      },
+    ]);
   };
 
   const handleAddVideo = async () => {
-    Alert.alert(
-      'Add Video',
-      'Choose video source',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Camera', 
-          onPress: async () => {
-            const hasCameraPermission = await requestCameraPermission();
-            const hasAudioPermission = await requestAudioPermission();
-            
-            if (!hasCameraPermission) {
-              Alert.alert('Permission Denied', 'Camera permission is required to record videos.');
-              return;
-            }
-            
-            if (!hasAudioPermission) {
-              Alert.alert('Permission Denied', 'Microphone permission is required to record videos with audio.');
-              return;
-            }
-            
-            launchCamera({
+    Alert.alert('Add Video', 'Choose video source', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Camera',
+        onPress: async () => {
+          const hasCameraPermission = await requestCameraPermission();
+          const hasAudioPermission = await requestAudioPermission();
+
+          if (!hasCameraPermission) {
+            Alert.alert('Permission Denied', 'Camera permission is required to record videos.');
+            return;
+          }
+
+          if (!hasAudioPermission) {
+            Alert.alert('Permission Denied', 'Microphone permission is required to record videos with audio.');
+            return;
+          }
+
+          launchCamera(
+            {
               mediaType: 'video',
               quality: 0.8,
               includeBase64: false,
               videoQuality: 'medium',
               saveToPhotos: true,
-            }, (response) => {
+            },
+            (response) => {
               if (response.didCancel) {
                 console.log('User cancelled camera');
               } else if (response.errorCode) {
@@ -486,41 +483,45 @@ const EditNoteScreen: React.FC = () => {
                     size: asset.fileSize,
                     duration: asset.duration,
                   };
-                  setMediaAttachments(prev => ({
+                  setMediaAttachments((prev) => ({
                     ...prev,
-                    attachments: [...prev.attachments, newAttachment]
+                    attachments: [...prev.attachments, newAttachment],
                   }));
                 }
               }
-            });
-          }
+            },
+          );
         },
-        { 
-          text: 'Gallery', 
-          onPress: () => launchImageLibrary({
-            mediaType: 'video',
-            quality: 0.8,
-            includeBase64: false,
-            selectionLimit: 5,
-          }, (response) => {
-            if (response.assets) {
-              const newAttachments: MediaAttachment[] = response.assets.map(asset => ({
-                id: `video_${Date.now()}_${Math.random()}`,
-                uri: asset.uri!,
-                type: MediaType.VIDEO,
-                name: asset.fileName || 'Video',
-                size: asset.fileSize,
-                duration: asset.duration,
-              }));
-              setMediaAttachments(prev => ({
-                ...prev,
-                attachments: [...prev.attachments, ...newAttachments]
-              }));
-            }
-          })
-        },
-      ]
-    );
+      },
+      {
+        text: 'Gallery',
+        onPress: () =>
+          launchImageLibrary(
+            {
+              mediaType: 'video',
+              quality: 0.8,
+              includeBase64: false,
+              selectionLimit: 5,
+            },
+            (response) => {
+              if (response.assets) {
+                const newAttachments: MediaAttachment[] = response.assets.map((asset) => ({
+                  id: `video_${Date.now()}_${Math.random()}`,
+                  uri: asset.uri!,
+                  type: MediaType.VIDEO,
+                  name: asset.fileName || 'Video',
+                  size: asset.fileSize,
+                  duration: asset.duration,
+                }));
+                setMediaAttachments((prev) => ({
+                  ...prev,
+                  attachments: [...prev.attachments, ...newAttachments],
+                }));
+              }
+            },
+          ),
+      },
+    ]);
   };
 
   const handleAddAudio = () => {
@@ -532,29 +533,29 @@ const EditNoteScreen: React.FC = () => {
       // Generate a unique filename with note ID and UUID using platform-specific extension
       const noteIdStr = noteId ? `note_${noteId}` : 'new_note';
       const uuid = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      
+
       // Use proper file extension based on platform (matching recording format)
       const fileExtension = Platform.select({
         ios: '.m4a',
         android: '.mp4',
-        default: '.m4a'
+        default: '.m4a',
       });
       const fileName = `${noteIdStr}_voice_${uuid}${fileExtension}`;
-      
+
       // Create the destination path in the app's documents directory
       const destPath = `${RNFS.DocumentDirectoryPath}/voice_recordings/${fileName}`;
-      
+
       // Ensure the directory exists
       const dirPath = `${RNFS.DocumentDirectoryPath}/voice_recordings`;
       const dirExists = await RNFS.exists(dirPath);
       if (!dirExists) {
         await RNFS.mkdir(dirPath);
       }
-      
+
       // Copy the recording to the new location
       const sourcePath = filePath.replace('file://', '');
       await RNFS.copyFile(sourcePath, destPath);
-      
+
       const newAttachment: MediaAttachment = {
         id: `audio_${uuid}`,
         uri: `file://${destPath}`,
@@ -562,12 +563,12 @@ const EditNoteScreen: React.FC = () => {
         name: `Voice Recording ${new Date().toLocaleTimeString()}`,
         duration: duration,
       };
-      
-      setMediaAttachments(prev => ({
+
+      setMediaAttachments((prev) => ({
         ...prev,
-        attachments: [...prev.attachments, newAttachment]
+        attachments: [...prev.attachments, newAttachment],
       }));
-      
+
       setShowVoiceRecorder(false);
     } catch (error) {
       console.error('Error saving voice recording:', error);
@@ -594,11 +595,13 @@ const EditNoteScreen: React.FC = () => {
   };
   */
 
-  if (loading && noteId) {
+  // Check if any mutation is in progress
+  const isMutating = addNoteMutation.isPending || updateNoteMutation.isPending;
+
+  if (isLoading && noteId) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading note...</Text>
+        <SkeletonCard />
       </View>
     );
   }
@@ -606,30 +609,24 @@ const EditNoteScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Appbar.Header>
-        <Appbar.BackAction onPress={handleBackPress} disabled={saving} />
+        <Appbar.BackAction onPress={handleBackPress} disabled={saving || isMutating} />
         <Appbar.Content title={noteId ? 'Edit Note' : 'New Note'} />
         <Appbar.Action
-          icon={saving ? "loading" : "content-save"}
+          icon={saving || isMutating ? 'loading' : 'content-save'}
           onPress={handleSave}
-          disabled={!hasUnsavedChanges || saving}
+          disabled={!hasUnsavedChanges || saving || isMutating}
         />
       </Appbar.Header>
-      
-              {/* Upload Progress */}
-        {uploadProgress > 0 && uploadProgress < 100 && (
-          <View style={styles.uploadProgressContainer}>
-            <Text style={styles.uploadProgressText}>
-              Uploading attachments... {Math.round(uploadProgress)}%
-            </Text>
-            <ProgressBar
-              progress={uploadProgress / 100}
-              color="#007AFF"
-              style={styles.uploadProgressBar}
-            />
-          </View>
-        )}
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      {/* Upload Progress */}
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <View style={styles.uploadProgressContainer}>
+          <Text style={styles.uploadProgressText}>Uploading attachments... {Math.round(uploadProgress)}%</Text>
+          <ProgressBar progress={uploadProgress} size="sm" style={styles.uploadProgressBar} />
+        </View>
+      )}
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <TextInput
           label="Title"
           value={title}
@@ -649,33 +646,24 @@ const EditNoteScreen: React.FC = () => {
         {/* Attachment Previews */}
         <View style={styles.attachmentPreviewsSection}>
           <Text style={styles.attachmentPreviewsTitle}>Attachments</Text>
-          
+
           {/* Attachment Buttons */}
           <View style={styles.attachmentButtons}>
-            <TouchableOpacity
-              style={styles.attachmentButton}
-              onPress={handleAddImage}
-            >
+            <TouchableOpacity style={styles.attachmentButton} onPress={handleAddImage}>
               <Icon name="photo" size={20} color="#8B5CF6" />
               <Text style={styles.attachmentButtonText}>Image</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.attachmentButton}
-              onPress={handleAddVideo}
-            >
+
+            <TouchableOpacity style={styles.attachmentButton} onPress={handleAddVideo}>
               <Icon name="videocam" size={20} color="#8B5CF6" />
               <Text style={styles.attachmentButtonText}>Video</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.attachmentButton}
-              onPress={handleAddAudio}
-            >
+
+            <TouchableOpacity style={styles.attachmentButton} onPress={handleAddAudio}>
               <Icon name="mic" size={20} color="#8B5CF6" />
               <Text style={styles.attachmentButtonText}>Voice</Text>
             </TouchableOpacity>
-            
+
             {/* DISABLED: Drawing functionality temporarily removed
             <TouchableOpacity
               style={styles.attachmentButton}
@@ -686,7 +674,7 @@ const EditNoteScreen: React.FC = () => {
             </TouchableOpacity>
             */}
           </View>
-          
+
           {/* Attachment Previews */}
           {mediaAttachments.attachments.length > 0 && (
             <View style={styles.attachmentPreviews}>
@@ -702,16 +690,13 @@ const EditNoteScreen: React.FC = () => {
                   const newAttachments = mediaAttachments.attachments.filter((_, i) => i !== index);
                   setMediaAttachments({
                     ...mediaAttachments,
-                    attachments: newAttachments
+                    attachments: newAttachments,
                   });
                 };
 
                 return (
                   <View key={index} style={styles.attachmentPreviewContainer}>
-                    <TouchableOpacity
-                      style={styles.attachmentPreview}
-                      onPress={handleAttachmentPress}
-                    >
+                    <TouchableOpacity style={styles.attachmentPreview} onPress={handleAttachmentPress}>
                       {attachment.type === MediaType.IMAGE ? (
                         <Image source={{ uri: attachment.uri }} style={styles.previewImage} />
                       ) : attachment.type === MediaType.VIDEO ? (
@@ -727,22 +712,19 @@ const EditNoteScreen: React.FC = () => {
                             <Icon name="play-arrow" size={20} color="white" />
                           </View>
                         </View>
-                      ) : /* attachment.type === MediaType.DRAWING ? (
+                      ) : (
+                        /* attachment.type === MediaType.DRAWING ? (
                         <View style={styles.previewDrawing}>
                           <Icon name="brush" size={40} color="#8B5CF6" />
                           <Text style={styles.drawingLabel}>Drawing</Text>
                         </View>
-                      ) : */ (
-                        <View style={styles.previewAudio}>
+                      ) : */ <View style={styles.previewAudio}>
                           <Icon name="music-note" size={40} color="#007AFF" />
                           <Text style={styles.audioLabel}>Voice Note</Text>
                         </View>
                       )}
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.removeAttachmentButton}
-                      onPress={handleRemoveAttachment}
-                    >
+                    <TouchableOpacity style={styles.removeAttachmentButton} onPress={handleRemoveAttachment}>
                       <Icon name="close" size={16} color="white" />
                     </TouchableOpacity>
                   </View>
@@ -751,8 +733,6 @@ const EditNoteScreen: React.FC = () => {
             </View>
           )}
         </View>
-
-
       </ScrollView>
 
       {/* Unsaved Changes Dialog */}
@@ -763,9 +743,13 @@ const EditNoteScreen: React.FC = () => {
             <Text>You have unsaved changes. Do you want to save them?</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={handleDiscardChanges}>Discard</Button>
-            <Button onPress={handleKeepEditing}>Keep Editing</Button>
-            <Button onPress={handleSave} mode="contained">
+            <Button variant="ghost" onPress={handleDiscardChanges}>
+              Discard
+            </Button>
+            <Button variant="outline" onPress={handleKeepEditing}>
+              Keep Editing
+            </Button>
+            <Button variant="primary" onPress={handleSave} loading={isMutating}>
               Save
             </Button>
           </Dialog.Actions>
@@ -789,10 +773,7 @@ const EditNoteScreen: React.FC = () => {
             onDismiss={handleVoiceRecordingCancel}
             contentContainerStyle={styles.voiceRecorderModal}
           >
-            <VoiceRecorder
-              onRecordingComplete={handleVoiceRecordingComplete}
-              onCancel={handleVoiceRecordingCancel}
-            />
+            <VoiceRecorder onRecordingComplete={handleVoiceRecordingComplete} onCancel={handleVoiceRecordingCancel} />
           </Modal>
         </Portal>
       )}
@@ -989,4 +970,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EditNoteScreen; 
+export default EditNoteScreen;

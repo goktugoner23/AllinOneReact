@@ -5,10 +5,20 @@ declare module '*.jpeg';
 declare module '*.gif';
 declare module '*.svg';
 
+// Environment variables from react-native-dotenv
+declare module '@env' {
+  export const FIREBASE_API_KEY: string;
+  export const FIREBASE_AUTH_DOMAIN: string;
+  export const FIREBASE_PROJECT_ID: string;
+  export const FIREBASE_STORAGE_BUCKET: string;
+  export const FIREBASE_MESSAGING_SENDER_ID: string;
+  export const FIREBASE_APP_ID: string;
+}
+
 declare module 'react-native-pell-rich-editor' {
   import { Component } from 'react';
   import { ViewProps } from 'react-native';
-  
+
   export interface RichEditorProps extends ViewProps {
     ref?: any;
     html?: string;
@@ -47,7 +57,7 @@ declare module 'react-native-pell-rich-editor' {
     onBlur?: () => void;
     onCursorPosition?: (scrollY: number) => void;
   }
-  
+
   export interface RichToolbarProps extends ViewProps {
     getEditor: () => RichEditor | null;
     actions?: string[];
@@ -64,7 +74,7 @@ declare module 'react-native-pell-rich-editor' {
     renderAction?: (action: string) => React.ReactElement;
     iconMap?: { [key: string]: any };
   }
-  
+
   export class RichEditor extends Component<RichEditorProps> {
     setContentHTML(html: string): void;
     insertImage(url: string, style?: string): void;
@@ -78,9 +88,9 @@ declare module 'react-native-pell-rich-editor' {
     registerToolbar(listener: Function): void;
     commandDOM(command: string): void;
   }
-  
+
   export class RichToolbar extends Component<RichToolbarProps> {}
-  
+
   export const actions: {
     setBold: string;
     setItalic: string;

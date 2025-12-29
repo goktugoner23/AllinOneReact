@@ -26,8 +26,10 @@ const PostDetailScreen: React.FC = () => {
   }, [post]);
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
         <Card.Title
           title={post.username || 'Instagram Post'}
@@ -49,9 +51,11 @@ const PostDetailScreen: React.FC = () => {
           ) : null}
 
           <View style={styles.rowBetween}>
-            <Chip mode="outlined" icon="tag-outline" style={styles.typeChip}>{post.mediaType}</Chip>
+            <Chip mode="outlined" icon="tag-outline" style={styles.typeChip}>
+              {post.mediaType}
+            </Chip>
             <Text style={[styles.engagement, { color: theme.colors.primary }]}>
-              {(post.metrics.engagementRate).toFixed(1)}%
+              {post.metrics.engagementRate.toFixed(1)}%
             </Text>
           </View>
 
@@ -78,12 +82,7 @@ const PostDetailScreen: React.FC = () => {
             </View>
           )}
 
-          <Button
-            mode="contained"
-            style={styles.backBtn}
-            icon="arrow-left"
-            onPress={() => navigation.goBack()}
-          >
+          <Button mode="contained" style={styles.backBtn} icon="arrow-left" onPress={() => navigation.goBack()}>
             Back
           </Button>
         </Card.Content>
@@ -135,5 +134,3 @@ const styles = StyleSheet.create({
 });
 
 export default PostDetailScreen;
-
-

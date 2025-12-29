@@ -3,7 +3,7 @@
  * Following performance guidelines to remove console statements in production
  */
 
-type LogLevel = "debug" | "info" | "warn" | "error";
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
   level: LogLevel;
@@ -38,8 +38,8 @@ class Logger {
   static debug(message: string, data?: any, context?: string): void {
     if (!this.shouldLog()) return;
 
-    console.debug(`🔍 [DEBUG] ${message}`, data || "");
-    this.addToHistory("debug", message, context, data);
+    console.debug(`🔍 [DEBUG] ${message}`, data || '');
+    this.addToHistory('debug', message, context, data);
   }
 
   /**
@@ -48,8 +48,8 @@ class Logger {
   static info(message: string, data?: any, context?: string): void {
     if (!this.shouldLog()) return;
 
-    console.info(`ℹ️ [INFO] ${message}`, data || "");
-    this.addToHistory("info", message, context, data);
+    console.info(`ℹ️ [INFO] ${message}`, data || '');
+    this.addToHistory('info', message, context, data);
   }
 
   /**
@@ -58,8 +58,8 @@ class Logger {
   static warn(message: string, data?: any, context?: string): void {
     if (!this.shouldLog()) return;
 
-    console.warn(`⚠️ [WARN] ${message}`, data || "");
-    this.addToHistory("warn", message, context, data);
+    console.warn(`⚠️ [WARN] ${message}`, data || '');
+    this.addToHistory('warn', message, context, data);
   }
 
   /**
@@ -67,8 +67,8 @@ class Logger {
    */
   static error(message: string, error?: Error | any, context?: string): void {
     // Always log errors, even in production
-    console.error(`❌ [ERROR] ${message}`, error || "");
-    this.addToHistory("error", message, context, error);
+    console.error(`❌ [ERROR] ${message}`, error || '');
+    this.addToHistory('error', message, context, error);
 
     // In production, you might want to report to crash analytics
     if (!__DEV__) {
@@ -79,23 +79,18 @@ class Logger {
   /**
    * Log with custom level
    */
-  static log(
-    level: LogLevel,
-    message: string,
-    data?: any,
-    context?: string,
-  ): void {
+  static log(level: LogLevel, message: string, data?: any, context?: string): void {
     switch (level) {
-      case "debug":
+      case 'debug':
         this.debug(message, data, context);
         break;
-      case "info":
+      case 'info':
         this.info(message, data, context);
         break;
-      case "warn":
+      case 'warn':
         this.warn(message, data, context);
         break;
-      case "error":
+      case 'error':
         this.error(message, data, context);
         break;
     }
@@ -104,12 +99,7 @@ class Logger {
   /**
    * Add log entry to history
    */
-  private static addToHistory(
-    level: LogLevel,
-    message: string,
-    context?: string,
-    data?: any,
-  ): void {
+  private static addToHistory(level: LogLevel, message: string, context?: string, data?: any): void {
     const entry: LogEntry = {
       level,
       message,
@@ -129,21 +119,17 @@ class Logger {
   /**
    * Report error to analytics service
    */
-  private static reportErrorToAnalytics(
-    message: string,
-    error?: any,
-    context?: string,
-  ): void {
+  private static reportErrorToAnalytics(message: string, error?: any, context?: string): void {
     try {
       // In production, report to your error tracking service
       // Example: Crashlytics.recordError(error);
       // Example: Sentry.captureException(error, { extra: { message, context } });
 
       // For now, we'll just store it locally
-      this.addToHistory("error", `ANALYTICS: ${message}`, context, error);
+      this.addToHistory('error', `ANALYTICS: ${message}`, context, error);
     } catch (reportError) {
       // Fallback if analytics reporting fails
-      console.error("Failed to report error to analytics:", reportError);
+      console.error('Failed to report error to analytics:', reportError);
     }
   }
 
@@ -174,33 +160,24 @@ class Logger {
   /**
    * Performance specific logging
    */
-  static performance(
-    message: string,
-    duration: number,
-    context?: string,
-  ): void {
+  static performance(message: string, duration: number, context?: string): void {
     if (!this.shouldLog()) return;
 
-    const emoji = duration > 1000 ? "🐌" : duration > 100 ? "⚡" : "💨";
+    const emoji = duration > 1000 ? '🐌' : duration > 100 ? '⚡' : '💨';
     console.log(`${emoji} [PERF] ${message}: ${duration.toFixed(2)}ms`);
-    this.addToHistory("info", `PERF: ${message}`, context, { duration });
+    this.addToHistory('info', `PERF: ${message}`, context, { duration });
   }
 
   /**
    * Network request logging
    */
-  static network(
-    method: string,
-    url: string,
-    status?: number,
-    duration?: number,
-  ): void {
+  static network(method: string, url: string, status?: number, duration?: number): void {
     if (!this.shouldLog()) return;
 
-    const statusEmoji = status && status >= 400 ? "❌" : "✅";
-    const durationText = duration ? ` (${duration.toFixed(2)}ms)` : "";
-    console.log(`🌐 [NETWORK] ${method} ${url} ${status || ""}${durationText}`);
-    this.addToHistory("info", `NETWORK: ${method} ${url}`, "network", {
+    const statusEmoji = status && status >= 400 ? '❌' : '✅';
+    const durationText = duration ? ` (${duration.toFixed(2)}ms)` : '';
+    console.log(`🌐 [NETWORK] ${method} ${url} ${status || ''}${durationText}`);
+    this.addToHistory('info', `NETWORK: ${method} ${url}`, 'network', {
       status,
       duration,
     });
@@ -209,23 +186,18 @@ class Logger {
   /**
    * Firebase operation logging
    */
-  static firebase(
-    operation: string,
-    collection: string,
-    success: boolean,
-    error?: any,
-  ): void {
+  static firebase(operation: string, collection: string, success: boolean, error?: any): void {
     if (!this.shouldLog()) return;
 
-    const emoji = success ? "🔥✅" : "🔥❌";
+    const emoji = success ? '🔥✅' : '🔥❌';
     const message = `[FIREBASE] ${operation} on ${collection}`;
 
     if (success) {
       console.log(`${emoji} ${message}`);
-      this.addToHistory("info", `FIREBASE: ${message}`, "firebase");
+      this.addToHistory('info', `FIREBASE: ${message}`, 'firebase');
     } else {
       console.error(`${emoji} ${message}`, error);
-      this.addToHistory("error", `FIREBASE: ${message}`, "firebase", error);
+      this.addToHistory('error', `FIREBASE: ${message}`, 'firebase', error);
     }
   }
 }
@@ -248,16 +220,11 @@ export const logger = {
 // Custom hook for component-specific logging
 export const useLogger = (componentName: string) => {
   return {
-    debug: (message: string, data?: any) =>
-      Logger.debug(message, data, componentName),
-    info: (message: string, data?: any) =>
-      Logger.info(message, data, componentName),
-    warn: (message: string, data?: any) =>
-      Logger.warn(message, data, componentName),
-    error: (message: string, error?: any) =>
-      Logger.error(message, error, componentName),
-    performance: (message: string, duration: number) =>
-      Logger.performance(message, duration, componentName),
+    debug: (message: string, data?: any) => Logger.debug(message, data, componentName),
+    info: (message: string, data?: any) => Logger.info(message, data, componentName),
+    warn: (message: string, data?: any) => Logger.warn(message, data, componentName),
+    error: (message: string, error?: any) => Logger.error(message, error, componentName),
+    performance: (message: string, duration: number) => Logger.performance(message, duration, componentName),
   };
 };
 

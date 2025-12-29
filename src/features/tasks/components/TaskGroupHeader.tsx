@@ -10,14 +10,9 @@ interface TaskGroupHeaderProps {
   onLongPress: (group: TaskGroup) => void;
 }
 
-const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
-  group,
-  taskCount,
-  completedCount,
-  onLongPress,
-}) => {
+const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({ group, taskCount, completedCount, onLongPress }) => {
   const theme = useTheme();
-  
+
   const completionPercentage = taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0;
 
   const getGroupColor = () => {
@@ -36,14 +31,10 @@ const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
         </View>
 
         <View style={styles.middleSection}>
-          <Text
-            variant="titleMedium"
-            style={[styles.groupTitle, { color: theme.colors.onSurface }]}
-            numberOfLines={1}
-          >
+          <Text variant="titleMedium" style={[styles.groupTitle, { color: theme.colors.onSurface }]} numberOfLines={1}>
             {group.title}
           </Text>
-          
+
           {group.description && (
             <Text
               variant="bodySmall"
@@ -53,11 +44,8 @@ const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({
               {group.description}
             </Text>
           )}
-          
-          <Text
-            variant="bodySmall"
-            style={[styles.taskCount, { color: theme.colors.onSurfaceVariant }]}
-          >
+
+          <Text variant="bodySmall" style={[styles.taskCount, { color: theme.colors.onSurfaceVariant }]}>
             {completedCount} of {taskCount} tasks completed ({completionPercentage}%)
           </Text>
         </View>

@@ -8,15 +8,18 @@ import {
   HealthStatus,
   ApiResponse,
 } from '@features/instagram/types/Instagram';
-import { InstagramProfilePictureResponse, InstagramStoriesResponse, InstagramUserPostsResponse, InstagramAllDataResponse } from '@features/instagram/types/Instagram';
+import {
+  InstagramProfilePictureResponse,
+  InstagramStoriesResponse,
+  InstagramUserPostsResponse,
+  InstagramAllDataResponse,
+} from '@features/instagram/types/Instagram';
 
 class InstagramApiService extends BaseApiClient {
   constructor() {
     // External API URL - pointing to allinone-external backend
-    const baseURL = __DEV__ 
-      ? 'http://129.212.143.6:3000/' 
-      : 'http://129.212.143.6:3000/';
-    
+    const baseURL = __DEV__ ? 'http://129.212.143.6:3000/' : 'http://129.212.143.6:3000/';
+
     super(baseURL, 90000); // 90 seconds for Instagram API processing
   }
 
@@ -26,7 +29,7 @@ class InstagramApiService extends BaseApiClient {
   async getProfilePicture(username: string): Promise<InstagramProfilePictureResponse> {
     try {
       const response: AxiosResponse<InstagramProfilePictureResponse> = await this.api.get(
-        `api/instagram/profile-picture/${encodeURIComponent(username)}`
+        `api/instagram/profile-picture/${encodeURIComponent(username)}`,
       );
       return response.data;
     } catch (error) {
@@ -41,7 +44,7 @@ class InstagramApiService extends BaseApiClient {
   async getStories(username: string): Promise<InstagramStoriesResponse> {
     try {
       const response: AxiosResponse<InstagramStoriesResponse> = await this.api.get(
-        `api/instagram/stories/${encodeURIComponent(username)}`
+        `api/instagram/stories/${encodeURIComponent(username)}`,
       );
       return response.data;
     } catch (error) {
@@ -56,7 +59,7 @@ class InstagramApiService extends BaseApiClient {
   async getUserPosts(username: string): Promise<InstagramUserPostsResponse> {
     try {
       const response: AxiosResponse<InstagramUserPostsResponse> = await this.api.get(
-        `api/instagram/posts/${encodeURIComponent(username)}`
+        `api/instagram/posts/${encodeURIComponent(username)}`,
       );
       return response.data;
     } catch (error) {
@@ -72,7 +75,7 @@ class InstagramApiService extends BaseApiClient {
   async getAllUserData(username: string): Promise<InstagramAllDataResponse> {
     try {
       const response: AxiosResponse<InstagramAllDataResponse> = await this.api.get(
-        `api/instagram/all/${encodeURIComponent(username)}`
+        `api/instagram/all/${encodeURIComponent(username)}`,
       );
       return response.data;
     } catch (error) {
@@ -87,12 +90,9 @@ class InstagramApiService extends BaseApiClient {
    */
   async getInstagramPosts(forceSync: boolean = false): Promise<InstagramPostsApiResponse> {
     try {
-      const response: AxiosResponse<InstagramPostsApiResponse> = await this.api.get(
-        'api/instagram/firestore/posts',
-        {
-          params: { forceSync }
-        }
-      );
+      const response: AxiosResponse<InstagramPostsApiResponse> = await this.api.get('api/instagram/firestore/posts', {
+        params: { forceSync },
+      });
 
       if (!response.data.success) {
         throw new Error('API returned success=false');
@@ -111,9 +111,7 @@ class InstagramApiService extends BaseApiClient {
    */
   async getInstagramAnalytics(): Promise<InstagramAnalytics> {
     try {
-      const response: AxiosResponse<ApiResponse<InstagramAnalytics>> = await this.api.get(
-        'api/instagram/analytics'
-      );
+      const response: AxiosResponse<ApiResponse<InstagramAnalytics>> = await this.api.get('api/instagram/analytics');
 
       if (!response.data.success || !response.data.data) {
         throw new Error(response.data.error || 'Unknown error fetching analytics');
@@ -136,10 +134,12 @@ class InstagramApiService extends BaseApiClient {
         profilePictureUrl: account.profilePictureUrl || account.profile_picture_url || account.profilePicUrl,
         followersCount:
           account.followersCount ?? account.followers ?? account.followers_count ?? account.followerCount ?? 0,
-        followsCount:
-          account.followsCount ?? account.following ?? account.follows ?? account.follow_count ?? 0,
+        followsCount: account.followsCount ?? account.following ?? account.follows ?? account.follow_count ?? 0,
         mediaCount:
-          account.mediaCount ?? account.media ?? account.media_count ?? (Array.isArray(raw.posts) ? raw.posts.length : 0),
+          account.mediaCount ??
+          account.media ??
+          account.media_count ??
+          (Array.isArray(raw.posts) ? raw.posts.length : 0),
         accountType: account.accountType || account.account_type || 'BUSINESS',
       };
 
@@ -166,18 +166,15 @@ class InstagramApiService extends BaseApiClient {
    */
   async queryRAG(request: RAGQueryRequest): Promise<RAGQueryResponse> {
     try {
-      const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post(
-        'api/rag/query',
-        {
-          query: request.query,
-          domain: request.domain || 'instagram',
-          options: {
-            topK: request.options?.topK || 5,
-            minScore: request.options?.minScore || 0.7,
-            ...request.options
-          }
-        }
-      );
+      const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post('api/rag/query', {
+        query: request.query,
+        domain: request.domain || 'instagram',
+        options: {
+          topK: request.options?.topK || 5,
+          minScore: request.options?.minScore || 0.7,
+          ...request.options,
+        },
+      });
 
       if (!response.data.success || !response.data.data) {
         throw new Error(response.data.error || 'Unknown error querying RAG');
@@ -196,9 +193,7 @@ class InstagramApiService extends BaseApiClient {
    */
   async checkInstagramHealth(): Promise<HealthStatus> {
     try {
-      const response: AxiosResponse<ApiResponse<HealthStatus>> = await this.api.get(
-        'api/instagram/status'
-      );
+      const response: AxiosResponse<ApiResponse<HealthStatus>> = await this.api.get('api/instagram/status');
 
       if (response.data?.success && response.data.data) {
         return response.data.data;
@@ -238,13 +233,13 @@ class InstagramApiService extends BaseApiClient {
     fileUri: string,
     fileName: string,
     mimeType: string,
-    analysisQuery: string
+    analysisQuery: string,
   ): Promise<RAGQueryResponse> {
     try {
       const form = new FormData();
       // React Native requires { uri, name, type } for file field
+      // @ts-ignore React Native FormData file type differs from web
       form.append('file', {
-        // @ts-ignore React Native FormData file type
         uri: fileUri,
         name: fileName,
         type: mimeType,
@@ -252,14 +247,10 @@ class InstagramApiService extends BaseApiClient {
       form.append('query', analysisQuery);
       form.append('contentType', mimeType.split('/')[0]);
 
-      const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post(
-        'api/rag/upload',
-        form,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 120_000,
-        }
-      );
+      const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post('api/rag/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120_000,
+      });
 
       if (!response.data.success || !response.data.data) {
         throw new Error(response.data.error || 'Unknown error uploading file');
@@ -288,7 +279,7 @@ class InstagramApiService extends BaseApiClient {
       const response: AxiosResponse<ApiResponse<RAGQueryResponse>> = await this.api.post(
         'api/rag/instagram/analyze',
         { url, query },
-        { timeout: 90_000 }
+        { timeout: 90_000 },
       );
 
       if (!response.data.success || !response.data.data) {
@@ -308,20 +299,21 @@ class InstagramApiService extends BaseApiClient {
   async processAudioRecording(
     audioFilePath: string,
     analysisQuery: string,
-    duration: number
+    duration: number,
   ): Promise<RAGQueryResponse> {
     try {
-      const query = `Analyze this audio recording for Instagram strategy insights. ` +
-                   `Duration: ${Math.round(duration / 1000)}s. Question: ${analysisQuery}. ` +
-                   `Audio file: ${audioFilePath}`;
-      
+      const query =
+        `Analyze this audio recording for Instagram strategy insights. ` +
+        `Duration: ${Math.round(duration / 1000)}s. Question: ${analysisQuery}. ` +
+        `Audio file: ${audioFilePath}`;
+
       return await this.queryRAG({
         query,
         domain: 'instagram',
         options: {
           topK: 5,
-          minScore: 0.7
-        }
+          minScore: 0.7,
+        },
       });
     } catch (error) {
       console.error('Failed to process audio recording:', error);
@@ -338,13 +330,12 @@ class InstagramApiService extends BaseApiClient {
 
   // Private helper methods
 
-
-
   private isValidInstagramURL(url: string): boolean {
-    return url.includes('instagram.com') && (
-      url.includes('/p/') ||          // Post
-      url.includes('/reel/') ||       // Reel
-      /.*instagram\.com\/[a-zA-Z0-9._]+\/?$/.test(url)  // Profile
+    return (
+      url.includes('instagram.com') &&
+      (url.includes('/p/') || // Post
+        url.includes('/reel/') || // Reel
+        /.*instagram\.com\/[a-zA-Z0-9._]+\/?$/.test(url)) // Profile
     );
   }
 
@@ -361,7 +352,7 @@ class InstagramApiService extends BaseApiClient {
       case 'Reel':
         return 'What makes this reel engaging? How can I apply these insights to my content?';
       case 'Profile':
-        return 'What can I learn from this account\'s content strategy and posting patterns?';
+        return "What can I learn from this account's content strategy and posting patterns?";
       default:
         return 'What strategic insights can I get from this Instagram content?';
     }

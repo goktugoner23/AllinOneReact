@@ -1,22 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import {
-  Text,
-  TextInput,
-  IconButton,
-  useTheme,
-  Card,
-  Chip,
-  ActivityIndicator,
-  Button,
-} from 'react-native-paper';
+import { Text, TextInput, IconButton, useTheme, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import {
@@ -37,16 +22,20 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const flatListRef = useRef<FlashList<ChatMessage>>(null);
-  
+
   const { messages, loading, suggestions } = useSelector((state: RootState) => state.instagram.ai);
-  
+
   const [inputText, setInputText] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(true);
 
   // Expose scrollToEnd to parents
-  useImperativeHandle(ref, () => ({
-    scrollToEnd: () => flatListRef.current?.scrollToEnd({ animated: true }),
-  }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToEnd: () => flatListRef.current?.scrollToEnd({ animated: true }),
+    }),
+    [],
+  );
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -69,7 +58,7 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
     // Add user message
     dispatch(addChatMessage(userMessage));
-    
+
     // Clear input and hide suggestions
     setInputText('');
     setShowSuggestions(false);
@@ -80,20 +69,24 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
     if (urlMatch) {
       // Handle Instagram URL analysis
-      dispatch(analyzeInstagramURL({
-        url: urlMatch[0],
-        customQuery: inputText.replace(urlMatch[0], '').trim() || undefined,
-      }));
+      dispatch(
+        analyzeInstagramURL({
+          url: urlMatch[0],
+          customQuery: inputText.replace(urlMatch[0], '').trim() || undefined,
+        }),
+      );
     } else {
       // Handle regular text query
-      dispatch(queryInstagramAI({
-        query: inputText.trim(),
-        domain: 'instagram',
-        options: {
-          topK: 5,
-          minScore: 0.7,
-        },
-      }));
+      dispatch(
+        queryInstagramAI({
+          query: inputText.trim(),
+          domain: 'instagram',
+          options: {
+            topK: 5,
+            minScore: 0.7,
+          },
+        }),
+      );
     }
   }, [inputText, loading.isLoading, dispatch]);
 
@@ -105,27 +98,21 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
   // Handle clear chat
   const handleClearChat = useCallback(() => {
-    Alert.alert(
-      'Clear Chat',
-      'Are you sure you want to clear all messages?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () => {
-            dispatch(clearChatMessages());
-            setShowSuggestions(true);
-          },
+    Alert.alert('Clear Chat', 'Are you sure you want to clear all messages?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          dispatch(clearChatMessages());
+          setShowSuggestions(true);
         },
-      ]
-    );
+      },
+    ]);
   }, [dispatch]);
 
   // Render message item
-  const renderMessageItem = useCallback(({ item }: { item: ChatMessage }) => (
-    <MessageBubble message={item} />
-  ), []);
+  const renderMessageItem = useCallback(({ item }: { item: ChatMessage }) => <MessageBubble message={item} />, []);
 
   // Render suggested questions
   const renderSuggestedQuestions = () => {
@@ -140,9 +127,7 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
     return (
       <View style={styles.suggestionsContainer}>
-        <Text style={[styles.suggestionsTitle, { color: theme.colors.onSurface }]}>
-          Suggested Questions
-        </Text>
+        <Text style={[styles.suggestionsTitle, { color: theme.colors.onSurface }]}>Suggested Questions</Text>
         <View style={styles.suggestionsGrid}>
           {suggestedQuestions.map((question, index) => (
             <Chip
@@ -163,9 +148,7 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
   // Render empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
-        Instagram AI Assistant
-      </Text>
+      <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>Instagram AI Assistant</Text>
       <Text style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
         Ask questions about your Instagram performance, content strategy, and get insights from your posts.
       </Text>
@@ -185,10 +168,12 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
         data={messages}
         renderItem={renderMessageItem}
         keyExtractor={(item, index) => `${item.timestamp}-${index}`}
-        contentContainerStyle={[
-          styles.messagesList,
-          messages.length === 0 && styles.emptyList,
-        ]}
+        contentContainerStyle={
+          {
+            ...styles.messagesList,
+            ...(messages.length === 0 ? styles.emptyList : {}),
+          } as any
+        }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={80}
@@ -202,14 +187,9 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
       {/* Input area */}
       <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
         {messages.length > 0 && (
-          <IconButton
-            icon="delete-outline"
-            size={20}
-            onPress={handleClearChat}
-            style={styles.clearButton}
-          />
+          <IconButton icon="delete-outline" size={20} onPress={handleClearChat} style={styles.clearButton} />
         )}
-        
+
         <TextInput
           value={inputText}
           onChangeText={setInputText}
@@ -221,16 +201,13 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
           onSubmitEditing={handleSendMessage}
           blurOnSubmit={false}
         />
-        
+
         <IconButton
           icon={loading.isLoading ? 'loading' : 'send'}
           size={24}
           onPress={handleSendMessage}
           disabled={!inputText.trim() || loading.isLoading}
-          style={[
-            styles.sendButton,
-            { backgroundColor: theme.colors.primary },
-          ]}
+          style={[styles.sendButton, { backgroundColor: theme.colors.primary }]}
           iconColor={theme.colors.onPrimary}
         />
       </View>
@@ -250,10 +227,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
   };
 
   return (
-    <View style={[
-      styles.messageBubble,
-      message.isUser ? styles.userBubble : styles.aiBubble,
-    ]}>
+    <View style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
       <Card
         style={[
           styles.messageCard,
@@ -261,8 +235,8 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
             backgroundColor: message.isUser
               ? theme.colors.primary
               : message.isError
-              ? theme.colors.errorContainer
-              : theme.colors.surface,
+                ? theme.colors.errorContainer
+                : theme.colors.surface,
           },
         ]}
       >
@@ -270,9 +244,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
           {message.isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={theme.colors.primary} />
-              <Text style={[styles.loadingText, { color: theme.colors.onSurface }]}>
-                Thinking...
-              </Text>
+              <Text style={[styles.loadingText, { color: theme.colors.onSurface }]}>Thinking...</Text>
             </View>
           ) : (
             <>
@@ -283,14 +255,14 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
                     color: message.isUser
                       ? theme.colors.onPrimary
                       : message.isError
-                      ? theme.colors.onErrorContainer
-                      : theme.colors.onSurface,
+                        ? theme.colors.onErrorContainer
+                        : theme.colors.onSurface,
                   },
                 ]}
               >
                 {message.text}
               </Text>
-              
+
               {/* Show confidence and processing time for AI responses */}
               {!message.isUser && !message.isError && message.confidence && (
                 <View style={styles.messageMetadata}>
@@ -304,7 +276,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
                   )}
                 </View>
               )}
-              
+
               {/* Show sources for AI responses */}
               {!message.isUser && message.sources && message.sources.length > 0 && (
                 <View style={styles.sourcesContainer}>
@@ -314,10 +286,9 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
                   {message.sources.slice(0, 3).map((source, index) => (
                     <View key={source.id} style={styles.sourceItem}>
                       <Text style={[styles.sourceText, { color: theme.colors.onSurfaceVariant }]}>
-                        {index + 1}. Post {source.metadata.postId?.slice(-6)} 
-                        {source.metadata.engagementRate && 
-                          ` (${source.metadata.engagementRate.toFixed(1)}% engagement)`
-                        }
+                        {index + 1}. Post {source.metadata.postId?.slice(-6)}
+                        {source.metadata.engagementRate &&
+                          ` (${source.metadata.engagementRate.toFixed(1)}% engagement)`}
                       </Text>
                     </View>
                   ))}
@@ -327,7 +298,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
           )}
         </Card.Content>
       </Card>
-      
+
       <Text style={[styles.messageTime, { color: theme.colors.onSurfaceVariant }]}>
         {formatTime(message.timestamp)}
       </Text>

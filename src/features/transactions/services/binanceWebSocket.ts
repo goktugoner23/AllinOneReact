@@ -18,7 +18,7 @@ class BinanceWebSocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
   private reconnectDelay = 5000;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private isConnected = false;
   private shouldReconnect = true;
   private callbacks: WebSocketCallbacks = {};
@@ -33,9 +33,9 @@ class BinanceWebSocketService {
   connect() {
     try {
       logger.debug('Connecting to Binance WebSocket', {}, 'BinanceWebSocket');
-      
+
       this.ws = new WebSocket(this.BASE_WS_URL);
-      
+
       this.ws.onopen = () => {
         logger.debug('WebSocket connected successfully', {}, 'BinanceWebSocket');
         this.isConnected = true;
@@ -49,7 +49,7 @@ class BinanceWebSocketService {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
           logger.debug('WebSocket message received', { type: message.type }, 'BinanceWebSocket');
-          
+
           this.handleMessage(message);
           this.callbacks.onMessage?.(message);
         } catch (error) {
@@ -62,7 +62,7 @@ class BinanceWebSocketService {
         this.isConnected = false;
         this.callbacks.onConnectionChange?.(false);
         this.stopHeartbeat();
-        
+
         if (this.shouldReconnect && event.code !== 1000) {
           this.attemptReconnect();
         }
@@ -72,7 +72,6 @@ class BinanceWebSocketService {
         logger.error('WebSocket error', error, 'BinanceWebSocket');
         this.callbacks.onError?.('WebSocket connection error');
       };
-
     } catch (error) {
       logger.error('Error creating WebSocket connection', error, 'BinanceWebSocket');
       this.callbacks.onError?.('Failed to create WebSocket connection');
@@ -99,7 +98,7 @@ class BinanceWebSocketService {
   private sendWelcomeMessage() {
     this.send({
       type: 'ping',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -108,7 +107,7 @@ class BinanceWebSocketService {
       if (this.isConnected) {
         this.send({
           type: 'ping',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }, 30000); // 30 seconds
@@ -130,9 +129,9 @@ class BinanceWebSocketService {
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    
+
     logger.debug('Attempting reconnection', { attempt: this.reconnectAttempts, delay }, 'BinanceWebSocket');
-    
+
     setTimeout(() => {
       if (this.shouldReconnect && !this.isConnected) {
         this.connect();
@@ -144,7 +143,7 @@ class BinanceWebSocketService {
   subscribeToPositions() {
     this.send({
       type: 'subscribe',
-      channel: 'positions'
+      channel: 'positions',
     });
     this.subscribedChannels.add('positions');
   }
@@ -152,7 +151,7 @@ class BinanceWebSocketService {
   subscribeToOrders() {
     this.send({
       type: 'subscribe',
-      channel: 'orders'
+      channel: 'orders',
     });
     this.subscribedChannels.add('orders');
   }
@@ -160,7 +159,7 @@ class BinanceWebSocketService {
   subscribeToBalance() {
     this.send({
       type: 'subscribe',
-      channel: 'balance'
+      channel: 'balance',
     });
     this.subscribedChannels.add('balance');
   }
@@ -169,7 +168,7 @@ class BinanceWebSocketService {
     this.send({
       type: 'subscribe',
       channel: 'ticker',
-      symbol
+      symbol,
     });
     this.subscribedChannels.add(`ticker:${symbol}`);
   }
@@ -179,7 +178,7 @@ class BinanceWebSocketService {
       type: 'subscribe',
       channel: 'depth',
       symbol,
-      levels
+      levels,
     });
     this.subscribedChannels.add(`depth:${symbol}`);
   }
@@ -188,7 +187,7 @@ class BinanceWebSocketService {
     this.send({
       type: 'subscribe',
       channel: 'trades',
-      symbol
+      symbol,
     });
     this.subscribedChannels.add(`trades:${symbol}`);
   }
@@ -197,7 +196,7 @@ class BinanceWebSocketService {
   unsubscribeFromPositions() {
     this.send({
       type: 'unsubscribe',
-      channel: 'positions'
+      channel: 'positions',
     });
     this.subscribedChannels.delete('positions');
   }
@@ -205,7 +204,7 @@ class BinanceWebSocketService {
   unsubscribeFromOrders() {
     this.send({
       type: 'unsubscribe',
-      channel: 'orders'
+      channel: 'orders',
     });
     this.subscribedChannels.delete('orders');
   }
@@ -213,7 +212,7 @@ class BinanceWebSocketService {
   unsubscribeFromBalance() {
     this.send({
       type: 'unsubscribe',
-      channel: 'balance'
+      channel: 'balance',
     });
     this.subscribedChannels.delete('balance');
   }
@@ -222,7 +221,7 @@ class BinanceWebSocketService {
     this.send({
       type: 'unsubscribe',
       channel: 'ticker',
-      symbol
+      symbol,
     });
     this.subscribedChannels.delete(`ticker:${symbol}`);
   }
@@ -231,7 +230,7 @@ class BinanceWebSocketService {
     this.send({
       type: 'unsubscribe',
       channel: 'depth',
-      symbol
+      symbol,
     });
     this.subscribedChannels.delete(`depth:${symbol}`);
   }
@@ -240,7 +239,7 @@ class BinanceWebSocketService {
     this.send({
       type: 'unsubscribe',
       channel: 'trades',
-      symbol
+      symbol,
     });
     this.subscribedChannels.delete(`trades:${symbol}`);
   }
@@ -262,12 +261,12 @@ class BinanceWebSocketService {
   disconnect() {
     this.shouldReconnect = false;
     this.stopHeartbeat();
-    
+
     if (this.ws) {
       this.ws.close(1000, 'Intentional disconnect');
       this.ws = null;
     }
-    
+
     this.isConnected = false;
     this.subscribedChannels.clear();
     logger.debug('WebSocket disconnected', {}, 'BinanceWebSocket');
@@ -284,7 +283,7 @@ class BinanceWebSocketService {
     return {
       isConnected: this.isConnected,
       subscribedChannels: Array.from(this.subscribedChannels),
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
     };
   }
 }

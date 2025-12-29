@@ -57,7 +57,7 @@ export function LessonsTab() {
       startTime.setHours(lesson.startHour, lesson.startMinute, 0, 0);
       const endTime = new Date();
       endTime.setHours(lesson.endHour, lesson.endMinute, 0, 0);
-      
+
       setFormData({
         dayOfWeek: lesson.dayOfWeek,
         startTime,
@@ -67,7 +67,7 @@ export function LessonsTab() {
       setEditingLesson(null);
       const now = new Date();
       const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
-      
+
       setFormData({
         dayOfWeek: 1, // Monday
         startTime: now,
@@ -99,10 +99,12 @@ export function LessonsTab() {
       };
 
       if (editingLesson) {
-        await dispatch(updateLesson({
-          ...editingLesson,
-          ...lessonData,
-        })).unwrap();
+        await dispatch(
+          updateLesson({
+            ...editingLesson,
+            ...lessonData,
+          }),
+        ).unwrap();
       } else {
         await dispatch(addLesson(lessonData)).unwrap();
       }
@@ -113,32 +115,26 @@ export function LessonsTab() {
   };
 
   const handleDelete = (lesson: WTLesson) => {
-    Alert.alert(
-      'Delete Lesson',
-      `Are you sure you want to delete the ${dayNames[lesson.dayOfWeek]} lesson?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteLesson(lesson.id)).unwrap();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete lesson');
-            }
-          },
+    Alert.alert('Delete Lesson', `Are you sure you want to delete the ${dayNames[lesson.dayOfWeek]} lesson?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await dispatch(deleteLesson(lesson.id)).unwrap();
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete lesson');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
-
-
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
     if (selectedTime && showTimePicker) {
       const newTime = new Date(selectedTime);
-      
+
       if (showTimePicker === 'start') {
         // Ensure end time is after start time
         const endTime = new Date(formData.endTime);
@@ -181,7 +177,7 @@ export function LessonsTab() {
     const durationMinutes = endMinutes - startMinutes;
     const hours = Math.floor(durationMinutes / 60);
     const minutes = durationMinutes % 60;
-    
+
     if (hours > 0 && minutes > 0) {
       return `${hours}h ${minutes}m`;
     } else if (hours > 0) {
@@ -192,36 +188,27 @@ export function LessonsTab() {
   };
 
   const renderLessonCard = ({ item: lesson }: { item: WTLesson }) => (
-      <Card style={[styles.lessonCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
-        <Card.Content>
-          <View style={styles.lessonHeader}>
-            <View style={styles.lessonInfo}>
-              <Text variant="titleMedium" style={styles.dayName}>
-                {dayNames[lesson.dayOfWeek]}
-              </Text>
-              <Text variant="bodyLarge" style={styles.timeRange}>
-                {formatTime(lesson.startHour, lesson.startMinute)} - {formatTime(lesson.endHour, lesson.endMinute)}
-              </Text>
-              <Text variant="bodyMedium" style={styles.duration}>
-                Duration: {getDuration(lesson.startHour, lesson.startMinute, lesson.endHour, lesson.endMinute)}
-              </Text>
-            </View>
-            <View style={styles.lessonActions}>
-              <IconButton
-                icon="pencil"
-                size={20}
-                onPress={() => handleOpenDialog(lesson)}
-              />
-              <IconButton
-                icon="delete"
-                size={20}
-                iconColor={theme.colors.error}
-                onPress={() => handleDelete(lesson)}
-              />
-            </View>
+    <Card style={[styles.lessonCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
+      <Card.Content>
+        <View style={styles.lessonHeader}>
+          <View style={styles.lessonInfo}>
+            <Text variant="titleMedium" style={styles.dayName}>
+              {dayNames[lesson.dayOfWeek]}
+            </Text>
+            <Text variant="bodyLarge" style={styles.timeRange}>
+              {formatTime(lesson.startHour, lesson.startMinute)} - {formatTime(lesson.endHour, lesson.endMinute)}
+            </Text>
+            <Text variant="bodyMedium" style={styles.duration}>
+              Duration: {getDuration(lesson.startHour, lesson.startMinute, lesson.endHour, lesson.endMinute)}
+            </Text>
           </View>
-        </Card.Content>
-      </Card>
+          <View style={styles.lessonActions}>
+            <IconButton icon="pencil" size={20} onPress={() => handleOpenDialog(lesson)} />
+            <IconButton icon="delete" size={20} iconColor={theme.colors.error} onPress={() => handleDelete(lesson)} />
+          </View>
+        </View>
+      </Card.Content>
+    </Card>
   );
 
   return (
@@ -253,7 +240,7 @@ export function LessonsTab() {
         }
       />
 
-              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
+      <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
         <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
@@ -295,22 +282,19 @@ export function LessonsTab() {
 
             <View style={styles.durationContainer}>
               <Text variant="bodySmall" style={styles.durationText}>
-                Duration: {getDuration(
-                  formData.startTime.getHours(), 
+                Duration:{' '}
+                {getDuration(
+                  formData.startTime.getHours(),
                   formData.startTime.getMinutes(),
-                  formData.endTime.getHours(), 
-                  formData.endTime.getMinutes()
+                  formData.endTime.getHours(),
+                  formData.endTime.getMinutes(),
                 )}
               </Text>
             </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button 
-              onPress={handleSave} 
-              mode="contained"
-              disabled={formData.startTime >= formData.endTime}
-            >
+            <Button onPress={handleSave} mode="contained" disabled={formData.startTime >= formData.endTime}>
               {editingLesson ? 'Update' : 'Add'}
             </Button>
           </Dialog.Actions>
@@ -424,4 +408,4 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
   },
-}); 
+});

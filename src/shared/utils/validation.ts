@@ -99,17 +99,17 @@ export const isPastDate = (date: string | Date): boolean => {
  */
 export const validateRequiredFields = <T extends Record<string, any>>(
   obj: T,
-  requiredFields: (keyof T)[]
+  requiredFields: (keyof T)[],
 ): { isValid: boolean; missingFields: string[] } => {
   const missingFields: string[] = [];
-  
+
   for (const field of requiredFields) {
     const value = obj[field];
     if (value === undefined || value === null || value === '') {
       missingFields.push(String(field));
     }
   }
-  
+
   return {
     isValid: missingFields.length === 0,
     missingFields,

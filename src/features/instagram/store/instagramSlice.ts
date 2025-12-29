@@ -93,7 +93,7 @@ export const fetchInstagramPosts = createAsyncThunk(
   async (forceSync: boolean = false, { rejectWithValue }) => {
     try {
       const response = await instagramApiService.getInstagramPosts(forceSync);
-      
+
       // Convert API response to internal data format
       const internalData: InstagramPostsData = {
         posts: response.data,
@@ -102,25 +102,22 @@ export const fetchInstagramPosts = createAsyncThunk(
         syncInfo: response.syncInfo,
         timestamp: response.timestamp,
       };
-      
+
       return internalData;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch posts');
     }
-  }
+  },
 );
 
 // Get Instagram analytics
-export const fetchInstagramAnalytics = createAsyncThunk(
-  'instagram/fetchAnalytics',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await instagramApiService.getInstagramAnalytics();
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch analytics');
-    }
+export const fetchInstagramAnalytics = createAsyncThunk('instagram/fetchAnalytics', async (_, { rejectWithValue }) => {
+  try {
+    return await instagramApiService.getInstagramAnalytics();
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch analytics');
   }
-);
+});
 
 // Query RAG for AI insights
 export const queryInstagramAI = createAsyncThunk(
@@ -131,20 +128,17 @@ export const queryInstagramAI = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to query AI');
     }
-  }
+  },
 );
 
 // Check Instagram health
-export const checkInstagramHealth = createAsyncThunk(
-  'instagram/checkHealth',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await instagramApiService.checkInstagramHealth();
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to check health');
-    }
+export const checkInstagramHealth = createAsyncThunk('instagram/checkHealth', async (_, { rejectWithValue }) => {
+  try {
+    return await instagramApiService.checkInstagramHealth();
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Failed to check health');
   }
-);
+});
 
 // Upload file for analysis
 export const uploadFileForAnalysis = createAsyncThunk(
@@ -156,19 +150,19 @@ export const uploadFileForAnalysis = createAsyncThunk(
       mimeType: string;
       analysisQuery: string;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       return await instagramApiService.uploadFileForAnalysis(
         params.fileUri,
         params.fileName,
         params.mimeType,
-        params.analysisQuery
+        params.analysisQuery,
       );
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to upload file');
     }
-  }
+  },
 );
 
 // Analyze Instagram URL
@@ -180,7 +174,7 @@ export const analyzeInstagramURL = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to analyze URL');
     }
-  }
+  },
 );
 
 // Process audio recording
@@ -192,18 +186,18 @@ export const processAudioRecording = createAsyncThunk(
       analysisQuery: string;
       duration: number;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       return await instagramApiService.processAudioRecording(
         params.audioFilePath,
         params.analysisQuery,
-        params.duration
+        params.duration,
       );
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to process audio');
     }
-  }
+  },
 );
 
 // Instagram slice
@@ -215,16 +209,16 @@ const instagramSlice = createSlice({
     addChatMessage: (state, action: PayloadAction<ChatMessage>) => {
       state.ai.messages.push(action.payload);
     },
-    
+
     removeChatMessage: (state, action: PayloadAction<number>) => {
       state.ai.messages.splice(action.payload, 1);
     },
-    
+
     clearChatMessages: (state) => {
       state.ai.messages = [];
       state.ai.loading.error = undefined;
     },
-    
+
     updateLastChatMessage: (state, action: PayloadAction<Partial<ChatMessage>>) => {
       const lastIndex = state.ai.messages.length - 1;
       if (lastIndex >= 0) {
@@ -234,7 +228,7 @@ const instagramSlice = createSlice({
         };
       }
     },
-    
+
     // Audio recording actions
     startAudioRecording: (state) => {
       state.ai.audioRecording = {
@@ -244,7 +238,7 @@ const instagramSlice = createSlice({
         error: undefined,
       };
     },
-    
+
     stopAudioRecording: (state, action: PayloadAction<string>) => {
       state.ai.audioRecording = {
         ...state.ai.audioRecording,
@@ -252,33 +246,33 @@ const instagramSlice = createSlice({
         filePath: action.payload,
       };
     },
-    
+
     updateRecordingState: (state, action: PayloadAction<{ duration: number; amplitude: number }>) => {
       if (state.ai.audioRecording.isRecording) {
         state.ai.audioRecording.duration = action.payload.duration;
         state.ai.audioRecording.amplitude = action.payload.amplitude;
       }
     },
-    
+
     setRecordingError: (state, action: PayloadAction<string>) => {
       state.ai.audioRecording.error = action.payload;
       state.ai.audioRecording.isRecording = false;
     },
-    
+
     // Attachment actions
     setAttachmentPreview: (state, action: PayloadAction<MessageAttachment>) => {
       state.ai.attachmentPreview = action.payload;
     },
-    
+
     clearAttachmentPreview: (state) => {
       state.ai.attachmentPreview = undefined;
     },
-    
+
     // Error handling
     clearError: (state, action: PayloadAction<'posts' | 'analytics' | 'ai'>) => {
       state[action.payload].loading.error = undefined;
     },
-    
+
     // Reset state
     resetInstagramState: () => initialState,
   },
@@ -353,11 +347,10 @@ const instagramSlice = createSlice({
       });
 
     // Check Instagram health
-    builder
-      .addCase(checkInstagramHealth.fulfilled, (state, action) => {
-        state.health.status = action.payload;
-        state.health.lastChecked = new Date().toISOString();
-      });
+    builder.addCase(checkInstagramHealth.fulfilled, (state, action) => {
+      state.health.status = action.payload;
+      state.health.lastChecked = new Date().toISOString();
+    });
 
     // Upload file for analysis
     builder

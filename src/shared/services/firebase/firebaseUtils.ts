@@ -1,4 +1,4 @@
-import { FirebaseError } from "firebase/app";
+import { FirebaseError } from 'firebase/app';
 import {
   collection,
   doc,
@@ -14,16 +14,17 @@ import {
   DocumentSnapshot,
   Query,
   DocumentData,
-} from "firebase/firestore";
-import { db } from "../config/firebase";
+} from 'firebase/firestore';
+import { getDb } from './firebase';
+
+// Get db instance
+const db = getDb();
 
 /**
  * Result type pattern for better error handling
  * Following TypeScript guidelines for error handling
  */
-export type Result<T, E = FirebaseError> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+export type Result<T, E = FirebaseError> = { success: true; data: T } | { success: false; error: E };
 
 /**
  * Firebase error handler
@@ -31,24 +32,24 @@ export type Result<T, E = FirebaseError> =
  */
 export const handleFirebaseError = (error: FirebaseError): string => {
   switch (error.code) {
-    case "permission-denied":
-      return "You do not have permission to perform this action.";
-    case "unavailable":
-      return "Service is currently unavailable. Please try again later.";
-    case "deadline-exceeded":
-      return "Request took too long. Please check your connection.";
-    case "unauthenticated":
-      return "You need to be signed in to perform this action.";
-    case "resource-exhausted":
-      return "Too many requests. Please wait a moment and try again.";
-    case "not-found":
-      return "The requested data was not found.";
-    case "already-exists":
-      return "This item already exists.";
-    case "invalid-argument":
-      return "Invalid data provided. Please check your input.";
+    case 'permission-denied':
+      return 'You do not have permission to perform this action.';
+    case 'unavailable':
+      return 'Service is currently unavailable. Please try again later.';
+    case 'deadline-exceeded':
+      return 'Request took too long. Please check your connection.';
+    case 'unauthenticated':
+      return 'You need to be signed in to perform this action.';
+    case 'resource-exhausted':
+      return 'Too many requests. Please wait a moment and try again.';
+    case 'not-found':
+      return 'The requested data was not found.';
+    case 'already-exists':
+      return 'This item already exists.';
+    case 'invalid-argument':
+      return 'Invalid data provided. Please check your input.';
     default:
-      return error.message || "An unexpected error occurred.";
+      return error.message || 'An unexpected error occurred.';
   }
 };
 
@@ -64,7 +65,7 @@ export class FirebaseRepository<T extends { id: string | number }> {
   async getAll(
     filters?: Array<{ field: string; operator: any; value: any }>,
     orderByField?: string,
-    orderDirection: "asc" | "desc" = "desc",
+    orderDirection: 'asc' | 'desc' = 'desc',
     limitCount?: number,
     lastDoc?: DocumentSnapshot,
   ): Promise<Result<T[]>> {
@@ -137,7 +138,7 @@ export class FirebaseRepository<T extends { id: string | number }> {
   /**
    * Create or update a document
    */
-  async save(data: Omit<T, "id">, id?: string): Promise<Result<T>> {
+  async save(data: Omit<T, 'id'>, id?: string): Promise<Result<T>> {
     try {
       const docId = id || Date.now().toString();
       const docRef = doc(db, this.collectionName, docId);
@@ -201,7 +202,7 @@ export const performBatchOperation = async <T>(
 
     return { success: true, data: results };
   } catch (error) {
-    console.error("Error performing batch operation:", error);
+    console.error('Error performing batch operation:', error);
     return {
       success: false,
       error: error as FirebaseError,
@@ -264,7 +265,7 @@ export const withNetworkAwareness = async <T>(
   if (cacheKey) {
     const cachedData = CacheManager.get<T>(cacheKey);
     if (cachedData) {
-      console.log("Returning cached data for:", cacheKey);
+      console.log('Returning cached data for:', cacheKey);
       return { success: true, data: cachedData };
     }
   }

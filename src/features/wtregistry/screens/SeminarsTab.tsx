@@ -1,22 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import {
-  Card,
-  Text,
-  Portal,
-  Dialog,
-  TextInput,
-  Button,
-  IconButton,
-  useTheme,
-  Surface,
-  Chip,
-} from 'react-native-paper';
+import { Card, Text, Portal, Dialog, TextInput, Button, IconButton, useTheme, Surface, Chip } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
-import { WTSeminar } from '../../types/WTRegistry';
+import { WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export function SeminarsTab() {
@@ -58,7 +47,7 @@ export function SeminarsTab() {
       startTime.setHours(seminar.startHour, seminar.startMinute, 0, 0);
       const endTime = new Date();
       endTime.setHours(seminar.endHour, seminar.endMinute, 0, 0);
-      
+
       setFormData({
         name: seminar.name,
         date: typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date,
@@ -72,7 +61,7 @@ export function SeminarsTab() {
       const now = new Date();
       // Set default end time to 4 hours later (like Kotlin app)
       const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-      
+
       setFormData({
         name: '',
         date: now,
@@ -116,10 +105,12 @@ export function SeminarsTab() {
       };
 
       if (editingSeminar) {
-        await dispatch(updateSeminar({
-          ...editingSeminar,
-          ...seminarData,
-        })).unwrap();
+        await dispatch(
+          updateSeminar({
+            ...editingSeminar,
+            ...seminarData,
+          }),
+        ).unwrap();
       } else {
         await dispatch(addSeminar(seminarData)).unwrap();
       }
@@ -130,27 +121,21 @@ export function SeminarsTab() {
   };
 
   const handleDelete = (seminar: WTSeminar) => {
-    Alert.alert(
-      'Delete Seminar',
-      `Are you sure you want to delete "${seminar.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteSeminar(seminar.id)).unwrap();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete seminar');
-            }
-          },
+    Alert.alert('Delete Seminar', `Are you sure you want to delete "${seminar.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await dispatch(deleteSeminar(seminar.id)).unwrap();
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete seminar');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
-
-
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -159,11 +144,11 @@ export function SeminarsTab() {
       const newDate = new Date(selectedDate);
       const currentStartTime = formData.startTime;
       const currentEndTime = formData.endTime;
-      
+
       newDate.setHours(currentStartTime.getHours(), currentStartTime.getMinutes(), 0, 0);
       const newEndTime = new Date(newDate);
       newEndTime.setHours(currentEndTime.getHours(), currentEndTime.getMinutes(), 0, 0);
-      
+
       setFormData({
         ...formData,
         date: newDate,
@@ -176,7 +161,7 @@ export function SeminarsTab() {
   const handleTimeChange = (event: any, selectedTime?: Date) => {
     if (selectedTime && showTimePicker) {
       const newTime = new Date(selectedTime);
-      
+
       if (showTimePicker === 'start') {
         // Ensure end time is after start time
         const endTime = new Date(formData.endTime);
@@ -224,7 +209,7 @@ export function SeminarsTab() {
     const durationMinutes = endMinutes - startMinutes;
     const hours = Math.floor(durationMinutes / 60);
     const minutes = durationMinutes % 60;
-    
+
     if (hours > 0 && minutes > 0) {
       return `${hours}h ${minutes}m`;
     } else if (hours > 0) {
@@ -235,83 +220,72 @@ export function SeminarsTab() {
   };
 
   const renderSeminarCard = ({ item: seminar }: { item: WTSeminar }) => (
-      <Card 
-        style={[
-          styles.seminarCard, 
-          { 
-            backgroundColor: theme.colors.surface,
-            borderLeftWidth: 4,
-            borderLeftColor: isUpcoming(seminar.date) ? theme.colors.primary : theme.colors.outline,
-          }
-        ]} 
-        mode="elevated"
-      >
-        <Card.Content>
-          <View style={styles.seminarHeader}>
-            <View style={styles.seminarInfo}>
-              <View style={styles.titleRow}>
-                <Text variant="titleMedium" style={styles.seminarName}>
-                  {seminar.name}
-                </Text>
-                <Chip
-                  mode="outlined"
-                  style={[
-                    styles.statusChip,
-                    { 
-                      backgroundColor: isUpcoming(seminar.date) 
-                        ? theme.colors.primaryContainer 
-                        : theme.colors.surfaceVariant 
-                    }
-                  ]}
-                  textStyle={{ 
-                    color: isUpcoming(seminar.date) 
-                      ? theme.colors.onPrimaryContainer 
-                      : theme.colors.onSurfaceVariant 
-                  }}
-                >
-                  {isUpcoming(seminar.date) ? 'Upcoming' : 'Past'}
-                </Chip>
-              </View>
-              
-              <Text variant="bodyLarge" style={styles.dateTime}>
-                📅 {(typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date).toLocaleDateString()}
+    <Card
+      style={[
+        styles.seminarCard,
+        {
+          backgroundColor: theme.colors.surface,
+          borderLeftWidth: 4,
+          borderLeftColor: isUpcoming(seminar.date) ? theme.colors.primary : theme.colors.outline,
+        },
+      ]}
+      mode="elevated"
+    >
+      <Card.Content>
+        <View style={styles.seminarHeader}>
+          <View style={styles.seminarInfo}>
+            <View style={styles.titleRow}>
+              <Text variant="titleMedium" style={styles.seminarName}>
+                {seminar.name}
               </Text>
-              <Text variant="bodyMedium" style={styles.timeRange}>
-                🕐 {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
-              </Text>
-              
-              <Text variant="bodySmall" style={styles.duration}>
-                Duration: {getDuration(seminar.startHour, seminar.startMinute, seminar.endHour, seminar.endMinute)}
-              </Text>
-              
-              {seminar.location && (
-                <Text variant="bodyMedium" style={styles.location}>
-                  📍 {seminar.location}
-                </Text>
-              )}
-              
-              {seminar.description && (
-                <Text variant="bodySmall" style={styles.description}>
-                  {seminar.description}
-                </Text>
-              )}
+              <Chip
+                mode="outlined"
+                style={[
+                  styles.statusChip,
+                  {
+                    backgroundColor: isUpcoming(seminar.date)
+                      ? theme.colors.primaryContainer
+                      : theme.colors.surfaceVariant,
+                  },
+                ]}
+                textStyle={{
+                  color: isUpcoming(seminar.date) ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant,
+                }}
+              >
+                {isUpcoming(seminar.date) ? 'Upcoming' : 'Past'}
+              </Chip>
             </View>
-            <View style={styles.seminarActions}>
-              <IconButton
-                icon="pencil"
-                size={20}
-                onPress={() => handleOpenDialog(seminar)}
-              />
-              <IconButton
-                icon="delete"
-                size={20}
-                iconColor={theme.colors.error}
-                onPress={() => handleDelete(seminar)}
-              />
-            </View>
+
+            <Text variant="bodyLarge" style={styles.dateTime}>
+              📅 {(typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date).toLocaleDateString()}
+            </Text>
+            <Text variant="bodyMedium" style={styles.timeRange}>
+              🕐 {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
+            </Text>
+
+            <Text variant="bodySmall" style={styles.duration}>
+              Duration: {getDuration(seminar.startHour, seminar.startMinute, seminar.endHour, seminar.endMinute)}
+            </Text>
+
+            {seminar.location && (
+              <Text variant="bodyMedium" style={styles.location}>
+                📍 {seminar.location}
+              </Text>
+            )}
+
+            {seminar.description && (
+              <Text variant="bodySmall" style={styles.description}>
+                {seminar.description}
+              </Text>
+            )}
           </View>
-        </Card.Content>
-      </Card>
+          <View style={styles.seminarActions}>
+            <IconButton icon="pencil" size={20} onPress={() => handleOpenDialog(seminar)} />
+            <IconButton icon="delete" size={20} iconColor={theme.colors.error} onPress={() => handleDelete(seminar)} />
+          </View>
+        </View>
+      </Card.Content>
+    </Card>
   );
 
   return (
@@ -343,7 +317,7 @@ export function SeminarsTab() {
         }
       />
 
-              <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
+      <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
         <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
@@ -358,12 +332,7 @@ export function SeminarsTab() {
               autoFocus
             />
 
-            <Button
-              mode="outlined"
-              onPress={() => setShowDatePicker(true)}
-              style={styles.dateButton}
-              icon="calendar"
-            >
+            <Button mode="outlined" onPress={() => setShowDatePicker(true)} style={styles.dateButton} icon="calendar">
               Date: {formData.date.toLocaleDateString()}
             </Button>
 
@@ -407,22 +376,19 @@ export function SeminarsTab() {
 
             <View style={styles.durationContainer}>
               <Text variant="bodySmall" style={styles.durationText}>
-                Duration: {getDuration(
-                  formData.startTime.getHours(), 
+                Duration:{' '}
+                {getDuration(
+                  formData.startTime.getHours(),
                   formData.startTime.getMinutes(),
-                  formData.endTime.getHours(), 
-                  formData.endTime.getMinutes()
+                  formData.endTime.getHours(),
+                  formData.endTime.getMinutes(),
                 )}
               </Text>
             </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button 
-              onPress={handleSave} 
-              mode="contained"
-              disabled={!formData.name.trim()}
-            >
+            <Button onPress={handleSave} mode="contained" disabled={!formData.name.trim()}>
               {editingSeminar ? 'Update' : 'Add'} Seminar
             </Button>
           </Dialog.Actions>
@@ -574,4 +540,4 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
   },
-}); 
+});

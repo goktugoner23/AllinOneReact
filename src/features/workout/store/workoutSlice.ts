@@ -121,9 +121,17 @@ export const finishWorkout = createAsyncThunk('workout/finish', async (notes: st
     exerciseId: ex.exerciseId,
     exerciseName: ex.exerciseName,
     muscleGroup: ex.muscleGroup ?? null,
-    sets: ex.completedSets.map((cs) => ({ setNumber: cs.setNumber, reps: cs.actualReps, weight: cs.actualWeight, completed: true })),
+    sets: ex.completedSets.map((cs) => ({
+      setNumber: cs.setNumber,
+      reps: cs.actualReps,
+      weight: cs.actualWeight,
+      completed: true,
+    })),
   }));
-  const totalVolume = activeSession.exercises.reduce((sum, e) => sum + e.completedSets.reduce((s, c) => s + c.actualWeight * c.actualReps, 0), 0);
+  const totalVolume = activeSession.exercises.reduce(
+    (sum, e) => sum + e.completedSets.reduce((s, c) => s + c.actualWeight * c.actualReps, 0),
+    0,
+  );
   const completed: CompletedWorkout = {
     id: activeSession.id,
     programId: activeSession.programId ?? null,
@@ -182,9 +190,19 @@ const slice = createSlice({
       state.stopwatch.isPaused = false;
     },
     reset: (state) => {
-      state.stopwatch = { startTimeMs: null, elapsedMs: 0, isRunning: false, isPaused: false, totalPausedMs: 0, pauseStartedAtMs: null };
+      state.stopwatch = {
+        startTimeMs: null,
+        elapsedMs: 0,
+        isRunning: false,
+        isPaused: false,
+        totalPausedMs: 0,
+        pauseStartedAtMs: null,
+      };
     },
-    completeSet: (state, action: PayloadAction<{ exerciseId: number; setNumber: number; reps?: number; weight?: number }>) => {
+    completeSet: (
+      state,
+      action: PayloadAction<{ exerciseId: number; setNumber: number; reps?: number; weight?: number }>,
+    ) => {
       if (!state.activeSession) return;
       const { exerciseId, setNumber, reps = 0, weight = 0 } = action.payload;
       const ex = state.activeSession.exercises.find((e) => e.exerciseId === exerciseId);
@@ -209,12 +227,26 @@ const slice = createSlice({
       })
       .addCase(startWorkout.fulfilled, (state, action) => {
         state.activeSession = action.payload;
-        state.stopwatch = { startTimeMs: null, elapsedMs: 0, isRunning: false, isPaused: false, totalPausedMs: 0, pauseStartedAtMs: null };
+        state.stopwatch = {
+          startTimeMs: null,
+          elapsedMs: 0,
+          isRunning: false,
+          isPaused: false,
+          totalPausedMs: 0,
+          pauseStartedAtMs: null,
+        };
       })
       .addCase(finishWorkout.fulfilled, (state, action) => {
         state.history.unshift(action.payload);
         state.activeSession = null;
-        state.stopwatch = { startTimeMs: null, elapsedMs: 0, isRunning: false, isPaused: false, totalPausedMs: 0, pauseStartedAtMs: null };
+        state.stopwatch = {
+          startTimeMs: null,
+          elapsedMs: 0,
+          isRunning: false,
+          isPaused: false,
+          totalPausedMs: 0,
+          pauseStartedAtMs: null,
+        };
       })
       .addCase(loadHistory.fulfilled, (state, action) => {
         state.history = action.payload;
@@ -227,5 +259,3 @@ const slice = createSlice({
 
 export const { startStopwatch, tick, pause, resume, reset, completeSet, uncompleteSet } = slice.actions;
 export default slice.reducer;
-
-

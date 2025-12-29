@@ -14,9 +14,9 @@ export interface WTRegistration {
   studentId: number; // Reference to WTStudent id
   amount: number;
   attachmentUri?: string; // Can be local URI or Firebase Storage URL
-  startDate?: Date;
-  endDate?: Date;
-  paymentDate: Date;
+  startDate?: Date | string; // Can be Date object or ISO string for Redux serialization
+  endDate?: Date | string; // Can be Date object or ISO string for Redux serialization
+  paymentDate: Date | string; // Can be Date object or ISO string for Redux serialization
   notes?: string;
   isPaid: boolean;
   // Derived property for UI
@@ -53,4 +53,4 @@ export interface CalendarEvent {
   endDate?: Date;
   type: 'registration_end' | 'registration_start' | 'lesson' | 'seminar' | 'event';
   relatedId?: number; // ID of related WTRegistry item
-} 
+}

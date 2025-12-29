@@ -75,20 +75,21 @@ export function FuturesWebSocketProvider({ children }: { children: React.ReactNo
     if (set.size === 0) listenersRef.current.delete(type);
   };
 
-  const value: FuturesWebSocketContextValue = useMemo(() => ({
-    connected,
-    addListener,
-    removeListener,
-    subscribeToPositions: () => serviceRef.current?.subscribeToPositions(),
-    subscribeToOrders: () => serviceRef.current?.subscribeToOrders(),
-    subscribeToBalance: () => serviceRef.current?.subscribeToBalance(),
-    subscribeToTicker: (symbol: string) => serviceRef.current?.subscribeToTicker(symbol),
-    unsubscribeFromTicker: (symbol: string) => serviceRef.current?.unsubscribeFromTicker(symbol),
-  }), [connected]);
-
-  return (
-    <FuturesWebSocketContext.Provider value={value}>{children}</FuturesWebSocketContext.Provider>
+  const value: FuturesWebSocketContextValue = useMemo(
+    () => ({
+      connected,
+      addListener,
+      removeListener,
+      subscribeToPositions: () => serviceRef.current?.subscribeToPositions(),
+      subscribeToOrders: () => serviceRef.current?.subscribeToOrders(),
+      subscribeToBalance: () => serviceRef.current?.subscribeToBalance(),
+      subscribeToTicker: (symbol: string) => serviceRef.current?.subscribeToTicker(symbol),
+      unsubscribeFromTicker: (symbol: string) => serviceRef.current?.unsubscribeFromTicker(symbol),
+    }),
+    [connected],
   );
+
+  return <FuturesWebSocketContext.Provider value={value}>{children}</FuturesWebSocketContext.Provider>;
 }
 
 export function useFuturesWebSocket(): FuturesWebSocketContextValue {
@@ -96,5 +97,3 @@ export function useFuturesWebSocket(): FuturesWebSocketContextValue {
   if (!ctx) throw new Error('useFuturesWebSocket must be used within a FuturesWebSocketProvider');
   return ctx;
 }
-
-

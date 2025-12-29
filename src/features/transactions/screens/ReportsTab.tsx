@@ -24,7 +24,7 @@ function filterByDateRange(transactions: Transaction[], range: string) {
   if (range === 'all') return transactions;
   if (range === 'year') {
     const start = startOfYear(now);
-    return transactions.filter(t => isAfter(parseISO(t.date), start));
+    return transactions.filter((t) => isAfter(parseISO(t.date), start));
   }
   let days = 0;
   if (range === '7d') days = 7;
@@ -32,7 +32,7 @@ function filterByDateRange(transactions: Transaction[], range: string) {
   if (range === '90d') days = 90;
   if (days > 0) {
     const start = subDays(now, days);
-    return transactions.filter(t => isAfter(parseISO(t.date), start));
+    return transactions.filter((t) => isAfter(parseISO(t.date), start));
   }
   return transactions;
 }
@@ -47,15 +47,15 @@ export const ReportsTab: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    fetchTransactions(1000).then(txs => {
+    fetchTransactions(1000).then((txs) => {
       setTransactions(txs);
-      const cats = Array.from(new Set(txs.map(t => t.category)));
+      const cats = Array.from(new Set(txs.map((t) => t.category)));
       setCategories(['All', ...cats]);
     });
   }, []);
 
   // Filter transactions by date range and category
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = transactions.filter((t) => {
     if (category !== 'All' && t.category !== category) return false;
     return filterByDateRange([t], dateRange).length > 0;
   });
@@ -66,53 +66,49 @@ export const ReportsTab: React.FC = () => {
     .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
 
   // Summary statistics - updated to use isIncome field
-  const totalIncome = filteredTransactions
-    .filter(t => t.isIncome)
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = filteredTransactions
-    .filter(t => !t.isIncome)
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalIncome = filteredTransactions.filter((t) => t.isIncome).reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = filteredTransactions.filter((t) => !t.isIncome).reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
   // Chart data: spending per day - updated to use isIncome field
   const chartData = (() => {
     const map: { [date: string]: number } = {};
-    filteredTransactions.forEach(t => {
+    filteredTransactions.forEach((t) => {
       const d = format(parseISO(t.date), 'MM-dd');
       map[d] = (map[d] || 0) + (!t.isIncome ? t.amount : 0);
     });
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
     const labels = sorted.map(([date]) => date);
     const data = sorted.map(([_, value]) => value);
-    
+
     return {
       labels: labels.length > 0 ? labels : ['No Data'],
-      datasets: [{
-        data: data.length > 0 ? data : [0],
-        color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
-        strokeWidth: 2
-      }]
+      datasets: [
+        {
+          data: data.length > 0 ? data : [0],
+          color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
+          strokeWidth: 2,
+        },
+      ],
     };
   })();
 
   // Category breakdown - updated to use isIncome field
   const categorySpending = (() => {
     const map: { [cat: string]: number } = {};
-    filteredTransactions.forEach(t => {
-      if (!t.isIncome)
-        map[t.category] = (map[t.category] || 0) + t.amount;
+    filteredTransactions.forEach((t) => {
+      if (!t.isIncome) map[t.category] = (map[t.category] || 0) + t.amount;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   })();
 
   // Insights
   const avgTransaction = filteredTransactions.length
-    ? filteredTransactions.reduce((sum, t) => sum + t.amount, 0) /
-      filteredTransactions.length
+    ? filteredTransactions.reduce((sum, t) => sum + t.amount, 0) / filteredTransactions.length
     : 0;
   const mostFrequentCategory = (() => {
     const map: { [cat: string]: number } = {};
-    filteredTransactions.forEach(t => {
+    filteredTransactions.forEach((t) => {
       map[t.category] = (map[t.category] || 0) + 1;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
@@ -123,7 +119,8 @@ export const ReportsTab: React.FC = () => {
   const totalPages = sortedTransactions.length === 0 ? 0 : Math.ceil(sortedTransactions.length / PAGE_SIZE);
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = Math.min(startIndex + PAGE_SIZE, sortedTransactions.length);
-  const pagedTransactions = startIndex < sortedTransactions.length ? sortedTransactions.slice(startIndex, endIndex) : [];
+  const pagedTransactions =
+    startIndex < sortedTransactions.length ? sortedTransactions.slice(startIndex, endIndex) : [];
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -160,15 +157,12 @@ export const ReportsTab: React.FC = () => {
               visible={categoryMenuVisible}
               onDismiss={() => setCategoryMenuVisible(false)}
               anchor={
-                <Button
-                  mode="outlined"
-                  onPress={() => setCategoryMenuVisible(true)}
-                >
+                <Button mode="outlined" onPress={() => setCategoryMenuVisible(true)}>
                   {category}
                 </Button>
               }
             >
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <Menu.Item
                   key={cat}
                   onPress={() => {
@@ -183,16 +177,12 @@ export const ReportsTab: React.FC = () => {
               visible={dateRangeMenuVisible}
               onDismiss={() => setDateRangeMenuVisible(false)}
               anchor={
-                <Button
-                  mode="outlined"
-                  style={styles.marginLeft8}
-                  onPress={() => setDateRangeMenuVisible(true)}
-                >
-                  {dateRanges.find(r => r.value === dateRange)?.label}
+                <Button mode="outlined" style={styles.marginLeft8} onPress={() => setDateRangeMenuVisible(true)}>
+                  {dateRanges.find((r) => r.value === dateRange)?.label}
                 </Button>
               }
             >
-              {dateRanges.map(range => (
+              {dateRanges.map((range) => (
                 <Menu.Item
                   key={range.value}
                   onPress={() => {
@@ -231,18 +221,18 @@ export const ReportsTab: React.FC = () => {
                 color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
                 labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                 style: {
-                  borderRadius: 16
+                  borderRadius: 16,
                 },
                 propsForDots: {
                   r: '4',
                   strokeWidth: '2',
-                  stroke: '#e74c3c'
-                }
+                  stroke: '#e74c3c',
+                },
               }}
               bezier
               style={{
                 marginVertical: 8,
-                borderRadius: 16
+                borderRadius: 16,
               }}
             />
           ) : (
@@ -258,9 +248,7 @@ export const ReportsTab: React.FC = () => {
               <View key={cat} style={styles.categoryRow}>
                 <Text style={styles.flex1}>{cat}</Text>
                 <Text style={styles.expenseRedBold}>{formatCurrencyTRY(amt)}</Text>
-                {i < categorySpending.length - 1 && (
-                  <Divider style={styles.marginVertical4} />
-                )}
+                {i < categorySpending.length - 1 && <Divider style={styles.marginVertical4} />}
               </View>
             ))
           ) : (
@@ -290,11 +278,21 @@ export const ReportsTab: React.FC = () => {
               ))}
               {totalPages > 1 && (
                 <View style={styles.pagination}>
-                  <Button mode="contained" onPress={() => setCurrentPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
+                  <Button
+                    mode="contained"
+                    onPress={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                    disabled={currentPage === 0}
+                  >
                     Previous
                   </Button>
-                  <Text style={styles.pageText}>{currentPage + 1} / {totalPages}</Text>
-                  <Button mode="contained" onPress={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1}>
+                  <Text style={styles.pageText}>
+                    {currentPage + 1} / {totalPages}
+                  </Text>
+                  <Button
+                    mode="contained"
+                    onPress={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={currentPage === totalPages - 1}
+                  >
                     Next
                   </Button>
                 </View>
