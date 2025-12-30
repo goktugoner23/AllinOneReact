@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { logger } from "@shared/utils/logger";
 import { fetchInvestments, updateInvestment } from "@features/transactions/services/investments";
 import { Investment } from "@features/transactions/types/Investment";
 import { InvestmentCategories } from "@features/transactions/config/InvestmentCategories";
+import { Dropdown, DropdownItem } from "@shared/components/Dropdown";
 
 interface TransactionFormProps {
   onTransactionAdded: () => void;
@@ -28,9 +29,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedInvestmentType, setSelectedInvestmentType] = useState("");
-  const [showInvestmentTypeDropdown, setShowInvestmentTypeDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInvestmentPicker, setShowInvestmentPicker] = useState(false);
   const [investmentOptions, setInvestmentOptions] = useState<Investment[]>([]);
@@ -40,6 +39,46 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
   // Get categories exactly like Kotlin app
   const categories = TransactionCategories.CATEGORIES;
+
+  // Convert categories to dropdown items
+  const categoryItems: DropdownItem[] = useMemo(
+    () =>
+      categories.map((category) => {
+        const iconData =
+          TransactionCategories.CATEGORY_ICONS[
+            category as keyof typeof TransactionCategories.CATEGORY_ICONS
+          ];
+
+        const icon =
+          category === "Wing Tzun" ? (
+            <YinYangIcon size={20} color={iconData?.color || "#F44336"} />
+          ) : iconData ? (
+            <Ionicons
+              name={iconData.name as any}
+              size={20}
+              color={iconData.color}
+            />
+          ) : undefined;
+
+        return {
+          label: category,
+          value: category,
+          icon,
+        };
+      }),
+    [categories]
+  );
+
+  // Convert investment types to dropdown items
+  const investmentTypeItems: DropdownItem[] = useMemo(
+    () =>
+      InvestmentCategories.TYPES.map((type) => ({
+        label: type,
+        value: type,
+        icon: <Ionicons name="trending-up" size={20} color="#2196F3" />,
+      })),
+    []
+  );
 
   // Debug: Log categories to see if they're loaded
   logger.debug(
@@ -96,7 +135,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       setAmount("");
       setDescription("");
       setSelectedCategory("");
-      setShowCategoryDropdown(false);
+      setSelectedInvestmentType("");
 
       // Notify parent to refresh transactions
       onTransactionAdded();
@@ -187,137 +226,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           editable={!isSubmitting}
         />
 
-        <View style={styles.dropdownContainer}>
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
-            disabled={isSubmitting}
-          >
-            <Text
-              style={[
-                styles.dropdownButtonText,
-                !selectedCategory && styles.placeholder,
-              ]}
-            >
-              {selectedCategory || "Category"}
-            </Text>
-            <Text style={styles.dropdownArrow}>▼</Text>
-          </TouchableOpacity>
-
-          <Modal
-            visible={showCategoryDropdown}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowCategoryDropdown(false)}
-          >
-            <TouchableOpacity
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setShowCategoryDropdown(false)}
-            >
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select Category</Text>
-                <ScrollView
-                  style={styles.modalScroll}
-                  showsVerticalScrollIndicator={true}
-                >
-                  {categories.map((category) => {
-                    const iconData =
-                      TransactionCategories.CATEGORY_ICONS[
-                        category as keyof typeof TransactionCategories.CATEGORY_ICONS
-                      ];
-                    return (
-                      <TouchableOpacity
-                        key={category}
-                        style={styles.modalItem}
-                        onPress={() => {
-                          setSelectedCategory(category);
-                          setShowCategoryDropdown(false);
-                        }}
-                      >
-                        {category === "Wing Tzun" ? (
-                          <View style={styles.modalItemIcon}>
-                            <YinYangIcon
-                              size={24}
-                              color={iconData?.color || "#F44336"}
-                            />
-                          </View>
-                        ) : (
-                          iconData && (
-                            <Ionicons
-                              name={iconData.name as any}
-                              size={24}
-                              color={iconData.color}
-                              style={styles.modalItemIcon}
-                            />
-                          )
-                        )}
-                        <Text style={styles.modalItemText}>{category}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </View>
+        <Dropdown
+          items={categoryItems}
+          selectedValue={selectedCategory}
+          onValueChange={setSelectedCategory}
+          placeholder="Category"
+          disabled={isSubmitting}
+        />
 
         {/* Investment Sub-Category Dropdown */}
         {selectedCategory === 'Investment' && (
-          <View style={styles.dropdownContainer}>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setShowInvestmentTypeDropdown(!showInvestmentTypeDropdown)}
-              disabled={isSubmitting}
-            >
-              <Text
-                style={[
-                  styles.dropdownButtonText,
-                  !selectedInvestmentType && styles.placeholder,
-                ]}
-              >
-                {selectedInvestmentType || 'Investment Type (Stock, Crypto, ...)'}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </TouchableOpacity>
-
-            <Modal
-              visible={showInvestmentTypeDropdown}
-              transparent={true}
-              animationType="fade"
-              onRequestClose={() => setShowInvestmentTypeDropdown(false)}
-            >
-              <TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={() => setShowInvestmentTypeDropdown(false)}
-              >
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Select Investment Type</Text>
-                  <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={true}>
-                    {InvestmentCategories.TYPES.map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        style={styles.modalItem}
-                        onPress={() => {
-                          setSelectedInvestmentType(type);
-                          setShowInvestmentTypeDropdown(false);
-                        }}
-                      >
-                        <Ionicons
-                          name="trending-up"
-                          size={24}
-                          color="#2196F3"
-                          style={styles.modalItemIcon}
-                        />
-                        <Text style={styles.modalItemText}>{type}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              </TouchableOpacity>
-            </Modal>
-          </View>
+          <Dropdown
+            items={investmentTypeItems}
+            selectedValue={selectedInvestmentType}
+            onValueChange={setSelectedInvestmentType}
+            placeholder="Investment Type (Stock, Crypto, ...)"
+            disabled={isSubmitting}
+          />
         )}
 
         <TextInput
@@ -417,30 +342,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: "#f9f9f9",
-  },
-  dropdownContainer: {
-    position: "relative",
-  },
-  dropdownButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: "#f9f9f9",
-  },
-  dropdownButtonText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  placeholder: {
-    color: "#999",
-  },
-  dropdownArrow: {
-    fontSize: 12,
-    color: "#666",
   },
   buttonContainer: {
     flexDirection: "row",
