@@ -1,7 +1,7 @@
 import React, { useState, forwardRef } from 'react';
-import { View, TextInput, Text, StyleSheet, ViewStyle, TextInputProps, Pressable } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { View, TextInput, Text, StyleSheet, ViewStyle, TextInputProps, Pressable, TextStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors, radius, spacing, textStyles, componentSizes } from '@shared/theme';
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -11,6 +11,7 @@ export interface InputProps extends TextInputProps {
   rightIcon?: React.ReactNode;
   containerStyle?: ViewStyle;
   variant?: 'outlined' | 'filled';
+  size?: 'sm' | 'md' | 'lg';
 }
 
 export const Input = forwardRef<TextInput, InputProps>(
@@ -23,67 +24,96 @@ export const Input = forwardRef<TextInput, InputProps>(
       rightIcon,
       containerStyle,
       variant = 'outlined',
+      size = 'md',
       secureTextEntry,
       style,
       ...props
     },
     ref,
   ) => {
-    const theme = useTheme();
+    const colors = useColors();
     const [isFocused, setIsFocused] = useState(false);
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
     const hasError = !!error;
 
+    const sizeConfig = {
+      sm: {
+        height: componentSizes.inputSm,
+        fontSize: textStyles.bodySmall.fontSize,
+        labelSize: textStyles.caption.fontSize,
+      },
+      md: { height: componentSizes.inputMd, fontSize: textStyles.body.fontSize, labelSize: textStyles.label.fontSize },
+      lg: {
+        height: componentSizes.inputLg,
+        fontSize: textStyles.bodyLarge.fontSize,
+        labelSize: textStyles.label.fontSize,
+      },
+    };
+
+    const currentSize = sizeConfig[size];
+
     const getBorderColor = () => {
-      if (hasError) return theme.colors.error;
-      if (isFocused) return theme.colors.primary;
-      return theme.colors.outline;
+      if (hasError) return colors.destructive;
+      if (isFocused) return colors.primary;
+      return colors.border;
     };
 
     const getBackgroundColor = () => {
       if (variant === 'filled') {
-        return theme.colors.surfaceVariant;
+        return colors.muted;
       }
-      return 'transparent';
+      return colors.background;
     };
 
     const inputContainerStyle: ViewStyle = {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: getBackgroundColor(),
-      borderWidth: variant === 'outlined' ? 1.5 : 0,
-      borderBottomWidth: 1.5,
+      borderWidth: 1,
       borderColor: getBorderColor(),
-      borderRadius: variant === 'outlined' ? 12 : 0,
-      borderTopLeftRadius: 12,
-      borderTopRightRadius: 12,
-      paddingHorizontal: 16,
-      minHeight: 56,
-      gap: 12,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing[3],
+      minHeight: currentSize.height,
+      gap: spacing[2],
+      // Focus ring effect
+      ...(isFocused && {
+        borderWidth: 2,
+        borderColor: hasError ? colors.destructive : colors.ring,
+      }),
+    };
+
+    const labelStyle: TextStyle = {
+      fontSize: currentSize.labelSize,
+      fontWeight: '500',
+      marginBottom: spacing[1.5],
+      color: hasError ? colors.destructive : isFocused ? colors.primary : colors.foreground,
+    };
+
+    const inputStyle: TextStyle = {
+      flex: 1,
+      fontSize: currentSize.fontSize,
+      color: colors.foreground,
+      paddingVertical: spacing[2],
+    };
+
+    const helperTextStyle: TextStyle = {
+      fontSize: textStyles.caption.fontSize,
+      marginTop: spacing[1],
+      marginLeft: spacing[0.5],
+      color: hasError ? colors.destructive : colors.mutedForeground,
     };
 
     return (
       <View style={[styles.container, containerStyle]}>
-        {label && (
-          <Text
-            style={[
-              styles.label,
-              {
-                color: hasError ? theme.colors.error : isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant,
-              },
-            ]}
-          >
-            {label}
-          </Text>
-        )}
+        {label && <Text style={labelStyle}>{label}</Text>}
         <View style={inputContainerStyle}>
           {leftIcon}
           <TextInput
             ref={ref}
             {...props}
-            style={[styles.input, { color: theme.colors.onSurface }, style]}
-            placeholderTextColor={theme.colors.onSurfaceVariant}
+            style={[inputStyle, style]}
+            placeholderTextColor={colors.mutedForeground}
             onFocus={(e) => {
               setIsFocused(true);
               props.onFocus?.(e);
@@ -93,23 +123,21 @@ export const Input = forwardRef<TextInput, InputProps>(
               props.onBlur?.(e);
             }}
             secureTextEntry={secureTextEntry && !isPasswordVisible}
+            cursorColor={colors.primary}
+            selectionColor={colors.primaryMuted}
           />
           {secureTextEntry && (
             <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)} hitSlop={8}>
               <Ionicons
                 name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                size={22}
-                color={theme.colors.onSurfaceVariant}
+                size={20}
+                color={colors.mutedForeground}
               />
             </Pressable>
           )}
           {rightIcon}
         </View>
-        {(error || helperText) && (
-          <Text style={[styles.helperText, { color: hasError ? theme.colors.error : theme.colors.onSurfaceVariant }]}>
-            {error || helperText}
-          </Text>
-        )}
+        {(error || helperText) && <Text style={helperTextStyle}>{error || helperText}</Text>}
       </View>
     );
   },
@@ -119,22 +147,7 @@ Input.displayName = 'Input';
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 12,
-  },
-  helperText: {
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
+    marginBottom: spacing[4],
   },
 });
 

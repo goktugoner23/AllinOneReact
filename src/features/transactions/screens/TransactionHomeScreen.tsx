@@ -7,6 +7,7 @@ import { BalanceCard } from '@features/transactions/components/BalanceCard';
 import { TransactionForm } from '@features/transactions/components/TransactionForm';
 import { SpendingPieChart } from '@features/transactions/components/SpendingPieChart';
 import { useTransactions } from '@shared/hooks/useTransactionsQueries';
+import { useColors, spacing } from '@shared/theme';
 
 type ListItem =
   | {
@@ -17,6 +18,7 @@ type ListItem =
   | { type: 'form'; data: Record<string, never> };
 
 export const TransactionHomeScreen: React.FC = () => {
+  const colors = useColors();
   // Use TanStack Query for transactions
   const { data: transactions = [], isLoading, isFetching, refetch } = useTransactions();
 
@@ -37,7 +39,7 @@ export const TransactionHomeScreen: React.FC = () => {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlashList
         data={listData}
         keyExtractor={(item, index) => `${item.type}-${index}`}
@@ -53,8 +55,16 @@ export const TransactionHomeScreen: React.FC = () => {
               return null;
           }
         }}
-        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
         estimatedItemSize={231}
+        contentContainerStyle={styles.contentContainer}
       />
     </View>
   );
@@ -63,7 +73,8 @@ export const TransactionHomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+  },
+  contentContainer: {
+    padding: spacing[4],
   },
 });

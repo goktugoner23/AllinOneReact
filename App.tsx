@@ -41,6 +41,7 @@ import {
 } from 'react-native-paper';
 import { lightTheme, darkTheme } from '@theme';
 import StopwatchScreen from '@features/workout/screens/StopwatchScreen';
+import { ThemeProvider as AppThemeProvider } from '@shared/theme';
 
 // Initialize Firebase
 import '@shared/services/firebase/firebase';
@@ -179,8 +180,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
-          <PaperProvider
+        <AppThemeProvider initialMode={isDark ? 'dark' : 'light'}>
+          <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
+            <PaperProvider
           theme={{
             ...(isDark ? MD3DarkTheme : MD3LightTheme),
             colors: {
@@ -332,7 +334,8 @@ export default function App() {
             </Drawer.Navigator>
           </NavigationContainer>
           </PaperProvider>
-        </ThemeContext.Provider>
+          </ThemeContext.Provider>
+        </AppThemeProvider>
       </Provider>
     </QueryClientProvider>
   );

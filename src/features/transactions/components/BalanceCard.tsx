@@ -2,44 +2,59 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Card, CardHeader, CardContent } from '@shared/components/ui';
 import { useBalance } from '@shared/hooks/useTransactionsQueries';
+import { useColors, spacing, textStyles, radius } from '@shared/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface BalanceCardProps {
   showLoading?: boolean;
 }
 
 export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading = false }) => {
-  // Use TanStack Query based balance hook - balance is computed from transactions
+  const colors = useColors();
   const { income, expense, balance } = useBalance();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
       currency: 'TRY',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  // Get current month name
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <Card variant="elevated" style={styles.card}>
       <CardHeader style={styles.header}>
-        <Text style={styles.title}>{currentMonthName}</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{currentMonthName}</Text>
+        <View style={[styles.badge, { backgroundColor: colors.primaryMuted }]}>
+          <Text style={[styles.badgeText, { color: colors.primary }]}>Monthly</Text>
+        </View>
       </CardHeader>
 
       <CardContent>
         {showLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Loading balance...</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading balance...</Text>
           </View>
         ) : (
-          <View style={styles.balanceRow}>
-            <BalanceItem label="Income" amount={income} color="#4CAF50" />
-
-            <BalanceItem label="Expense" amount={expense} color="#F44336" />
-
-            <BalanceItem label="Balance" amount={balance} color={balance >= 0 ? '#4CAF50' : '#F44336'} />
+          <View style={styles.content}>
+            {/* Balance Items Row */}
+            <View style={styles.balanceRow}>
+              <BalanceItem label="Income" amount={income} icon="arrow-down-circle" variant="income" />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <BalanceItem label="Expense" amount={expense} icon="arrow-up-circle" variant="expense" />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <BalanceItem
+                label="Balance"
+                amount={balance}
+                icon="wallet"
+                variant={balance >= 0 ? 'income' : 'expense'}
+                isBalance
+              />
+            </View>
           </View>
         )}
       </CardContent>
@@ -50,28 +65,61 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading
 interface BalanceItemProps {
   label: string;
   amount: number;
-  color: string;
+  icon: string;
+  variant: 'income' | 'expense';
+  isBalance?: boolean;
 }
 
-const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, color }) => {
+const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant, isBalance }) => {
+  const colors = useColors();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
       currency: 'TRY',
-    }).format(amount);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.abs(amount));
   };
+
+  const getColors = () => {
+    if (variant === 'income') {
+      return {
+        iconBg: colors.incomeMuted,
+        iconColor: colors.income,
+        amountColor: colors.income,
+      };
+    }
+    return {
+      iconBg: colors.expenseMuted,
+      iconColor: colors.expense,
+      amountColor: colors.expense,
+    };
+  };
+
+  const itemColors = getColors();
 
   return (
     <View style={styles.balanceItem}>
-      <Text style={styles.balanceLabel}>{label}</Text>
-      <Text style={[styles.balanceAmount, { color }]}>{formatCurrency(amount)}</Text>
+      <View style={[styles.iconContainer, { backgroundColor: itemColors.iconBg }]}>
+        <Ionicons name={icon} size={18} color={itemColors.iconColor} />
+      </View>
+      <Text style={[styles.balanceLabel, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text
+        style={[styles.balanceAmount, { color: isBalance ? itemColors.amountColor : colors.foreground }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {isBalance && amount < 0 ? '-' : ''}
+        {formatCurrency(amount)}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    marginVertical: 8,
+    marginVertical: spacing[2],
   },
   header: {
     flexDirection: 'row',
@@ -79,34 +127,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    ...textStyles.h4,
     flex: 1,
+  },
+  badge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.full,
+  },
+  badgeText: {
+    ...textStyles.caption,
+    fontWeight: '600',
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing[6],
   },
   loadingText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
+    marginTop: spacing[2],
+    ...textStyles.bodySmall,
+  },
+  content: {
+    gap: spacing[4],
   },
   balanceRow: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  divider: {
+    width: 1,
+    height: 48,
+    alignSelf: 'center',
   },
   balanceItem: {
+    flex: 1,
     alignItems: 'center',
+    gap: spacing[1],
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[1],
   },
   balanceLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    ...textStyles.caption,
   },
   balanceAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...textStyles.label,
+    fontWeight: '700',
   },
 });

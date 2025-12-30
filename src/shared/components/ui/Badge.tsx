@@ -1,61 +1,73 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useColors, radius, spacing, textStyles } from '@shared/theme';
 
 export interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
+  variant?: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' | 'outline' | 'income' | 'expense' | 'info';
   size?: 'sm' | 'md' | 'lg';
   style?: ViewStyle;
 }
 
 export function Badge({ children, variant = 'default', size = 'md', style }: BadgeProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
-  const getColors = (): { bg: string; text: string } => {
+  const getColors = (): { bg: string; text: string; border?: string } => {
     switch (variant) {
+      case 'default':
+        return { bg: colors.primary, text: colors.primaryForeground };
+      case 'secondary':
+        return { bg: colors.secondary, text: colors.secondaryForeground };
       case 'success':
-        return { bg: '#E8F5E9', text: '#2E7D32' };
+        return { bg: colors.successMuted, text: colors.success };
       case 'warning':
-        return { bg: '#FFF3E0', text: '#E65100' };
-      case 'error':
-        return { bg: '#FFEBEE', text: '#C62828' };
+        return { bg: colors.warningMuted, text: colors.warning };
+      case 'destructive':
+        return { bg: colors.destructiveMuted, text: colors.destructive };
+      case 'outline':
+        return { bg: 'transparent', text: colors.foreground, border: colors.border };
+      case 'income':
+        return { bg: colors.incomeMuted, text: colors.income };
+      case 'expense':
+        return { bg: colors.expenseMuted, text: colors.expense };
       case 'info':
-        return { bg: '#E3F2FD', text: '#1565C0' };
+        return { bg: colors.infoMuted, text: colors.info };
       default:
-        return {
-          bg: theme.colors.secondaryContainer,
-          text: theme.colors.onSecondaryContainer,
-        };
+        return { bg: colors.secondary, text: colors.secondaryForeground };
     }
   };
 
   const sizeStyles: Record<string, { paddingV: number; paddingH: number; fontSize: number }> = {
-    sm: { paddingV: 2, paddingH: 6, fontSize: 10 },
-    md: { paddingV: 4, paddingH: 10, fontSize: 12 },
-    lg: { paddingV: 6, paddingH: 14, fontSize: 14 },
+    sm: { paddingV: spacing[0.5], paddingH: spacing[2], fontSize: (textStyles.caption.fontSize ?? 12) - 2 },
+    md: { paddingV: spacing[1], paddingH: spacing[2.5], fontSize: textStyles.caption.fontSize ?? 12 },
+    lg: { paddingV: spacing[1.5], paddingH: spacing[3], fontSize: textStyles.bodySmall.fontSize ?? 14 },
   };
 
-  const colors = getColors();
+  const badgeColors = getColors();
   const sizing = sizeStyles[size];
 
   const badgeStyle: ViewStyle = {
-    backgroundColor: colors.bg,
+    backgroundColor: badgeColors.bg,
     paddingVertical: sizing.paddingV,
     paddingHorizontal: sizing.paddingH,
-    borderRadius: 999,
+    borderRadius: radius.full,
     alignSelf: 'flex-start',
+    ...(badgeColors.border && {
+      borderWidth: 1,
+      borderColor: badgeColors.border,
+    }),
   };
 
-  const textStyle: TextStyle = {
-    color: colors.text,
+  const badgeTextStyle: TextStyle = {
+    color: badgeColors.text,
     fontSize: sizing.fontSize,
     fontWeight: '600',
+    lineHeight: sizing.fontSize * 1.2,
   };
 
   return (
     <View style={[badgeStyle, style]}>
-      <Text style={textStyle}>{children}</Text>
+      <Text style={badgeTextStyle}>{children}</Text>
     </View>
   );
 }

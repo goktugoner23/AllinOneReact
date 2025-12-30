@@ -8,21 +8,20 @@ import {
   TextStyle,
   TouchableOpacityProps,
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
-import { cn } from '@shared/lib';
+import { useColors, radius, spacing, textStyles, componentSizes } from '@shared/theme';
 
 export interface ButtonProps extends TouchableOpacityProps {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'success';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   fullWidth?: boolean;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function Button({
-  variant = 'primary',
+  variant = 'default',
   size = 'md',
   loading = false,
   leftIcon,
@@ -33,56 +32,84 @@ export function Button({
   style,
   ...props
 }: ButtonProps) {
-  const theme = useTheme();
+  const colors = useColors();
   const isDisabled = disabled || loading;
 
   const getBackgroundColor = (): string => {
-    if (isDisabled) return theme.colors.surfaceDisabled;
+    if (isDisabled) return colors.muted;
     switch (variant) {
+      case 'default':
       case 'primary':
-        return theme.colors.primary;
+        return colors.primary;
       case 'secondary':
-        return theme.colors.secondaryContainer;
+        return colors.secondary;
       case 'destructive':
-        return theme.colors.error;
+        return colors.destructive;
+      case 'success':
+        return colors.success;
       case 'outline':
       case 'ghost':
         return 'transparent';
       default:
-        return theme.colors.primary;
+        return colors.primary;
     }
   };
 
   const getTextColor = (): string => {
-    if (isDisabled) return theme.colors.onSurfaceDisabled;
+    if (isDisabled) return colors.mutedForeground;
     switch (variant) {
+      case 'default':
       case 'primary':
-        return theme.colors.onPrimary;
+        return colors.primaryForeground;
       case 'secondary':
-        return theme.colors.onSecondaryContainer;
+        return colors.secondaryForeground;
       case 'destructive':
-        return theme.colors.onError;
+        return colors.destructiveForeground;
+      case 'success':
+        return colors.successForeground;
       case 'outline':
-        return theme.colors.primary;
+        return colors.foreground;
       case 'ghost':
-        return theme.colors.onSurface;
+        return colors.foreground;
       default:
-        return theme.colors.onPrimary;
+        return colors.primaryForeground;
     }
   };
 
   const getBorderColor = (): string => {
     if (variant === 'outline') {
-      return isDisabled ? theme.colors.surfaceDisabled : theme.colors.primary;
+      return isDisabled ? colors.muted : colors.border;
     }
     return 'transparent';
   };
 
-  const sizeStyles: Record<string, { paddingVertical: number; paddingHorizontal: number; fontSize: number }> = {
-    sm: { paddingVertical: 8, paddingHorizontal: 12, fontSize: 14 },
-    md: { paddingVertical: 12, paddingHorizontal: 16, fontSize: 16 },
-    lg: { paddingVertical: 16, paddingHorizontal: 24, fontSize: 18 },
-  };
+  const sizeStyles: Record<string, { height: number; paddingHorizontal: number; fontSize: number; iconSize: number }> =
+    {
+      sm: {
+        height: componentSizes.buttonSm,
+        paddingHorizontal: spacing[3],
+        fontSize: textStyles.buttonSmall.fontSize ?? 12,
+        iconSize: 16,
+      },
+      md: {
+        height: componentSizes.buttonMd,
+        paddingHorizontal: spacing[4],
+        fontSize: textStyles.button.fontSize ?? 14,
+        iconSize: 18,
+      },
+      lg: {
+        height: componentSizes.buttonLg,
+        paddingHorizontal: spacing[6],
+        fontSize: textStyles.buttonLarge.fontSize ?? 16,
+        iconSize: 20,
+      },
+      icon: {
+        height: componentSizes.buttonMd,
+        paddingHorizontal: 0,
+        fontSize: 0,
+        iconSize: 20,
+      },
+    };
 
   const currentSize = sizeStyles[size];
 
@@ -92,13 +119,13 @@ export function Button({
     justifyContent: 'center',
     backgroundColor: getBackgroundColor(),
     borderColor: getBorderColor(),
-    borderWidth: variant === 'outline' ? 1.5 : 0,
-    borderRadius: 12,
-    paddingVertical: currentSize.paddingVertical,
-    paddingHorizontal: currentSize.paddingHorizontal,
-    opacity: isDisabled ? 0.6 : 1,
-    gap: 8,
-    ...(fullWidth && { width: '100%' }),
+    borderWidth: variant === 'outline' ? 1 : 0,
+    borderRadius: radius.md,
+    height: currentSize.height,
+    paddingHorizontal: size === 'icon' ? 0 : currentSize.paddingHorizontal,
+    width: size === 'icon' ? currentSize.height : fullWidth ? '100%' : undefined,
+    opacity: isDisabled ? 0.5 : 1,
+    gap: spacing[2],
   };
 
   const textStyle: TextStyle = {
@@ -108,13 +135,14 @@ export function Button({
   };
 
   return (
-    <TouchableOpacity {...props} disabled={isDisabled} style={[buttonStyle, style as ViewStyle]} activeOpacity={0.7}>
+    <TouchableOpacity {...props} disabled={isDisabled} style={[buttonStyle, style as ViewStyle]} activeOpacity={0.8}>
       {loading ? (
         <ActivityIndicator size="small" color={getTextColor()} />
       ) : (
         <>
           {leftIcon}
-          <Text style={textStyle}>{children}</Text>
+          {children && size !== 'icon' && <Text style={textStyle}>{children}</Text>}
+          {size === 'icon' && children}
           {rightIcon}
         </>
       )}

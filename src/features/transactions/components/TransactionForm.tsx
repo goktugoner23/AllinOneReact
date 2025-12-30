@@ -1,20 +1,33 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, ScrollView, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Alert, ScrollView, Modal, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Card, CardHeader, CardContent, Input, Button, Select, SelectOption } from '@shared/components/ui';
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  Input,
+  Button,
+  Select,
+  SelectOption,
+  SegmentedControl,
+} from '@shared/components/ui';
 import { TransactionCategories } from '@features/transactions/config/TransactionCategories';
 import { useAddTransaction, useInvestments, useUpdateInvestment } from '@shared/hooks/useTransactionsQueries';
 import { logger } from '@shared/utils/logger';
 import { Investment } from '@features/transactions/types/Investment';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
+import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+
+type TransactionType = 'income' | 'expense';
 
 export const TransactionForm: React.FC = () => {
+  const colors = useColors();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedInvestmentType, setSelectedInvestmentType] = useState('');
   const [showInvestmentPicker, setShowInvestmentPicker] = useState(false);
-  const [pendingIsIncome, setPendingIsIncome] = useState<boolean>(false);
+  const [transactionType, setTransactionType] = useState<TransactionType>('expense');
   const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [pendingDescription, setPendingDescription] = useState<string>('');
 
@@ -43,8 +56,10 @@ export const TransactionForm: React.FC = () => {
 
   const isSubmitting = addTransactionMutation.isPending || updateInvestmentMutation.isPending;
 
-  const handleAddTransaction = async (isIncome: boolean) => {
-    // Exact validation logic from Kotlin app
+  const handleAddTransaction = async () => {
+    const isIncome = transactionType === 'income';
+
+    // Validation
     if (!amount.trim() || !selectedCategory.trim()) {
       Alert.alert('Error', 'Please enter both amount and category');
       return;
@@ -56,16 +71,15 @@ export const TransactionForm: React.FC = () => {
       return;
     }
 
-    // If category is Investment, prompt to choose an investment and then adjust the investment amount
+    // If category is Investment, prompt to choose an investment
     if (selectedCategory === 'Investment') {
-      setPendingIsIncome(isIncome);
       setPendingAmount(amountValue);
       setPendingDescription(description.trim() || '');
       setShowInvestmentPicker(true);
       return;
     }
 
-    // Regular non-investment flow using TanStack Query mutation
+    // Regular non-investment flow
     try {
       await addTransactionMutation.mutateAsync({
         amount: amountValue,
@@ -75,8 +89,6 @@ export const TransactionForm: React.FC = () => {
         category: selectedCategory,
         isIncome,
       });
-
-      // Clear form
       resetForm();
     } catch (error) {
       logger.error('Error adding transaction', error, 'TransactionForm');
@@ -85,12 +97,10 @@ export const TransactionForm: React.FC = () => {
   };
 
   const handleSelectInvestment = async (investment: Investment) => {
-    // Following Kotlin logic:
-    // - If income: add income transaction and DECREASE investment amount by value
-    // - If expense: add expense transaction and INCREASE investment amount by value
+    const isIncome = transactionType === 'income';
+
     try {
-      // Build description string
-      const txDescription = pendingIsIncome
+      const txDescription = isIncome
         ? pendingDescription
           ? `Return from investment: ${investment.name} - ${pendingDescription}`
           : `Return from investment: ${investment.name}`
@@ -98,20 +108,16 @@ export const TransactionForm: React.FC = () => {
           ? `Investment in ${investment.name} - ${pendingDescription}`
           : `Investment in ${investment.name}`;
 
-      // 1) Add the transaction using mutation
       await addTransactionMutation.mutateAsync({
         amount: pendingAmount,
-        type: pendingIsIncome ? 'income' : 'expense',
+        type: isIncome ? 'income' : 'expense',
         description: selectedInvestmentType ? `${txDescription} [${selectedInvestmentType}]` : txDescription,
         date: new Date().toISOString(),
         category: investment.type,
-        isIncome: pendingIsIncome,
+        isIncome,
       });
 
-      // 2) Adjust the investment amount
-      const adjustedAmount = pendingIsIncome
-        ? investment.amount - pendingAmount // income -> deduct from investment
-        : investment.amount + pendingAmount; // expense -> add to investment
+      const adjustedAmount = isIncome ? investment.amount - pendingAmount : investment.amount + pendingAmount;
 
       await updateInvestmentMutation.mutateAsync({
         ...investment,
@@ -119,7 +125,6 @@ export const TransactionForm: React.FC = () => {
         currentValue: typeof investment.currentValue === 'number' ? investment.currentValue : adjustedAmount,
       });
 
-      // Clean up UI state
       setShowInvestmentPicker(false);
       resetForm();
     } catch (error) {
@@ -138,35 +143,88 @@ export const TransactionForm: React.FC = () => {
   };
 
   const formatCurrency = (value: string) => {
-    // Remove any non-numeric characters except decimal point
     const numericValue = value.replace(/[^0-9.]/g, '');
-
-    // Ensure only one decimal point
     const parts = numericValue.split('.');
     if (parts.length > 2) {
       return parts[0] + '.' + parts.slice(1).join('');
     }
-
     return numericValue;
   };
 
+  // Quick amount buttons
+  const quickAmounts = [50, 100, 250, 500, 1000];
+
   return (
     <Card variant="elevated" style={styles.card}>
-      <CardHeader>
-        <Text style={styles.title}>Add Transaction</Text>
+      <CardHeader style={styles.header}>
+        <Text style={[styles.title, { color: colors.foreground }]}>Add Transaction</Text>
       </CardHeader>
 
       <CardContent style={styles.formContainer}>
-        <Input
-          label="Amount"
-          placeholder="Enter amount"
-          value={amount}
-          onChangeText={(text) => setAmount(formatCurrency(text))}
-          keyboardType="numeric"
-          editable={!isSubmitting}
-          containerStyle={styles.inputContainer}
+        {/* Transaction Type Segmented Control */}
+        <SegmentedControl
+          options={[
+            {
+              value: 'expense' as TransactionType,
+              label: 'Expense',
+              icon: (
+                <Ionicons
+                  name="arrow-up-circle"
+                  size={16}
+                  color={transactionType === 'expense' ? colors.expense : colors.mutedForeground}
+                />
+              ),
+            },
+            {
+              value: 'income' as TransactionType,
+              label: 'Income',
+              icon: (
+                <Ionicons
+                  name="arrow-down-circle"
+                  size={16}
+                  color={transactionType === 'income' ? colors.income : colors.mutedForeground}
+                />
+              ),
+            },
+          ]}
+          value={transactionType}
+          onChange={setTransactionType}
+          fullWidth
+          style={styles.segmentedControl}
         />
 
+        {/* Amount Input */}
+        <View style={styles.amountSection}>
+          <Input
+            label="Amount"
+            placeholder="0.00"
+            value={amount}
+            onChangeText={(text) => setAmount(formatCurrency(text))}
+            keyboardType="numeric"
+            editable={!isSubmitting}
+            containerStyle={styles.amountInput}
+            leftIcon={<Text style={[styles.currencySymbol, { color: colors.mutedForeground }]}>₺</Text>}
+          />
+
+          {/* Quick Amount Buttons */}
+          <View style={styles.quickAmounts}>
+            {quickAmounts.map((quickAmount) => (
+              <Pressable
+                key={quickAmount}
+                onPress={() => setAmount(quickAmount.toString())}
+                style={({ pressed }) => [
+                  styles.quickAmountBtn,
+                  { backgroundColor: colors.muted },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.quickAmountText, { color: colors.foreground }]}>₺{quickAmount}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Category Select */}
         <Select
           label="Category"
           placeholder="Select category"
@@ -180,7 +238,7 @@ export const TransactionForm: React.FC = () => {
         {selectedCategory === 'Investment' && (
           <Select
             label="Investment Type"
-            placeholder="Select investment type (Stock, Crypto, ...)"
+            placeholder="Select investment type"
             options={investmentTypeOptions}
             value={selectedInvestmentType}
             onChange={setSelectedInvestmentType}
@@ -188,65 +246,66 @@ export const TransactionForm: React.FC = () => {
           />
         )}
 
+        {/* Description Input */}
         <Input
           label="Description"
-          placeholder="Description (Optional)"
+          placeholder="Add a note (optional)"
           value={description}
           onChangeText={setDescription}
           multiline
           numberOfLines={2}
           editable={!isSubmitting}
-          containerStyle={styles.inputContainer}
+          containerStyle={styles.descriptionInput}
         />
 
-        <View style={styles.buttonContainer}>
-          <Button
-            variant="primary"
-            onPress={() => handleAddTransaction(true)}
-            disabled={isSubmitting}
-            loading={isSubmitting && pendingIsIncome}
-            style={[styles.button, styles.incomeButton]}
-          >
-            Income
-          </Button>
-
-          <Button
-            variant="destructive"
-            onPress={() => handleAddTransaction(false)}
-            disabled={isSubmitting}
-            loading={isSubmitting && !pendingIsIncome}
-            style={styles.button}
-          >
-            Expense
-          </Button>
-        </View>
+        {/* Submit Button */}
+        <Button
+          variant={transactionType === 'income' ? 'success' : 'destructive'}
+          onPress={handleAddTransaction}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          fullWidth
+          size="lg"
+        >
+          {transactionType === 'income' ? 'Add Income' : 'Add Expense'}
+        </Button>
       </CardContent>
 
-      {/* Investment Picker Modal - keeping the custom modal for investment selection */}
+      {/* Investment Picker Modal */}
       <Modal
         visible={showInvestmentPicker}
         transparent
         animationType="fade"
         onRequestClose={() => setShowInvestmentPicker(false)}
       >
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowInvestmentPicker(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Investment</Text>
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}
+          onPress={() => setShowInvestmentPicker(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: colors.card }, shadow.xl]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Select Investment</Text>
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator>
               {investmentOptions.map((inv) => (
-                <TouchableOpacity key={inv.id} style={styles.modalItem} onPress={() => handleSelectInvestment(inv)}>
-                  <Ionicons name="trending-up" size={24} color="#2196F3" style={styles.modalItemIcon} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalItemText}>
-                      {inv.name} ({inv.type})
-                    </Text>
-                    <Text style={{ color: '#666', fontSize: 12 }}>Amount: {inv.amount}</Text>
+                <TouchableOpacity
+                  key={inv.id}
+                  style={[styles.modalItem, { borderBottomColor: colors.border }]}
+                  onPress={() => handleSelectInvestment(inv)}
+                >
+                  <View style={[styles.modalItemIcon, { backgroundColor: colors.investmentMuted }]}>
+                    <Ionicons name="trending-up" size={20} color={colors.investment} />
                   </View>
+                  <View style={styles.modalItemContent}>
+                    <Text style={[styles.modalItemText, { color: colors.foreground }]}>{inv.name}</Text>
+                    <Text style={[styles.modalItemSubtext, { color: colors.mutedForeground }]}>
+                      {inv.type} • ₺{inv.amount.toLocaleString()}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Modal>
     </Card>
   );
@@ -254,72 +313,90 @@ export const TransactionForm: React.FC = () => {
 
 const styles = StyleSheet.create({
   card: {
-    marginVertical: 8,
+    marginVertical: spacing[2],
+  },
+  header: {
+    marginBottom: spacing[2],
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    ...textStyles.h4,
   },
   formContainer: {
-    gap: 8,
+    gap: spacing[3],
   },
-  inputContainer: {
-    marginBottom: 8,
+  segmentedControl: {
+    marginBottom: spacing[2],
   },
-  buttonContainer: {
+  amountSection: {
+    gap: spacing[2],
+  },
+  amountInput: {
+    marginBottom: 0,
+  },
+  currencySymbol: {
+    ...textStyles.body,
+    fontWeight: '600',
+  },
+  quickAmounts: {
     flexDirection: 'row',
-    gap: 16,
-    marginTop: 8,
+    flexWrap: 'wrap',
+    gap: spacing[2],
   },
-  button: {
-    flex: 1,
+  quickAmountBtn: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: radius.md,
   },
-  incomeButton: {
-    backgroundColor: '#4CAF50',
+  quickAmountText: {
+    ...textStyles.caption,
+    fontWeight: '600',
+  },
+  descriptionInput: {
+    marginBottom: 0,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: spacing[4],
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
+    borderRadius: radius.xl,
+    padding: spacing[4],
+    width: '100%',
     maxHeight: '80%',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    ...textStyles.h4,
     textAlign: 'center',
-    color: '#333',
+    marginBottom: spacing[4],
   },
   modalScroll: {
-    maxHeight: 500,
+    maxHeight: 400,
   },
   modalItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    minHeight: 44,
-    backgroundColor: '#fff',
+    gap: spacing[3],
   },
   modalItemIcon: {
-    marginRight: 10,
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalItemContent: {
+    flex: 1,
   },
   modalItemText: {
-    fontSize: 16,
-    color: '#333',
+    ...textStyles.body,
+    fontWeight: '500',
+  },
+  modalItemSubtext: {
+    ...textStyles.caption,
+    marginTop: 2,
   },
 });

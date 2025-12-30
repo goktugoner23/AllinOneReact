@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, Pressable, PressableProps } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { useColors, radius, shadow as shadowTokens, spacing } from '@shared/theme';
 
 export interface CardProps {
   children: React.ReactNode;
-  variant?: 'elevated' | 'outlined' | 'filled';
+  variant?: 'elevated' | 'outlined' | 'filled' | 'ghost';
   padding?: 'none' | 'sm' | 'md' | 'lg';
   style?: ViewStyle;
   onPress?: PressableProps['onPress'];
@@ -12,42 +13,43 @@ export interface CardProps {
 }
 
 export function Card({ children, variant = 'elevated', padding = 'md', style, onPress, onLongPress }: CardProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const getBackgroundColor = () => {
     switch (variant) {
       case 'elevated':
-        return theme.colors.elevation.level1;
-      case 'filled':
-        return theme.colors.surfaceVariant;
       case 'outlined':
-        return theme.colors.surface;
+        return colors.card;
+      case 'filled':
+        return colors.muted;
+      case 'ghost':
+        return 'transparent';
       default:
-        return theme.colors.surface;
+        return colors.card;
     }
   };
 
   const paddingSizes: Record<string, number> = {
     none: 0,
-    sm: 8,
-    md: 16,
-    lg: 24,
+    sm: spacing[3], // 12px
+    md: spacing[4], // 16px
+    lg: spacing[6], // 24px
   };
 
   const cardStyle: ViewStyle = {
     backgroundColor: getBackgroundColor(),
-    borderRadius: 16,
+    borderRadius: radius.lg,
     padding: paddingSizes[padding],
+    // Outlined variant: subtle border
     ...(variant === 'outlined' && {
       borderWidth: 1,
-      borderColor: theme.colors.outline,
+      borderColor: colors.border,
     }),
+    // Elevated variant: subtle shadow + border (shadcn style)
     ...(variant === 'elevated' && {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadowTokens.sm,
     }),
   };
 
@@ -56,7 +58,7 @@ export function Card({ children, variant = 'elevated', padding = 'md', style, on
       <Pressable
         onPress={onPress}
         onLongPress={onLongPress}
-        style={({ pressed }) => [cardStyle, style, pressed && { opacity: 0.9 }]}
+        style={({ pressed }) => [cardStyle, style, pressed && { opacity: 0.95, backgroundColor: colors.surfaceHover }]}
       >
         {children}
       </Pressable>
@@ -73,6 +75,37 @@ export interface CardHeaderProps {
 
 export function CardHeader({ children, style }: CardHeaderProps) {
   return <View style={[styles.cardHeader, style]}>{children}</View>;
+}
+
+export interface CardTitleProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}
+
+export function CardTitle({ children, style }: CardTitleProps) {
+  const colors = useColors();
+  return (
+    <View style={[styles.cardTitle, style]}>
+      {typeof children === 'string' ? (
+        <View>
+          {React.Children.map(children, (child) => (
+            <View style={{ ...styles.titleText, color: colors.foreground } as ViewStyle}>{child}</View>
+          ))}
+        </View>
+      ) : (
+        children
+      )}
+    </View>
+  );
+}
+
+export interface CardDescriptionProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}
+
+export function CardDescription({ children, style }: CardDescriptionProps) {
+  return <View style={[styles.cardDescription, style]}>{children}</View>;
 }
 
 export interface CardContentProps {
@@ -95,16 +128,28 @@ export function CardFooter({ children, style }: CardFooterProps) {
 
 const styles = StyleSheet.create({
   cardHeader: {
-    marginBottom: 12,
+    marginBottom: spacing[3], // 12px
+  },
+  cardTitle: {
+    marginBottom: spacing[1], // 4px
+  },
+  titleText: {
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+  cardDescription: {
+    marginBottom: spacing[2], // 8px
   },
   cardContent: {
     flex: 1,
   },
   cardFooter: {
-    marginTop: 12,
+    marginTop: spacing[4], // 16px
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
+    alignItems: 'center',
+    gap: spacing[2], // 8px
   },
 });
 
