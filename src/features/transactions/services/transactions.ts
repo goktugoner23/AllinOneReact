@@ -1,8 +1,119 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit as firestoreLimit,
+  Timestamp,
+  runTransaction,
+  increment,
+} from 'firebase/firestore';
 import { getDb } from '@shared/services/firebase/firebase';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { logger } from '@shared/utils/logger';
+
+// Aggregate totals document path
+const TOTALS_DOC_ID = 'aggregate_totals';
+
+/**
+ * Update aggregate totals document atomically
+ * This maintains pre-calculated totals for instant balance retrieval
+ */
+async function updateAggregateTotals(amount: number, isIncome: boolean, operation: 'add' | 'remove'): Promise<void> {
+  try {
+    const db = getDb();
+    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
+
+    const multiplier = operation === 'add' ? 1 : -1;
+    const incomeChange = isIncome ? amount * multiplier : 0;
+    const expenseChange = !isIncome ? amount * multiplier : 0;
+    const countChange = multiplier;
+
+    await runTransaction(db, async (transaction) => {
+      const totalsDoc = await transaction.get(totalsRef);
+
+      if (!totalsDoc.exists()) {
+        // Initialize totals document if it doesn't exist
+        transaction.set(totalsRef, {
+          totalIncome: incomeChange,
+          totalExpense: expenseChange,
+          count: operation === 'add' ? 1 : 0,
+          lastUpdated: Timestamp.now(),
+        });
+      } else {
+        transaction.update(totalsRef, {
+          totalIncome: increment(incomeChange),
+          totalExpense: increment(expenseChange),
+          count: increment(countChange),
+          lastUpdated: Timestamp.now(),
+        });
+      }
+    });
+
+    // Invalidate cache since we updated
+    transactionCache = null;
+  } catch (error) {
+    logger.error('Error updating aggregate totals', error, 'updateAggregateTotals');
+    // Don't throw - totals update failure shouldn't block the transaction
+  }
+}
+
+/**
+ * Initialize or recalculate aggregate totals from all transactions
+ * Call this once to set up the totals document, or to fix inconsistencies
+ */
+export async function recalculateAggregateTotals(): Promise<{
+  totalIncome: number;
+  totalExpense: number;
+  count: number;
+}> {
+  try {
+    const db = getDb();
+    const q = query(collection(db, 'transactions'));
+    const snapshot = await getDocs(q);
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    snapshot.docs.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+      const amount = data.amount ?? 0;
+      const isIncome = data.isIncome ?? false;
+
+      if (isIncome) {
+        totalIncome += amount;
+      } else {
+        totalExpense += amount;
+      }
+    });
+
+    // Save to aggregate document
+    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
+    await setDoc(totalsRef, {
+      totalIncome,
+      totalExpense,
+      count: snapshot.docs.length,
+      lastUpdated: Timestamp.now(),
+    });
+
+    logger.debug(
+      'Recalculated aggregate totals',
+      { totalIncome, totalExpense, count: snapshot.docs.length },
+      'recalculateAggregateTotals',
+    );
+
+    return { totalIncome, totalExpense, count: snapshot.docs.length };
+  } catch (error) {
+    logger.error('Error recalculating aggregate totals', error, 'recalculateAggregateTotals');
+    throw error;
+  }
+}
 
 export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<void> {
   try {
@@ -26,6 +137,9 @@ export async function addTransaction(transaction: Omit<Transaction, 'id'>): Prom
     };
 
     await setDoc(doc(db, 'transactions', transactionId.toString()), transactionData);
+
+    // Update aggregate totals
+    await updateAggregateTotals(transaction.amount, transaction.isIncome, 'add');
 
     // Clear transaction cache
     transactionCache = null;
@@ -68,7 +182,23 @@ export async function updateTransaction(transaction: Transaction): Promise<void>
 export async function deleteTransaction(transactionId: string): Promise<void> {
   try {
     const db = getDb();
-    await deleteDoc(doc(db, 'transactions', transactionId));
+
+    // Get transaction data before deleting to update totals
+    const transactionRef = doc(db, 'transactions', transactionId);
+    const transactionDoc = await getDoc(transactionRef);
+
+    if (transactionDoc.exists()) {
+      const data = transactionDoc.data();
+      const amount = data.amount ?? 0;
+      const isIncome = data.isIncome ?? false;
+
+      await deleteDoc(transactionRef);
+
+      // Update aggregate totals
+      await updateAggregateTotals(amount, isIncome, 'remove');
+    } else {
+      await deleteDoc(transactionRef);
+    }
 
     // Clear transaction cache
     transactionCache = null;
@@ -87,23 +217,24 @@ let transactionCache: {
 } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export async function fetchTransactions(limit: number = 50): Promise<Transaction[]> {
+export async function fetchTransactions(limitCount: number = 50): Promise<Transaction[]> {
   try {
     const db = getDb();
 
-    logger.debug(`Fetching transactions (limit: ${limit})`, {}, 'fetchTransactions');
+    logger.debug(`Fetching transactions (limit: ${limitCount})`, {}, 'fetchTransactions');
 
-    // Get limited transactions without device filtering
-    const q = query(collection(db, 'transactions'));
+    // Use server-side ordering and limit for better performance
+    // Requires index on 'date' field (DESCENDING)
+    const q = query(collection(db, 'transactions'), orderBy('date', 'desc'), firestoreLimit(limitCount));
     const snapshot = await getDocs(q);
 
-    logger.debug('Total transactions in database', { count: snapshot.docs.length }, 'fetchTransactions');
+    logger.debug('Fetched transactions from server', { count: snapshot.docs.length }, 'fetchTransactions');
 
     // Map data exactly like Kotlin app
-    const transactions = snapshot.docs.map((doc) => {
-      const data = doc.data();
+    const transactions = snapshot.docs.map((docSnapshot) => {
+      const data = docSnapshot.data();
       return {
-        id: data.id?.toString() ?? doc.id,
+        id: data.id?.toString() ?? docSnapshot.id,
         amount: data.amount ?? 0,
         type: data.type ?? '', // Category name
         description: data.description ?? '', // Ensure not null like Kotlin
@@ -120,15 +251,9 @@ export async function fetchTransactions(limit: number = 50): Promise<Transaction
       };
     });
 
-    logger.debug('Mapped transactions', { count: transactions.length }, 'fetchTransactions');
+    logger.debug('Final transactions', { count: transactions.length }, 'fetchTransactions');
 
-    // Sort by date descending in memory (like Kotlin app)
-    const sortedTransactions = transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    logger.debug('Final sorted transactions', { count: sortedTransactions.length }, 'fetchTransactions');
-
-    // Return limited results for display purposes
-    return sortedTransactions.slice(0, limit);
+    return transactions;
   } catch (error) {
     logger.error('Error fetching transactions', error, 'fetchTransactions');
     return [];
@@ -148,34 +273,41 @@ export async function getTransactionTotals(): Promise<{ totalIncome: number; tot
     }
 
     const db = getDb();
-    const q = query(collection(db, 'transactions'));
-    const snapshot = await getDocs(q);
 
-    let totalIncome = 0;
-    let totalExpense = 0;
+    // Try to get from aggregate document first (instant - single doc read)
+    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
+    const totalsDoc = await getDoc(totalsRef);
 
-    // Calculate totals from all transactions
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const amount = data.amount ?? 0;
-      const isIncome = data.isIncome ?? false;
+    if (totalsDoc.exists()) {
+      const data = totalsDoc.data();
+      const totalIncome = data.totalIncome ?? 0;
+      const totalExpense = data.totalExpense ?? 0;
 
-      if (isIncome) {
-        totalIncome += amount;
-      } else {
-        totalExpense += amount;
-      }
-    });
+      // Update cache
+      transactionCache = {
+        count: data.count ?? 0,
+        totalIncome,
+        totalExpense,
+        timestamp: now,
+      };
+
+      logger.debug('Got totals from aggregate document', { totalIncome, totalExpense }, 'getTransactionTotals');
+      return { totalIncome, totalExpense };
+    }
+
+    // Fallback: Calculate from all transactions and initialize aggregate document
+    logger.debug('Aggregate document not found, recalculating...', {}, 'getTransactionTotals');
+    const result = await recalculateAggregateTotals();
 
     // Update cache
     transactionCache = {
-      count: snapshot.docs.length,
-      totalIncome,
-      totalExpense,
+      count: result.count,
+      totalIncome: result.totalIncome,
+      totalExpense: result.totalExpense,
       timestamp: now,
     };
 
-    return { totalIncome, totalExpense };
+    return { totalIncome: result.totalIncome, totalExpense: result.totalExpense };
   } catch (error) {
     logger.error('Error getting transaction totals', error, 'getTransactionTotals');
     return { totalIncome: 0, totalExpense: 0 };
@@ -192,26 +324,29 @@ export async function getTransactionCount(): Promise<number> {
     }
 
     const db = getDb();
-    const q = query(collection(db, 'transactions'));
-    const snapshot = await getDocs(q);
 
-    const count = snapshot.docs.length;
+    // Try to get from aggregate document first (instant - single doc read)
+    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
+    const totalsDoc = await getDoc(totalsRef);
 
-    // Update cache if it exists but doesn't have count
-    if (transactionCache) {
-      transactionCache.count = count;
-      transactionCache.timestamp = now;
-    } else {
-      // Create new cache entry
+    if (totalsDoc.exists()) {
+      const data = totalsDoc.data();
+      const count = data.count ?? 0;
+
+      // Update cache
       transactionCache = {
         count,
-        totalIncome: 0,
-        totalExpense: 0,
+        totalIncome: data.totalIncome ?? 0,
+        totalExpense: data.totalExpense ?? 0,
         timestamp: now,
       };
+
+      return count;
     }
 
-    return count;
+    // Fallback: recalculate
+    const result = await recalculateAggregateTotals();
+    return result.count;
   } catch (error) {
     logger.error('Error getting transaction count', error, 'getTransactionCount');
     return 0;
