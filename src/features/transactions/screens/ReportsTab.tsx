@@ -4,7 +4,7 @@ import { Card, Text, Button, Menu, Divider } from 'react-native-paper';
 import { fetchTransactions } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
-import { format, subDays, startOfYear, isAfter, parseISO } from 'date-fns';
+import { format, subDays, startOfYear, startOfDay, isAfter, isBefore, parseISO } from 'date-fns';
 import { TransactionCard } from '@features/transactions/components/TransactionCard';
 import { TransactionService } from '@features/transactions/services/transactionService';
 
@@ -24,15 +24,18 @@ function filterByDateRange(transactions: Transaction[], range: string) {
   if (range === 'all') return transactions;
   if (range === 'year') {
     const start = startOfYear(now);
-    return transactions.filter((t) => isAfter(parseISO(t.date), start));
+    // Use !isBefore to include transactions ON or AFTER the start date
+    return transactions.filter((t) => !isBefore(parseISO(t.date), start));
   }
   let days = 0;
   if (range === '7d') days = 7;
   if (range === '30d') days = 30;
   if (range === '90d') days = 90;
   if (days > 0) {
-    const start = subDays(now, days);
-    return transactions.filter((t) => isAfter(parseISO(t.date), start));
+    // Use startOfDay to include all transactions from that day
+    const start = startOfDay(subDays(now, days));
+    // Use !isBefore to include transactions ON or AFTER the start date
+    return transactions.filter((t) => !isBefore(parseISO(t.date), start));
   }
   return transactions;
 }

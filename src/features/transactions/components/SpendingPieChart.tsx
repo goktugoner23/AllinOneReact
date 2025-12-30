@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Card, CardHeader, CardContent } from '@shared/components/ui';
 import { Transaction } from '../types/Transaction';
 
 interface SpendingPieChartProps {
@@ -19,12 +20,16 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
 
   if (expenses.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Transaction Summary</Text>
-        <View style={styles.chartContainer}>
-          <Text style={styles.noDataText}>No transactions to display</Text>
-        </View>
-      </View>
+      <Card variant="elevated" style={styles.card}>
+        <CardHeader>
+          <Text style={styles.title}>Transaction Summary</Text>
+        </CardHeader>
+        <CardContent>
+          <View style={styles.chartContainer}>
+            <Text style={styles.noDataText}>No transactions to display</Text>
+          </View>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -67,26 +72,30 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Transaction Summary</Text>
-      <View style={styles.chartContainer}>
-        {/* Simple pie chart representation with colored boxes */}
-        <View style={styles.pieChart}>
-          {displayData.map((item, index) => (
-            <View key={item.category} style={styles.pieSlice}>
-              <View style={[styles.colorIndicator, { backgroundColor: item.color }]} />
-              <View style={styles.categoryInfo}>
-                <Text style={styles.categoryName}>{item.category}</Text>
-                <Text style={styles.categoryAmount}>
-                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)} (
-                  {item.percentage.toFixed(1)}%)
-                </Text>
+    <Card variant="elevated" style={styles.card}>
+      <CardHeader>
+        <Text style={styles.title}>Transaction Summary</Text>
+      </CardHeader>
+      <CardContent>
+        <View style={styles.chartContainer}>
+          {/* Simple pie chart representation with colored boxes */}
+          <View style={styles.pieChart}>
+            {displayData.map((item, index) => (
+              <View key={item.category} style={styles.pieSlice}>
+                <View style={[styles.colorIndicator, { backgroundColor: item.color }]} />
+                <View style={styles.categoryInfo}>
+                  <Text style={styles.categoryName}>{item.category}</Text>
+                  <Text style={styles.categoryAmount}>
+                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)} (
+                    {item.percentage.toFixed(1)}%)
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
-      </View>
-    </View>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -107,21 +116,12 @@ const getCategoryColor = (index: number): string => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+  card: {
     marginVertical: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
     color: '#333',
   },
   chartContainer: {
