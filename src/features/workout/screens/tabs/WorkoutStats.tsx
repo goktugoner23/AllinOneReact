@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { Text, TextInput, useTheme } from 'react-native-paper';
+import { Text, TextInput } from 'react-native-paper';
 import { Card, CardHeader, CardContent, Button, EmptyState, Dialog, FAB, Badge } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { StatsSnapshot } from '@features/workout/types/Workout';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 export default function WorkoutStats() {
-  const theme = useTheme();
+  const colors = useColors();
   const [stats, setStats] = useState<StatsSnapshot[]>([]);
   const [visible, setVisible] = useState(false);
   const [height, setHeight] = useState<string>('');
@@ -80,48 +81,50 @@ export default function WorkoutStats() {
   };
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 80 }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{ padding: spacing[3], gap: spacing[3], paddingBottom: spacing[20] }}
+    >
       {/* Latest Stats Card */}
       <Card>
         <CardHeader>
-          <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSurface }}>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>
             My Latest Stats
           </Text>
         </CardHeader>
         <CardContent>
           {latest ? (
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: spacing[3] }}>
               {/* Bodyweight */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: theme.colors.onSurfaceVariant }}>Bodyweight</Text>
+                <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>Bodyweight</Text>
                 <Badge size="lg">{latest.bodyWeightKg} kg</Badge>
               </View>
 
               {/* Height if available */}
               {latest.heightCm && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ color: theme.colors.onSurfaceVariant }}>Height</Text>
+                  <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>Height</Text>
                   <Badge size="lg">{latest.heightCm} cm</Badge>
                 </View>
               )}
 
               {/* Measurements */}
               {latest.measurements && Object.keys(latest.measurements).length > 0 && (
-                <View style={{ marginTop: 8 }}>
+                <View style={{ marginTop: spacing[2] }}>
                   <Text
-                    variant="titleSmall"
-                    style={{ fontWeight: '600', color: theme.colors.onSurface, marginBottom: 8 }}
+                    style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}
                   >
                     Measurements
                   </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] }}>
                     {Object.entries(latest.measurements).map(([k, v]) => (
                       <Card key={k} variant="filled" padding="sm" style={{ minWidth: '45%' }}>
                         <CardContent>
-                          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                          <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                             {formatMeasurementKey(k)}
                           </Text>
-                          <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>{v} cm</Text>
+                          <Text style={[textStyles.label, { color: colors.foreground }]}>{v} cm</Text>
                         </CardContent>
                       </Card>
                     ))}
@@ -130,7 +133,7 @@ export default function WorkoutStats() {
               )}
 
               {/* Updated date */}
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
                 Updated: {new Date(latest.createdAt || '').toLocaleString()}
               </Text>
             </View>
@@ -141,7 +144,7 @@ export default function WorkoutStats() {
               description="Track your body measurements and progress over time."
               actionLabel="Add Stats"
               onAction={() => setVisible(true)}
-              style={{ paddingVertical: 24 }}
+              style={{ paddingVertical: spacing[6] }}
             />
           )}
         </CardContent>
@@ -157,7 +160,7 @@ export default function WorkoutStats() {
         title="Update Stats"
       >
         <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing[3] }}>
             {!latest?.heightCm && (
               <TextInput
                 mode="outlined"
@@ -165,7 +168,7 @@ export default function WorkoutStats() {
                 keyboardType="numeric"
                 value={height}
                 onChangeText={setHeight}
-                style={{ backgroundColor: theme.colors.surface }}
+                style={{ backgroundColor: colors.surface }}
               />
             )}
             <TextInput
@@ -174,11 +177,11 @@ export default function WorkoutStats() {
               keyboardType="numeric"
               value={weight}
               onChangeText={setWeight}
-              style={{ backgroundColor: theme.colors.surface }}
+              style={{ backgroundColor: colors.surface }}
             />
 
             {/* Upper Body */}
-            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
               Upper Body
             </Text>
             <TextInput
@@ -187,7 +190,7 @@ export default function WorkoutStats() {
               keyboardType="numeric"
               value={shoulder}
               onChangeText={setShoulder}
-              style={{ backgroundColor: theme.colors.surface }}
+              style={{ backgroundColor: colors.surface }}
             />
             <TextInput
               mode="outlined"
@@ -195,17 +198,17 @@ export default function WorkoutStats() {
               keyboardType="numeric"
               value={chest}
               onChangeText={setChest}
-              style={{ backgroundColor: theme.colors.surface }}
+              style={{ backgroundColor: colors.surface }}
             />
 
             {/* Arms */}
-            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
               Arms
             </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: spacing[2] }}>
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Biceps L"
                 keyboardType="numeric"
                 value={bicepsL}
@@ -213,17 +216,17 @@ export default function WorkoutStats() {
               />
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Biceps R"
                 keyboardType="numeric"
                 value={bicepsR}
                 onChangeText={setBicepsR}
               />
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: spacing[2] }}>
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Forearm L"
                 keyboardType="numeric"
                 value={forearmL}
@@ -231,7 +234,7 @@ export default function WorkoutStats() {
               />
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Forearm R"
                 keyboardType="numeric"
                 value={forearmR}
@@ -240,7 +243,7 @@ export default function WorkoutStats() {
             </View>
 
             {/* Core */}
-            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
               Core
             </Text>
             <TextInput
@@ -249,7 +252,7 @@ export default function WorkoutStats() {
               keyboardType="numeric"
               value={waist}
               onChangeText={setWaist}
-              style={{ backgroundColor: theme.colors.surface }}
+              style={{ backgroundColor: colors.surface }}
             />
             <TextInput
               mode="outlined"
@@ -257,17 +260,17 @@ export default function WorkoutStats() {
               keyboardType="numeric"
               value={hip}
               onChangeText={setHip}
-              style={{ backgroundColor: theme.colors.surface }}
+              style={{ backgroundColor: colors.surface }}
             />
 
             {/* Legs */}
-            <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginTop: 8 }}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
               Legs
             </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: spacing[2] }}>
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Upper Leg L"
                 keyboardType="numeric"
                 value={upperLegL}
@@ -275,17 +278,17 @@ export default function WorkoutStats() {
               />
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Upper Leg R"
                 keyboardType="numeric"
                 value={upperLegR}
                 onChangeText={setUpperLegR}
               />
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: spacing[2] }}>
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Calf L"
                 keyboardType="numeric"
                 value={calfL}
@@ -293,7 +296,7 @@ export default function WorkoutStats() {
               />
               <TextInput
                 mode="outlined"
-                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                style={{ flex: 1, backgroundColor: colors.surface }}
                 label="Calf R"
                 keyboardType="numeric"
                 value={calfR}
@@ -307,11 +310,11 @@ export default function WorkoutStats() {
               label="Note (optional)"
               value={note}
               onChangeText={setNote}
-              style={{ backgroundColor: theme.colors.surface, marginTop: 8 }}
+              style={{ backgroundColor: colors.surface, marginTop: spacing[2] }}
               multiline
             />
 
-            <Button variant="primary" fullWidth onPress={handleSave} style={{ marginTop: 8 }}>
+            <Button variant="primary" fullWidth onPress={handleSave} style={{ marginTop: spacing[2] }}>
               Save Stats
             </Button>
           </View>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Dialog, Portal, TextInput, Button, Text, Chip, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Text as RNText, Pressable } from 'react-native';
+import { Dialog, Portal, TextInput, Button, Text } from 'react-native-paper';
 import { TASK_GROUP_COLORS } from '@features/tasks/types/Task';
+import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
 interface AddTaskGroupDialogProps {
   visible: boolean;
@@ -10,7 +11,7 @@ interface AddTaskGroupDialogProps {
 }
 
 const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDismiss, onConfirm }) => {
-  const theme = useTheme();
+  const colors = useColors();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState<string>(TASK_GROUP_COLORS[0].value);
@@ -40,12 +41,8 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDism
 
   return (
     <Portal>
-      <Dialog
-        visible={visible}
-        onDismiss={handleDismiss}
-        style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
-      >
-        <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>Add Task Group</Dialog.Title>
+      <Dialog visible={visible} onDismiss={handleDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Add Task Group</Dialog.Title>
         <Dialog.Content>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.form}>
@@ -55,6 +52,9 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDism
                 onChangeText={setTitle}
                 mode="outlined"
                 style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+                textColor={colors.foreground}
               />
               <TextInput
                 label="Description (Optional)"
@@ -64,28 +64,29 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDism
                 multiline
                 numberOfLines={2}
                 style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+                textColor={colors.foreground}
               />
               <View style={styles.colorSection}>
-                <Text variant="bodyMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                  Color
-                </Text>
+                <RNText style={[textStyles.label, { color: colors.foreground }]}>Color</RNText>
                 <View style={styles.colorGrid}>
                   {TASK_GROUP_COLORS.map((colorOption) => {
                     const isSelected = selectedColor === colorOption.value;
 
                     return (
-                      <View
+                      <Pressable
                         key={colorOption.value}
-                        style={[styles.colorOption, isSelected && styles.selectedColorOption]}
+                        style={[
+                          styles.colorOption,
+                          { borderColor: isSelected ? colors.primary : 'transparent' },
+                          isSelected && styles.selectedColorOption,
+                        ]}
+                        onPress={() => setSelectedColor(colorOption.value)}
                       >
-                        <View
-                          style={[styles.colorCircle, getColorStyle(colorOption.value)]}
-                          onTouchEnd={() => setSelectedColor(colorOption.value)}
-                        />
-                        <Text variant="bodySmall" style={[styles.colorLabel, { color: theme.colors.onSurface }]}>
-                          {colorOption.label}
-                        </Text>
-                      </View>
+                        <View style={[styles.colorCircle, getColorStyle(colorOption.value)]} />
+                        <RNText style={[textStyles.caption, { color: colors.foreground }]}>{colorOption.label}</RNText>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -94,10 +95,10 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDism
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>
+          <Button onPress={handleDismiss} textColor={colors.foregroundMuted}>
             Cancel
           </Button>
-          <Button onPress={handleConfirm} disabled={!title.trim()} textColor={theme.colors.primary}>
+          <Button onPress={handleConfirm} disabled={!title.trim()} textColor={colors.primary}>
             Add Group
           </Button>
         </Dialog.Actions>
@@ -108,7 +109,7 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDism
 
 // Define static color styles
 const colorStyles = StyleSheet.create({
-  purple: { backgroundColor: '#7C3AED' },
+  darkBlue: { backgroundColor: '#1E40AF' },
   green: { backgroundColor: '#4CAF50' },
   red: { backgroundColor: '#F44336' },
   orange: { backgroundColor: '#FF9800' },
@@ -120,8 +121,8 @@ const colorStyles = StyleSheet.create({
 
 const getColorStyle = (colorValue: string) => {
   switch (colorValue) {
-    case '#7C3AED':
-      return colorStyles.purple;
+    case '#1E40AF':
+      return colorStyles.darkBlue;
     case '#4CAF50':
       return colorStyles.green;
     case '#F44336':
@@ -144,51 +145,38 @@ const getColorStyle = (colorValue: string) => {
 const styles = StyleSheet.create({
   dialog: {
     maxHeight: '80%',
-  },
-  dialogTitle: {
-    // Color will be set dynamically
+    borderRadius: radius.xl,
   },
   form: {
-    gap: 16,
+    gap: spacing[4],
   },
   input: {
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   colorSection: {
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontWeight: '500',
-    marginBottom: 12,
-    // Color will be set dynamically
+    marginTop: spacing[2],
+    gap: spacing[3],
   },
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing[3],
   },
   colorOption: {
     alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
+    padding: spacing[2],
+    borderRadius: radius.md,
     minWidth: 60,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    borderWidth: 2,
   },
   selectedColorOption: {
-    borderColor: '#007AFF',
-    borderWidth: 3,
+    borderWidth: 2,
   },
   colorCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    marginBottom: 4,
-  },
-  colorLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-    // Color will be set dynamically
+    borderRadius: radius.full,
+    marginBottom: spacing[1],
   },
 });
 

@@ -68,8 +68,10 @@ class BinanceWebSocketService {
         }
       };
 
-      this.ws.onerror = (error) => {
-        logger.error('WebSocket error', error, 'BinanceWebSocket');
+      this.ws.onerror = () => {
+        // Log as warning instead of error for connection issues
+        // This is expected when the server is unreachable
+        logger.warn('WebSocket connection failed - server may be unavailable', {}, 'BinanceWebSocket');
         this.callbacks.onError?.('WebSocket connection error');
       };
     } catch (error) {

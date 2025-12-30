@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Image, TouchableOpacity, Alert } from 'react-native';
-import { IconButton, Text, Surface, Portal, Modal } from 'react-native-paper';
+import { IconButton, Text, Surface, Portal, Modal, useTheme } from 'react-native-paper';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import AudioPlayer from '@shared/components/ui/AudioPlayer';
 
@@ -12,6 +12,7 @@ interface MediaViewerProps {
 }
 
 const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
+  const theme = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -23,23 +24,23 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
 
       case MediaType.VIDEO:
         return (
-          <View style={styles.videoContainer}>
-            <Text style={styles.placeholderText}>Video Player</Text>
-            <Text style={styles.placeholderSubtext}>Video playback will be implemented in Phase 4</Text>
+          <View style={[styles.videoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Text style={[styles.placeholderText, { color: theme.colors.onSurface }]}>Video Player</Text>
+            <Text style={[styles.placeholderSubtext, { color: theme.colors.onSurfaceVariant }]}>Video playback will be implemented in Phase 4</Text>
           </View>
         );
 
       case MediaType.AUDIO:
         return (
-          <View style={styles.audioContainer}>
+          <View style={[styles.audioContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
             <AudioPlayer attachment={attachment} />
           </View>
         );
 
       default:
         return (
-          <View style={styles.placeholderContainer}>
-            <Text style={styles.placeholderText}>Unsupported Media Type</Text>
+          <View style={[styles.placeholderContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Text style={[styles.placeholderText, { color: theme.colors.onSurface }]}>Unsupported Media Type</Text>
           </View>
         );
     }
@@ -61,17 +62,17 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
         <View style={styles.headerLeft}>
-          <IconButton icon="close" size={24} iconColor="white" onPress={onClose} />
-          <Text style={styles.headerTitle}>{attachment.name}</Text>
+          <IconButton icon="close" size={24} iconColor={theme.colors.onSurface} onPress={onClose} />
+          <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>{attachment.name}</Text>
         </View>
 
         <View style={styles.headerRight}>
-          <IconButton icon="share" size={24} iconColor="white" onPress={handleShare} />
-          <IconButton icon="download" size={24} iconColor="white" onPress={handleDownload} />
+          <IconButton icon="share" size={24} iconColor={theme.colors.onSurface} onPress={handleShare} />
+          <IconButton icon="download" size={24} iconColor={theme.colors.onSurface} onPress={handleDownload} />
         </View>
       </View>
 
@@ -79,11 +80,11 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
       <View style={styles.content}>{renderMediaContent()}</View>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: theme.colors.elevation.level2 }]}>
         <View style={styles.metaInfo}>
-          <Text style={styles.metaText}>Type: {attachment.type}</Text>
-          {attachment.size && <Text style={styles.metaText}>Size: {formatFileSize(attachment.size)}</Text>}
-          {attachment.duration && <Text style={styles.metaText}>Duration: {formatDuration(attachment.duration)}</Text>}
+          <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Type: {attachment.type}</Text>
+          {attachment.size && <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Size: {formatFileSize(attachment.size)}</Text>}
+          {attachment.duration && <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Duration: {formatDuration(attachment.duration)}</Text>}
         </View>
       </View>
     </View>
@@ -99,7 +100,6 @@ const formatFileSize = (bytes: number) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
   },
   header: {
     flexDirection: 'row',
@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -116,7 +115,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -138,28 +136,23 @@ const styles = StyleSheet.create({
     height: screenHeight * 0.7,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
   },
   audioContainer: {
     width: screenWidth,
     height: screenHeight * 0.7,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
   },
   playButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     marginBottom: 24,
   },
   audioTitle: {
-    color: 'white',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
   },
   audioDuration: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
   },
   placeholderContainer: {
@@ -167,16 +160,13 @@ const styles = StyleSheet.create({
     height: screenHeight * 0.7,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
   },
   placeholderText: {
-    color: 'white',
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
   },
   placeholderSubtext: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
@@ -184,13 +174,11 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     paddingBottom: 50,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   metaInfo: {
     paddingVertical: 16,
   },
   metaText: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
     marginBottom: 4,
   },

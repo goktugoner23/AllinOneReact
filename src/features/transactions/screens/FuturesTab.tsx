@@ -24,6 +24,7 @@ import {
   getRiskLevel,
 } from '@features/transactions/utils/futuresCalculations';
 import { TPSLModal } from '@features/transactions/components/TPSLModal';
+import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 const TopTab = createMaterialTopTabNavigator();
 
@@ -39,10 +40,11 @@ function FuturesPositionCard({
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
   const theme = useTheme();
+  const colors = useColors();
   const calculations = position.calculations || calculatePositionMetrics(position);
   const isLong = position.positionAmount > 0;
-  // Use explicit green for LONG and red for SHORT
-  const positionSideColor = isLong ? '#4CAF50' : '#F44336';
+  // Use theme colors for LONG and SHORT
+  const positionSideColor = isLong ? colors.income : colors.expense;
   const riskLevel = getRiskLevel(calculations.marginRatio);
 
   // Determine if this is COIN-M futures (check symbol pattern or contract type)
@@ -61,12 +63,12 @@ function FuturesPositionCard({
   };
 
   return (
-    <Card style={styles.positionCard} mode="outlined">
+    <Card style={[styles.positionCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
       <Card.Content>
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.symbolSection}>
-            <Text variant="titleMedium" style={styles.symbol}>
+            <Text variant="titleMedium" style={[styles.symbol, { color: colors.foreground }]}>
               {position.symbol}
             </Text>
             <Chip
@@ -75,7 +77,7 @@ function FuturesPositionCard({
                 styles.positionSideChip,
                 { backgroundColor: positionSideColor, paddingHorizontal: 6, height: 26 },
               ]}
-              textStyle={{ color: 'white', fontWeight: 'bold', lineHeight: 16 }}
+              textStyle={{ color: isLong ? colors.incomeForeground : colors.expenseForeground, fontWeight: 'bold', lineHeight: 16 }}
             >
               {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
             </Chip>
@@ -83,89 +85,89 @@ function FuturesPositionCard({
             {isCoinMFutures && position.symbol.includes('USD_PERP') && (
               <Chip
                 mode="outlined"
-                style={[styles.futuresTypeChip, { borderColor: theme.colors.secondary }]}
-                textStyle={{ color: theme.colors.secondary, fontSize: 10 }}
+                style={[styles.futuresTypeChip, { borderColor: colors.primary }]}
+                textStyle={{ color: colors.primary, fontSize: 10 }}
               >
                 COIN-M
               </Chip>
             )}
           </View>
-          <IconButton icon="target" size={20} onPress={() => onSetTPSL(position)} style={styles.tpslButton} />
+          <IconButton icon="target" size={20} onPress={() => onSetTPSL(position)} style={styles.tpslButton} iconColor={colors.primary} />
         </View>
 
-        <Divider style={styles.divider} />
+        <Divider style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Position Details */}
         <View style={styles.detailsGrid}>
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Position Size:</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Position Size:</Text>
             <Text style={[styles.value, { color: positionSideColor }]}>
               {formatNumber(Math.abs(position.positionAmount))}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Entry Price:</Text>
-            <Text style={styles.value}>{formatCurrency(position.entryPrice)}</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Entry Price:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(position.entryPrice)}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Mark Price:</Text>
-            <Text style={styles.value}>{formatCurrency(position.markPrice)}</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Mark Price:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(position.markPrice)}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Leverage:</Text>
-            <Text style={styles.value}>{position.leverage}x</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Leverage:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{position.leverage}x</Text>
           </View>
         </View>
 
-        <Divider style={styles.divider} />
+        <Divider style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* PnL and ROI */}
         <View style={styles.pnlSection}>
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Unrealized PnL:</Text>
-            <Text style={[styles.value, { color: getValueColor(position.unrealizedProfit) }]}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Unrealized PnL:</Text>
+            <Text style={[styles.value, { color: position.unrealizedProfit >= 0 ? colors.income : colors.expense }]}>
               {formatPnL(position.unrealizedProfit)}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>ROI:</Text>
-            <Text style={[styles.value, { color: getValueColor(calculations.roi) }]}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>ROI:</Text>
+            <Text style={[styles.value, { color: calculations.roi >= 0 ? colors.income : colors.expense }]}>
               {formatPercentage(calculations.roi)}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>ROE:</Text>
-            <Text style={[styles.value, { color: getValueColor(calculations.roe) }]}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>ROE:</Text>
+            <Text style={[styles.value, { color: calculations.roe >= 0 ? colors.income : colors.expense }]}>
               {formatPercentage(calculations.roe)}
             </Text>
           </View>
         </View>
 
-        <Divider style={styles.divider} />
+        <Divider style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Risk Metrics */}
         <View style={styles.riskSection}>
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Liquidation Price:</Text>
-            <Text style={[styles.value, { color: '#FF5722' }]}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Liquidation Price:</Text>
+            <Text style={[styles.value, { color: colors.warning }]}>
               {formatCurrency(calculations.liquidationPrice, 'USDT', 2)}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Distance to Liquidation:</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Distance to Liquidation:</Text>
             <Text style={[styles.value, { color: riskLevel.color }]}>
               {formatPercentage(calculations.distanceToLiquidation)}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Margin Ratio:</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Margin Ratio:</Text>
             <View style={styles.marginRatioContainer}>
               <Text style={[styles.value, { color: riskLevel.color }]}>
                 {formatPercentage(calculations.marginRatio)}
@@ -174,28 +176,28 @@ function FuturesPositionCard({
           </View>
         </View>
 
-        <Divider style={styles.divider} />
+        <Divider style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Margin Details */}
         <View style={styles.marginSection}>
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Notional Value:</Text>
-            <Text style={styles.value}>{formatCurrency(calculations.notionalValue, 'USDT', 2)}</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Notional Value:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(calculations.notionalValue, 'USDT', 2)}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Initial Margin:</Text>
-            <Text style={styles.value}>{formatCurrency(calculations.initialMargin, 'USDT', 2)}</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Initial Margin:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(calculations.initialMargin, 'USDT', 2)}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Maintenance Margin:</Text>
-            <Text style={styles.value}>{formatCurrency(calculations.maintMargin, 'USDT', 2)}</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Maintenance Margin:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(calculations.maintMargin, 'USDT', 2)}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.label}>Margin Type:</Text>
-            <Text style={styles.value}>{position.marginType}</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Margin Type:</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>{position.marginType}</Text>
           </View>
         </View>
       </Card.Content>
@@ -210,7 +212,8 @@ function FuturesPositionsList({
   positions: EnhancedPositionData[];
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
-  if (!positions.length) return <Text style={styles.empty}>No open positions.</Text>;
+  const colors = useColors();
+  if (!positions.length) return <Text style={[styles.empty, { color: colors.mutedForeground }]}>No open positions.</Text>;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -222,6 +225,7 @@ function FuturesPositionsList({
 }
 
 function FuturesAccountCard({ account }: { account: AccountData | null }) {
+  const colors = useColors();
   if (!account) return null;
 
   const totalBalance = account.totalWalletBalance;
@@ -230,34 +234,34 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
   const availableBalance = totalBalance + unrealizedPnL;
 
   return (
-    <Card style={styles.accountCard} mode="outlined">
-      <Card.Title title="Account Overview" titleVariant="titleMedium" />
+    <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+      <Card.Title title="Account Overview" titleVariant="titleMedium" titleStyle={{ color: colors.foreground }} />
       <Card.Content>
         <View style={styles.accountGrid}>
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Total Balance</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(totalBalance) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Total Balance</Text>
+            <Text style={[styles.accountValue, { color: totalBalance >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(totalBalance)}
             </Text>
           </View>
 
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Unrealized PnL</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(unrealizedPnL) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Unrealized PnL</Text>
+            <Text style={[styles.accountValue, { color: unrealizedPnL >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(unrealizedPnL)}
             </Text>
           </View>
 
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Margin Balance</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(marginBalance) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Margin Balance</Text>
+            <Text style={[styles.accountValue, { color: marginBalance >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(marginBalance)}
             </Text>
           </View>
 
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Available</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(availableBalance) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Available</Text>
+            <Text style={[styles.accountValue, { color: availableBalance >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(availableBalance)}
             </Text>
           </View>
@@ -275,6 +279,7 @@ function CoinMFuturesAccountCard({
   account: AccountData | null;
   positions: EnhancedPositionData[];
 }) {
+  const colors = useColors();
   if (!account) return null;
 
   // Calculate total USD value from coin balances
@@ -305,34 +310,34 @@ function CoinMFuturesAccountCard({
   const totalValue = totalCoinValue + totalPositionValue + totalUnrealizedPnL;
 
   return (
-    <Card style={styles.accountCard} mode="outlined">
-      <Card.Title title="COIN-M Account Overview" titleVariant="titleMedium" />
+    <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+      <Card.Title title="COIN-M Account Overview" titleVariant="titleMedium" titleStyle={{ color: colors.foreground }} />
       <Card.Content>
         <View style={styles.accountGrid}>
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Coin Balances</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(totalCoinValue) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Coin Balances</Text>
+            <Text style={[styles.accountValue, { color: totalCoinValue >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(totalCoinValue)}
             </Text>
           </View>
 
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Position Value</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(totalPositionValue) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Position Value</Text>
+            <Text style={[styles.accountValue, { color: totalPositionValue >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(totalPositionValue)}
             </Text>
           </View>
 
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Unrealized PnL</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(totalUnrealizedPnL) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Unrealized PnL</Text>
+            <Text style={[styles.accountValue, { color: totalUnrealizedPnL >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(totalUnrealizedPnL)}
             </Text>
           </View>
 
           <View style={styles.accountItem}>
-            <Text style={styles.accountLabel}>Total Value</Text>
-            <Text style={[styles.accountValue, { color: getValueColor(totalValue) }]}>
+            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Total Value</Text>
+            <Text style={[styles.accountValue, { color: totalValue >= 0 ? colors.income : colors.expense }]}>
               {formatCurrency(totalValue)}
             </Text>
           </View>
@@ -342,10 +347,10 @@ function CoinMFuturesAccountCard({
         {account.assets
           ?.filter((asset) => asset.walletBalance > 0)
           .map((asset) => (
-            <View key={asset.asset} style={styles.coinBalanceRow}>
-              <Text style={styles.coinSymbol}>{asset.asset}</Text>
-              <Text style={styles.coinAmount}>{asset.walletBalance.toFixed(6)}</Text>
-              <Text style={styles.coinValue}>
+            <View key={asset.asset} style={[styles.coinBalanceRow, { backgroundColor: colors.muted }]}>
+              <Text style={[styles.coinSymbol, { color: colors.foreground }]}>{asset.asset}</Text>
+              <Text style={[styles.coinAmount, { color: colors.investment }]}>{asset.walletBalance.toFixed(6)}</Text>
+              <Text style={[styles.coinValue, { color: colors.income }]}>
                 {formatCurrency(asset.walletBalance * getEstimatedCoinPrice(asset.asset))}
               </Text>
             </View>
@@ -368,6 +373,7 @@ function getEstimatedCoinPrice(symbol: string): number {
 
 // USD-M Futures Screen with WebSocket integration for live updates - UNIQUE_IDENTIFIER_USDM_FUNCTION_SPECIFIC
 function UsdMFuturesScreen() {
+  const colors = useColors();
   const [positions, setPositions] = useState<EnhancedPositionData[]>([]);
   const [account, setAccount] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -483,26 +489,25 @@ function UsdMFuturesScreen() {
 
   // WebSocket status indicator below (USD-M only)
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {error && (
-        <Chip icon="alert" style={{ marginBottom: 8 }} onClose={() => setError(null)}>
+        <Chip icon="alert" style={[styles.errorChip, { backgroundColor: colors.destructiveMuted }]} textStyle={{ color: colors.destructive }} onClose={() => setError(null)}>
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for USD-M Futures */}
       <Chip
         icon={wsConnectedLocal ? 'wifi' : 'wifi-off'}
-        style={{
-          marginBottom: 8,
-          backgroundColor: wsConnectedLocal ? '#4CAF50' : '#FF9800',
-          alignSelf: 'flex-start',
-        }}
-        textStyle={{ color: 'white' }}
+        style={[
+          styles.statusChip,
+          { backgroundColor: wsConnectedLocal ? colors.income : colors.warning },
+        ]}
+        textStyle={{ color: wsConnectedLocal ? colors.incomeForeground : colors.warningForeground }}
       >
         {wsConnectedLocal ? 'Live Data Connected' : 'Live Data Disconnected'}
       </Chip>
       <FuturesAccountCard account={account} />
-      {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
+      {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
 
       <TPSLModal
@@ -803,5 +808,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#28a745',
+  },
+  errorChip: {
+    marginBottom: 8,
+  },
+  statusChip: {
+    marginBottom: 8,
+  },
+  loader: {
+    marginVertical: 16,
   },
 });

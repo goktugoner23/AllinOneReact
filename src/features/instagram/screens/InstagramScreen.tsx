@@ -2,13 +2,13 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useTheme } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@shared/store';
 import { checkInstagramHealth } from '@features/instagram/store/instagramSlice';
 import { InstagramHeader } from '@features/instagram/components';
 import { InstagramPost } from '@features/instagram/types/Instagram';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 // Import tab screens
 import PostsTab from '@features/instagram/screens/PostsTab';
@@ -29,7 +29,7 @@ export type InstagramTabParamList = {
 };
 
 const InstagramTabs: React.FC = () => {
-  const theme = useTheme();
+  const colors = useColors();
   const dispatch = useDispatch<AppDispatch>();
   const { status: healthStatus } = useSelector((state: RootState) => state.instagram.health);
 
@@ -39,7 +39,7 @@ const InstagramTabs: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <InstagramHeader
         title="Instagram Business"
         subtitle="Analytics & AI Assistant"
@@ -73,15 +73,14 @@ const InstagramTabs: React.FC = () => {
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: theme.colors.primary,
-          tabBarInactiveTintColor: theme.colors.onSurface,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.foregroundMuted,
           tabBarStyle: {
-            backgroundColor: theme.colors.surface,
-            borderTopColor: theme.colors.outline,
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
           },
           tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '500',
+            ...textStyles.labelSmall,
           },
         })}
       >

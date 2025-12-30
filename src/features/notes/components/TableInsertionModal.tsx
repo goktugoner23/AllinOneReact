@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { Modal, Portal, Surface, Text, Button, TextInput, IconButton, Chip } from 'react-native-paper';
+import { useAppTheme } from '@shared/theme';
 
 interface TableInsertionModalProps {
   visible: boolean;
@@ -13,6 +14,7 @@ const { width: screenWidth } = Dimensions.get('window');
 const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDismiss, onInsertTable }) => {
   const [rows, setRows] = useState('3');
   const [columns, setColumns] = useState('3');
+  const { colors, spacing, radius, textStyles } = useAppTheme();
 
   const handleInsert = () => {
     const rowCount = parseInt(rows) || 3;
@@ -32,15 +34,15 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
   return (
     <Portal>
       <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContainer}>
-        <Surface style={styles.modalSurface}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Insert Table</Text>
+        <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border, padding: spacing[4] }]}>
+            <Text style={[textStyles.h4, { color: colors.foreground }]}>Insert Table</Text>
             <IconButton icon="close" size={20} onPress={onDismiss} />
           </View>
 
-          <View style={styles.modalContent}>
-            <Text style={styles.sectionTitle}>Quick Sizes</Text>
-            <View style={styles.chipContainer}>
+          <View style={[styles.modalContent, { padding: spacing[4] }]}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>Quick Sizes</Text>
+            <View style={[styles.chipContainer, { gap: spacing[2], marginBottom: spacing[5] }]}>
               {quickSizes.map((size, index) => (
                 <Chip
                   key={index}
@@ -48,47 +50,50 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
                     setRows(size.rows.toString());
                     setColumns(size.columns.toString());
                   }}
-                  style={styles.chip}
                 >
                   {size.label}
                 </Chip>
               ))}
             </View>
 
-            <View style={styles.inputSection}>
-              <Text style={styles.sectionTitle}>Custom Size</Text>
-              <View style={styles.inputRow}>
+            <View style={[styles.inputSection, { marginBottom: spacing[5] }]}>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>Custom Size</Text>
+              <View style={[styles.inputRow, { gap: spacing[4] }]}>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Rows</Text>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Rows</Text>
                   <TextInput
                     value={rows}
                     onChangeText={setRows}
                     keyboardType="numeric"
                     mode="outlined"
                     style={styles.input}
+                    outlineColor={colors.border}
+                    activeOutlineColor={colors.primary}
                   />
                 </View>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Columns</Text>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Columns</Text>
                   <TextInput
                     value={columns}
                     onChangeText={setColumns}
                     keyboardType="numeric"
                     mode="outlined"
                     style={styles.input}
+                    outlineColor={colors.border}
+                    activeOutlineColor={colors.primary}
                   />
                 </View>
               </View>
             </View>
 
-            <View style={styles.previewSection}>
-              <Text style={styles.sectionTitle}>Preview</Text>
-              <View style={styles.tablePreview}>
+            <View style={[styles.previewSection, { marginBottom: spacing[5] }]}>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>Preview</Text>
+              <View style={[styles.tablePreview, { borderColor: colors.border, borderRadius: radius.sm }]}>
                 {Array.from({ length: Math.min(parseInt(rows) || 3, 4) }).map((_, rowIndex) => (
                   <View key={rowIndex} style={styles.previewRow}>
                     {Array.from({ length: Math.min(parseInt(columns) || 3, 6) }).map((_, colIndex) => (
-                      <View key={colIndex} style={styles.previewCell}>
-                        <Text style={styles.previewText}>{rowIndex === 0 ? 'H' : 'C'}</Text>
+                      <View key={colIndex} style={[styles.previewCell, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                        <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>{rowIndex === 0 ? 'H' : 'C'}</Text>
                       </View>
                     ))}
                   </View>
@@ -97,7 +102,7 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
             </View>
           </View>
 
-          <View style={styles.modalActions}>
+          <View style={[styles.modalActions, { borderTopColor: colors.border, padding: spacing[4], gap: spacing[3] }]}>
             <Button onPress={onDismiss} style={styles.actionButton}>
               Cancel
             </Button>
@@ -118,8 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSurface: {
-    backgroundColor: 'white',
-    borderRadius: 12,
     width: screenWidth * 0.9,
     maxHeight: '80%',
     elevation: 5,
@@ -128,57 +131,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalContent: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#333',
-  },
+  modalContent: {},
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
   },
-  chip: {
-    marginBottom: 4,
-  },
-  inputSection: {
-    marginBottom: 20,
-  },
+  inputSection: {},
   inputRow: {
     flexDirection: 'row',
-    gap: 16,
   },
   inputContainer: {
     flex: 1,
   },
-  inputLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-    color: '#666',
-  },
   input: {
     height: 40,
   },
-  previewSection: {
-    marginBottom: 20,
-  },
+  previewSection: {},
   tablePreview: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
     overflow: 'hidden',
   },
   previewRow: {
@@ -187,23 +159,14 @@ const styles = StyleSheet.create({
   previewCell: {
     flex: 1,
     borderWidth: 0.5,
-    borderColor: '#ddd',
     padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9f9f9',
-  },
-  previewText: {
-    fontSize: 12,
-    color: '#666',
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    gap: 12,
   },
   actionButton: {
     minWidth: 80,

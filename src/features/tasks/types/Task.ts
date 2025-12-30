@@ -33,7 +33,7 @@ export interface TaskGroupFormData {
 
 // Available colors for task groups (matching the theme)
 export const TASK_GROUP_COLORS = [
-  { value: '#7C3AED', label: 'Purple' }, // Primary theme color
+  { value: '#1E40AF', label: 'Blue' }, // Primary theme color
   { value: '#4CAF50', label: 'Green' }, // Income color
   { value: '#F44336', label: 'Red' }, // Expense color
   { value: '#FF9800', label: 'Orange' }, // Investment color

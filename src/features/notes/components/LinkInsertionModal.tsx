@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { Portal, Modal, Surface, TextInput, Button, Text, IconButton } from 'react-native-paper';
+import { useAppTheme } from '@shared/theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -14,6 +15,7 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [urlError, setUrlError] = useState('');
+  const { colors, spacing, radius, textStyles } = useAppTheme();
 
   const validateUrl = (url: string): boolean => {
     if (!url.trim()) {
@@ -70,15 +72,15 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
   return (
     <Portal>
       <Modal visible={visible} onDismiss={handleCancel} contentContainerStyle={styles.modalContainer}>
-        <Surface style={styles.modalSurface}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Insert Link</Text>
+        <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border, paddingHorizontal: spacing[5], paddingTop: spacing[5], paddingBottom: spacing[3] }]}>
+            <Text style={[textStyles.h4, { color: colors.foreground }]}>Insert Link</Text>
             <IconButton icon="close" size={20} onPress={handleCancel} />
           </View>
 
-          <View style={styles.modalContent}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>URL *</Text>
+          <View style={[styles.modalContent, { padding: spacing[5] }]}>
+            <View style={[styles.inputContainer, { marginBottom: spacing[4] }]}>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>URL *</Text>
               <TextInput
                 mode="outlined"
                 placeholder="https://example.com"
@@ -89,12 +91,14 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
                 autoCorrect={false}
                 keyboardType="url"
                 returnKeyType="next"
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
               />
-              {urlError ? <Text style={styles.errorText}>{urlError}</Text> : null}
+              {urlError ? <Text style={[textStyles.caption, { color: colors.destructive, marginTop: spacing[1] }]}>{urlError}</Text> : null}
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Link Text (optional)</Text>
+            <View style={[styles.inputContainer, { marginBottom: spacing[4] }]}>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Link Text (optional)</Text>
               <TextInput
                 mode="outlined"
                 placeholder="Display text for the link"
@@ -104,18 +108,26 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
                 autoCapitalize="sentences"
                 returnKeyType="done"
                 onSubmitEditing={handleInsert}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
               />
-              <Text style={styles.helpText}>If left empty, the URL will be used as the link text</Text>
+              <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' }]}>
+                If left empty, the URL will be used as the link text
+              </Text>
             </View>
 
-            <View style={styles.previewContainer}>
-              <Text style={styles.previewLabel}>Preview:</Text>
-              <Text style={styles.previewText}>{text.trim() || url.trim() || 'No link text'}</Text>
-              <Text style={styles.previewUrl}>→ {url.trim() || 'No URL'}</Text>
+            <View style={[styles.previewContainer, { backgroundColor: colors.muted, padding: spacing[3], borderRadius: radius.md, marginTop: spacing[2] }]}>
+              <Text style={[textStyles.labelSmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Preview:</Text>
+              <Text style={[textStyles.bodySmall, { color: colors.primary, textDecorationLine: 'underline', marginBottom: spacing[0.5] }]}>
+                {text.trim() || url.trim() || 'No link text'}
+              </Text>
+              <Text style={[textStyles.caption, { color: colors.foregroundMuted, fontStyle: 'italic' }]}>
+                {url.trim() ? `-> ${url.trim()}` : 'No URL'}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.modalActions}>
+          <View style={[styles.modalActions, { paddingHorizontal: spacing[5], paddingBottom: spacing[5], gap: spacing[3] }]}>
             <Button mode="outlined" onPress={handleCancel} style={styles.actionButton}>
               Cancel
             </Button>
@@ -137,8 +149,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSurface: {
-    backgroundColor: 'white',
-    borderRadius: 12,
     width: screenWidth * 0.9,
     maxWidth: 400,
     elevation: 5,
@@ -147,71 +157,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalContent: {
-    padding: 20,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
+  modalContent: {},
+  inputContainer: {},
   input: {
     backgroundColor: 'transparent',
   },
-  errorText: {
-    color: '#f44336',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  helpText: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  previewContainer: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  previewLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
-  },
-  previewText: {
-    fontSize: 14,
-    color: '#007AFF',
-    textDecorationLine: 'underline',
-    marginBottom: 2,
-  },
-  previewUrl: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-  },
+  previewContainer: {},
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 12,
   },
   actionButton: {
     minWidth: 80,

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { Card, Text, Portal, Dialog, TextInput, Button, IconButton, useTheme, Surface, Chip } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, Text } from 'react-native';
+import { Card, Portal, Dialog, TextInput, Button as PaperButton, IconButton, Surface, Chip } from 'react-native-paper';
 import { AddFab } from '@shared/components';
+import { Button } from '@shared/components/ui';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
 import { WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 
 export function SeminarsTab() {
   const dispatch = useDispatch<AppDispatch>();
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const { seminars, loading } = useSelector((state: RootState) => state.wtRegistry);
 
   const [showDialog, setShowDialog] = useState(false);
@@ -219,82 +221,92 @@ export function SeminarsTab() {
     }
   };
 
-  const renderSeminarCard = ({ item: seminar }: { item: WTSeminar }) => (
-    <Card
-      style={[
-        styles.seminarCard,
-        {
-          backgroundColor: theme.colors.surface,
+  const renderSeminarCard = ({ item: seminar }: { item: WTSeminar }) => {
+    const upcoming = isUpcoming(seminar.date);
+    return (
+      <Card
+        style={{
+          marginHorizontal: spacing[4],
+          marginBottom: spacing[3],
+          backgroundColor: colors.surface,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: colors.border,
           borderLeftWidth: 4,
-          borderLeftColor: isUpcoming(seminar.date) ? theme.colors.primary : theme.colors.outline,
-        },
-      ]}
-      mode="elevated"
-    >
-      <Card.Content>
-        <View style={styles.seminarHeader}>
-          <View style={styles.seminarInfo}>
-            <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={styles.seminarName}>
-                {seminar.name}
+          borderLeftColor: upcoming ? colors.primary : colors.foregroundSubtle,
+        }}
+        mode="elevated"
+      >
+        <Card.Content style={{ padding: spacing[4] }}>
+          <View style={styles.seminarHeader}>
+            <View style={styles.seminarInfo}>
+              <View style={styles.titleRow}>
+                <Text style={[textStyles.h4, { color: colors.foreground, flex: 1, marginRight: spacing[2] }]}>
+                  {seminar.name}
+                </Text>
+                <Chip
+                  mode="outlined"
+                  style={{
+                    alignSelf: 'flex-start',
+                    backgroundColor: upcoming ? colors.primaryMuted : colors.muted,
+                  }}
+                  textStyle={[textStyles.labelSmall, {
+                    color: upcoming ? colors.primary : colors.foregroundMuted,
+                  }]}
+                >
+                  {upcoming ? 'Upcoming' : 'Past'}
+                </Chip>
+              </View>
+
+              <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '600', marginTop: spacing[2] }]}>
+                {(typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date).toLocaleDateString()}
               </Text>
-              <Chip
-                mode="outlined"
-                style={[
-                  styles.statusChip,
-                  {
-                    backgroundColor: isUpcoming(seminar.date)
-                      ? theme.colors.primaryContainer
-                      : theme.colors.surfaceVariant,
-                  },
-                ]}
-                textStyle={{
-                  color: isUpcoming(seminar.date) ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant,
-                }}
-              >
-                {isUpcoming(seminar.date) ? 'Upcoming' : 'Past'}
-              </Chip>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
+                {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
+              </Text>
+
+              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[1] }]}>
+                Duration: {getDuration(seminar.startHour, seminar.startMinute, seminar.endHour, seminar.endMinute)}
+              </Text>
+
+              {seminar.location && (
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
+                  Location: {seminar.location}
+                </Text>
+              )}
+
+              {seminar.description && (
+                <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[2] }]}>
+                  {seminar.description}
+                </Text>
+              )}
             </View>
-
-            <Text variant="bodyLarge" style={styles.dateTime}>
-              📅 {(typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date).toLocaleDateString()}
-            </Text>
-            <Text variant="bodyMedium" style={styles.timeRange}>
-              🕐 {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
-            </Text>
-
-            <Text variant="bodySmall" style={styles.duration}>
-              Duration: {getDuration(seminar.startHour, seminar.startMinute, seminar.endHour, seminar.endMinute)}
-            </Text>
-
-            {seminar.location && (
-              <Text variant="bodyMedium" style={styles.location}>
-                📍 {seminar.location}
-              </Text>
-            )}
-
-            {seminar.description && (
-              <Text variant="bodySmall" style={styles.description}>
-                {seminar.description}
-              </Text>
-            )}
+            <View style={styles.seminarActions}>
+              <IconButton icon="pencil" size={20} iconColor={colors.primary} onPress={() => handleOpenDialog(seminar)} />
+              <IconButton icon="delete" size={20} iconColor={colors.destructive} onPress={() => handleDelete(seminar)} />
+            </View>
           </View>
-          <View style={styles.seminarActions}>
-            <IconButton icon="pencil" size={20} onPress={() => handleOpenDialog(seminar)} />
-            <IconButton icon="delete" size={20} iconColor={theme.colors.error} onPress={() => handleDelete(seminar)} />
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
-  );
+        </Card.Content>
+      </Card>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <Surface style={styles.header} elevation={2}>
-        <Text variant="titleMedium" style={styles.headerTitle}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Surface
+        style={{
+          padding: spacing[4],
+          alignItems: 'center',
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+        elevation={0}
+      >
+        <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
           Wing Tzun Seminars
         </Text>
-        <Text variant="bodyMedium" style={styles.headerSubtitle}>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
           {seminars.length} seminar{seminars.length !== 1 ? 's' : ''} total
         </Text>
       </Surface>
@@ -303,14 +315,14 @@ export function SeminarsTab() {
         data={sortedSeminars}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderSeminarCard}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ paddingTop: spacing[3], paddingBottom: spacing[20] }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text variant="bodyLarge" style={styles.emptyText}>
+            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
               No seminars scheduled yet
             </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtext}>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundSubtle }]}>
               Tap the + button to add your first seminar
             </Text>
           </View>
@@ -320,46 +332,50 @@ export function SeminarsTab() {
       <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
-          <Dialog.Title>{editingSeminar ? 'Edit Seminar' : 'Add Seminar'}</Dialog.Title>
+        <Dialog
+          visible={showDialog}
+          onDismiss={handleCloseDialog}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
+        >
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>{editingSeminar ? 'Edit Seminar' : 'Add Seminar'}</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="Seminar Name *"
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
-              style={styles.input}
+              style={{ marginBottom: spacing[4] }}
               mode="outlined"
               autoFocus
             />
 
-            <Button mode="outlined" onPress={() => setShowDatePicker(true)} style={styles.dateButton} icon="calendar">
+            <PaperButton mode="outlined" onPress={() => setShowDatePicker(true)} style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }} icon="calendar">
               Date: {formData.date.toLocaleDateString()}
-            </Button>
+            </PaperButton>
 
             <View style={styles.timeContainer}>
-              <Button
+              <PaperButton
                 mode="outlined"
                 onPress={() => setShowTimePicker('start')}
-                style={styles.timeButton}
+                style={{ flex: 0.48 }}
                 icon="clock-outline"
               >
                 Start: {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
-              </Button>
-              <Button
+              </PaperButton>
+              <PaperButton
                 mode="outlined"
                 onPress={() => setShowTimePicker('end')}
-                style={styles.timeButton}
+                style={{ flex: 0.48 }}
                 icon="clock-outline"
               >
                 End: {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
-              </Button>
+              </PaperButton>
             </View>
 
             <TextInput
               label="Location"
               value={formData.location}
               onChangeText={(text) => setFormData({ ...formData, location: text })}
-              style={styles.input}
+              style={{ marginBottom: spacing[4] }}
               mode="outlined"
               left={<TextInput.Icon icon="map-marker" />}
             />
@@ -368,14 +384,14 @@ export function SeminarsTab() {
               label="Description"
               value={formData.description}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
-              style={styles.input}
+              style={{ marginBottom: spacing[4] }}
               mode="outlined"
               multiline
               numberOfLines={3}
             />
 
             <View style={styles.durationContainer}>
-              <Text variant="bodySmall" style={styles.durationText}>
+              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic' }]}>
                 Duration:{' '}
                 {getDuration(
                   formData.startTime.getHours(),
@@ -386,9 +402,9 @@ export function SeminarsTab() {
               </Text>
             </View>
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button onPress={handleSave} mode="contained" disabled={!formData.name.trim()}>
+          <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
+            <Button variant="ghost" onPress={handleCloseDialog}>Cancel</Button>
+            <Button variant="primary" onPress={handleSave} disabled={!formData.name.trim()}>
               {editingSeminar ? 'Update' : 'Add'} Seminar
             </Button>
           </Dialog.Actions>
@@ -422,34 +438,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    color: '#666',
-  },
-  list: {
-    padding: 16,
-    paddingTop: 8,
-  },
-  seminarCard: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    overflow: 'hidden',
-  },
   seminarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -463,37 +451,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  seminarName: {
-    fontWeight: 'bold',
-    flex: 1,
-    marginRight: 8,
-  },
-  statusChip: {
-    alignSelf: 'flex-start',
-  },
-  dateTime: {
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  timeRange: {
-    marginBottom: 4,
-    color: '#666',
-  },
-  duration: {
-    marginBottom: 4,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  location: {
-    marginBottom: 4,
-    color: '#666',
-  },
-  description: {
-    marginTop: 8,
-    fontStyle: 'italic',
-    color: '#888',
   },
   seminarActions: {
     flexDirection: 'row',
@@ -504,40 +461,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
   },
-  emptyText: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  emptySubtext: {
-    color: '#999',
-  },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
   },
-  input: {
-    marginBottom: 16,
-  },
-  dateButton: {
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  timeButton: {
-    flex: 0.48,
-  },
   durationContainer: {
     alignItems: 'center',
     marginTop: 8,
-  },
-  durationText: {
-    color: '#666',
-    fontStyle: 'italic',
   },
 });

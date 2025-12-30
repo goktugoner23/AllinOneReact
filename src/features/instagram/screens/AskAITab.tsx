@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Text, TextInput, IconButton, useTheme, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
+import { Text, TextInput, IconButton, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import {
@@ -13,13 +13,14 @@ import {
   clearAttachmentPreview,
 } from '@features/instagram/store/instagramSlice';
 import { ChatMessage, ContentType, AttachmentType } from '@features/instagram/types/Instagram';
+import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 export interface AskAIHandle {
   scrollToEnd: () => void;
 }
 
 const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
-  const theme = useTheme();
+  const colors = useColors();
   const dispatch = useDispatch<AppDispatch>();
   const flatListRef = useRef<FlashList<ChatMessage>>(null);
 
@@ -127,15 +128,15 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
     return (
       <View style={styles.suggestionsContainer}>
-        <Text style={[styles.suggestionsTitle, { color: theme.colors.onSurface }]}>Suggested Questions</Text>
+        <Text style={[styles.suggestionsTitle, { color: colors.foreground }]}>Suggested Questions</Text>
         <View style={styles.suggestionsGrid}>
           {suggestedQuestions.map((question, index) => (
             <Chip
               key={index}
               mode="outlined"
               onPress={() => handleSuggestedQuestion(question)}
-              style={styles.suggestionChip}
-              textStyle={styles.suggestionText}
+              style={[styles.suggestionChip, { borderColor: colors.border }]}
+              textStyle={[styles.suggestionText, { color: colors.foregroundMuted }]}
             >
               {question}
             </Chip>
@@ -148,8 +149,8 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
   // Render empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>Instagram AI Assistant</Text>
-      <Text style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
+      <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Instagram AI Assistant</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.foregroundMuted }]}>
         Ask questions about your Instagram performance, content strategy, and get insights from your posts.
       </Text>
       {showSuggestions ? renderSuggestedQuestions() : null}
@@ -158,7 +159,7 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
@@ -185,19 +186,21 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
       />
 
       {/* Input area */}
-      <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {messages.length > 0 && (
-          <IconButton icon="delete-outline" size={20} onPress={handleClearChat} style={styles.clearButton} />
+          <IconButton icon="delete-outline" size={20} onPress={handleClearChat} style={styles.clearButton} iconColor={colors.foregroundMuted} />
         )}
 
         <TextInput
           value={inputText}
           onChangeText={setInputText}
           placeholder="Ask about your Instagram performance..."
+          placeholderTextColor={colors.foregroundSubtle}
           multiline
           maxLength={500}
           style={styles.textInput}
           contentStyle={styles.textInputContent}
+          textColor={colors.foreground}
           onSubmitEditing={handleSendMessage}
           blurOnSubmit={false}
         />
@@ -207,8 +210,8 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
           size={24}
           onPress={handleSendMessage}
           disabled={!inputText.trim() || loading.isLoading}
-          style={[styles.sendButton, { backgroundColor: theme.colors.primary }]}
-          iconColor={theme.colors.onPrimary}
+          style={[styles.sendButton, { backgroundColor: colors.primary }]}
+          iconColor={colors.primaryForeground}
         />
       </View>
     </KeyboardAvoidingView>
@@ -217,7 +220,7 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
 
 // Message Bubble Component
 const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message }) => {
-  const theme = useTheme();
+  const colors = useColors();
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -231,20 +234,21 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
       <Card
         style={[
           styles.messageCard,
+          shadow.md,
           {
             backgroundColor: message.isUser
-              ? theme.colors.primary
+              ? colors.primary
               : message.isError
-                ? theme.colors.errorContainer
-                : theme.colors.surface,
+                ? colors.destructiveMuted
+                : colors.surface,
           },
         ]}
       >
         <Card.Content style={styles.messageContent}>
           {message.isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-              <Text style={[styles.loadingText, { color: theme.colors.onSurface }]}>Thinking...</Text>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.foreground }]}>Thinking...</Text>
             </View>
           ) : (
             <>
@@ -253,10 +257,10 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
                   styles.messageText,
                   {
                     color: message.isUser
-                      ? theme.colors.onPrimary
+                      ? colors.primaryForeground
                       : message.isError
-                        ? theme.colors.onErrorContainer
-                        : theme.colors.onSurface,
+                        ? colors.destructive
+                        : colors.foreground,
                   },
                 ]}
               >
@@ -266,12 +270,12 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
               {/* Show confidence and processing time for AI responses */}
               {!message.isUser && !message.isError && message.confidence && (
                 <View style={styles.messageMetadata}>
-                  <Text style={[styles.metadataText, { color: theme.colors.onSurfaceVariant }]}>
+                  <Text style={[styles.metadataText, { color: colors.foregroundMuted }]}>
                     Confidence: {(message.confidence * 100).toFixed(0)}%
                   </Text>
                   {message.processingTime && (
-                    <Text style={[styles.metadataText, { color: theme.colors.onSurfaceVariant }]}>
-                      • {message.processingTime}ms
+                    <Text style={[styles.metadataText, { color: colors.foregroundMuted }]}>
+                      {' '}• {message.processingTime}ms
                     </Text>
                   )}
                 </View>
@@ -279,13 +283,13 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
 
               {/* Show sources for AI responses */}
               {!message.isUser && message.sources && message.sources.length > 0 && (
-                <View style={styles.sourcesContainer}>
-                  <Text style={[styles.sourcesTitle, { color: theme.colors.onSurfaceVariant }]}>
+                <View style={[styles.sourcesContainer, { borderTopColor: colors.border }]}>
+                  <Text style={[styles.sourcesTitle, { color: colors.foregroundMuted }]}>
                     Sources ({message.sources.length}):
                   </Text>
                   {message.sources.slice(0, 3).map((source, index) => (
                     <View key={source.id} style={styles.sourceItem}>
-                      <Text style={[styles.sourceText, { color: theme.colors.onSurfaceVariant }]}>
+                      <Text style={[styles.sourceText, { color: colors.foregroundMuted }]}>
                         {index + 1}. Post {source.metadata.postId?.slice(-6)}
                         {source.metadata.engagementRate &&
                           ` (${source.metadata.engagementRate.toFixed(1)}% engagement)`}
@@ -299,7 +303,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
         </Card.Content>
       </Card>
 
-      <Text style={[styles.messageTime, { color: theme.colors.onSurfaceVariant }]}>
+      <Text style={[styles.messageTime, { color: colors.foregroundSubtle }]}>
         {formatTime(message.timestamp)}
       </Text>
     </View>
@@ -311,7 +315,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesList: {
-    padding: 16,
+    padding: spacing[4],
   },
   emptyList: {
     flexGrow: 1,
@@ -319,44 +323,41 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    ...textStyles.h2,
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 16,
+    ...textStyles.body,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   suggestionsContainer: {
     width: '100%',
   },
   suggestionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    ...textStyles.h4,
+    marginBottom: spacing[4],
     textAlign: 'center',
   },
   suggestionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   suggestionChip: {
-    marginBottom: 8,
+    marginBottom: spacing[2],
     maxWidth: '90%',
   },
   suggestionText: {
-    fontSize: 12,
+    ...textStyles.caption,
   },
   messageBubble: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
     maxWidth: '85%',
   },
   userBubble: {
@@ -366,75 +367,72 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageCard: {
-    elevation: 2,
+    borderRadius: radius.lg,
   },
   messageContent: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
   },
   messageText: {
-    fontSize: 16,
-    lineHeight: 22,
+    ...textStyles.body,
   },
   messageTime: {
-    fontSize: 12,
-    marginTop: 4,
+    ...textStyles.caption,
+    marginTop: spacing[1],
     textAlign: 'center',
   },
   messageMetadata: {
     flexDirection: 'row',
-    marginTop: 8,
+    marginTop: spacing[2],
     flexWrap: 'wrap',
   },
   metadataText: {
-    fontSize: 12,
+    ...textStyles.caption,
   },
   sourcesContainer: {
-    marginTop: 12,
-    paddingTop: 8,
+    marginTop: spacing[3],
+    paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
   },
   sourcesTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    ...textStyles.labelSmall,
+    marginBottom: spacing[1],
   },
   sourceItem: {
-    marginBottom: 2,
+    marginBottom: spacing[0.5],
   },
   sourceText: {
     fontSize: 11,
+    lineHeight: 14,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   loadingText: {
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: spacing[2],
+    ...textStyles.bodySmall,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 16,
+    padding: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
   },
   clearButton: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   textInput: {
     flex: 1,
     maxHeight: 100,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   textInputContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
   },
   sendButton: {
-    borderRadius: 20,
+    borderRadius: radius.full,
   },
 });
 

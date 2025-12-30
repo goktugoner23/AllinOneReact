@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, useTheme, Snackbar } from 'react-native-paper';
+import { Text, TextInput, Snackbar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { usePrefetchInstagramData } from '@shared/hooks';
 import { Card, CardContent, Avatar, Button, IconButton, Badge, Skeleton, AddFab } from '@shared/components/ui';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
+import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
 type UsernameItem = {
   id: string;
@@ -12,7 +13,7 @@ type UsernameItem = {
 };
 
 export default function ProfilerTab() {
-  const theme = useTheme();
+  const colors = useColors();
   const navigation = useNavigation<any>();
   const prefetchData = usePrefetchInstagramData();
 
@@ -159,7 +160,7 @@ export default function ProfilerTab() {
           />
           <View style={styles.cardTextContent}>
             <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={styles.username}>
+              <Text variant="titleMedium" style={[styles.username, { color: colors.foreground }]}>
                 @{item.username}
               </Text>
               {avatars[item.username] && (
@@ -168,7 +169,7 @@ export default function ProfilerTab() {
                 </Badge>
               )}
             </View>
-            <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+            <Text variant="bodySmall" style={{ color: colors.foregroundMuted }}>
               Tap to view profile
             </Text>
           </View>
@@ -189,7 +190,7 @@ export default function ProfilerTab() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {adding && (
         <Card variant="elevated" style={styles.addCard}>
           <CardContent>
@@ -202,6 +203,9 @@ export default function ProfilerTab() {
               autoCorrect={false}
               left={<TextInput.Icon icon="at" />}
               onSubmitEditing={handleAdd}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              textColor={colors.foreground}
             />
             <View style={styles.addActions}>
               <Button variant="primary" onPress={handleAdd}>
@@ -235,18 +239,19 @@ export default function ProfilerTab() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={() => (
             <View style={styles.empty}>
-              <Text style={{ opacity: 0.7 }}>Add usernames to start profiling</Text>
+              <Text style={{ color: colors.foregroundMuted }}>Add usernames to start profiling</Text>
             </View>
           )}
         />
       )}
 
-      <AddFab iconName="refresh" style={{ left: 16, right: undefined }} onPress={handleClearCaches} />
+      <AddFab iconName="refresh" style={{ left: spacing[4], right: undefined }} onPress={handleClearCaches} />
       <AddFab iconName={adding ? 'check' : 'plus'} onPress={() => setAdding((v) => !v)} />
       <Snackbar
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={2000}
+        style={{ backgroundColor: colors.surface }}
       >
         {snackbar.message}
       </Snackbar>
@@ -256,26 +261,26 @@ export default function ProfilerTab() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: 16 },
-  card: { marginBottom: 12 },
+  list: { padding: spacing[4] },
+  card: { marginBottom: spacing[3] },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   cardTextContent: {
     flex: 1,
-    gap: 2,
+    gap: spacing[0.5],
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   username: {
-    fontWeight: '600',
+    ...textStyles.label,
   },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  addCard: { margin: 16 },
-  addActions: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing[8] },
+  addCard: { margin: spacing[4] },
+  addActions: { flexDirection: 'row', gap: spacing[3], marginTop: spacing[3] },
 });

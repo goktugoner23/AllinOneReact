@@ -11,9 +11,9 @@ export default function AddFab({ iconName = 'plus', style, ...rest }: AddFabProp
   return (
     <FAB
       icon={iconName}
-      color="#FFFFFF"
+      color={theme.colors.onPrimary}
       style={[
-        { position: 'absolute', right: 16, bottom: 16, backgroundColor: (theme as any).colors?.primary || '#6C63FF' },
+        { position: 'absolute', right: 16, bottom: 16, backgroundColor: theme.colors.primary },
         style,
       ]}
       {...rest}

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, useTheme, Chip } from 'react-native-paper';
+import { Text, Chip } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 interface InstagramHeaderProps {
   title: string;
@@ -16,15 +17,15 @@ const InstagramHeader: React.FC<InstagramHeaderProps> = ({
   showHealthStatus = false,
   isHealthy = true,
 }) => {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       <View style={styles.titleContainer}>
-        <Ionicons name="logo-instagram" size={24} color={theme.colors.primary} style={styles.icon} />
+        <Ionicons name="logo-instagram" size={24} color={colors.primary} style={styles.icon} />
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>{title}</Text>
-          {subtitle && <Text style={[styles.subtitle, { color: theme.colors.onSurface }]}>{subtitle}</Text>}
+          <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+          {subtitle && <Text style={[styles.subtitle, { color: colors.foregroundMuted }]}>{subtitle}</Text>}
         </View>
       </View>
 
@@ -33,8 +34,8 @@ const InstagramHeader: React.FC<InstagramHeaderProps> = ({
           mode="outlined"
           compact
           icon={isHealthy ? 'check-circle' : 'alert-circle'}
-          style={[styles.healthChip, { borderColor: isHealthy ? '#4CAF50' : '#F44336' }]}
-          textStyle={[styles.healthText, { color: isHealthy ? '#4CAF50' : '#F44336' }]}
+          style={[styles.healthChip, { borderColor: isHealthy ? colors.success : colors.destructive }]}
+          textStyle={[styles.healthText, { color: isHealthy ? colors.success : colors.destructive }]}
         >
           {isHealthy ? 'Online' : 'Offline'}
         </Chip>
@@ -48,9 +49,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   titleContainer: {
     flexDirection: 'row',
@@ -58,26 +58,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   icon: {
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...textStyles.h4,
   },
   subtitle: {
-    fontSize: 14,
-    marginTop: 2,
-    opacity: 0.7,
+    ...textStyles.bodySmall,
+    marginTop: spacing[0.5],
   },
   healthChip: {
     height: 28,
   },
   healthText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...textStyles.labelSmall,
   },
 });
 

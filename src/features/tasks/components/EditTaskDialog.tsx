@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Dialog, Portal, TextInput, Button, Text, Chip, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text as RNText } from 'react-native';
+import { Dialog, Portal, TextInput, Button, Text, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Task, TaskGroup, TASK_GROUP_COLORS } from '@features/tasks/types/Task';
+import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
 interface EditTaskDialogProps {
   visible: boolean;
@@ -23,7 +24,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
   onDelete,
   onCreateGroup,
 }) => {
-  const theme = useTheme();
+  const colors = useColors();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
@@ -133,16 +134,21 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   return (
     <Portal>
-      <Dialog
-        visible={visible}
-        onDismiss={handleDismiss}
-        style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
-      >
-        <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>Edit Task</Dialog.Title>
+      <Dialog visible={visible} onDismiss={handleDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Edit Task</Dialog.Title>
         <Dialog.Content>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.form}>
-              <TextInput label="Task Name" value={name} onChangeText={setName} mode="outlined" style={styles.input} />
+              <TextInput
+                label="Task Name"
+                value={name}
+                onChangeText={setName}
+                mode="outlined"
+                style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+                textColor={colors.foreground}
+              />
 
               <TextInput
                 label="Description (Optional)"
@@ -152,6 +158,9 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                 multiline
                 numberOfLines={3}
                 style={styles.input}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+                textColor={colors.foreground}
               />
 
               <TextInput
@@ -162,47 +171,46 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                 right={<TextInput.Icon icon="calendar" onPress={() => setShowDatePicker(true)} />}
                 left={dueDate ? <TextInput.Icon icon="close" onPress={clearDueDate} /> : undefined}
                 editable={false}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+                textColor={colors.foreground}
               />
 
               <View style={styles.groupSection}>
-                <Text variant="bodyMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                  Group (Optional)
-                </Text>
+                <RNText style={[textStyles.label, { color: colors.foreground }]}>Group (Optional)</RNText>
 
                 <TouchableOpacity
-                  style={[styles.dropdownButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                  style={[styles.dropdownButton, { backgroundColor: colors.muted, borderColor: colors.border }]}
                   onPress={() => setShowGroupDropdown(!showGroupDropdown)}
                 >
-                  <Text style={[styles.dropdownButtonText, { color: theme.colors.onSurface }]}>
+                  <RNText style={[textStyles.body, { color: colors.foreground }]}>
                     {getSelectedGroup() ? getSelectedGroup()?.title : 'Select Group'}
-                  </Text>
-                  <Text style={[styles.dropdownButtonText, { color: theme.colors.onSurface }]}>
+                  </RNText>
+                  <RNText style={[textStyles.body, { color: colors.foregroundMuted }]}>
                     {showGroupDropdown ? '▲' : '▼'}
-                  </Text>
+                  </RNText>
                 </TouchableOpacity>
 
                 {showGroupDropdown && (
-                  <View
-                    style={[
-                      styles.dropdownList,
-                      { backgroundColor: theme.colors.surface, borderColor: theme.colors.outline },
-                    ]}
-                  >
-                    <TouchableOpacity style={styles.dropdownItem} onPress={() => handleGroupSelect(undefined)}>
-                      <Text style={[styles.dropdownItemText, { color: theme.colors.onSurface }]}>No Group</Text>
+                  <View style={[styles.dropdownList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <TouchableOpacity
+                      style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
+                      onPress={() => handleGroupSelect(undefined)}
+                    >
+                      <RNText style={[textStyles.body, { color: colors.foreground }]}>No Group</RNText>
                     </TouchableOpacity>
 
                     {taskGroups.map((group) => (
                       <TouchableOpacity
                         key={group.id}
-                        style={styles.dropdownItem}
+                        style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
                         onPress={() => handleGroupSelect(group.id)}
                       >
-                        <Text style={[styles.dropdownItemText, { color: group.color }]}>{group.title}</Text>
+                        <RNText style={[textStyles.body, { color: group.color }]}>{group.title}</RNText>
                       </TouchableOpacity>
                     ))}
 
-                    <View style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <TouchableOpacity
                       style={styles.dropdownItem}
@@ -211,7 +219,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                         setShowCreateGroupDialog(true);
                       }}
                     >
-                      <Text style={[styles.createGroupText, { color: theme.colors.primary }]}>Create New Group</Text>
+                      <RNText style={[textStyles.label, { color: colors.primary }]}>Create New Group</RNText>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -220,13 +228,13 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
           </ScrollView>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDelete} textColor={theme.colors.error}>
+          <Button onPress={onDelete} textColor={colors.destructive}>
             Delete
           </Button>
-          <Button onPress={handleDismiss} textColor={theme.colors.onSurfaceVariant}>
+          <Button onPress={handleDismiss} textColor={colors.foregroundMuted}>
             Cancel
           </Button>
-          <Button onPress={handleConfirm} disabled={!name.trim()} textColor={theme.colors.primary}>
+          <Button onPress={handleConfirm} disabled={!name.trim()} textColor={colors.primary}>
             Update Task
           </Button>
         </Dialog.Actions>
@@ -236,9 +244,9 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       <Dialog
         visible={showCreateGroupDialog}
         onDismiss={() => setShowCreateGroupDialog(false)}
-        style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
+        style={[styles.dialog, { backgroundColor: colors.surface }]}
       >
-        <Dialog.Title style={[styles.dialogTitle, { color: theme.colors.onSurface }]}>Create New Group</Dialog.Title>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Create New Group</Dialog.Title>
         <Dialog.Content>
           <View style={styles.form}>
             <TextInput
@@ -247,6 +255,9 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               onChangeText={setNewGroupTitle}
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              textColor={colors.foreground}
             />
             <TextInput
               label="Description (Optional)"
@@ -256,19 +267,25 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               multiline
               numberOfLines={2}
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              textColor={colors.foreground}
             />
             <View style={styles.colorSection}>
-              <Text variant="bodyMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                Color
-              </Text>
+              <RNText style={[textStyles.label, { color: colors.foreground }]}>Color</RNText>
               <View style={styles.colorContainer}>
                 {TASK_GROUP_COLORS.map((colorOption) => (
                   <Chip
                     key={colorOption.value}
                     selected={selectedGroupColor === colorOption.value}
                     onPress={() => setSelectedGroupColor(colorOption.value)}
-                    style={styles.colorChip}
-                    textStyle={[styles.colorChipText, { color: colorOption.value }]}
+                    style={[
+                      styles.colorChip,
+                      {
+                        backgroundColor: selectedGroupColor === colorOption.value ? colors.primaryMuted : colors.muted,
+                      },
+                    ]}
+                    textStyle={[textStyles.bodySmall, { color: colorOption.value }]}
                   >
                     {colorOption.label}
                   </Chip>
@@ -278,10 +295,10 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
           </View>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={() => setShowCreateGroupDialog(false)} textColor={theme.colors.onSurfaceVariant}>
+          <Button onPress={() => setShowCreateGroupDialog(false)} textColor={colors.foregroundMuted}>
             Cancel
           </Button>
-          <Button onPress={handleCreateGroup} disabled={!newGroupTitle.trim()} textColor={theme.colors.primary}>
+          <Button onPress={handleCreateGroup} disabled={!newGroupTitle.trim()} textColor={colors.primary}>
             Create Group
           </Button>
         </Dialog.Actions>
@@ -303,73 +320,51 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 const styles = StyleSheet.create({
   dialog: {
     maxHeight: '80%',
-  },
-  dialogTitle: {
-    // Color will be set dynamically
+    borderRadius: radius.xl,
   },
   form: {
-    gap: 16,
+    gap: spacing[4],
   },
   input: {
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   groupSection: {
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontWeight: '500',
-    marginBottom: 8,
-    // Color will be set dynamically
+    marginTop: spacing[2],
+    gap: spacing[2],
   },
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 4,
+    padding: spacing[3],
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginTop: 8,
-    // backgroundColor will be set dynamically
-  },
-  dropdownButtonText: {
-    // Color will be set dynamically
+    marginTop: spacing[2],
   },
   dropdownList: {
     borderWidth: 1,
-    borderRadius: 4,
-    marginTop: 4,
+    borderRadius: radius.md,
+    marginTop: spacing[1],
     maxHeight: 200,
-    // backgroundColor and borderColor will be set dynamically
   },
   dropdownItem: {
-    padding: 12,
+    padding: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  dropdownItemText: {
-    // Color will be set dynamically
-  },
-  createGroupText: {
-    // Color will be set dynamically
   },
   divider: {
     height: 1,
-    // backgroundColor will be set dynamically
   },
   colorSection: {
-    marginTop: 8,
+    marginTop: spacing[2],
+    gap: spacing[3],
   },
   colorContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   colorChip: {
-    marginBottom: 4,
-  },
-  colorChipText: {
-    // This will be overridden by inline style for dynamic colors
+    marginBottom: spacing[1],
   },
 });
 

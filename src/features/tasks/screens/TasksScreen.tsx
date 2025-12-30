@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Appbar, Text, ActivityIndicator, useTheme } from 'react-native-paper';
+import { Appbar, Text, ActivityIndicator } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import {
   useTasks,
@@ -22,9 +22,10 @@ import AddTaskDialog from '@features/tasks/components/AddTaskDialog';
 import EditTaskDialog from '@features/tasks/components/EditTaskDialog';
 import AddTaskGroupDialog from '@features/tasks/components/AddTaskGroupDialog';
 import DeleteConfirmationDialog from '@shared/components/ui/DeleteConfirmationDialog';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 const TasksScreen: React.FC = () => {
-  const theme = useTheme();
+  const colors = useColors();
 
   // TanStack Query hooks
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
@@ -203,7 +204,7 @@ const TasksScreen: React.FC = () => {
           } else if (item.type === 'header') {
             return (
               <View style={styles.ungroupedHeader}>
-                <Text variant="titleMedium" style={[styles.ungroupedTitle, { color: theme.colors.onSurface }]}>
+                <Text variant="titleMedium" style={[textStyles.label, { color: colors.foregroundMuted }]}>
                   {item.title}
                 </Text>
               </View>
@@ -232,26 +233,33 @@ const TasksScreen: React.FC = () => {
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Appbar.Header style={[styles.header, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <Appbar.Content title="Tasks" />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Appbar.Header style={[styles.header, { backgroundColor: colors.surface }]}>
+          <Appbar.Content title="Tasks" titleStyle={[textStyles.h4, { color: colors.foreground }]} />
         </Appbar.Header>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header style={[styles.header, { backgroundColor: theme.colors.surfaceVariant }]}>
-        <Appbar.Content title="Tasks" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Appbar.Header style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Appbar.Content title="Tasks" titleStyle={[textStyles.h4, { color: colors.foreground }]} />
         <Appbar.Action
           icon={isGroupedView ? 'view-list' : 'view-module'}
           onPress={() => setIsGroupedView(!isGroupedView)}
+          iconColor={colors.foregroundMuted}
         />
-        {isGroupedView && <Appbar.Action icon="folder-plus" onPress={() => setShowAddGroupDialog(true)} />}
+        {isGroupedView && (
+          <Appbar.Action
+            icon="folder-plus"
+            onPress={() => setShowAddGroupDialog(true)}
+            iconColor={colors.foregroundMuted}
+          />
+        )}
       </Appbar.Header>
 
       {tasks.length === 0 ? (
@@ -319,7 +327,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    // backgroundColor will be set dynamically
+    elevation: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -327,22 +335,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContainer: {
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
   },
   ungroupedHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  ungroupedTitle: {
-    fontWeight: 'bold',
-    // Color will be set dynamically
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
   },
   fab: {
     position: 'absolute',
-    margin: 16,
+    margin: spacing[4],
     right: 0,
     bottom: 0,
-    // backgroundColor will be set dynamically
   },
 });
 

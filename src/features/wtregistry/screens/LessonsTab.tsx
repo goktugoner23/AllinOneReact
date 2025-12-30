@@ -1,26 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, Text } from 'react-native';
 import {
   Card,
-  Text,
   Portal,
   Dialog,
-  Button,
+  Button as PaperButton,
   IconButton,
-  useTheme,
   Surface,
   SegmentedButtons,
 } from 'react-native-paper';
 import { AddFab } from '@shared/components';
+import { Button } from '@shared/components/ui';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addLesson, updateLesson, deleteLesson, loadLessons } from '@features/wtregistry/store/wtRegistrySlice';
 import { WTLesson } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 
 export function LessonsTab() {
   const dispatch = useDispatch<AppDispatch>();
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const { lessons, loading } = useSelector((state: RootState) => state.wtRegistry);
 
   const [showDialog, setShowDialog] = useState(false);
@@ -188,23 +188,33 @@ export function LessonsTab() {
   };
 
   const renderLessonCard = ({ item: lesson }: { item: WTLesson }) => (
-    <Card style={[styles.lessonCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
-      <Card.Content>
+    <Card
+      style={{
+        marginHorizontal: spacing[4],
+        marginBottom: spacing[3],
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+      mode="outlined"
+    >
+      <Card.Content style={{ padding: spacing[4] }}>
         <View style={styles.lessonHeader}>
           <View style={styles.lessonInfo}>
-            <Text variant="titleMedium" style={styles.dayName}>
+            <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
               {dayNames[lesson.dayOfWeek]}
             </Text>
-            <Text variant="bodyLarge" style={styles.timeRange}>
+            <Text style={[textStyles.bodyLarge, { color: colors.primary, fontWeight: '600', marginBottom: spacing[1] }]}>
               {formatTime(lesson.startHour, lesson.startMinute)} - {formatTime(lesson.endHour, lesson.endMinute)}
             </Text>
-            <Text variant="bodyMedium" style={styles.duration}>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
               Duration: {getDuration(lesson.startHour, lesson.startMinute, lesson.endHour, lesson.endMinute)}
             </Text>
           </View>
           <View style={styles.lessonActions}>
-            <IconButton icon="pencil" size={20} onPress={() => handleOpenDialog(lesson)} />
-            <IconButton icon="delete" size={20} iconColor={theme.colors.error} onPress={() => handleDelete(lesson)} />
+            <IconButton icon="pencil" size={20} iconColor={colors.primary} onPress={() => handleOpenDialog(lesson)} />
+            <IconButton icon="delete" size={20} iconColor={colors.destructive} onPress={() => handleDelete(lesson)} />
           </View>
         </View>
       </Card.Content>
@@ -212,12 +222,21 @@ export function LessonsTab() {
   );
 
   return (
-    <View style={styles.container}>
-      <Surface style={styles.header} elevation={2}>
-        <Text variant="titleMedium" style={styles.headerTitle}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Surface
+        style={{
+          padding: spacing[4],
+          alignItems: 'center',
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+        elevation={0}
+      >
+        <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
           Weekly Lesson Schedule
         </Text>
-        <Text variant="bodyMedium" style={styles.headerSubtitle}>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
           {lessons.length} lesson{lessons.length !== 1 ? 's' : ''} scheduled
         </Text>
       </Surface>
@@ -226,14 +245,14 @@ export function LessonsTab() {
         data={sortedLessons}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderLessonCard}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ paddingTop: spacing[3], paddingBottom: spacing[20] }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text variant="bodyLarge" style={styles.emptyText}>
+            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
               No lessons scheduled yet
             </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtext}>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundSubtle }]}>
               Tap the + button to add your first lesson
             </Text>
           </View>
@@ -243,45 +262,49 @@ export function LessonsTab() {
       <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog}>
-          <Dialog.Title>{editingLesson ? 'Edit Lesson' : 'Add Lesson'}</Dialog.Title>
+        <Dialog
+          visible={showDialog}
+          onDismiss={handleCloseDialog}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
+        >
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>{editingLesson ? 'Edit Lesson' : 'Add Lesson'}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.fieldLabel}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2], marginTop: spacing[4] }]}>
               Day of Week
             </Text>
             <SegmentedButtons
               value={formData.dayOfWeek.toString()}
               onValueChange={(value) => setFormData({ ...formData, dayOfWeek: parseInt(value) })}
               buttons={dayButtons}
-              style={styles.daySelector}
+              style={{ marginBottom: spacing[4] }}
             />
 
-            <Text variant="bodyMedium" style={styles.fieldLabel}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
               Start Time
             </Text>
-            <Button
+            <PaperButton
               mode="outlined"
               onPress={() => setShowTimePicker('start')}
-              style={styles.timeButton}
+              style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }}
               icon="clock-outline"
             >
               {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
-            </Button>
+            </PaperButton>
 
-            <Text variant="bodyMedium" style={styles.fieldLabel}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
               End Time
             </Text>
-            <Button
+            <PaperButton
               mode="outlined"
               onPress={() => setShowTimePicker('end')}
-              style={styles.timeButton}
+              style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }}
               icon="clock-outline"
             >
               {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
-            </Button>
+            </PaperButton>
 
             <View style={styles.durationContainer}>
-              <Text variant="bodySmall" style={styles.durationText}>
+              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic' }]}>
                 Duration:{' '}
                 {getDuration(
                   formData.startTime.getHours(),
@@ -292,9 +315,9 @@ export function LessonsTab() {
               </Text>
             </View>
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button onPress={handleSave} mode="contained" disabled={formData.startTime >= formData.endTime}>
+          <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
+            <Button variant="ghost" onPress={handleCloseDialog}>Cancel</Button>
+            <Button variant="primary" onPress={handleSave} disabled={formData.startTime >= formData.endTime}>
               {editingLesson ? 'Update' : 'Add'}
             </Button>
           </Dialog.Actions>
@@ -318,34 +341,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    color: '#666',
-  },
-  list: {
-    padding: 16,
-    paddingTop: 8,
-  },
-  lessonCard: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    overflow: 'hidden',
-  },
   lessonHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -354,17 +349,6 @@ const styles = StyleSheet.create({
   lessonInfo: {
     flex: 1,
     marginRight: 8,
-  },
-  dayName: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  timeRange: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  duration: {
-    color: '#666',
   },
   lessonActions: {
     flexDirection: 'row',
@@ -375,37 +359,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
   },
-  emptyText: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  emptySubtext: {
-    color: '#999',
-  },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
   },
-  fieldLabel: {
-    marginBottom: 8,
-    marginTop: 16,
-    fontWeight: 'bold',
-  },
-  daySelector: {
-    marginBottom: 16,
-  },
-  timeButton: {
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
   durationContainer: {
     alignItems: 'center',
     marginTop: 8,
-  },
-  durationText: {
-    color: '#666',
-    fontStyle: 'italic',
   },
 });

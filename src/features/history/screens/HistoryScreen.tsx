@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
 import { TransactionService } from '@features/transactions/services/transactionService';
 import { updateInvestment, fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
@@ -13,7 +13,8 @@ import { HistoryItem, HistoryItemType } from '@features/history/types/HistoryIte
 import { Transaction } from '@features/transactions/types/Transaction';
 import { WTRegistration } from '@features/wtregistry/types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useAppTheme } from '@App';
+import { useColors, spacing, radius, shadow, textStyles } from '@shared/theme';
+import { Card } from '@shared/components/ui';
 
 const FILTERS: { label: string; type: HistoryItemType }[] = [
   { label: 'Income', type: 'TRANSACTION_INCOME' },
@@ -68,7 +69,7 @@ function investmentToHistoryItem(inv: any): HistoryItem {
 }
 
 export const HistoryScreen: React.FC = () => {
-  const { theme } = useAppTheme();
+  const colors = useColors();
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<HistoryItemType[]>([]);
@@ -161,50 +162,68 @@ export const HistoryScreen: React.FC = () => {
     ]);
   };
 
+  const getItemColor = (itemType: HistoryItemType) => {
+    switch (itemType) {
+      case 'TRANSACTION_INCOME':
+        return colors.income;
+      case 'TRANSACTION_EXPENSE':
+        return colors.expense;
+      case 'INVESTMENT':
+        return colors.investment;
+      case 'REGISTRATION':
+        return colors.info;
+      default:
+        return colors.foreground;
+    }
+  };
+
+  const getItemMutedColor = (itemType: HistoryItemType) => {
+    switch (itemType) {
+      case 'TRANSACTION_INCOME':
+        return colors.incomeMuted;
+      case 'TRANSACTION_EXPENSE':
+        return colors.expenseMuted;
+      case 'INVESTMENT':
+        return colors.investmentMuted;
+      case 'REGISTRATION':
+        return colors.infoMuted;
+      default:
+        return colors.muted;
+    }
+  };
+
+  const getItemIcon = (itemType: HistoryItemType) => {
+    switch (itemType) {
+      case 'TRANSACTION_INCOME':
+        return 'arrow-down';
+      case 'TRANSACTION_EXPENSE':
+        return 'arrow-up';
+      case 'INVESTMENT':
+        return 'trending-up';
+      case 'REGISTRATION':
+        return 'school';
+      default:
+        return 'document';
+    }
+  };
+
   const renderItem = ({ item }: { item: HistoryItem }) => (
-    <TouchableOpacity onLongPress={() => handleDelete(item)} activeOpacity={0.9}>
-      <View style={[styles.card, { backgroundColor: theme.card }]}>
+    <View style={styles.cardWrapper}>
+      <Card variant="elevated" onLongPress={() => handleDelete(item)}>
         <View style={styles.cardHeader}>
-          <View style={[styles.iconCircle, { backgroundColor: theme.chip }]}>
-            <Ionicons
-              name={
-                item.itemType === 'TRANSACTION_INCOME'
-                  ? 'arrow-down'
-                  : item.itemType === 'TRANSACTION_EXPENSE'
-                    ? 'arrow-up'
-                    : item.itemType === 'INVESTMENT'
-                      ? 'trending-up'
-                      : 'school'
-              }
-              size={24}
-              color={
-                item.itemType === 'TRANSACTION_INCOME'
-                  ? theme.income
-                  : item.itemType === 'TRANSACTION_EXPENSE'
-                    ? theme.expense
-                    : item.itemType === 'INVESTMENT'
-                      ? theme.investment
-                      : theme.registration
-              }
-            />
+          <View style={[styles.iconCircle, { backgroundColor: getItemMutedColor(item.itemType) }]}>
+            <Ionicons name={getItemIcon(item.itemType)} size={20} color={getItemColor(item.itemType)} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: theme.text }]}>{item.title}</Text>
-            <Text style={[styles.description, { color: theme.text }]}>{item.description}</Text>
+          <View style={styles.contentContainer}>
+            <Text style={[textStyles.label, { color: colors.foreground }]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]} numberOfLines={1}>
+              {item.description}
+            </Text>
           </View>
           {item.amount !== undefined && (
-            <Text
-              style={[
-                styles.amount,
-                item.itemType === 'TRANSACTION_INCOME'
-                  ? { color: theme.income }
-                  : item.itemType === 'TRANSACTION_EXPENSE'
-                    ? { color: theme.expense }
-                    : item.itemType === 'INVESTMENT'
-                      ? { color: theme.investment }
-                      : { color: theme.registration },
-              ]}
-            >
+            <Text style={[textStyles.amountSmall, { color: getItemColor(item.itemType) }]}>
               {new Intl.NumberFormat('tr-TR', {
                 style: 'currency',
                 currency: 'TRY',
@@ -213,30 +232,32 @@ export const HistoryScreen: React.FC = () => {
             </Text>
           )}
         </View>
-        <Text style={[styles.date, { color: theme.placeholder }]}>{new Date(item.date).toLocaleString()}</Text>
-      </View>
-    </TouchableOpacity>
+        <Text style={[textStyles.caption, { color: colors.foregroundSubtle, marginTop: spacing[1] }]}>
+          {new Date(item.date).toLocaleString()}
+        </Text>
+      </Card>
+    </View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Top Bar */}
-      <View style={[styles.topBar, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
-        <Text style={[styles.topBarTitle, { color: theme.text }]}>History</Text>
+      <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[textStyles.h4, { color: colors.foreground }]}>History</Text>
       </View>
       {/* Search Bar */}
-      <View style={[styles.searchBar, { backgroundColor: theme.searchBar }]}>
-        <Ionicons name="search" size={20} color={theme.placeholder} style={{ marginRight: 8 }} />
+      <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Ionicons name="search" size={20} color={colors.foregroundSubtle} style={{ marginRight: spacing[2] }} />
         <TextInput
-          style={[styles.searchInput, { color: theme.text }]}
+          style={[styles.searchInput, { color: colors.foreground }]}
           placeholder="Search history..."
-          placeholderTextColor={theme.placeholder}
+          placeholderTextColor={colors.foregroundSubtle}
           value={search}
           onChangeText={setSearch}
         />
         {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')}>
-            <Ionicons name="close" size={20} color={theme.placeholder} />
+          <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close-circle" size={20} color={colors.foregroundMuted} />
           </TouchableOpacity>
         )}
       </View>
@@ -245,11 +266,20 @@ export const HistoryScreen: React.FC = () => {
         {FILTERS.map((f) => (
           <TouchableOpacity
             key={f.type}
-            style={[styles.chip, { backgroundColor: selectedFilters.includes(f.type) ? theme.primary : theme.chip }]}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: selectedFilters.includes(f.type) ? colors.primary : colors.secondary,
+                borderColor: selectedFilters.includes(f.type) ? colors.primary : colors.border,
+              },
+            ]}
             onPress={() => toggleFilter(f.type)}
           >
             <Text
-              style={[styles.chipText, { color: selectedFilters.includes(f.type) ? theme.onPrimary : theme.chipText }]}
+              style={[
+                textStyles.labelSmall,
+                { color: selectedFilters.includes(f.type) ? colors.primaryForeground : colors.foregroundMuted },
+              ]}
             >
               {f.label}
             </Text>
@@ -261,11 +291,19 @@ export const HistoryScreen: React.FC = () => {
         data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadHistory} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadHistory} tintColor={colors.primary} />}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="time" size={64} color={theme.divider} />
-            <Text style={[styles.emptyText, { color: theme.divider }]}>No history yet</Text>
+            <View style={[styles.emptyIconCircle, { backgroundColor: colors.muted }]}>
+              <Ionicons name="time-outline" size={48} color={colors.foregroundSubtle} />
+            </View>
+            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginTop: spacing[4] }]}>
+              No history yet
+            </Text>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundSubtle, marginTop: spacing[1] }]}>
+              Your transactions will appear here
+            </Text>
           </View>
         }
         estimatedItemSize={100}
@@ -277,120 +315,76 @@ export const HistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   topBar: {
-    backgroundColor: '#fff',
-    paddingTop: 48,
-    paddingBottom: 16,
+    paddingTop: spacing[12], // 48px for status bar
+    paddingBottom: spacing[4],
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  topBarTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    margin: 16,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    elevation: 1,
+    margin: spacing[4],
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderWidth: 1,
+    ...shadow.sm,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    paddingVertical: spacing[1],
   },
   filterRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 8,
+    paddingHorizontal: spacing[4],
+    marginBottom: spacing[3],
+    gap: spacing[2],
   },
   chip: {
-    backgroundColor: '#eee',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginHorizontal: 4,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[1.5],
+    borderWidth: 1,
   },
-  chipSelected: {
-    backgroundColor: '#2ecc71',
-  },
-  chipText: {
-    color: '#666',
-    fontWeight: '500',
-  },
-  chipTextSelected: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
-    elevation: 2,
+  cardWrapper: {
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
   },
   iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f0f0',
+    width: spacing[10], // 40px
+    height: spacing[10],
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+  contentContainer: {
+    flex: 1,
+    marginRight: spacing[2],
   },
-  description: {
-    fontSize: 14,
-    color: '#666',
-  },
-  amount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  income: {
-    color: '#4CAF50',
-  },
-  expense: {
-    color: '#F44336',
-  },
-  investment: {
-    color: '#FF9800',
-  },
-  registration: {
-    color: '#2196F3',
-  },
-  date: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+  listContent: {
+    paddingTop: spacing[2],
+    paddingBottom: spacing[6],
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 64,
+    paddingTop: spacing[20],
   },
-  emptyText: {
-    fontSize: 18,
-    color: '#bbb',
-    marginTop: 12,
+  emptyIconCircle: {
+    width: spacing[24], // 96px
+    height: spacing[24],
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

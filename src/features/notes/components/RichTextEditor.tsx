@@ -5,6 +5,7 @@ import { IconButton, Portal, Modal, Button, Chip, Divider, Text, Surface } from 
 import TableInsertionModal from '@features/notes/components/TableInsertionModal';
 import ChecklistModal from '@features/tasks/components/ChecklistModal';
 import LinkInsertionModal from '@features/notes/components/LinkInsertionModal';
+import { useAppTheme } from '@shared/theme';
 
 export interface RichTextEditorProps {
   value: string;
@@ -30,6 +31,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     const [showTableModal, setShowTableModal] = useState(false);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
+    const { colors, spacing, radius, textStyles, isDark } = useAppTheme();
 
     // Expose imperative API to parents
     useImperativeHandle(
@@ -303,12 +305,12 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     };
 
     return (
-      <View style={[styles.container, style]}>
+      <View style={[styles.container, { borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.md }, style]}>
         {/* Basic Toolbar */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.toolbarContainer}
+          style={[styles.toolbarContainer, { backgroundColor: colors.muted, borderBottomColor: colors.border }]}
           contentContainerStyle={styles.toolbarContent}
         >
           {/* Text Formatting */}
@@ -396,69 +398,75 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
             ]);
           }}
           editorStyle={{
-            backgroundColor: 'transparent',
+            backgroundColor: colors.surface,
+            color: colors.foreground,
+            placeholderColor: colors.foregroundSubtle,
             contentCSSText: `
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 16px;
             line-height: 1.6;
-            color: #333;
+            color: ${colors.foreground};
             padding: 16px;
             margin: 0;
-            
+            background-color: ${colors.surface};
+
             /* Enhanced styling for different elements */
-            h1 { font-size: 24px; font-weight: bold; margin: 16px 0 8px 0; }
-            h2 { font-size: 20px; font-weight: bold; margin: 14px 0 6px 0; }
-            h3 { font-size: 18px; font-weight: bold; margin: 12px 0 4px 0; }
-            
-            blockquote { 
-              border-left: 4px solid #007AFF; 
-              padding-left: 16px; 
-              margin: 16px 0; 
-              font-style: italic; 
-              color: #666; 
+            h1 { font-size: 24px; font-weight: bold; margin: 16px 0 8px 0; color: ${colors.foreground}; }
+            h2 { font-size: 20px; font-weight: bold; margin: 14px 0 6px 0; color: ${colors.foreground}; }
+            h3 { font-size: 18px; font-weight: bold; margin: 12px 0 4px 0; color: ${colors.foreground}; }
+
+            blockquote {
+              border-left: 4px solid ${colors.primary};
+              padding-left: 16px;
+              margin: 16px 0;
+              font-style: italic;
+              color: ${colors.foregroundMuted};
             }
-            
-            code { 
-              background-color: #f5f5f5; 
-              padding: 2px 6px; 
-              border-radius: 4px; 
-              font-family: 'Courier New', monospace; 
+
+            code {
+              background-color: ${colors.muted};
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-family: 'Courier New', monospace;
+              color: ${colors.foreground};
             }
-            
-            pre { 
-              background-color: #f5f5f5; 
-              padding: 12px; 
-              border-radius: 8px; 
-              overflow-x: auto; 
-              margin: 16px 0; 
+
+            pre {
+              background-color: ${colors.muted};
+              padding: 12px;
+              border-radius: 8px;
+              overflow-x: auto;
+              margin: 16px 0;
+              color: ${colors.foreground};
             }
-            
+
             ul, ol { margin: 8px 0; padding-left: 20px; }
             li { margin: 4px 0; }
-            
-            a { 
-              color: #007AFF; 
-              text-decoration: underline; 
+
+            a {
+              color: ${colors.primary};
+              text-decoration: underline;
               cursor: pointer;
               padding: 2px 4px;
               border-radius: 4px;
-              background-color: rgba(0, 122, 255, 0.1);
+              background-color: ${colors.primaryMuted};
             }
-            a:hover { 
-              background-color: rgba(0, 122, 255, 0.2);
+            a:hover {
+              background-color: ${colors.primaryMuted};
             }
-            
-            table { 
-              border-collapse: collapse; 
-              width: 100%; 
-              margin: 16px 0; 
+
+            table {
+              border-collapse: collapse;
+              width: 100%;
+              margin: 16px 0;
             }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 8px; 
-              text-align: left; 
+            th, td {
+              border: 1px solid ${colors.border};
+              padding: 8px;
+              text-align: left;
+              color: ${colors.foreground};
             }
-            th { background-color: #f5f5f5; font-weight: bold; }
+            th { background-color: ${colors.muted}; font-weight: bold; }
           `,
           }}
         />
@@ -470,103 +478,65 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
             onDismiss={() => setShowAdvancedToolbar(false)}
             contentContainerStyle={styles.modalContainer}
           >
-            <Surface style={styles.modalSurface}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Advanced Formatting</Text>
+            <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[textStyles.h4, { color: colors.foreground }]}>Advanced Formatting</Text>
                 <IconButton icon="close" size={20} onPress={() => setShowAdvancedToolbar(false)} />
               </View>
 
-              <ScrollView style={styles.modalContent}>
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Text Formatting</Text>
-                  <View style={styles.chipContainer}>
-                    <Chip onPress={handleBold} style={styles.chip}>
-                      Bold
-                    </Chip>
-                    <Chip onPress={handleItalic} style={styles.chip}>
-                      Italic
-                    </Chip>
-                    <Chip onPress={handleUnderline} style={styles.chip}>
-                      Underline
-                    </Chip>
-                    <Chip onPress={handleStrikethrough} style={styles.chip}>
-                      Strikethrough
-                    </Chip>
+              <ScrollView style={[styles.modalContent, { padding: spacing[4] }]}>
+                <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Text Formatting</Text>
+                  <View style={[styles.chipContainer, { gap: spacing[2] }]}>
+                    <Chip onPress={handleBold}>Bold</Chip>
+                    <Chip onPress={handleItalic}>Italic</Chip>
+                    <Chip onPress={handleUnderline}>Underline</Chip>
+                    <Chip onPress={handleStrikethrough}>Strikethrough</Chip>
                   </View>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Headings</Text>
-                  <View style={styles.chipContainer}>
-                    <Chip onPress={handleHeading1} style={styles.chip}>
-                      Heading 1
-                    </Chip>
-                    <Chip onPress={handleHeading2} style={styles.chip}>
-                      Heading 2
-                    </Chip>
-                    <Chip onPress={handleHeading3} style={styles.chip}>
-                      Heading 3
-                    </Chip>
+                <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Headings</Text>
+                  <View style={[styles.chipContainer, { gap: spacing[2] }]}>
+                    <Chip onPress={handleHeading1}>Heading 1</Chip>
+                    <Chip onPress={handleHeading2}>Heading 2</Chip>
+                    <Chip onPress={handleHeading3}>Heading 3</Chip>
                   </View>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Lists</Text>
-                  <View style={styles.chipContainer}>
-                    <Chip onPress={handleBullets} style={styles.chip}>
-                      Bullet List
-                    </Chip>
-                    <Chip onPress={handleNumbers} style={styles.chip}>
-                      Numbered List
-                    </Chip>
-                    <Chip onPress={onPressChecklist} style={styles.chip}>
-                      Checklist
-                    </Chip>
+                <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Lists</Text>
+                  <View style={[styles.chipContainer, { gap: spacing[2] }]}>
+                    <Chip onPress={handleBullets}>Bullet List</Chip>
+                    <Chip onPress={handleNumbers}>Numbered List</Chip>
+                    <Chip onPress={onPressChecklist}>Checklist</Chip>
                   </View>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Alignment</Text>
-                  <View style={styles.chipContainer}>
-                    <Chip onPress={handleAlignLeft} style={styles.chip}>
-                      Left
-                    </Chip>
-                    <Chip onPress={handleAlignCenter} style={styles.chip}>
-                      Center
-                    </Chip>
-                    <Chip onPress={handleAlignRight} style={styles.chip}>
-                      Right
-                    </Chip>
+                <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Alignment</Text>
+                  <View style={[styles.chipContainer, { gap: spacing[2] }]}>
+                    <Chip onPress={handleAlignLeft}>Left</Chip>
+                    <Chip onPress={handleAlignCenter}>Center</Chip>
+                    <Chip onPress={handleAlignRight}>Right</Chip>
                   </View>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Special</Text>
-                  <View style={styles.chipContainer}>
-                    <Chip onPress={handleBlockquote} style={styles.chip}>
-                      Quote
-                    </Chip>
-                    <Chip onPress={handleCode} style={styles.chip}>
-                      Code
-                    </Chip>
-                    <Chip onPress={onPressLink} style={styles.chip}>
-                      Link
-                    </Chip>
-                    <Chip onPress={onPressTable} style={styles.chip}>
-                      Table
-                    </Chip>
+                <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Special</Text>
+                  <View style={[styles.chipContainer, { gap: spacing[2] }]}>
+                    <Chip onPress={handleBlockquote}>Quote</Chip>
+                    <Chip onPress={handleCode}>Code</Chip>
+                    <Chip onPress={onPressLink}>Link</Chip>
+                    <Chip onPress={onPressTable}>Table</Chip>
                   </View>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>History</Text>
-                  <View style={styles.chipContainer}>
-                    <Chip onPress={handleUndo} style={styles.chip}>
-                      Undo
-                    </Chip>
-                    <Chip onPress={handleRedo} style={styles.chip}>
-                      Redo
-                    </Chip>
+                <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>History</Text>
+                  <View style={[styles.chipContainer, { gap: spacing[2] }]}>
+                    <Chip onPress={handleUndo}>Undo</Chip>
+                    <Chip onPress={handleRedo}>Redo</Chip>
                   </View>
                 </View>
               </ScrollView>
@@ -602,15 +572,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
 const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fff',
     overflow: 'hidden',
   },
   toolbarContainer: {
-    backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     maxHeight: 60,
   },
   toolbarContent: {
@@ -635,8 +600,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSurface: {
-    backgroundColor: 'white',
-    borderRadius: 12,
     width: screenWidth * 0.9,
     maxHeight: '80%',
     elevation: 5,
@@ -647,31 +610,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalContent: {
-    padding: 16,
-  },
-  modalSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
+  modalContent: {},
+  modalSection: {},
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    marginBottom: 4,
   },
 });
 

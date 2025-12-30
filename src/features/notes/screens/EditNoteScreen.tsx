@@ -21,6 +21,7 @@ import { MediaAttachmentsState, MediaAttachment, MediaType } from '@shared/types
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { Button, Skeleton, SkeletonCard, ProgressBar } from '@shared/components/ui';
+import { useAppTheme } from '@shared/theme';
 
 import { Video } from 'react-native-video';
 import ViewShot from 'react-native-view-shot';
@@ -34,6 +35,7 @@ const EditNoteScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { noteId } = (route.params as RouteParams) || {};
+  const { colors, spacing, textStyles, radius } = useAppTheme();
 
   // TanStack Query hooks
   const { data: notes = [], isLoading } = useNotes();
@@ -600,15 +602,15 @@ const EditNoteScreen: React.FC = () => {
 
   if (isLoading && noteId) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <SkeletonCard />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Appbar.Header>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Appbar.Header style={{ backgroundColor: colors.surface }}>
         <Appbar.BackAction onPress={handleBackPress} disabled={saving || isMutating} />
         <Appbar.Content title={noteId ? 'Edit Note' : 'New Note'} />
         <Appbar.Action
@@ -620,48 +622,62 @@ const EditNoteScreen: React.FC = () => {
 
       {/* Upload Progress */}
       {uploadProgress > 0 && uploadProgress < 100 && (
-        <View style={styles.uploadProgressContainer}>
-          <Text style={styles.uploadProgressText}>Uploading attachments... {Math.round(uploadProgress)}%</Text>
+        <View style={[styles.uploadProgressContainer, { backgroundColor: colors.muted, paddingHorizontal: spacing[4], paddingVertical: spacing[2] }]}>
+          <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+            Uploading attachments... {Math.round(uploadProgress)}%
+          </Text>
           <ProgressBar progress={uploadProgress} size="sm" style={styles.uploadProgressBar} />
         </View>
       )}
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ padding: spacing[4] }}>
         <TextInput
           label="Title"
           value={title}
           onChangeText={setTitle}
-          style={styles.titleInput}
+          style={[styles.titleInput, { marginBottom: spacing[4] }]}
           mode="outlined"
           placeholder="Enter note title..."
+          outlineColor={colors.border}
+          activeOutlineColor={colors.primary}
+          textColor={colors.foreground}
         />
 
         <RichTextEditor
           value={content}
           onChange={setContent}
           placeholder="Start writing your note..."
-          style={styles.richTextEditor}
+          style={{ marginBottom: spacing[6] }}
         />
 
         {/* Attachment Previews */}
-        <View style={styles.attachmentPreviewsSection}>
-          <Text style={styles.attachmentPreviewsTitle}>Attachments</Text>
+        <View style={[styles.attachmentPreviewsSection, { marginBottom: spacing[6] }]}>
+          <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>Attachments</Text>
 
           {/* Attachment Buttons */}
-          <View style={styles.attachmentButtons}>
-            <TouchableOpacity style={styles.attachmentButton} onPress={handleAddImage}>
-              <Icon name="photo" size={20} color="#8B5CF6" />
-              <Text style={styles.attachmentButtonText}>Image</Text>
+          <View style={[styles.attachmentButtons, { gap: spacing[3], marginBottom: spacing[4] }]}>
+            <TouchableOpacity
+              style={[styles.attachmentButton, { backgroundColor: colors.muted, borderRadius: radius.md, paddingHorizontal: spacing[3], paddingVertical: spacing[2], gap: spacing[1.5] }]}
+              onPress={handleAddImage}
+            >
+              <Icon name="photo" size={20} color={colors.primary} />
+              <Text style={[textStyles.bodySmall, { color: colors.primary, fontWeight: '500' }]}>Image</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.attachmentButton} onPress={handleAddVideo}>
-              <Icon name="videocam" size={20} color="#8B5CF6" />
-              <Text style={styles.attachmentButtonText}>Video</Text>
+            <TouchableOpacity
+              style={[styles.attachmentButton, { backgroundColor: colors.muted, borderRadius: radius.md, paddingHorizontal: spacing[3], paddingVertical: spacing[2], gap: spacing[1.5] }]}
+              onPress={handleAddVideo}
+            >
+              <Icon name="videocam" size={20} color={colors.primary} />
+              <Text style={[textStyles.bodySmall, { color: colors.primary, fontWeight: '500' }]}>Video</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.attachmentButton} onPress={handleAddAudio}>
-              <Icon name="mic" size={20} color="#8B5CF6" />
-              <Text style={styles.attachmentButtonText}>Voice</Text>
+            <TouchableOpacity
+              style={[styles.attachmentButton, { backgroundColor: colors.muted, borderRadius: radius.md, paddingHorizontal: spacing[3], paddingVertical: spacing[2], gap: spacing[1.5] }]}
+              onPress={handleAddAudio}
+            >
+              <Icon name="mic" size={20} color={colors.primary} />
+              <Text style={[textStyles.bodySmall, { color: colors.primary, fontWeight: '500' }]}>Voice</Text>
             </TouchableOpacity>
 
             {/* DISABLED: Drawing functionality temporarily removed
@@ -669,7 +685,7 @@ const EditNoteScreen: React.FC = () => {
               style={styles.attachmentButton}
               onPress={handleAddDrawing}
             >
-              <Icon name="brush" size={20} color="#8B5CF6" />
+              <Icon name="brush" size={20} color={colors.primary} />
               <Text style={styles.attachmentButtonText}>Drawing</Text>
             </TouchableOpacity>
             */}
@@ -677,7 +693,7 @@ const EditNoteScreen: React.FC = () => {
 
           {/* Attachment Previews */}
           {mediaAttachments.attachments.length > 0 && (
-            <View style={styles.attachmentPreviews}>
+            <View style={[styles.attachmentPreviews, { gap: spacing[2] }]}>
               {mediaAttachments.attachments.map((attachment, index) => {
                 const handleAttachmentPress = () => {
                   // Pass the MediaAttachment objects directly to AttachmentGallery
@@ -696,11 +712,14 @@ const EditNoteScreen: React.FC = () => {
 
                 return (
                   <View key={index} style={styles.attachmentPreviewContainer}>
-                    <TouchableOpacity style={styles.attachmentPreview} onPress={handleAttachmentPress}>
+                    <TouchableOpacity
+                      style={[styles.attachmentPreview, { backgroundColor: colors.muted, borderRadius: radius.md }]}
+                      onPress={handleAttachmentPress}
+                    >
                       {attachment.type === MediaType.IMAGE ? (
                         <Image source={{ uri: attachment.uri }} style={styles.previewImage} />
                       ) : attachment.type === MediaType.VIDEO ? (
-                        <View style={styles.previewVideo}>
+                        <View style={[styles.previewVideo, { backgroundColor: colors.surfaceHover }]}>
                           <Video
                             source={{ uri: attachment.uri }}
                             style={styles.previewVideoThumbnail}
@@ -715,17 +734,20 @@ const EditNoteScreen: React.FC = () => {
                       ) : (
                         /* attachment.type === MediaType.DRAWING ? (
                         <View style={styles.previewDrawing}>
-                          <Icon name="brush" size={40} color="#8B5CF6" />
+                          <Icon name="brush" size={40} color={colors.primary} />
                           <Text style={styles.drawingLabel}>Drawing</Text>
                         </View>
-                      ) : */ <View style={styles.previewAudio}>
-                          <Icon name="music-note" size={40} color="#007AFF" />
-                          <Text style={styles.audioLabel}>Voice Note</Text>
+                      ) : */ <View style={[styles.previewAudio, { backgroundColor: colors.primaryMuted }]}>
+                          <Icon name="music-note" size={40} color={colors.primary} />
+                          <Text style={[textStyles.caption, { color: colors.primary, marginTop: spacing[1] }]}>Voice Note</Text>
                         </View>
                       )}
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.removeAttachmentButton} onPress={handleRemoveAttachment}>
-                      <Icon name="close" size={16} color="white" />
+                    <TouchableOpacity
+                      style={[styles.removeAttachmentButton, { backgroundColor: colors.destructive }]}
+                      onPress={handleRemoveAttachment}
+                    >
+                      <Icon name="close" size={16} color={colors.destructiveForeground} />
                     </TouchableOpacity>
                   </View>
                 );
@@ -737,10 +759,10 @@ const EditNoteScreen: React.FC = () => {
 
       {/* Unsaved Changes Dialog */}
       <Portal>
-        <Dialog visible={showSaveDialog} onDismiss={handleKeepEditing}>
-          <Dialog.Title>Unsaved Changes</Dialog.Title>
+        <Dialog visible={showSaveDialog} onDismiss={handleKeepEditing} style={{ backgroundColor: colors.surface }}>
+          <Dialog.Title style={{ color: colors.foreground }}>Unsaved Changes</Dialog.Title>
           <Dialog.Content>
-            <Text>You have unsaved changes. Do you want to save them?</Text>
+            <Text style={{ color: colors.foregroundMuted }}>You have unsaved changes. Do you want to save them?</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button variant="ghost" onPress={handleDiscardChanges}>
@@ -771,7 +793,7 @@ const EditNoteScreen: React.FC = () => {
           <Modal
             visible={showVoiceRecorder}
             onDismiss={handleVoiceRecordingCancel}
-            contentContainerStyle={styles.voiceRecorderModal}
+            contentContainerStyle={[styles.voiceRecorderModal, { backgroundColor: colors.surface }]}
           >
             <VoiceRecorder onRecordingComplete={handleVoiceRecordingComplete} onCancel={handleVoiceRecordingCancel} />
           </Modal>
@@ -804,52 +826,22 @@ const EditNoteScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: 16,
-  },
-  titleInput: {
-    marginBottom: 16,
-  },
-  richTextEditor: {
-    marginBottom: 24,
-  },
-  attachmentPreviewsSection: {
-    marginBottom: 24,
-  },
-  attachmentPreviewsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#333',
-  },
+  titleInput: {},
+  attachmentPreviewsSection: {},
   attachmentButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
   },
   attachmentButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    gap: 6,
-  },
-  attachmentButtonText: {
-    fontSize: 14,
-    color: '#8B5CF6',
-    fontWeight: '500',
   },
   attachmentPreviews: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
   },
   attachmentPreviewContainer: {
     position: 'relative',
@@ -861,7 +853,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#FF3B30',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
@@ -869,9 +860,7 @@ const styles = StyleSheet.create({
   attachmentPreview: {
     width: 80,
     height: 80,
-    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -884,7 +873,6 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e0e0e0',
     position: 'relative',
   },
   previewAudio: {
@@ -892,41 +880,12 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e8f4fd',
-  },
-  previewDrawing: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-    borderStyle: 'dashed',
-  },
-  drawingLabel: {
-    fontSize: 10,
-    color: '#8B5CF6',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  audioLabel: {
-    fontSize: 10,
-    color: '#007AFF',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  previewVideoPlayer: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
   },
   previewVideoThumbnail: {
     width: '100%',
     height: '100%',
     borderRadius: 8,
   },
-
   playOverlay: {
     position: 'absolute',
     top: 0,
@@ -938,33 +897,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 8,
   },
-  uploadProgressContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  uploadProgressText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
+  uploadProgressContainer: {},
   uploadProgressBar: {
     height: 4,
     borderRadius: 2,
   },
-
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
   voiceRecorderModal: {
-    backgroundColor: 'white',
     margin: 0,
     padding: 0,
   },

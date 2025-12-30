@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, ScrollView } from 'react-native';
-import { Text, TextInput, useTheme } from 'react-native-paper';
+import { Text, TextInput } from 'react-native-paper';
 import {
   Card,
   CardHeader,
@@ -17,9 +17,10 @@ import {
 import { workoutService } from '@features/workout/services/workout';
 import { Program, ProgramExerciseSpec } from '@features/workout/types/Workout';
 import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 export default function WorkoutPrograms() {
-  const theme = useTheme();
+  const colors = useColors();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState<Program | null>(null);
@@ -60,21 +61,21 @@ export default function WorkoutPrograms() {
   };
 
   return (
-    <View style={{ flex: 1, padding: 12 }}>
+    <View style={{ flex: 1, padding: spacing[3], backgroundColor: colors.background }}>
       <FlatList
         data={programs}
         keyExtractor={(p) => p.id.toString()}
         renderItem={({ item }) => (
           <Card
-            style={{ marginBottom: 10 }}
+            style={{ marginBottom: spacing[2.5] }}
             onPress={() => setDetailsOpen(item)}
             onLongPress={() => setOptionsOpen(item)}
           >
             <CardContent>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: '700', color: theme.colors.onSurface }}>{item.name}</Text>
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  <Text style={[textStyles.label, { fontWeight: '700', color: colors.foreground }]}>{item.name}</Text>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                     {item.exercises.length} exercises
                   </Text>
                 </View>
@@ -101,18 +102,18 @@ export default function WorkoutPrograms() {
         onClose={handleCloseForm}
         title={editOpen ? 'Edit Program' : 'Add Program'}
       >
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing[3] }}>
           <TextInput
             mode="outlined"
             label="Program Name"
             value={newName}
             onChangeText={setNewName}
-            style={{ backgroundColor: theme.colors.surface }}
+            style={{ backgroundColor: colors.surface }}
           />
           <ScrollView style={{ maxHeight: 320 }}>
             {newExercises.map((item, index) => (
-              <Card key={index} variant="outlined" padding="sm" style={{ marginBottom: 8 }}>
-                <CardContent style={{ gap: 8 }}>
+              <Card key={index} variant="outlined" padding="sm" style={{ marginBottom: spacing[2] }}>
+                <CardContent style={{ gap: spacing[2] }}>
                   <TextInput
                     mode="outlined"
                     label="Exercise Name"
@@ -122,7 +123,7 @@ export default function WorkoutPrograms() {
                       arr[index] = { ...arr[index], exerciseName: t };
                       setNewExercises(arr);
                     }}
-                    style={{ backgroundColor: theme.colors.surface }}
+                    style={{ backgroundColor: colors.surface }}
                   />
                   <TextInput
                     mode="outlined"
@@ -133,9 +134,9 @@ export default function WorkoutPrograms() {
                       arr[index] = { ...arr[index], muscleGroup: t };
                       setNewExercises(arr);
                     }}
-                    style={{ backgroundColor: theme.colors.surface }}
+                    style={{ backgroundColor: colors.surface }}
                   />
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: spacing[2] }}>
                     <TextInput
                       mode="outlined"
                       keyboardType="number-pad"
@@ -146,7 +147,7 @@ export default function WorkoutPrograms() {
                         arr[index] = { ...arr[index], sets: t ? Number(t) : null };
                         setNewExercises(arr);
                       }}
-                      style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                      style={{ flex: 1, backgroundColor: colors.surface }}
                     />
                     <TextInput
                       mode="outlined"
@@ -158,7 +159,7 @@ export default function WorkoutPrograms() {
                         arr[index] = { ...arr[index], reps: t ? Number(t) : null };
                         setNewExercises(arr);
                       }}
-                      style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                      style={{ flex: 1, backgroundColor: colors.surface }}
                     />
                   </View>
                   <TextInput
@@ -170,7 +171,7 @@ export default function WorkoutPrograms() {
                       arr[index] = { ...arr[index], weight: t || null };
                       setNewExercises(arr);
                     }}
-                    style={{ backgroundColor: theme.colors.surface }}
+                    style={{ backgroundColor: colors.surface }}
                     placeholder="e.g., 20 or bodyweight"
                   />
                   <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
@@ -178,7 +179,7 @@ export default function WorkoutPrograms() {
                       icon="trash-outline"
                       size="sm"
                       variant="ghost"
-                      color={theme.colors.error}
+                      color={colors.destructive}
                       onPress={() => setNewExercises(newExercises.filter((_, i) => i !== index))}
                     />
                   </View>
@@ -211,12 +212,12 @@ export default function WorkoutPrograms() {
       >
         {detailsOpen && (
           <ScrollView style={{ maxHeight: 400 }}>
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: spacing[2] }}>
               {detailsOpen.exercises.map((ex, idx) => (
                 <Card key={idx} variant="filled" padding="sm">
                   <CardContent>
-                    <Text style={{ fontWeight: '700', color: theme.colors.onSurface }}>{ex.exerciseName}</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                    <Text style={[textStyles.label, { fontWeight: '700', color: colors.foreground }]}>{ex.exerciseName}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginTop: spacing[1] }}>
                       {ex.muscleGroup && <Badge variant="info">{ex.muscleGroup}</Badge>}
                       {ex.sets && <Badge>{ex.sets} sets</Badge>}
                       {ex.reps && <Badge>{ex.reps} reps</Badge>}
@@ -232,7 +233,7 @@ export default function WorkoutPrograms() {
 
       {/* Long-press Options Dialog */}
       <Dialog visible={!!optionsOpen} onClose={() => setOptionsOpen(null)} title="Program Options">
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: spacing[2] }}>
           <Button
             variant="secondary"
             fullWidth

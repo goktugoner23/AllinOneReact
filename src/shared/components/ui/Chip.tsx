@@ -36,19 +36,19 @@ export function Chip({
         border: theme.colors.primary,
       },
       success: {
-        bg: '#E8F5E9',
-        text: '#2E7D32',
-        border: '#4CAF50',
+        bg: theme.colors.tertiaryContainer ?? theme.colors.primaryContainer,
+        text: theme.colors.onTertiaryContainer ?? theme.colors.onPrimaryContainer,
+        border: theme.colors.tertiary ?? theme.colors.primary,
       },
       warning: {
-        bg: '#FFF3E0',
-        text: '#E65100',
-        border: '#FF9800',
+        bg: theme.colors.secondaryContainer,
+        text: theme.colors.onSecondaryContainer,
+        border: theme.colors.secondary,
       },
       error: {
-        bg: '#FFEBEE',
-        text: '#C62828',
-        border: '#F44336',
+        bg: theme.colors.errorContainer,
+        text: theme.colors.onErrorContainer,
+        border: theme.colors.error,
       },
       default: {
         bg: theme.colors.surfaceVariant,

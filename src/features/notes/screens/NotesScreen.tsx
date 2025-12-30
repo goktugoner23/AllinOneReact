@@ -13,9 +13,11 @@ import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import { NavigationProps, NotesStackParamList } from '@shared/types/navigation';
 import { Video } from 'react-native-video';
 import { Card, CardContent, IconButton, Button, Skeleton, SkeletonCard, EmptyState } from '@shared/components/ui';
+import { useAppTheme } from '@shared/theme';
 
 const NotesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProps<NotesStackParamList>>();
+  const { colors, spacing, textStyles, radius } = useAppTheme();
 
   // TanStack Query hooks
   const { data: notes = [], isLoading, error, refetch } = useNotes();
@@ -115,9 +117,14 @@ const NotesScreen: React.FC = () => {
     };
 
     return (
-      <Card style={styles.noteCard} onPress={() => handleNotePress(item)} variant="elevated" padding="md">
+      <Card
+        style={[styles.noteCard, { backgroundColor: colors.card }]}
+        onPress={() => handleNotePress(item)}
+        variant="elevated"
+        padding="md"
+      >
         <View style={styles.noteHeader}>
-          <Text style={styles.noteTitle} numberOfLines={2}>
+          <Text style={[textStyles.h4, { color: colors.foreground, flex: 1, marginRight: spacing[2] }]} numberOfLines={2}>
             {item.title || 'Untitled Note'}
           </Text>
           <View style={styles.noteActions}>
@@ -126,20 +133,20 @@ const NotesScreen: React.FC = () => {
               icon="trash-outline"
               size="sm"
               variant="ghost"
-              color="#FF3B30"
+              color={colors.destructive}
               onPress={() => handleDeleteNote(item)}
               loading={deleteNoteMutation.isPending}
             />
           </View>
         </View>
 
-        <Text style={styles.noteContent} numberOfLines={3}>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[3] }]} numberOfLines={3}>
           {stripHtmlTags(item.content) || 'No content'}
         </Text>
 
         {/* Attachment Previews */}
         {allAttachments.length > 0 && (
-          <View style={styles.attachmentPreviews}>
+          <View style={[styles.attachmentPreviews, { gap: spacing[2], marginBottom: spacing[3] }]}>
             {allAttachments.slice(0, 3).map((uri, index) => {
               const isImage = imageUris.includes(uri);
               const isVideo = videoUris.includes(uri);
@@ -148,13 +155,13 @@ const NotesScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={index}
-                  style={styles.attachmentPreview}
+                  style={[styles.attachmentPreview, { backgroundColor: colors.muted, borderRadius: radius.md }]}
                   onPress={() => handleAttachmentPress(uri)}
                 >
                   {isImage ? (
                     <Image source={{ uri }} style={styles.previewImage} />
                   ) : isVideo ? (
-                    <View style={styles.previewVideo}>
+                    <View style={[styles.previewVideo, { backgroundColor: colors.surfaceHover }]}>
                       <Video
                         source={{ uri }}
                         style={styles.previewVideoThumbnail}
@@ -167,23 +174,23 @@ const NotesScreen: React.FC = () => {
                       </View>
                     </View>
                   ) : (
-                    <View style={styles.previewAudio}>
-                      <Icon name="music-note" size={20} color="#666" />
+                    <View style={[styles.previewAudio, { backgroundColor: colors.primaryMuted }]}>
+                      <Icon name="music-note" size={20} color={colors.primary} />
                     </View>
                   )}
                 </TouchableOpacity>
               );
             })}
             {allAttachments.length > 3 && (
-              <View style={styles.moreAttachments}>
-                <Text style={styles.moreAttachmentsText}>+{allAttachments.length - 3}</Text>
+              <View style={[styles.moreAttachments, { backgroundColor: colors.muted, borderRadius: radius.md }]}>
+                <Text style={[textStyles.labelSmall, { color: colors.foregroundMuted }]}>+{allAttachments.length - 3}</Text>
               </View>
             )}
           </View>
         )}
 
         <View style={styles.noteFooter}>
-          <Text style={styles.noteDate}>{formatDate(item.lastEdited)}</Text>
+          <Text style={[textStyles.caption, { color: colors.foregroundSubtle }]}>{formatDate(item.lastEdited)}</Text>
 
           {hasAttachments && (
             <Chip icon="attachment" mode="outlined" compact style={styles.attachmentChip}>
@@ -207,7 +214,7 @@ const NotesScreen: React.FC = () => {
   );
 
   const renderLoadingState = () => (
-    <View style={styles.loadingContainer}>
+    <View style={[styles.loadingContainer, { padding: spacing[4], gap: spacing[3] }]}>
       {[1, 2, 3].map((i) => (
         <SkeletonCard key={i} />
       ))}
@@ -215,17 +222,17 @@ const NotesScreen: React.FC = () => {
   );
 
   if (isLoading && !refreshing) {
-    return <View style={styles.container}>{renderLoadingState()}</View>;
+    return <View style={[styles.container, { backgroundColor: colors.background }]}>{renderLoadingState()}</View>;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showSearch && (
         <Searchbar
           placeholder="Search notes..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={styles.searchBar}
+          style={[styles.searchBar, { margin: spacing[4], backgroundColor: colors.surface }]}
           onIconPress={() => setShowSearch(false)}
           icon={showSearch ? 'close' : 'magnify'}
         />
@@ -235,16 +242,16 @@ const NotesScreen: React.FC = () => {
         data={filteredNotes}
         renderItem={renderNoteCard}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ padding: spacing[4], paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={180}
       />
 
-      <View style={styles.fabContainer}>
-        <AddFab iconName="magnify" style={styles.fab} onPress={() => setShowSearch(!showSearch)} />
-        <AddFab style={styles.fab} onPress={handleCreateNote} />
+      <View style={[styles.fabContainer, { bottom: spacing[4], right: spacing[4] }]}>
+        <AddFab iconName="magnify" style={{ marginLeft: spacing[2] }} onPress={() => setShowSearch(!showSearch)} />
+        <AddFab style={{ marginLeft: spacing[2] }} onPress={handleCreateNote} />
       </View>
 
       {/* Attachment Gallery */}
@@ -262,19 +269,12 @@ const NotesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   searchBar: {
-    margin: 16,
     elevation: 2,
-  },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 100, // Space for FABs
   },
   noteCard: {
     marginBottom: 12,
-    elevation: 2,
   },
   noteHeader: {
     flexDirection: 'row',
@@ -282,51 +282,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
-  noteTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1,
-    marginRight: 8,
-  },
   noteActions: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  actionButton: {
-    margin: 0,
-  },
-  deleteButton: {
-    margin: 0,
-  },
-  noteContent: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
   },
   noteFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  noteDate: {
-    fontSize: 12,
-    color: '#999',
-  },
   attachmentChip: {
     height: 24,
   },
   attachmentPreviews: {
     flexDirection: 'row',
-    marginBottom: 12,
-    gap: 8,
   },
   attachmentPreview: {
     width: 60,
     height: 60,
-    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -339,7 +313,6 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e0e0e0',
     position: 'relative',
   },
   previewVideoThumbnail: {
@@ -363,20 +336,12 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e8f4fd',
   },
   moreAttachments: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  moreAttachmentsText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#666',
   },
   emptyState: {
     flex: 1,
@@ -384,26 +349,10 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    padding: 16,
-    gap: 12,
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  fab: {
-    marginLeft: 8,
-  },
-  searchFab: {
-    backgroundColor: '#666',
-  },
-  modalContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
   },
 });

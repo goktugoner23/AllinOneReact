@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, FlatList } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
 import {
   startStopwatch,
@@ -14,6 +14,7 @@ import {
 } from '@features/workout/store/workoutSlice';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Card, CardHeader, CardContent, Button, EmptyState, Badge, ProgressBar } from '@shared/components/ui';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 function formatMs(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -25,7 +26,7 @@ function formatMs(ms: number): string {
 }
 
 export default function StopwatchScreen() {
-  const theme = useTheme();
+  const colors = useColors();
   const dispatch = useAppDispatch();
   const { activeSession, stopwatch } = useAppSelector((s) => s.workout);
   const nav = useNavigation<any>();
@@ -52,7 +53,7 @@ export default function StopwatchScreen() {
 
   if (!activeSession) {
     return (
-      <View style={{ flex: 1, padding: 16 }}>
+      <View style={{ flex: 1, padding: spacing[4], backgroundColor: colors.background }}>
         <EmptyState
           icon="barbell-outline"
           title="No active workout"
@@ -70,16 +71,16 @@ export default function StopwatchScreen() {
   const overallProgress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   return (
-    <View style={{ flex: 1, padding: 12, gap: 12 }}>
+    <View style={{ flex: 1, padding: spacing[3], gap: spacing[3], backgroundColor: colors.background }}>
       {/* Stopwatch Card */}
       <Card>
         <CardHeader>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
-              <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSurface }}>
+              <Text style={[textStyles.h4, { color: colors.foreground }]}>
                 {activeSession.programName || 'Custom Workout'}
               </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                 Stopwatch
               </Text>
             </View>
@@ -94,7 +95,7 @@ export default function StopwatchScreen() {
               fontSize: 48,
               fontWeight: '700',
               textAlign: 'center',
-              color: theme.colors.primary,
+              color: colors.primary,
               fontVariant: ['tabular-nums'],
             }}
           >
@@ -102,12 +103,12 @@ export default function StopwatchScreen() {
           </Text>
 
           {/* Overall Progress */}
-          <View style={{ marginVertical: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          <View style={{ marginVertical: spacing[3] }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing[1] }}>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                 Overall Progress
               </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurface }}>
+              <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
                 {completedSets}/{totalSets} sets
               </Text>
             </View>
@@ -117,7 +118,7 @@ export default function StopwatchScreen() {
             />
           </View>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing[3] }}>
             {stopwatch.isPaused ? (
               <Button variant="primary" onPress={() => dispatch(resume())}>
                 Resume
@@ -139,13 +140,13 @@ export default function StopwatchScreen() {
           const progress = item.targetSets.length > 0 ? (item.completedSets.length / item.targetSets.length) * 100 : 0;
           const allCompleted = item.completedSets.length === item.targetSets.length && item.targetSets.length > 0;
           return (
-            <Card style={{ marginVertical: 6 }}>
+            <Card style={{ marginVertical: spacing[1.5] }}>
               <CardHeader>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View>
-                    <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>{item.exerciseName}</Text>
+                    <Text style={[textStyles.label, { color: colors.foreground }]}>{item.exerciseName}</Text>
                     {item.muscleGroup && (
-                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                         {item.muscleGroup}
                       </Text>
                     )}
@@ -158,9 +159,9 @@ export default function StopwatchScreen() {
                   progress={progress}
                   variant={progress >= 100 ? 'success' : progress >= 50 ? 'warning' : 'default'}
                   size="sm"
-                  style={{ marginBottom: 12 }}
+                  style={{ marginBottom: spacing[3] }}
                 />
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] }}>
                   {item.targetSets.map((set) => {
                     const done = item.completedSets.some((cs) => cs.setNumber === set.setNumber);
                     return (
@@ -190,11 +191,11 @@ export default function StopwatchScreen() {
             </Card>
           );
         }}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: spacing[20] }}
       />
 
       {/* Finish Button */}
-      <View style={{ padding: 8 }}>
+      <View style={{ padding: spacing[2] }}>
         <Button
           variant="primary"
           fullWidth

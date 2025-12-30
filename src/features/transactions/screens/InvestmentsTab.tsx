@@ -33,9 +33,11 @@ import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { uploadInvestmentAttachments } from '@features/transactions/services/investmentAttachments';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
 import { TransactionService } from '@features/transactions/services/transactionService';
+import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 function InvestmentsContent() {
   const theme = useTheme();
+  const colors = useColors();
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
@@ -184,21 +186,27 @@ function InvestmentsContent() {
 
   const renderInvestment = ({ item }: { item: Investment }) => (
     <TouchableOpacity activeOpacity={0.8} onLongPress={() => handleLongPress(item)} delayLongPress={300}>
-      <Card style={styles.card} mode="outlined">
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
         <Card.Content>
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}
-          >
-            <Text style={[styles.title, { flex: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+          <View style={styles.cardHeader}>
+            <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={1} ellipsizeMode="tail">
               {item.name}
             </Text>
-            <Chip mode="outlined" style={{ height: 24 }} textStyle={{ fontSize: 12, fontWeight: '700' }}>
+            <Chip
+              mode="outlined"
+              style={[styles.typeChip, { borderColor: colors.primary }]}
+              textStyle={[styles.typeChipText, { color: colors.primary }]}
+            >
               {(item.type || '').toUpperCase()}
             </Chip>
           </View>
-          <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
-          {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-          <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
+          <Text style={[styles.amount, { color: colors.investment }]}>{formatCurrency(item.amount)}</Text>
+          {item.description ? (
+            <Text style={[styles.description, { color: colors.mutedForeground }]}>{item.description}</Text>
+          ) : null}
+          <Text style={[styles.date, { color: colors.foregroundSubtle }]}>
+            {new Date(item.date).toLocaleDateString()}
+          </Text>
           {/* Attachment Previews */}
           {(() => {
             const imageUris = item.imageUris?.split(',').filter(Boolean) || [];
@@ -260,16 +268,18 @@ function InvestmentsContent() {
                           </View>
                         </View>
                       ) : (
-                        <View style={styles.previewAudio}>
-                          <Icon name="music-note" size={20} color="#666" />
+                        <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
+                          <Icon name="music-note" size={20} color={colors.mutedForeground} />
                         </View>
                       )}
                     </TouchableOpacity>
                   );
                 })}
                 {allAttachments.length > 3 && (
-                  <View style={styles.moreAttachments}>
-                    <Text style={styles.moreAttachmentsText}>+{allAttachments.length - 3}</Text>
+                  <View style={[styles.moreAttachments, { backgroundColor: colors.muted }]}>
+                    <Text style={[styles.moreAttachmentsText, { color: colors.mutedForeground }]}>
+                      +{allAttachments.length - 3}
+                    </Text>
                   </View>
                 )}
               </View>
@@ -277,11 +287,18 @@ function InvestmentsContent() {
           })()}
           {item.isPast && (
             <View style={styles.profitLossContainer}>
-              <Text style={[styles.profitLoss, (item.profitLoss || 0) >= 0 ? styles.profit : styles.loss]}>
+              <Text
+                style={[
+                  styles.profitLoss,
+                  { color: (item.profitLoss || 0) >= 0 ? colors.income : colors.expense },
+                ]}
+              >
                 {(item.profitLoss || 0) >= 0 ? '+' : ''}
                 {formatCurrency(item.profitLoss || 0)}
               </Text>
-              <Text style={styles.currentValue}>Current: {formatCurrency(item.currentValue || item.amount)}</Text>
+              <Text style={[styles.currentValue, { color: colors.mutedForeground }]}>
+                Current: {formatCurrency(item.currentValue || item.amount)}
+              </Text>
             </View>
           )}
         </Card.Content>
@@ -290,15 +307,19 @@ function InvestmentsContent() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.headerRow} />
 
       <FlashList
         data={investments}
         renderItem={renderInvestment}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={<Text style={styles.empty}>No investments yet</Text>}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+        }
+        ListEmptyComponent={
+          <Text style={[styles.empty, { color: colors.mutedForeground }]}>No investments yet</Text>
+        }
         estimatedItemSize={120}
       />
 
@@ -319,15 +340,15 @@ function InvestmentsContent() {
         onRequestClose={() => setActionModalVisible(false)}
       >
         <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setActionModalVisible(false)}>
-          <View style={styles.actionModal}>
+          <View style={[styles.actionModal, { backgroundColor: colors.card }, shadow.xl]}>
             <TouchableOpacity style={styles.actionOption} onPress={handleEdit}>
-              <Text style={[styles.actionOptionText, { color: theme.colors.primary }]}>Edit</Text>
+              <Text style={[styles.actionOptionText, { color: colors.primary }]}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionOption} onPress={handleDelete}>
-              <Text style={[styles.actionOptionText, { color: theme.colors.error }]}>Delete</Text>
+              <Text style={[styles.actionOptionText, { color: colors.destructive }]}>Delete</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionOption} onPress={handleLiquidate}>
-              <Text style={[styles.actionOptionText, { color: theme.colors.error }]}>Liquidate</Text>
+              <Text style={[styles.actionOptionText, { color: colors.warning }]}>Liquidate</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -341,17 +362,19 @@ function InvestmentsContent() {
         onRequestClose={() => setAddModalVisible(false)}
       >
         <View style={styles.modalBg}>
-          <View style={styles.editModal}>
-            <Text style={styles.editTitle}>Add Investment</Text>
+          <View style={[styles.editModal, { backgroundColor: colors.card }, shadow.xl]}>
+            <Text style={[styles.editTitle, { color: colors.foreground }]}>Add Investment</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
               placeholder="Name"
+              placeholderTextColor={colors.foregroundSubtle}
               value={addForm.name}
               onChangeText={(text) => setAddForm((f) => ({ ...f, name: text }))}
             />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
               placeholder="Amount"
+              placeholderTextColor={colors.foregroundSubtle}
               keyboardType="numeric"
               value={addForm.amount}
               onChangeText={(text) => setAddForm((f) => ({ ...f, amount: text }))}
@@ -359,13 +382,18 @@ function InvestmentsContent() {
             {/* Investment Type Dropdown (Add) */}
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
-                style={styles.dropdownButton}
+                style={[styles.dropdownButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
                 onPress={() => setShowTypeDropdownAdd(!showTypeDropdownAdd)}
               >
-                <Text style={[styles.dropdownButtonText, !addForm.type && styles.placeholder]}>
+                <Text
+                  style={[
+                    styles.dropdownButtonText,
+                    { color: addForm.type ? colors.foreground : colors.foregroundSubtle },
+                  ]}
+                >
                   {addForm.type || 'Investment Type (Stock, Crypto, ... )'}
                 </Text>
-                <Text style={styles.dropdownArrow}>▼</Text>
+                <Text style={[styles.dropdownArrow, { color: colors.mutedForeground }]}>▼</Text>
               </TouchableOpacity>
               <Modal
                 visible={showTypeDropdownAdd}
@@ -378,8 +406,8 @@ function InvestmentsContent() {
                   activeOpacity={1}
                   onPress={() => setShowTypeDropdownAdd(false)}
                 >
-                  <View style={styles.confirmModal}>
-                    <Text style={styles.confirmTitle}>Select Investment Type</Text>
+                  <View style={[styles.confirmModal, { backgroundColor: colors.card }, shadow.xl]}>
+                    <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Select Investment Type</Text>
                     <View style={{ width: '100%' }}>
                       {InvestmentCategories.TYPES.map((type) => (
                         <TouchableOpacity
@@ -390,8 +418,8 @@ function InvestmentsContent() {
                             setShowTypeDropdownAdd(false);
                           }}
                         >
-                          <Icon name="trending-up" size={20} color={theme.colors.primary} style={{ marginRight: 10 }} />
-                          <Text style={styles.modalItemText}>{type}</Text>
+                          <Icon name="trending-up" size={20} color={colors.primary} style={{ marginRight: 10 }} />
+                          <Text style={[styles.modalItemText, { color: colors.foreground }]}>{type}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -400,21 +428,22 @@ function InvestmentsContent() {
               </Modal>
             </View>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
               placeholder="Description"
+              placeholderTextColor={colors.foregroundSubtle}
               value={addForm.description}
               onChangeText={(text) => setAddForm((f) => ({ ...f, description: text }))}
             />
 
             {/* Past Investment Switch (Add) */}
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Past Investment</Text>
-              <Switch value={addIsPast} onValueChange={setAddIsPast} />
+              <Text style={[styles.switchLabel, { color: colors.foreground }]}>Past Investment</Text>
+              <Switch value={addIsPast} onValueChange={setAddIsPast} trackColor={{ false: colors.muted, true: colors.primaryMuted }} thumbColor={addIsPast ? colors.primary : colors.mutedForeground} />
             </View>
 
             <View style={styles.attachmentButtons}>
               <TouchableOpacity
-                style={styles.attachmentButton}
+                style={[styles.attachmentButton, { backgroundColor: colors.muted }]}
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
                     if (response.assets) {
@@ -430,12 +459,12 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="photo" size={20} color={theme.colors.primary} />
-                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Image</Text>
+                <Icon name="photo" size={20} color={colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Image</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.attachmentButton}
+                style={[styles.attachmentButton, { backgroundColor: colors.muted }]}
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'video', selectionLimit: 3 }, (response) => {
                     if (response.assets) {
@@ -451,20 +480,20 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="videocam" size={20} color={theme.colors.primary} />
-                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Video</Text>
+                <Icon name="videocam" size={20} color={colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.attachmentButton} onPress={() => setShowVoiceRecorder(true)}>
-                <Icon name="mic" size={20} color={theme.colors.primary} />
-                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Voice</Text>
+              <TouchableOpacity style={[styles.attachmentButton, { backgroundColor: colors.muted }]} onPress={() => setShowVoiceRecorder(true)}>
+                <Icon name="mic" size={20} color={colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Voice</Text>
               </TouchableOpacity>
             </View>
 
             {addAttachments.length > 0 && (
               <View style={styles.attachmentPreviews}>
                 {addAttachments.map((att) => (
-                  <View key={att.id} style={styles.attachmentPreview}>
+                  <View key={att.id} style={[styles.attachmentPreview, { backgroundColor: colors.muted }]}>
                     {att.type === MediaType.IMAGE ? (
                       <Image source={{ uri: att.uri }} style={styles.previewImage} />
                     ) : att.type === MediaType.VIDEO ? (
@@ -481,8 +510,8 @@ function InvestmentsContent() {
                         </View>
                       </View>
                     ) : (
-                      <View style={styles.previewAudio}>
-                        <Icon name="music-note" size={20} color="#666" />
+                      <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
+                        <Icon name="music-note" size={20} color={colors.mutedForeground} />
                       </View>
                     )}
                   </View>
@@ -495,6 +524,8 @@ function InvestmentsContent() {
                 mode="contained"
                 loading={isSaving}
                 disabled={isSaving}
+                buttonColor={colors.primary}
+                textColor={colors.primaryForeground}
                 onPress={async () => {
                   setIsSaving(true);
                   try {
@@ -537,7 +568,7 @@ function InvestmentsContent() {
               >
                 Save
               </Button>
-              <Button mode="text" onPress={() => setAddModalVisible(false)} disabled={isSaving}>
+              <Button mode="text" onPress={() => setAddModalVisible(false)} disabled={isSaving} textColor={colors.mutedForeground}>
                 Cancel
               </Button>
             </View>
@@ -552,7 +583,7 @@ function InvestmentsContent() {
         onRequestClose={() => setShowVoiceRecorder(false)}
       >
         <View style={styles.modalBg}>
-          <View style={styles.editModal}>
+          <View style={[styles.editModal, { backgroundColor: colors.card }, shadow.xl]}>
             <VoiceRecorder
               onRecordingComplete={(filePath: string) => {
                 setEditAttachments((prev) => [
@@ -575,17 +606,19 @@ function InvestmentsContent() {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalBg}>
-          <View style={styles.editModal}>
-            <Text style={styles.editTitle}>Edit Investment</Text>
+          <View style={[styles.editModal, { backgroundColor: colors.card }, shadow.xl]}>
+            <Text style={[styles.editTitle, { color: colors.foreground }]}>Edit Investment</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
               placeholder="Name"
+              placeholderTextColor={colors.foregroundSubtle}
               value={editForm.name}
               onChangeText={(text) => setEditForm((f) => ({ ...f, name: text }))}
             />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
               placeholder="Amount"
+              placeholderTextColor={colors.foregroundSubtle}
               keyboardType="numeric"
               value={editForm.amount}
               onChangeText={(text) => setEditForm((f) => ({ ...f, amount: text }))}
@@ -593,13 +626,18 @@ function InvestmentsContent() {
             {/* Investment Type Dropdown (Edit) */}
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
-                style={styles.dropdownButton}
+                style={[styles.dropdownButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
                 onPress={() => setShowTypeDropdownEdit(!showTypeDropdownEdit)}
               >
-                <Text style={[styles.dropdownButtonText, !editForm.type && styles.placeholder]}>
+                <Text
+                  style={[
+                    styles.dropdownButtonText,
+                    { color: editForm.type ? colors.foreground : colors.foregroundSubtle },
+                  ]}
+                >
                   {editForm.type || 'Investment Type (Stock, Crypto, ... )'}
                 </Text>
-                <Text style={styles.dropdownArrow}>▼</Text>
+                <Text style={[styles.dropdownArrow, { color: colors.mutedForeground }]}>▼</Text>
               </TouchableOpacity>
               <Modal
                 visible={showTypeDropdownEdit}
@@ -612,8 +650,8 @@ function InvestmentsContent() {
                   activeOpacity={1}
                   onPress={() => setShowTypeDropdownEdit(false)}
                 >
-                  <View style={styles.confirmModal}>
-                    <Text style={styles.confirmTitle}>Select Investment Type</Text>
+                  <View style={[styles.confirmModal, { backgroundColor: colors.card }, shadow.xl]}>
+                    <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Select Investment Type</Text>
                     <View style={{ width: '100%' }}>
                       {InvestmentCategories.TYPES.map((type) => (
                         <TouchableOpacity
@@ -624,8 +662,8 @@ function InvestmentsContent() {
                             setShowTypeDropdownEdit(false);
                           }}
                         >
-                          <Icon name="trending-up" size={20} color={theme.colors.primary} style={{ marginRight: 10 }} />
-                          <Text style={styles.modalItemText}>{type}</Text>
+                          <Icon name="trending-up" size={20} color={colors.primary} style={{ marginRight: 10 }} />
+                          <Text style={[styles.modalItemText, { color: colors.foreground }]}>{type}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -634,21 +672,22 @@ function InvestmentsContent() {
               </Modal>
             </View>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
               placeholder="Description"
+              placeholderTextColor={colors.foregroundSubtle}
               value={editForm.description}
               onChangeText={(text) => setEditForm((f) => ({ ...f, description: text }))}
             />
             {/* Past Investment Switch (Edit) */}
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Past Investment</Text>
-              <Switch value={editIsPast} onValueChange={setEditIsPast} />
+              <Text style={[styles.switchLabel, { color: colors.foreground }]}>Past Investment</Text>
+              <Switch value={editIsPast} onValueChange={setEditIsPast} trackColor={{ false: colors.muted, true: colors.primaryMuted }} thumbColor={editIsPast ? colors.primary : colors.mutedForeground} />
             </View>
 
             {/* Attachment controls */}
             <View style={styles.attachmentButtons}>
               <TouchableOpacity
-                style={styles.attachmentButton}
+                style={[styles.attachmentButton, { backgroundColor: colors.muted }]}
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'photo', selectionLimit: 5 }, (response) => {
                     if (response.assets) {
@@ -664,12 +703,12 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="photo" size={20} color={theme.colors.primary} />
-                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Image</Text>
+                <Icon name="photo" size={20} color={colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Image</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.attachmentButton}
+                style={[styles.attachmentButton, { backgroundColor: colors.muted }]}
                 onPress={() => {
                   launchImageLibrary({ mediaType: 'video', selectionLimit: 3 }, (response) => {
                     if (response.assets) {
@@ -685,20 +724,20 @@ function InvestmentsContent() {
                   });
                 }}
               >
-                <Icon name="videocam" size={20} color={theme.colors.primary} />
-                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Video</Text>
+                <Icon name="videocam" size={20} color={colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.attachmentButton} onPress={() => setShowVoiceRecorder(true)}>
-                <Icon name="mic" size={20} color={theme.colors.primary} />
-                <Text style={[styles.attachmentButtonText, { color: theme.colors.primary }]}>Voice</Text>
+              <TouchableOpacity style={[styles.attachmentButton, { backgroundColor: colors.muted }]} onPress={() => setShowVoiceRecorder(true)}>
+                <Icon name="mic" size={20} color={colors.primary} />
+                <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Voice</Text>
               </TouchableOpacity>
             </View>
 
             {editAttachments.length > 0 && (
               <View style={styles.attachmentPreviews}>
                 {editAttachments.map((att) => (
-                  <View key={att.id} style={styles.attachmentPreview}>
+                  <View key={att.id} style={[styles.attachmentPreview, { backgroundColor: colors.muted }]}>
                     {att.type === MediaType.IMAGE ? (
                       <Image source={{ uri: att.uri }} style={styles.previewImage} />
                     ) : att.type === MediaType.VIDEO ? (
@@ -715,8 +754,8 @@ function InvestmentsContent() {
                         </View>
                       </View>
                     ) : (
-                      <View style={styles.previewAudio}>
-                        <Icon name="music-note" size={20} color="#666" />
+                      <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
+                        <Icon name="music-note" size={20} color={colors.mutedForeground} />
                       </View>
                     )}
                   </View>
@@ -724,10 +763,10 @@ function InvestmentsContent() {
               </View>
             )}
             <View style={styles.modalActions}>
-              <Button mode="contained" onPress={confirmEdit} loading={isSaving} disabled={isSaving}>
+              <Button mode="contained" onPress={confirmEdit} loading={isSaving} disabled={isSaving} buttonColor={colors.primary} textColor={colors.primaryForeground}>
                 Save
               </Button>
-              <Button mode="text" onPress={() => setEditModalVisible(false)} disabled={isSaving}>
+              <Button mode="text" onPress={() => setEditModalVisible(false)} disabled={isSaving} textColor={colors.mutedForeground}>
                 Cancel
               </Button>
             </View>
@@ -743,16 +782,16 @@ function InvestmentsContent() {
         onRequestClose={() => setDeleteDialogVisible(false)}
       >
         <View style={styles.modalBg}>
-          <View style={styles.confirmModal}>
-            <Text style={styles.confirmTitle}>Delete Investment</Text>
-            <Text style={styles.confirmText}>
+          <View style={[styles.confirmModal, { backgroundColor: colors.card }, shadow.xl]}>
+            <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Delete Investment</Text>
+            <Text style={[styles.confirmText, { color: colors.mutedForeground }]}>
               Are you sure you want to delete "{selectedInvestment?.name}"? This action cannot be undone.
             </Text>
             <View style={styles.modalActions}>
-              <Button mode="contained" onPress={confirmDelete}>
+              <Button mode="contained" onPress={confirmDelete} buttonColor={colors.destructive} textColor={colors.destructiveForeground}>
                 Delete
               </Button>
-              <Button mode="text" onPress={() => setDeleteDialogVisible(false)}>
+              <Button mode="text" onPress={() => setDeleteDialogVisible(false)} textColor={colors.mutedForeground}>
                 Cancel
               </Button>
             </View>
@@ -768,17 +807,17 @@ function InvestmentsContent() {
         onRequestClose={() => setLiquidateDialogVisible(false)}
       >
         <View style={styles.modalBg}>
-          <View style={styles.confirmModal}>
-            <Text style={styles.confirmTitle}>Liquidate Investment</Text>
-            <Text style={styles.confirmText}>
+          <View style={[styles.confirmModal, { backgroundColor: colors.card }, shadow.xl]}>
+            <Text style={[styles.confirmTitle, { color: colors.foreground }]}>Liquidate Investment</Text>
+            <Text style={[styles.confirmText, { color: colors.mutedForeground }]}>
               Are you sure you want to liquidate "{selectedInvestment?.name}"? This will remove the investment without
               affecting your transaction history.
             </Text>
             <View style={styles.modalActions}>
-              <Button mode="contained" onPress={confirmLiquidate}>
+              <Button mode="contained" onPress={confirmLiquidate} buttonColor={colors.warning} textColor={colors.warningForeground}>
                 Liquidate
               </Button>
-              <Button mode="text" onPress={() => setLiquidateDialogVisible(false)}>
+              <Button mode="text" onPress={() => setLiquidateDialogVisible(false)} textColor={colors.mutedForeground}>
                 Cancel
               </Button>
             </View>
@@ -793,26 +832,47 @@ function InvestmentsContent() {
 
 export const InvestmentsTab: React.FC = () => {
   const theme = useTheme();
+  const colors = useColors();
   const [activeTab, setActiveTab] = useState<'investments' | 'futures'>('investments');
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
       {/* Custom Tab Bar */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: colors.card }, shadow.sm]}>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'investments' && { borderBottomColor: theme.colors.primary }]}
+          style={[
+            styles.tabButton,
+            { borderBottomColor: activeTab === 'investments' ? colors.primary : 'transparent' },
+          ]}
           onPress={() => setActiveTab('investments')}
         >
-          <Text style={[styles.tabButtonText, activeTab === 'investments' && styles.activeTabButtonText]}>
+          <Text
+            style={[
+              styles.tabButtonText,
+              { color: activeTab === 'investments' ? colors.primary : colors.mutedForeground },
+              activeTab === 'investments' && styles.activeTabButtonText,
+            ]}
+          >
             Investments
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'futures' && { borderBottomColor: theme.colors.primary }]}
+          style={[
+            styles.tabButton,
+            { borderBottomColor: activeTab === 'futures' ? colors.primary : 'transparent' },
+          ]}
           onPress={() => setActiveTab('futures')}
         >
-          <Text style={[styles.tabButtonText, activeTab === 'futures' && styles.activeTabButtonText]}>Futures</Text>
+          <Text
+            style={[
+              styles.tabButtonText,
+              { color: activeTab === 'futures' ? colors.primary : colors.mutedForeground },
+              activeTab === 'futures' && styles.activeTabButtonText,
+            ]}
+          >
+            Futures
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -825,138 +885,123 @@ export const InvestmentsTab: React.FC = () => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: spacing[4],
     alignItems: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
-
   tabButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
+    ...textStyles.label,
   },
   activeTabButtonText: {
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   tabContent: {
     flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+    padding: spacing[4],
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing[1],
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...textStyles.h4,
+    flex: 1,
   },
-  addBtn: {
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  typeChip: {
+    height: 24,
   },
-  addBtnText: {
-    fontWeight: 'bold',
+  typeChipText: {
+    ...textStyles.caption,
+    fontWeight: '700',
   },
   modalItem: {
-    paddingVertical: 12,
+    flexDirection: 'row',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
     width: '100%',
     alignItems: 'center',
   },
   modalItemText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...textStyles.body,
+    fontWeight: '600',
   },
   empty: {
+    ...textStyles.body,
     textAlign: 'center',
-    color: '#888',
-    marginTop: 32,
+    marginTop: spacing[8],
   },
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionModal: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: radius.xl,
+    padding: spacing[6],
     minWidth: 220,
     alignItems: 'center',
-    elevation: 4,
   },
   actionOption: {
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     width: '100%',
     alignItems: 'center',
   },
   actionOptionText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...textStyles.body,
+    fontWeight: '600',
   },
   editModal: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    minWidth: 260,
+    borderRadius: radius.xl,
+    padding: spacing[6],
+    minWidth: 280,
+    maxWidth: '90%',
     alignItems: 'stretch',
-    elevation: 4,
   },
   editTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    ...textStyles.h4,
+    marginBottom: spacing[4],
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    fontSize: 16,
+    borderRadius: radius.md,
+    padding: spacing[3],
+    marginBottom: spacing[3],
+    ...textStyles.body,
   },
   confirmModal: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    minWidth: 260,
+    borderRadius: radius.xl,
+    padding: spacing[6],
+    minWidth: 280,
+    maxWidth: '90%',
     alignItems: 'center',
-    elevation: 4,
   },
   confirmTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    ...textStyles.h4,
+    marginBottom: spacing[3],
     textAlign: 'center',
   },
   confirmText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 16,
+    ...textStyles.body,
+    marginBottom: spacing[4],
     textAlign: 'center',
   },
   dropdownContainer: {
@@ -967,75 +1012,65 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 12,
+    borderRadius: radius.md,
+    padding: spacing[3],
+    marginBottom: spacing[3],
   },
   dropdownButtonText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  placeholder: {
-    color: '#999',
+    ...textStyles.body,
   },
   dropdownArrow: {
-    fontSize: 12,
-    color: '#666',
+    ...textStyles.caption,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   switchLabel: {
-    fontSize: 16,
-    color: '#333',
+    ...textStyles.body,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 12,
+    gap: spacing[3],
+    marginTop: spacing[3],
   },
   card: {
-    marginBottom: 8,
+    marginBottom: spacing[2],
+    borderRadius: radius.lg,
   },
   attachmentPreviews: {
     flexDirection: 'row',
-    marginTop: 8,
-    marginBottom: 8,
-    gap: 8,
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
+    gap: spacing[2],
   },
   attachmentButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 8,
+    gap: spacing[3],
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
   },
   attachmentButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    gap: 6,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: radius.md,
+    gap: spacing[1.5],
   },
   attachmentButtonText: {
-    fontSize: 14,
-    color: '#2ecc71',
+    ...textStyles.caption,
     fontWeight: '500',
   },
   attachmentPreview: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1048,13 +1083,12 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e0e0e0',
     position: 'relative',
   },
   previewVideoThumbnail: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   playOverlay: {
     position: 'absolute',
@@ -1065,67 +1099,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   previewAudio: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e8f4fd',
   },
   moreAttachments: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   moreAttachmentsText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#666',
+    ...textStyles.caption,
+    fontWeight: '700',
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: spacing[4],
+    bottom: spacing[4],
   },
   amount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 4,
+    ...textStyles.amountSmall,
+    marginBottom: spacing[1],
   },
   description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    ...textStyles.bodySmall,
+    marginBottom: spacing[1],
   },
   date: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
+    ...textStyles.caption,
+    marginBottom: spacing[1],
   },
   profitLossContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   profitLoss: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  profit: {
-    color: '#4CAF50',
-  },
-  loss: {
-    color: '#F44336',
+    ...textStyles.label,
+    fontWeight: '700',
   },
   currentValue: {
-    fontSize: 14,
-    color: '#666',
+    ...textStyles.bodySmall,
   },
 });

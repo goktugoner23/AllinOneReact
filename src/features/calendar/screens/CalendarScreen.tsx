@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
-import { Text, Portal, Dialog, useTheme, Surface, IconButton as PaperIconButton } from 'react-native-paper';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, StyleSheet, Alert, ScrollView, ActivityIndicator, Text as RNText } from 'react-native';
+import { Text, Portal, Dialog, IconButton as PaperIconButton } from 'react-native-paper';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
@@ -11,10 +11,11 @@ import { Event, EventFormData, serializableToEvent } from '@features/calendar/ty
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCalendarEvents, useAddCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent } from '@shared/hooks';
 import { Card, CardContent, Button, Input, Chip, EmptyState } from '@shared/components/ui';
+import { useColors, spacing, radius, textStyles } from '@shared/theme';
 
 export function CalendarScreen() {
   const dispatch = useDispatch<AppDispatch>();
-  const theme = useTheme();
+  const colors = useColors();
 
   // TanStack Query for Firebase events
   const { data: firebaseEvents = [], isLoading: isLoadingEvents } = useCalendarEvents();
@@ -262,7 +263,7 @@ export function CalendarScreen() {
 
       if (dateKey === selectedDate) {
         marks[dateKey].selected = true;
-        marks[dateKey].selectedColor = theme.colors.primaryContainer;
+        marks[dateKey].selectedColor = colors.primaryMuted;
       }
 
       return marks;
@@ -297,7 +298,7 @@ export function CalendarScreen() {
   if (selectedDate && !markedDates[selectedDate]) {
     markedDates[selectedDate] = {
       selected: true,
-      selectedColor: theme.colors.primaryContainer,
+      selectedColor: colors.primaryMuted,
     };
   }
 
@@ -305,15 +306,15 @@ export function CalendarScreen() {
 
   const getEventTypeColor = (type: string) => {
     if (type === 'Registration Start') {
-      return '#4CAF50'; // green background
+      return colors.success;
     } else if (type === 'Registration End') {
-      return '#F44336'; // red background
+      return colors.destructive;
     } else if (type === 'lesson') {
-      return '#2196F3'; // blue background
+      return colors.info;
     } else if (type === 'seminar') {
-      return '#FFF3E0';
+      return colors.warning;
     } else {
-      return theme.colors.primaryContainer;
+      return colors.primary;
     }
   };
 
@@ -345,48 +346,58 @@ export function CalendarScreen() {
     }
   };
 
+  // Memoize calendar theme to prevent unnecessary re-renders
+  const calendarTheme = useMemo(
+    () => ({
+      backgroundColor: colors.background,
+      calendarBackground: colors.background,
+      textSectionTitleColor: colors.foreground,
+      selectedDayBackgroundColor: colors.primary,
+      selectedDayTextColor: colors.primaryForeground,
+      todayTextColor: colors.primary,
+      dayTextColor: colors.foreground,
+      textDisabledColor: colors.foregroundSubtle,
+      dotColor: colors.primary,
+      selectedDotColor: colors.primaryForeground,
+      arrowColor: colors.primary,
+      monthTextColor: colors.foreground,
+      indicatorColor: colors.primary,
+    }),
+    [colors],
+  );
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Calendar
         current={selectedDate}
         onDayPress={handleDayPress}
         markingType="multi-dot"
         markedDates={markedDates}
-        theme={{
-          backgroundColor: theme.colors.surface,
-          calendarBackground: theme.colors.surface,
-          textSectionTitleColor: theme.colors.onSurface,
-          selectedDayBackgroundColor: theme.colors.primary,
-          selectedDayTextColor: theme.colors.onPrimary,
-          todayTextColor: theme.colors.primary,
-          dayTextColor: theme.colors.onSurface,
-          textDisabledColor: theme.colors.onSurfaceDisabled,
-          dotColor: theme.colors.primary,
-          selectedDotColor: theme.colors.onPrimary,
-          arrowColor: theme.colors.primary,
-          monthTextColor: theme.colors.onSurface,
-          indicatorColor: theme.colors.primary,
-        }}
+        theme={calendarTheme}
       />
 
-      <Surface style={styles.eventsContainer} elevation={1}>
+      <Card variant="elevated" padding="md" style={styles.eventsContainer}>
         <View style={styles.eventsHeader}>
-          <Text variant="titleMedium">Events for {new Date(selectedDate).toLocaleDateString()}</Text>
+          <RNText style={[textStyles.h4, { color: colors.foreground }]}>
+            Events for {new Date(selectedDate).toLocaleDateString()}
+          </RNText>
           <PaperIconButton
             icon="plus"
             size={20}
             onPress={handleAddEvent}
             mode="contained"
-            containerColor={theme.colors.primaryContainer}
-            iconColor="white"
+            containerColor={colors.primary}
+            iconColor={colors.primaryForeground}
           />
         </View>
 
         <ScrollView style={styles.eventsList} showsVerticalScrollIndicator={false}>
           {isLoadingEvents ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={styles.loadingText}>Loading events...</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <RNText style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
+                Loading events...
+              </RNText>
             </View>
           ) : selectedDateEvents.length === 0 ? (
             <EmptyState
@@ -396,99 +407,114 @@ export function CalendarScreen() {
               style={styles.emptyState}
             />
           ) : (
-            selectedDateEvents.map((event) => (
-              <Card
-                key={event.id}
-                variant="elevated"
-                padding="sm"
-                style={{ ...styles.eventCard, backgroundColor: getEventTypeColor(event.type) }}
-                onPress={() => handleEventPress(event)}
-              >
-                <CardContent style={styles.eventContent}>
-                  <View style={styles.eventHeader}>
-                    <Text style={styles.eventIcon}>{getEventTypeIcon(event.type)}</Text>
-                    <View style={styles.eventInfo}>
-                      <Text style={[styles.eventTitle, { color: 'white' }]}>{event.title}</Text>
-                      <Text style={[styles.eventTime, { color: 'white' }]}>
-                        {event.date.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                        {event.endDate &&
-                          event.endDate.getTime() !== event.date.getTime() &&
-                          ` - ${event.endDate.toLocaleTimeString([], {
+            selectedDateEvents.map((event) => {
+              const eventBgColor = getEventTypeColor(event.type);
+              return (
+                <Card
+                  key={event.id}
+                  variant="filled"
+                  padding="sm"
+                  style={{ ...styles.eventCard, backgroundColor: eventBgColor }}
+                  onPress={() => handleEventPress(event)}
+                >
+                  <CardContent style={styles.eventContent}>
+                    <View style={styles.eventHeader}>
+                      <View style={styles.eventIconContainer}>
+                        <RNText style={styles.eventIcon}>{getEventTypeIcon(event.type)}</RNText>
+                      </View>
+                      <View style={styles.eventInfo}>
+                        <RNText style={[textStyles.label, styles.eventTitle]}>{event.title}</RNText>
+                        <RNText style={[textStyles.caption, styles.eventTime]}>
+                          {event.date.toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
-                          })}`}
-                      </Text>
-                      {event.description && (
-                        <Text style={[styles.eventDescription, { color: 'white' }]}>{event.description}</Text>
-                      )}
+                          })}
+                          {event.endDate &&
+                            event.endDate.getTime() !== event.date.getTime() &&
+                            ` - ${event.endDate.toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}`}
+                        </RNText>
+                        {event.description && (
+                          <RNText style={[textStyles.caption, styles.eventDescription]}>{event.description}</RNText>
+                        )}
+                      </View>
+                      <Chip color={getChipColor(event.type)} size="sm" variant="filled">
+                        {event.type === 'lesson' ? 'Lesson' : event.type.replace('_', ' ')}
+                      </Chip>
                     </View>
-                    <Chip color={getChipColor(event.type)} size="sm" variant="filled">
-                      {event.type === 'lesson' ? 'Lesson' : event.type.replace('_', ' ')}
-                    </Chip>
-                  </View>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </ScrollView>
-      </Surface>
+      </Card>
 
       {/* Event Details Modal */}
       <Portal>
         <Dialog
           visible={showEventModal}
           onDismiss={() => setShowEventModal(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface }}
         >
-          <Dialog.Title>Event Details</Dialog.Title>
+          <Dialog.Title style={{ color: colors.foreground }}>Event Details</Dialog.Title>
           <Dialog.Content>
             {selectedEvent && (
               <View>
-                <Text variant="titleMedium" style={styles.modalTitle}>
+                <RNText style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[3] }]}>
                   {selectedEvent.title}
-                </Text>
-                <Text variant="bodyMedium" style={styles.modalDetail}>
+                </RNText>
+                <RNText style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                   Date: {selectedEvent.date.toLocaleString()}
-                </Text>
+                </RNText>
                 {selectedEvent.endDate && selectedEvent.endDate.getTime() !== selectedEvent.date.getTime() && (
-                  <Text variant="bodyMedium" style={styles.modalDetail}>
+                  <RNText style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                     Until {selectedEvent.endDate.toLocaleString()}
-                  </Text>
+                  </RNText>
                 )}
-                <Text variant="bodyMedium" style={styles.modalDetail}>
+                <RNText style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                   Type: {selectedEvent.type.replace('_', ' ')}
-                </Text>
+                </RNText>
                 {selectedEvent.description && (
-                  <Text variant="bodyMedium" style={styles.modalDescription}>
+                  <RNText
+                    style={[
+                      textStyles.bodySmall,
+                      { color: colors.foregroundSubtle, marginTop: spacing[2], fontStyle: 'italic' },
+                    ]}
+                  >
                     {selectedEvent.description}
-                  </Text>
+                  </RNText>
                 )}
               </View>
             )}
             {selectedFirebaseEvent && (
               <View>
-                <Text variant="titleMedium" style={styles.modalTitle}>
+                <RNText style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[3] }]}>
                   {selectedFirebaseEvent.title}
-                </Text>
-                <Text variant="bodyMedium" style={styles.modalDetail}>
+                </RNText>
+                <RNText style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                   Date: {selectedFirebaseEvent.date.toLocaleString()}
-                </Text>
+                </RNText>
                 {selectedFirebaseEvent.endDate &&
                   selectedFirebaseEvent.endDate.getTime() !== selectedFirebaseEvent.date.getTime() && (
-                    <Text variant="bodyMedium" style={styles.modalDetail}>
+                    <RNText style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                       Until {selectedFirebaseEvent.endDate.toLocaleString()}
-                    </Text>
+                    </RNText>
                   )}
-                <Text variant="bodyMedium" style={styles.modalDetail}>
+                <RNText style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                   Type: {selectedFirebaseEvent.type}
-                </Text>
+                </RNText>
                 {selectedFirebaseEvent.description && (
-                  <Text variant="bodyMedium" style={styles.modalDescription}>
+                  <RNText
+                    style={[
+                      textStyles.bodySmall,
+                      { color: colors.foregroundSubtle, marginTop: spacing[2], fontStyle: 'italic' },
+                    ]}
+                  >
                     {selectedFirebaseEvent.description}
-                  </Text>
+                  </RNText>
                 )}
               </View>
             )}
@@ -523,23 +549,27 @@ export function CalendarScreen() {
         <Dialog
           visible={showAddDialog}
           onDismiss={() => setShowAddDialog(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface }}
         >
-          <Dialog.Title>Add Event</Dialog.Title>
+          <Dialog.Title style={{ color: colors.foreground }}>Add Event</Dialog.Title>
           <Dialog.Content>
-            <Input
-              label="Title *"
-              value={formData.title}
-              onChangeText={(text) => setFormData({ ...formData, title: text })}
-              placeholder="Enter event title"
-            />
+            <View style={styles.formGroup}>
+              <Input
+                label="Title *"
+                value={formData.title}
+                onChangeText={(text) => setFormData({ ...formData, title: text })}
+                placeholder="Enter event title"
+              />
+            </View>
 
-            <Input
-              label="Type"
-              value={formData.type}
-              onChangeText={(text) => setFormData({ ...formData, type: text })}
-              placeholder="Event type"
-            />
+            <View style={styles.formGroup}>
+              <Input
+                label="Type"
+                value={formData.type}
+                onChangeText={(text) => setFormData({ ...formData, type: text })}
+                placeholder="Event type"
+              />
+            </View>
 
             <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
               Date: {formData.date.toLocaleDateString()}
@@ -554,16 +584,18 @@ export function CalendarScreen() {
               </Button>
             </View>
 
-            <Input
-              label="Description"
-              value={formData.description || ''}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
-              placeholder="Enter description"
-              multiline
-              numberOfLines={3}
-            />
+            <View style={styles.formGroup}>
+              <Input
+                label="Description"
+                value={formData.description || ''}
+                onChangeText={(text) => setFormData({ ...formData, description: text })}
+                placeholder="Enter description"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
           </Dialog.Content>
-          <Dialog.Actions>
+          <Dialog.Actions style={styles.dialogActions}>
             <Button variant="ghost" onPress={() => setShowAddDialog(false)}>
               Cancel
             </Button>
@@ -579,23 +611,27 @@ export function CalendarScreen() {
         <Dialog
           visible={showEditDialog}
           onDismiss={() => setShowEditDialog(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface }}
         >
-          <Dialog.Title>Edit Event</Dialog.Title>
+          <Dialog.Title style={{ color: colors.foreground }}>Edit Event</Dialog.Title>
           <Dialog.Content>
-            <Input
-              label="Title *"
-              value={formData.title}
-              onChangeText={(text) => setFormData({ ...formData, title: text })}
-              placeholder="Enter event title"
-            />
+            <View style={styles.formGroup}>
+              <Input
+                label="Title *"
+                value={formData.title}
+                onChangeText={(text) => setFormData({ ...formData, title: text })}
+                placeholder="Enter event title"
+              />
+            </View>
 
-            <Input
-              label="Type"
-              value={formData.type}
-              onChangeText={(text) => setFormData({ ...formData, type: text })}
-              placeholder="Event type"
-            />
+            <View style={styles.formGroup}>
+              <Input
+                label="Type"
+                value={formData.type}
+                onChangeText={(text) => setFormData({ ...formData, type: text })}
+                placeholder="Event type"
+              />
+            </View>
 
             <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
               Date: {formData.date.toLocaleDateString()}
@@ -610,16 +646,18 @@ export function CalendarScreen() {
               </Button>
             </View>
 
-            <Input
-              label="Description"
-              value={formData.description || ''}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
-              placeholder="Enter description"
-              multiline
-              numberOfLines={3}
-            />
+            <View style={styles.formGroup}>
+              <Input
+                label="Description"
+                value={formData.description || ''}
+                onChangeText={(text) => setFormData({ ...formData, description: text })}
+                placeholder="Enter description"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
           </Dialog.Content>
-          <Dialog.Actions>
+          <Dialog.Actions style={styles.dialogActions}>
             <Button variant="ghost" onPress={() => setShowEditDialog(false)}>
               Cancel
             </Button>
@@ -653,95 +691,87 @@ const styles = StyleSheet.create({
   },
   eventsContainer: {
     flex: 1,
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    marginTop: spacing[2],
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[4],
   },
   eventsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   eventsList: {
     flex: 1,
   },
   emptyState: {
-    paddingVertical: 32,
+    paddingVertical: spacing[8],
   },
   eventCard: {
-    marginBottom: 6,
+    marginBottom: spacing[2],
   },
   eventContent: {
-    paddingVertical: 4,
+    paddingVertical: spacing[1],
   },
   eventHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
+  eventIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[3],
+  },
   eventIcon: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 12,
-    marginTop: 2,
-    color: 'white',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    width: 24,
-    height: 24,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 24,
-    borderRadius: 12,
   },
   eventInfo: {
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   eventTitle: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 1,
+    color: '#FFFFFF',
+    marginBottom: spacing[0.5],
   },
   eventTime: {
-    fontSize: 12,
-    marginBottom: 2,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: spacing[1],
   },
   eventDescription: {
     fontStyle: 'italic',
-    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: spacing[1],
   },
-  modalTitle: {
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  modalDetail: {
-    marginBottom: 8,
-  },
-  modalDescription: {
-    marginTop: 8,
-    fontStyle: 'italic',
-    color: '#666',
+  formGroup: {
+    marginBottom: spacing[4],
   },
   dateButton: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
     alignSelf: 'flex-start',
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: spacing[4],
+    gap: spacing[2],
   },
   timeButton: {
     flex: 1,
+  },
+  dialogActions: {
+    gap: spacing[2],
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 32,
-  },
-  loadingText: {
-    marginTop: 8,
-    color: '#666',
+    paddingVertical: spacing[8],
   },
 });

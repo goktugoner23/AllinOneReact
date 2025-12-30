@@ -16,6 +16,7 @@ import { IconButton, Text, Surface, Portal, Modal, ProgressBar } from 'react-nat
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AudioPlayer from '@shared/components/ui/AudioPlayer';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
+import { useAppTheme } from '@shared/theme';
 
 import RNFS from 'react-native-fs';
 import { getCachedUriIfExists, warmCache } from '@shared/services/mediaCache';
@@ -40,6 +41,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
     const [playingVideo, setPlayingVideo] = useState<string | null>(null);
     const [videoError, setVideoError] = useState<string | null>(null);
     const flatListRef = useRef<FlashList<MediaAttachment>>(null);
+    const { colors, spacing, radius, textStyles } = useAppTheme();
 
     useImperativeHandle(
       ref,
@@ -92,17 +94,17 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
               <View style={styles.videoContainer}>
                 {playingVideo === item.uri ? (
                   videoError ? (
-                    <View style={styles.videoErrorContainer}>
-                      <Text style={styles.videoErrorText}>Video playback failed</Text>
+                    <View style={[styles.videoErrorContainer, { backgroundColor: colors.backgroundSecondary }]}>
+                      <Text style={[textStyles.body, { color: colors.foreground, marginBottom: spacing[4] }]}>Video playback failed</Text>
                       <TouchableOpacity
-                        style={styles.retryButton}
+                        style={[styles.retryButton, { backgroundColor: colors.primary, borderRadius: radius.sm }]}
                         onPress={() => {
                           setVideoError(null);
                           setPlayingVideo(null);
                           setTimeout(() => setPlayingVideo(item.uri), 100);
                         }}
                       >
-                        <Text style={styles.retryButtonText}>Retry</Text>
+                        <Text style={[textStyles.button, { color: colors.primaryForeground }]}>Retry</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -170,10 +172,10 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
           case MediaType.AUDIO:
             return (
               <View style={styles.audioContainer}>
-                <View style={styles.audioThumbnail}>
-                  <Icon name="music-note" size={60} color="#007AFF" />
+                <View style={[styles.audioThumbnail, { backgroundColor: colors.primaryMuted }]}>
+                  <Icon name="music-note" size={60} color={colors.primary} />
                 </View>
-                <Text style={styles.mediaText}>Voice Note</Text>
+                <Text style={[textStyles.bodyLarge, { color: colors.background, marginTop: spacing[4] }]}>Voice Note</Text>
                 <AudioPlayer attachment={{ ...item, uri: cachedUri }} />
               </View>
             );
@@ -288,12 +290,14 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
     return (
       <Portal>
         <Modal visible={true} onDismiss={onClose} contentContainerStyle={styles.modalContainer}>
-          <Surface style={styles.container}>
+          <Surface style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[2] }]}>
               <View style={styles.headerLeft}>
-                <IconButton icon="close" size={24} onPress={onClose} style={styles.headerButton} />
-                <Text style={styles.headerTitle}>{currentAttachment?.name || `Attachment ${currentIndex + 1}`}</Text>
+                <IconButton icon="close" size={24} onPress={onClose} style={styles.headerButton} iconColor={colors.foreground} />
+                <Text style={[textStyles.label, { color: colors.foreground, marginLeft: spacing[2], flex: 1 }]}>
+                  {currentAttachment?.name || `Attachment ${currentIndex + 1}`}
+                </Text>
               </View>
               <View style={styles.headerRight}>
                 <IconButton
@@ -302,10 +306,11 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                   onPress={handleDownload}
                   style={styles.headerButton}
                   disabled={downloading}
+                  iconColor={colors.foreground}
                 />
                 {downloading && (
                   <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="small" color="white" />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   </View>
                 )}
               </View>
@@ -313,9 +318,11 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
 
             {/* Download Progress */}
             {downloading && (
-              <View style={styles.progressContainer}>
-                <ProgressBar progress={downloadProgress / 100} color="#007AFF" style={styles.progressBar} />
-                <Text style={styles.progressText}>Downloading... {Math.round(downloadProgress)}%</Text>
+              <View style={[styles.progressContainer, { paddingHorizontal: spacing[4], paddingVertical: spacing[2] }]}>
+                <ProgressBar progress={downloadProgress / 100} color={colors.primary} style={styles.progressBar} />
+                <Text style={[textStyles.caption, { color: colors.foreground, textAlign: 'center', marginTop: spacing[1] }]}>
+                  Downloading... {Math.round(downloadProgress)}%
+                </Text>
               </View>
             )}
 
@@ -338,15 +345,16 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
 
             {/* Navigation Controls */}
             {attachments.length > 1 && (
-              <View style={styles.navigationContainer}>
+              <View style={[styles.navigationContainer, { paddingHorizontal: spacing[4], paddingBottom: spacing[4] }]}>
                 <IconButton
                   icon="chevron-left"
                   size={32}
                   onPress={handlePrevious}
                   disabled={currentIndex === 0}
                   style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
+                  iconColor={colors.foreground}
                 />
-                <Text style={styles.counter}>
+                <Text style={[textStyles.label, { color: colors.foreground }]}>
                   {currentIndex + 1} / {attachments.length}
                 </Text>
                 <IconButton
@@ -355,6 +363,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                   onPress={handleNext}
                   disabled={currentIndex === attachments.length - 1}
                   style={[styles.navButton, currentIndex === attachments.length - 1 && styles.navButtonDisabled]}
+                  iconColor={colors.foreground}
                 />
               </View>
             )}
@@ -372,16 +381,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -395,27 +399,10 @@ const styles = StyleSheet.create({
   headerButton: {
     margin: 0,
   },
-  headerTitle: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-    flex: 1,
-  },
-  progressContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
+  progressContainer: {},
   progressBar: {
     height: 4,
     borderRadius: 2,
-  },
-  progressText: {
-    color: 'white',
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: 'center',
   },
   loadingOverlay: {
     position: 'absolute',
@@ -480,10 +467,8 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#e8f4fd',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -493,69 +478,36 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-
   placeholderContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     width: screenWidth,
     height: screenHeight * 0.7,
   },
-  mediaText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-  },
-  mediaSubtext: {
-    color: '#ccc',
-    fontSize: 14,
-    marginTop: 8,
+  placeholderText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   videoErrorContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     width: screenWidth,
     height: screenHeight * 0.7,
-    backgroundColor: '#1a1a1a',
-  },
-  videoErrorText: {
-    color: 'white',
-    fontSize: 16,
-    marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#2196f3',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 5,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  placeholderText: {
-    color: 'white',
-    fontSize: 16,
   },
   navigationContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   navButton: {
     margin: 0,
   },
   navButtonDisabled: {
     opacity: 0.3,
-  },
-  counter: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
 

@@ -10,9 +10,9 @@ export default function RefreshFab({ style, ...rest }: RefreshFabProps) {
   return (
     <FAB
       icon="refresh"
-      color="#FFFFFF"
+      color={theme.colors.onPrimary}
       style={[
-        { position: 'absolute', left: 16, bottom: 16, backgroundColor: (theme as any).colors?.primary || '#6C63FF' },
+        { position: 'absolute', left: 16, bottom: 16, backgroundColor: theme.colors.primary },
         style,
       ]}
       {...rest}

@@ -47,7 +47,8 @@ export function FuturesWebSocketProvider({ children }: { children: React.ReactNo
           setConnected(isConnected);
         },
         onError: (error) => {
-          logger.error('WebSocket error', { error }, 'FuturesWebSocketProvider');
+          // Log as warning instead of error - connection failures are expected when server is down
+          logger.warn('WebSocket connection issue', { error }, 'FuturesWebSocketProvider');
         },
       });
 

@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated ESLint and Prettier configurations
 - Fixed TypeScript strict mode issues
 
+### Fixed
+- **UI Theming Overhaul**: Replaced hardcoded colors with theme-aware colors across entire codebase
+  - Shared UI components: `AddFab`, `RefreshFab`, `Chip`, `Tabs`, `ProgressBar`, `AudioPlayer`, `Card`
+  - All components now properly support light/dark theme switching
+  - Fixed `Card` component to accept `StyleProp<ViewStyle>` for style arrays
+  - Added missing styles: `placeholderText` in AttachmentGallery, `errorChip`/`statusChip`/`loader` in FuturesTab
+- TypeScript compilation errors resolved across all modified files
+
 ---
 
 ## [2.0.0] - 2024-12

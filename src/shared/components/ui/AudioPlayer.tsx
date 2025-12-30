@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { Card, IconButton, Text, ProgressBar, Surface } from 'react-native-paper';
+import { Card, IconButton, Text, ProgressBar, Surface, useTheme } from 'react-native-paper';
 
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import AudioRecorderPlayer, { PlayBackType } from 'react-native-audio-recorder-player';
@@ -21,6 +21,7 @@ interface PlayerState {
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
+  const theme = useTheme();
   const [state, setState] = useState<PlayerState>({
     isPlaying: false,
     isLoaded: false,
@@ -209,7 +210,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
               styles.waveformBar,
               {
                 height: height * 40,
-                backgroundColor: state.isPlaying ? '#2196f3' : '#ccc',
+                backgroundColor: state.isPlaying ? theme.colors.primary : theme.colors.outlineVariant,
               },
             ]}
           />
@@ -220,14 +221,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
 
   const renderErrorView = () => (
     <View style={styles.errorContainer}>
-      <IconButton icon="error" size={24} iconColor="#f44336" />
-      <Text style={styles.errorText}>{state.error}</Text>
+      <IconButton icon="error" size={24} iconColor={theme.colors.error} />
+      <Text style={[styles.errorText, { color: theme.colors.error }]}>{state.error}</Text>
     </View>
   );
 
   const renderLoadingView = () => (
     <View style={styles.loadingContainer}>
-      <Text style={styles.loadingText}>Loading audio...</Text>
+      <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>Loading audio...</Text>
     </View>
   );
 
@@ -252,19 +253,19 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>{attachment.name}</Text>
-            <Text style={styles.subtitle}>Audio File</Text>
+            <Text style={[styles.title, { color: theme.colors.onSurface }]}>{attachment.name}</Text>
+            <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Audio File</Text>
           </View>
-          <IconButton icon="music-note" size={24} iconColor="#2196f3" />
+          <IconButton icon="music-note" size={24} iconColor={theme.colors.primary} />
         </View>
 
         {renderWaveform()}
 
         <View style={styles.progressContainer}>
-          <ProgressBar progress={getProgress()} style={styles.progressBar} color="#2196f3" />
+          <ProgressBar progress={getProgress()} style={styles.progressBar} color={theme.colors.primary} />
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{formatDuration(state.currentTime)}</Text>
-            <Text style={styles.timeText}>{formatDuration(state.duration)}</Text>
+            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>{formatDuration(state.currentTime)}</Text>
+            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>{formatDuration(state.duration)}</Text>
           </View>
         </View>
 
@@ -273,16 +274,16 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
           <IconButton
             icon={state.isPlaying ? 'pause' : 'play'}
             size={32}
-            iconColor="white"
-            style={styles.playButton}
+            iconColor={theme.colors.onPrimary}
+            style={[styles.playButton, { backgroundColor: theme.colors.primary }]}
             onPress={state.isPlaying ? pauseAudio : playAudio}
           />
           <IconButton icon="skip-next" size={24} onPress={stopAudio} />
         </View>
 
         <View style={styles.metaContainer}>
-          <Text style={styles.metaText}>Duration: {formatDuration(state.duration)}</Text>
-          {attachment.size && <Text style={styles.metaText}>Size: {formatFileSize(attachment.size)}</Text>}
+          <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Duration: {formatDuration(state.duration)}</Text>
+          {attachment.size && <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Size: {formatFileSize(attachment.size)}</Text>}
         </View>
       </Card.Content>
     </Card>
@@ -315,7 +316,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: '#666',
   },
   waveformContainer: {
     flexDirection: 'row',
@@ -327,7 +327,6 @@ const styles = StyleSheet.create({
   },
   waveformBar: {
     width: 3,
-    backgroundColor: '#ccc',
     borderRadius: 2,
   },
   progressContainer: {
@@ -344,7 +343,6 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 12,
-    color: '#666',
   },
   controls: {
     flexDirection: 'row',
@@ -354,7 +352,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   playButton: {
-    backgroundColor: '#2196f3',
   },
   metaContainer: {
     flexDirection: 'row',
@@ -362,7 +359,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#666',
   },
   errorContainer: {
     flexDirection: 'row',
@@ -371,7 +367,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#f44336',
     marginLeft: 8,
   },
   loadingContainer: {
@@ -380,7 +375,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#666',
   },
 });
 

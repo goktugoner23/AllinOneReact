@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, Text as RNText } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
@@ -19,7 +19,7 @@ import {
 } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { Program } from '@features/workout/types/Workout';
-import { useTheme } from 'react-native-paper';
+import { useColors, spacing, textStyles } from '@shared/theme';
 
 type Period = 'ALL' | 'DAY_1' | 'DAYS_7' | 'DAYS_30' | 'DAYS_90';
 
@@ -32,7 +32,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function WorkoutExercise() {
-  const theme = useTheme();
+  const colors = useColors();
   const nav = useNavigation<any>();
   const dispatch = useAppDispatch();
   const active = useAppSelector((s) => s.workout.activeSession);
@@ -73,23 +73,27 @@ export default function WorkoutExercise() {
     });
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={{ padding: spacing[3], gap: spacing[3], paddingBottom: spacing[6] }}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Control Center Card */}
       <Card>
         <CardHeader>
-          <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSurface }}>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>
             Exercise
           </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
             Control Center
           </Text>
         </CardHeader>
         <CardContent>
           {active ? (
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ gap: spacing[2] }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2] }}>
                 <Badge variant="info">Active</Badge>
-                <Text style={{ color: theme.colors.onSurface }}>{active.programName || 'Custom'}</Text>
+                <Text style={[textStyles.body, { color: colors.foreground }]}>{active.programName || 'Custom'}</Text>
               </View>
               <Button variant="primary" fullWidth onPress={() => setSelectorOpen(true)}>
                 Start Workout
@@ -105,7 +109,7 @@ export default function WorkoutExercise() {
 
       {/* Program Selector Dialog */}
       <Dialog visible={selectorOpen} onClose={() => setSelectorOpen(false)} title="Select Program">
-        <View style={{ gap: 8, marginBottom: 16 }}>
+        <View style={{ gap: spacing[2], marginBottom: spacing[4] }}>
           {programs.map((p) => (
             <Card
               key={p.id}
@@ -118,8 +122,8 @@ export default function WorkoutExercise() {
               }}
             >
               <CardContent>
-                <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>{p.name}</Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text style={[textStyles.label, { color: colors.foreground }]}>{p.name}</Text>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                   {p.exercises.length} exercises
                 </Text>
               </CardContent>
@@ -142,17 +146,17 @@ export default function WorkoutExercise() {
       {/* Filters Card */}
       <Card>
         <CardHeader>
-          <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSurface }}>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>
             Filter Workouts
           </Text>
         </CardHeader>
-        <CardContent style={{ gap: 12 }}>
+        <CardContent style={{ gap: spacing[3] }}>
           <TextInput
             mode="outlined"
             placeholder="Search by program name"
             value={search}
             onChangeText={setSearch}
-            style={{ backgroundColor: theme.colors.surface }}
+            style={{ backgroundColor: colors.surface }}
           />
           <Select label="Time Period" options={PERIOD_OPTIONS} value={period} onChange={setPeriod} />
         </CardContent>
@@ -161,7 +165,7 @@ export default function WorkoutExercise() {
       {/* Workouts List Card */}
       <Card>
         <CardHeader>
-          <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSurface }}>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>
             Workouts
           </Text>
         </CardHeader>
@@ -171,19 +175,19 @@ export default function WorkoutExercise() {
               icon="barbell-outline"
               title="No workouts yet"
               description="Start a workout to see your history here."
-              style={{ paddingVertical: 24 }}
+              style={{ paddingVertical: spacing[6] }}
             />
           ) : (
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: spacing[2] }}>
               {filteredHistory.map((w) => (
                 <Card key={w.id} variant="outlined" padding="sm" onPress={() => setSelectedWorkout(w)}>
                   <CardContent>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>
+                        <Text style={[textStyles.label, { color: colors.foreground }]}>
                           {w.programName || 'Custom'}
                         </Text>
-                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                           {new Date(w.endTime).toLocaleString()} - {Math.round(w.durationMs / 60000)} min
                         </Text>
                       </View>
@@ -194,12 +198,12 @@ export default function WorkoutExercise() {
                         onPress={() => setConfirmDelete({ visible: true, workoutId: w.id })}
                       />
                     </View>
-                    <View style={{ marginTop: 8 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    <View style={{ marginTop: spacing[2] }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing[1] }}>
+                        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                           Completion
                         </Text>
-                        <Text variant="bodySmall" style={{ color: theme.colors.onSurface }}>
+                        <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
                           {Math.round(w.completionPercentage)}%
                         </Text>
                       </View>
@@ -214,7 +218,7 @@ export default function WorkoutExercise() {
                         }
                         size="sm"
                       />
-                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
+                      <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
                         Sets: {w.totalSetsCompleted}/{w.totalSetsPlanned}
                       </Text>
                     </View>
@@ -250,40 +254,40 @@ export default function WorkoutExercise() {
         title={selectedWorkout?.programName || 'Custom'}
       >
         {selectedWorkout && (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing[3] }}>
             <View>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                 Time
               </Text>
-              <Text style={{ color: theme.colors.onSurface }}>
+              <Text style={[textStyles.body, { color: colors.foreground }]}>
                 {new Date(selectedWorkout.startTime).toLocaleString()} -{' '}
                 {new Date(selectedWorkout.endTime).toLocaleString()}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 16 }}>
+            <View style={{ flexDirection: 'row', gap: spacing[4] }}>
               <View style={{ flex: 1 }}>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                   Duration
                 </Text>
-                <Text style={{ color: theme.colors.onSurface }}>
+                <Text style={[textStyles.body, { color: colors.foreground }]}>
                   {Math.round(selectedWorkout.durationMs / 60000)} min
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                   Active Time
                 </Text>
-                <Text style={{ color: theme.colors.onSurface }}>
+                <Text style={[textStyles.body, { color: colors.foreground }]}>
                   {Math.round(selectedWorkout.activeDurationMs / 60000)} min
                 </Text>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 16 }}>
+            <View style={{ flexDirection: 'row', gap: spacing[4] }}>
               <View style={{ flex: 1 }}>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                   Completed
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2] }}>
                   <Badge
                     variant={
                       selectedWorkout.completionPercentage >= 80
@@ -298,21 +302,21 @@ export default function WorkoutExercise() {
                 </View>
               </View>
               <View style={{ flex: 1 }}>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                   Total Volume
                 </Text>
-                <Text style={{ color: theme.colors.onSurface }}>{Math.round(selectedWorkout.totalVolume)} kg</Text>
+                <Text style={[textStyles.body, { color: colors.foreground }]}>{Math.round(selectedWorkout.totalVolume)} kg</Text>
               </View>
             </View>
             <View>
-              <Text variant="titleSmall" style={{ fontWeight: '600', color: theme.colors.onSurface, marginBottom: 8 }}>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
                 Exercises
               </Text>
               {selectedWorkout.exercises.map((ex: any, idx: number) => (
-                <Card key={idx} variant="filled" padding="sm" style={{ marginBottom: 8 }}>
+                <Card key={idx} variant="filled" padding="sm" style={{ marginBottom: spacing[2] }}>
                   <CardContent>
-                    <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>{ex.exerciseName}</Text>
-                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    <Text style={[textStyles.label, { color: colors.foreground }]}>{ex.exerciseName}</Text>
+                    <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
                       Sets: {ex.sets?.length || 0}
                     </Text>
                   </CardContent>

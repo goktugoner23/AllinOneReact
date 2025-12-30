@@ -79,7 +79,7 @@ const docToTaskGroup = (doc: any): TaskGroup => {
     id: data.id?.toString() || doc.id,
     title: data.title || '',
     description: data.description,
-    color: data.color || '#7C3AED',
+    color: data.color || '#1E40AF',
     createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     isCompleted: data.isCompleted || false,
   };

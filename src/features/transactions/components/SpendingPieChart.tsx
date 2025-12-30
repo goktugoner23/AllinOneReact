@@ -18,18 +18,30 @@ interface CategoryData {
 export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions }) => {
   const colors = useColors();
 
-  // Only consider expenses for the chart
-  const expenses = transactions.filter((t) => !t.isIncome);
+  // Get current month boundaries
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  // Only consider expenses from current month for the chart
+  const expenses = transactions.filter((t) => {
+    if (t.isIncome) return false;
+    const txDate = new Date(t.date);
+    return txDate >= startOfMonth && txDate <= endOfMonth;
+  });
+
+  // Get month name for display
+  const monthName = now.toLocaleString('default', { month: 'long' });
 
   if (expenses.length === 0) {
     return (
       <Card variant="elevated" style={styles.card}>
         <CardHeader>
-          <Text style={[styles.title, { color: colors.foreground }]}>Spending by Category</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{monthName} Spending</Text>
         </CardHeader>
         <CardContent>
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No expenses to display</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No expenses this month</Text>
           </View>
         </CardContent>
       </Card>
@@ -61,10 +73,10 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
       color: categoryColors[index % categoryColors.length],
     }));
 
-  // Take top 5 categories and group the rest as "Others"
-  const displayData = categoryData.slice(0, 5);
-  if (categoryData.length > 5) {
-    const othersAmount = categoryData.slice(5).reduce((sum, item) => sum + item.amount, 0);
+  // Take top 3 categories and group the rest as "Others"
+  const displayData = categoryData.slice(0, 3);
+  if (categoryData.length > 3) {
+    const othersAmount = categoryData.slice(3).reduce((sum, item) => sum + item.amount, 0);
     const othersPercentage = (othersAmount / totalExpenses) * 100;
     displayData.push({
       category: 'Others',
@@ -86,7 +98,7 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
   return (
     <Card variant="elevated" style={styles.card}>
       <CardHeader style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Spending by Category</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{monthName} Spending</Text>
         <Text style={[styles.totalAmount, { color: colors.expense }]}>{formatCurrency(totalExpenses)}</Text>
       </CardHeader>
       <CardContent>
@@ -126,7 +138,7 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
 
 const styles = StyleSheet.create({
   card: {
-    marginVertical: spacing[2],
+    marginVertical: spacing[1],
   },
   header: {
     flexDirection: 'row',
@@ -134,28 +146,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    ...textStyles.h4,
+    ...textStyles.body,
+    fontWeight: '600',
   },
   totalAmount: {
-    ...textStyles.label,
+    ...textStyles.caption,
     fontWeight: '700',
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: spacing[8],
+    paddingVertical: spacing[4],
   },
   emptyText: {
-    ...textStyles.body,
+    ...textStyles.caption,
     fontStyle: 'italic',
   },
   categoryList: {
-    gap: spacing[3],
+    gap: spacing[2],
   },
   categoryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[2],
+    marginBottom: spacing[1],
   },
   categoryLeft: {
     flexDirection: 'row',
@@ -164,12 +177,12 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   colorDot: {
-    width: 12,
-    height: 12,
+    width: 10,
+    height: 10,
     borderRadius: radius.full,
   },
   categoryName: {
-    ...textStyles.body,
+    ...textStyles.caption,
     flex: 1,
   },
   categoryRight: {
@@ -177,18 +190,18 @@ const styles = StyleSheet.create({
     marginLeft: spacing[2],
   },
   categoryAmount: {
-    ...textStyles.label,
+    ...textStyles.caption,
     fontWeight: '600',
   },
   categoryPercentage: {
-    ...textStyles.caption,
-    marginTop: 2,
+    fontSize: 10,
+    marginTop: 1,
   },
   progressBarBg: {
-    height: 4,
+    height: 3,
     borderRadius: radius.full,
     overflow: 'hidden',
-    marginBottom: spacing[1],
+    marginBottom: spacing[0.5],
   },
   progressBarFill: {
     height: '100%',
@@ -196,6 +209,6 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    marginTop: spacing[2],
+    marginTop: spacing[1],
   },
 });

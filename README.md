@@ -372,7 +372,9 @@ npx react-native link react-native-vector-icons
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Current Version: v2.0.0
+### Current Version: v2.1.0 (Unreleased)
+- **UI Theming Overhaul**: Full dark/light mode support across all components
+- Theme-aware shared UI components (Card, Chip, Tabs, ProgressBar, etc.)
 - TanStack Query integration
 - NativeWind/Tailwind CSS styling
 - Feature-first architecture
@@ -382,6 +384,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 - Enhanced TypeScript strict mode
 
 ### Previous Versions
+- **v2.0.0**: TanStack Query, NativeWind, feature-first architecture
 - **v1.6.0**: Instagram all-in-one API, Posts tab
 - **v1.5.0**: Instagram profiler with stories and downloads
 - **v1.4.0**: COIN-M futures, WebSocket live data

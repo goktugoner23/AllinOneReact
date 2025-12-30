@@ -109,7 +109,7 @@ export function useMarkedDates() {
   events.forEach((event) => {
     const dateKey = new Date(event.date).toISOString().split('T')[0];
     // Determine color based on event type
-    let dotColor = '#7C3AED'; // default purple
+    let dotColor = '#1E40AF'; // default dark blue
     if (event.type.includes('Registration Start') || event.type === 'registration_start') {
       dotColor = '#4CAF50'; // green
     } else if (event.type.includes('Registration End') || event.type === 'registration_end') {

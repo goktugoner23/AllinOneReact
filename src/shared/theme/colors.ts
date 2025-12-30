@@ -18,18 +18,18 @@ export const colors = {
     // Borders
     border: '#E2E8F0',
     borderMuted: '#F1F5F9',
-    borderFocus: '#7C3AED',
+    borderFocus: '#1E40AF',
 
     // Text
     foreground: '#0F172A',
     foregroundMuted: '#64748B',
     foregroundSubtle: '#94A3B8',
 
-    // Primary (Purple)
-    primary: '#7C3AED',
+    // Primary (Dark Blue)
+    primary: '#1E40AF',
     primaryForeground: '#FFFFFF',
-    primaryHover: '#6D28D9',
-    primaryMuted: '#EDE9FE',
+    primaryHover: '#1E3A8A',
+    primaryMuted: '#DBEAFE',
 
     // Secondary
     secondary: '#F1F5F9',
@@ -79,10 +79,10 @@ export const colors = {
     mutedForeground: '#64748B',
 
     // Ring (focus indicator)
-    ring: '#7C3AED',
+    ring: '#1E40AF',
 
     // Chart colors
-    chart1: '#7C3AED',
+    chart1: '#1E40AF',
     chart2: '#10B981',
     chart3: '#F59E0B',
     chart4: '#EF4444',
@@ -177,14 +177,14 @@ export const colors = {
 
 // Category colors for charts and badges
 export const categoryColors = [
-  '#7C3AED', // Purple
+  '#1E40AF', // Dark Blue
   '#10B981', // Emerald
   '#F59E0B', // Amber
   '#EF4444', // Red
   '#3B82F6', // Blue
   '#EC4899', // Pink
   '#06B6D4', // Cyan
-  '#8B5CF6', // Violet
+  '#6366F1', // Indigo
   '#F97316', // Orange
   '#84CC16', // Lime
 ] as const;

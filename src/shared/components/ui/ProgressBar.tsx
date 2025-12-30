@@ -39,11 +39,11 @@ export function ProgressBar({
   const getColor = () => {
     switch (variant) {
       case 'success':
-        return '#4CAF50';
+        return theme.colors.tertiary ?? theme.colors.primary;
       case 'warning':
-        return '#FF9800';
+        return theme.colors.secondary;
       case 'error':
-        return '#F44336';
+        return theme.colors.error;
       default:
         return theme.colors.primary;
     }

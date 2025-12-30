@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useTheme } from 'react-native-paper';
 import WorkoutPrograms from './tabs/WorkoutPrograms';
 import WorkoutExercise from './tabs/WorkoutExercise';
 import WorkoutStats from './tabs/WorkoutStats';
 import { useAppDispatch } from '@shared/store/hooks';
 import { initializeSession } from '@features/workout/store/workoutSlice';
+import { useColors } from '@shared/theme';
 
 const Tab = createBottomTabNavigator();
 
 export default function WorkoutTabs() {
-  const theme = useTheme();
+  const colors = useColors();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -23,6 +23,10 @@ export default function WorkoutTabs() {
       initialRouteName="Exercise"
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
         tabBarIcon: ({ color, size }) => {
           const icon =
             route.name === 'Exercise'
@@ -32,8 +36,8 @@ export default function WorkoutTabs() {
                 : 'stats-chart-outline';
           return <Ionicons name={icon} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurface,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.foregroundMuted,
       })}
     >
       <Tab.Screen name="Exercise" component={WorkoutExercise} />

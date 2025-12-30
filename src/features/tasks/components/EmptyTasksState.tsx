@@ -1,27 +1,26 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, Button, useTheme } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
+import { Button } from 'react-native-paper';
+import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
 interface EmptyTasksStateProps {
   onCreateTask: () => void;
 }
 
 const EmptyTasksState: React.FC<EmptyTasksStateProps> = ({ onCreateTask }) => {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
     <View style={styles.container}>
-      <Text variant="headlineSmall" style={[styles.title, { color: theme.colors.onSurfaceVariant }]}>
-        No Tasks Yet
-      </Text>
-      <Text variant="bodyMedium" style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
+      <Text style={[textStyles.h3, styles.title, { color: colors.foreground }]}>No Tasks Yet</Text>
+      <Text style={[textStyles.body, styles.description, { color: colors.foregroundMuted }]}>
         Create your first task to get started with task management.
       </Text>
       <Button
         mode="contained"
         onPress={onCreateTask}
-        style={[styles.button, { backgroundColor: theme.colors.primary }]}
-        textColor={theme.colors.onPrimary}
+        style={[styles.button, { backgroundColor: colors.primary }]}
+        labelStyle={[textStyles.button, { color: colors.primaryForeground }]}
       >
         Create Your First Task
       </Button>
@@ -34,20 +33,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing[8],
   },
   title: {
     textAlign: 'center',
-    marginBottom: 16,
-    // Color will be set dynamically
+    marginBottom: spacing[4],
   },
   description: {
     textAlign: 'center',
-    marginBottom: 32,
-    // Color will be set dynamically
+    marginBottom: spacing[8],
   },
   button: {
-    // backgroundColor will be set dynamically
+    borderRadius: radius.md,
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[4],
   },
 });
 

@@ -197,7 +197,7 @@ export const TransactionForm: React.FC = () => {
         <View style={styles.amountSection}>
           <Input
             label="Amount"
-            placeholder="0.00"
+            placeholder=""
             value={amount}
             onChangeText={(text) => setAmount(formatCurrency(text))}
             keyboardType="numeric"

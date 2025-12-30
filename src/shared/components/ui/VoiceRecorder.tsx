@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, Text } from 'react-native';
-import { ProgressBar, Button, IconButton } from 'react-native-paper';
+import { ProgressBar, Button, IconButton, useTheme } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import RNFS from 'react-native-fs';
 import AudioRecorderPlayer, {
@@ -30,6 +30,7 @@ interface VoiceRecorderState {
 }
 
 const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCancel }) => {
+  const theme = useTheme();
   const [state, setState] = useState<VoiceRecorderState>({
     isRecording: false,
     isPlaying: false,
@@ -268,8 +269,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
 
   if (!state.hasPermission) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>Microphone permission is required to record audio.</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+        <Text style={[styles.permissionText, { color: theme.colors.onSurfaceVariant }]}>Microphone permission is required to record audio.</Text>
         <Button mode="contained" onPress={checkPermission}>
           Grant Permission
         </Button>
@@ -278,36 +279,36 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       {state.isRecording ? (
         // Recording View
         <View style={styles.recordingContainer}>
           <View style={styles.recordingIndicator}>
-            <Icon name="fiber-manual-record" size={24} color="#f44336" />
-            <Text style={styles.recordingText}>Recording...</Text>
+            <Icon name="fiber-manual-record" size={24} color={theme.colors.error} />
+            <Text style={[styles.recordingText, { color: theme.colors.error }]}>Recording...</Text>
           </View>
 
-          <Text style={styles.timeText}>{formatTime(state.recordingTime)}</Text>
+          <Text style={[styles.timeText, { color: theme.colors.onSurface }]}>{formatTime(state.recordingTime)}</Text>
 
           <TouchableOpacity
-            style={[styles.stopButton, isLoading && styles.disabledButton]}
+            style={[styles.stopButton, { backgroundColor: theme.colors.error }, isLoading && styles.disabledButton]}
             onPress={stopRecording}
             disabled={isLoading}
           >
-            <Icon name="stop" size={32} color="white" />
+            <Icon name="stop" size={32} color={theme.colors.onPrimary} />
           </TouchableOpacity>
-          {isLoading && <Text style={styles.loadingText}>Stopping...</Text>}
+          {isLoading && <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>Stopping...</Text>}
         </View>
       ) : state.recordedFilePath ? (
         // Playback View
         <View style={styles.playbackContainer}>
-          <Text style={styles.playbackTitle}>Voice Recording</Text>
+          <Text style={[styles.playbackTitle, { color: theme.colors.onSurface }]}>Voice Recording</Text>
 
           <View style={styles.progressContainer}>
-            <ProgressBar progress={getProgress()} style={styles.progressBar} color="#2196f3" />
+            <ProgressBar progress={getProgress()} style={styles.progressBar} color={theme.colors.primary} />
             <View style={styles.timeContainer}>
-              <Text style={styles.timeText}>{formatTime(state.playingTime)}</Text>
-              <Text style={styles.timeText}>{formatTime(state.duration)}</Text>
+              <Text style={[styles.timeText, { color: theme.colors.onSurface }]}>{formatTime(state.playingTime)}</Text>
+              <Text style={[styles.timeText, { color: theme.colors.onSurface }]}>{formatTime(state.duration)}</Text>
             </View>
           </View>
 
@@ -316,8 +317,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
             <IconButton
               icon={state.isPlaying ? 'pause' : 'play'}
               size={32}
-              iconColor="white"
-              style={styles.playButton}
+              iconColor={theme.colors.onPrimary}
+              style={[styles.playButton, { backgroundColor: theme.colors.primary }]}
               onPress={state.isPlaying ? stopPlaying : playRecording}
               disabled={isLoading}
             />
@@ -337,7 +338,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
             />
           </View>
 
-          {isLoading && <Text style={styles.loadingText}>{state.isPlaying ? 'Stopping...' : 'Starting...'}</Text>}
+          {isLoading && <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>{state.isPlaying ? 'Stopping...' : 'Starting...'}</Text>}
 
           <View style={styles.actionButtons}>
             <Button mode="outlined" onPress={handleCancel}>
@@ -351,15 +352,15 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
       ) : (
         // Start Recording View
         <View style={styles.startContainer}>
-          <Text style={styles.startText}>Ready to record</Text>
+          <Text style={[styles.startText, { color: theme.colors.onSurfaceVariant }]}>Ready to record</Text>
           <TouchableOpacity
-            style={[styles.recordButton, isLoading && styles.disabledButton]}
+            style={[styles.recordButton, { backgroundColor: theme.colors.primary }, isLoading && styles.disabledButton]}
             onPress={startRecording}
             disabled={isLoading}
           >
-            <Icon name="mic" size={32} color="white" />
+            <Icon name="mic" size={32} color={theme.colors.onPrimary} />
           </TouchableOpacity>
-          {isLoading && <Text style={styles.loadingText}>Starting...</Text>}
+          {isLoading && <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>Starting...</Text>}
           <Button mode="outlined" onPress={handleCancel}>
             Cancel
           </Button>
@@ -372,13 +373,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: 'white',
     borderRadius: 8,
   },
   permissionText: {
     textAlign: 'center',
     marginBottom: 16,
-    color: '#666',
   },
   recordingContainer: {
     alignItems: 'center',
@@ -390,7 +389,6 @@ const styles = StyleSheet.create({
   },
   recordingText: {
     marginLeft: 8,
-    color: '#f44336',
     fontWeight: 'bold',
   },
   timeText: {
@@ -399,7 +397,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   stopButton: {
-    backgroundColor: '#f44336',
     borderRadius: 50,
     width: 64,
     height: 64,
@@ -435,7 +432,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   playButton: {
-    backgroundColor: '#2196f3',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -447,10 +443,8 @@ const styles = StyleSheet.create({
   startText: {
     fontSize: 16,
     marginBottom: 16,
-    color: '#666',
   },
   recordButton: {
-    backgroundColor: '#2196f3',
     borderRadius: 50,
     width: 80,
     height: 80,
@@ -463,7 +457,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 12,
-    color: '#666',
     textAlign: 'center',
     marginTop: 8,
   },

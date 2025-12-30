@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, Pressable, PressableProps } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, Pressable, PressableProps } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { useColors, radius, shadow as shadowTokens, spacing } from '@shared/theme';
 
@@ -7,7 +7,7 @@ export interface CardProps {
   children: React.ReactNode;
   variant?: 'elevated' | 'outlined' | 'filled' | 'ghost';
   padding?: 'none' | 'sm' | 'md' | 'lg';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: PressableProps['onPress'];
   onLongPress?: PressableProps['onLongPress'];
 }

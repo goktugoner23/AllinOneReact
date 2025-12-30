@@ -1,5 +1,6 @@
-import React, { Component, ReactNode } from 'react';
+import React, { Component, ReactNode, useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTheme, MD3Theme } from 'react-native-paper';
 
 interface Props {
   children: ReactNode;
@@ -12,12 +13,15 @@ interface State {
   error?: Error;
 }
 
+// Theme context for class component
+const ThemeContext = React.createContext<MD3Theme | null>(null);
+
 /**
  * ErrorBoundary component to catch JavaScript errors anywhere in the child component tree
  * Following React Native guidelines for error handling
  */
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+class ErrorBoundaryClass extends Component<Props & { theme: MD3Theme }, State> {
+  constructor(props: Props & { theme: MD3Theme }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -48,6 +52,8 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   render(): ReactNode {
+    const { theme } = this.props;
+
     if (this.state.hasError) {
       // Return custom fallback UI if provided
       if (this.props.fallback) {
@@ -56,13 +62,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default fallback UI
       return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-          <Text style={styles.errorMessage}>
+        <View style={[styles.errorContainer, { backgroundColor: theme.colors.background }]}>
+          <Text style={[styles.errorTitle, { color: theme.colors.error }]}>Oops! Something went wrong</Text>
+          <Text style={[styles.errorMessage, { color: theme.colors.onSurfaceVariant }]}>
             {__DEV__ && this.state.error ? this.state.error.message : 'An unexpected error occurred. Please try again.'}
           </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} onPress={this.handleRetry}>
+            <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -72,36 +78,37 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+// Wrapper component to provide theme to class component
+export function ErrorBoundary(props: Props) {
+  const theme = useTheme();
+  return <ErrorBoundaryClass {...props} theme={theme} />;
+}
+
 const styles = StyleSheet.create({
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f8f9fa',
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#dc3545',
     marginBottom: 16,
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
-    color: '#6c757d',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: '#007bff',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

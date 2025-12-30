@@ -6,6 +6,7 @@ import { MediaAttachment, MediaType, MediaAttachmentsState } from '@shared/types
 import { MediaService } from '@shared/services/MediaService';
 import MediaViewer from '@shared/components/ui/MediaViewer';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
+import { useAppTheme } from '@shared/theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
   const [selectedAttachment, setSelectedAttachment] = useState<MediaAttachment | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const { colors, spacing, radius, textStyles } = useAppTheme();
 
   const updateState = useCallback(
     (updates: Partial<MediaAttachmentsState>) => {

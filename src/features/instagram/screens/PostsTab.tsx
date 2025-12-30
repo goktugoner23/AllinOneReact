@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { View, RefreshControl, StyleSheet } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Text, Card, ActivityIndicator, useTheme, Chip, IconButton } from 'react-native-paper';
+import { Text, Card, ActivityIndicator, Chip, IconButton } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
@@ -16,9 +16,10 @@ import {
   formatHashtagForDisplay,
 } from '@features/instagram/utils/instagramHelpers';
 import InstagramImage from '@features/instagram/components/InstagramImage';
+import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 const PostsTab: React.FC = () => {
-  const theme = useTheme();
+  const colors = useColors();
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
 
@@ -58,9 +59,9 @@ const PostsTab: React.FC = () => {
   // Render loading state
   if (loading.isLoading && !posts) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading Instagram posts...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.foreground }]}>Loading Instagram posts...</Text>
       </View>
     );
   }
@@ -68,10 +69,10 @@ const PostsTab: React.FC = () => {
   // Render error state
   if (loading.error && !posts) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>{getErrorMessage(loading.error)}</Text>
-        <IconButton icon="refresh" size={24} onPress={handleRetry} style={styles.retryButton} />
-        <Text style={[styles.retryText, { color: theme.colors.onBackground }]}>Tap to retry</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
+        <IconButton icon="refresh" size={24} onPress={handleRetry} style={styles.retryButton} iconColor={colors.primary} />
+        <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
       </View>
     );
   }
@@ -79,20 +80,20 @@ const PostsTab: React.FC = () => {
   // Render empty state
   if (posts && posts.posts.length === 0) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.emptyText, { color: theme.colors.onBackground }]}>No Instagram posts found</Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>Pull down to refresh</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>No Instagram posts found</Text>
+        <Text style={[styles.emptySubtext, { color: colors.foregroundMuted }]}>Pull down to refresh</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header with sync info */}
       {posts && (
-        <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>{posts.count} Posts</Text>
-          <Chip mode="outlined" compact style={styles.sourceChip} textStyle={{ fontSize: 12 }}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>{posts.count} Posts</Text>
+          <Chip mode="outlined" compact style={[styles.sourceChip, { borderColor: colors.border }]} textStyle={[textStyles.caption, { color: colors.foregroundMuted }]}>
             {posts.source}
           </Chip>
         </View>
@@ -107,8 +108,8 @@ const PostsTab: React.FC = () => {
           <RefreshControl
             refreshing={loading.isRefreshing}
             onRefresh={handleRefresh}
-            colors={[theme.colors.primary]}
-            tintColor={theme.colors.primary}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -120,28 +121,28 @@ const PostsTab: React.FC = () => {
 
 // Post Card Component
 const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.memo(({ post, onPress }) => {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
-    <Card style={[styles.postCard, { backgroundColor: theme.colors.surface }]} onPress={onPress}>
+    <Card style={[styles.postCard, { backgroundColor: colors.surface }, shadow.md]} onPress={onPress}>
       <Card.Content>
         {/* Post header */}
         <View style={styles.postHeader}>
           <View style={styles.postInfo}>
-            <Text style={[styles.postDate, { color: theme.colors.onSurfaceVariant }]}>
+            <Text style={[styles.postDate, { color: colors.foregroundMuted }]}>
               {post.formattedDate || formatRelativeTime(post.timestamp)}
             </Text>
             <Chip
               mode="outlined"
               compact
               icon={getMediaTypeIcon(post.mediaType)}
-              style={styles.mediaTypeChip}
-              textStyle={{ fontSize: 10 }}
+              style={[styles.mediaTypeChip, { borderColor: colors.border }]}
+              textStyle={[textStyles.caption, { color: colors.foregroundMuted }]}
             >
               {post.mediaType}
             </Chip>
           </View>
-          <Text style={[styles.engagementRate, { color: theme.colors.primary }]}>
+          <Text style={[styles.engagementRate, { color: colors.primary }]}>
             {post.metrics.engagementRate.toFixed(1)}%
           </Text>
         </View>
@@ -155,35 +156,35 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
           />
         ) : null}
 
-        <Text style={[styles.postCaption, { color: theme.colors.onSurface }]} numberOfLines={3}>
+        <Text style={[styles.postCaption, { color: colors.foreground }]} numberOfLines={3}>
           {post.caption}
         </Text>
 
         <View style={styles.metricsContainer}>
           <View style={styles.metricItem}>
-            <Ionicons name="heart-outline" size={16} color={theme.colors.onSurfaceVariant} />
-            <Text style={[styles.metricText, { color: theme.colors.onSurfaceVariant }]}>
+            <Ionicons name="heart-outline" size={16} color={colors.foregroundMuted} />
+            <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
               {formatNumber(post.metrics.likesCount)}
             </Text>
           </View>
           <View style={styles.metricItem}>
-            <Ionicons name="chatbubble-outline" size={16} color={theme.colors.onSurfaceVariant} />
-            <Text style={[styles.metricText, { color: theme.colors.onSurfaceVariant }]}>
+            <Ionicons name="chatbubble-outline" size={16} color={colors.foregroundMuted} />
+            <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
               {formatNumber(post.metrics.commentsCount)}
             </Text>
           </View>
           {post.metrics.sharesCount && post.metrics.sharesCount > 0 ? (
             <View style={styles.metricItem}>
-              <Ionicons name="share-outline" size={16} color={theme.colors.onSurfaceVariant} />
-              <Text style={[styles.metricText, { color: theme.colors.onSurfaceVariant }]}>
+              <Ionicons name="share-outline" size={16} color={colors.foregroundMuted} />
+              <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
                 {formatNumber(post.metrics.sharesCount)}
               </Text>
             </View>
           ) : null}
           {post.metrics.reachCount && post.metrics.reachCount > 0 ? (
             <View style={styles.metricItem}>
-              <Ionicons name="eye-outline" size={16} color={theme.colors.onSurfaceVariant} />
-              <Text style={[styles.metricText, { color: theme.colors.onSurfaceVariant }]}>
+              <Ionicons name="eye-outline" size={16} color={colors.foregroundMuted} />
+              <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
                 {formatNumber(post.metrics.reachCount)}
               </Text>
             </View>
@@ -193,12 +194,12 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
         {post.hashtags.length > 0 ? (
           <View style={styles.hashtagsContainer}>
             {post.hashtags.slice(0, 3).map((hashtag, index) => (
-              <Chip key={index} mode="outlined" compact style={styles.hashtagChip} textStyle={styles.hashtagText}>
+              <Chip key={index} mode="outlined" compact style={[styles.hashtagChip, { borderColor: colors.border }]} textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}>
                 {formatHashtagForDisplay(hashtag)}
               </Chip>
             ))}
             {post.hashtags.length > 3 ? (
-              <Text style={[styles.moreHashtags, { color: theme.colors.onSurfaceVariant }]}>
+              <Text style={[styles.moreHashtags, { color: colors.foregroundSubtle }]}>
                 +{post.hashtags.length - 3} more
               </Text>
             ) : null}
@@ -217,58 +218,55 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...textStyles.h4,
   },
   sourceChip: {
     height: 28,
   },
   listContainer: {
-    padding: 16,
+    padding: spacing[4],
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: spacing[4],
+    ...textStyles.body,
   },
   errorText: {
-    fontSize: 16,
+    ...textStyles.body,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   retryButton: {
-    marginVertical: 8,
+    marginVertical: spacing[2],
   },
   retryText: {
-    fontSize: 14,
+    ...textStyles.bodySmall,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    ...textStyles.h4,
+    marginBottom: spacing[2],
   },
   emptySubtext: {
-    fontSize: 14,
+    ...textStyles.bodySmall,
   },
   postCard: {
-    marginBottom: 16,
-    elevation: 2,
+    marginBottom: spacing[4],
+    borderRadius: radius.lg,
   },
   postHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   postInfo: {
     flexDirection: 'row',
@@ -276,41 +274,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   postDate: {
-    fontSize: 12,
-    marginRight: 8,
+    ...textStyles.caption,
+    marginRight: spacing[2],
   },
   mediaTypeChip: {
     height: 24,
   },
   engagementRate: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...textStyles.label,
+    fontWeight: '700',
   },
   postCaption: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
+    ...textStyles.bodySmall,
+    marginBottom: spacing[3],
   },
   thumbnail: {
     width: '100%',
     height: 200,
-    borderRadius: 8,
-    marginBottom: 12,
+    borderRadius: radius.md,
+    marginBottom: spacing[3],
   },
   metricsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   metricItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 4,
+    marginRight: spacing[4],
+    marginBottom: spacing[1],
   },
   metricText: {
-    fontSize: 12,
-    marginLeft: 4,
+    ...textStyles.caption,
+    marginLeft: spacing[1],
   },
   hashtagsContainer: {
     flexDirection: 'row',
@@ -318,11 +315,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hashtagChip: {
-    borderRadius: 14,
-    marginRight: 6,
-    marginBottom: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
+    borderRadius: radius.full,
+    marginRight: spacing[1.5],
+    marginBottom: spacing[1.5],
+    paddingVertical: spacing[0.5],
+    paddingHorizontal: spacing[2],
   },
   hashtagText: {
     fontSize: 11,
@@ -331,7 +328,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   moreHashtags: {
-    fontSize: 10,
+    ...textStyles.caption,
     fontStyle: 'italic',
   },
 });

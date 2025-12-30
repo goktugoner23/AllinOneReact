@@ -11,7 +11,7 @@ import {
   Linking,
   PermissionsAndroid,
 } from 'react-native';
-import { Appbar, Text, useTheme, ProgressBar } from 'react-native-paper';
+import { Appbar, Text, ProgressBar } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useInstagramAllData } from '@shared/hooks';
 import {
@@ -36,11 +36,12 @@ import * as CameraRollModule from '@react-native-camera-roll/camera-roll';
 import { cacheMedia } from '@shared/services/mediaCache';
 import Video from 'react-native-video';
 import InstagramImage from '@features/instagram/components/InstagramImage';
+import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 type RouteParams = { username: string };
 
 export default function ProfileDetailScreen() {
-  const theme = useTheme();
+  const colors = useColors();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { username } = (route.params || {}) as RouteParams;
@@ -397,10 +398,10 @@ export default function ProfileDetailScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header mode="small" elevated style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={`@${username}`} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Appbar.Header mode="small" elevated style={{ backgroundColor: colors.surface }}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} iconColor={colors.foreground} />
+        <Appbar.Content title={`@${username}`} titleStyle={[textStyles.h4, { color: colors.foreground }]} />
       </Appbar.Header>
 
       <LinearProgressBar visible={isLoading || isFetching} />
@@ -568,7 +569,7 @@ export default function ProfileDetailScreen() {
           <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
             <View style={styles.modalBackdrop}>
               <View
-                style={[styles.viewer, { backgroundColor: theme.colors.surface }]}
+                style={[styles.viewer, { backgroundColor: colors.surface }]}
                 onLayout={(e) => setViewerWidth(e.nativeEvent.layout.width)}
               >
                 {viewerWidth > 0 && (
@@ -621,15 +622,15 @@ export default function ProfileDetailScreen() {
             <View style={styles.modalBackdrop}>
               <Card variant="elevated" padding="lg" style={styles.bulkModal}>
                 <CardContent>
-                  <Text variant="titleMedium" style={{ marginBottom: 12, textAlign: 'center' }}>
+                  <Text variant="titleMedium" style={[textStyles.h4, { marginBottom: spacing[3], textAlign: 'center', color: colors.foreground }]}>
                     Saving stories...
                   </Text>
                   <ProgressBar
                     progress={bulkTotal ? bulkDone / bulkTotal : 0}
-                    color={theme.colors.primary}
-                    style={{ height: 8, borderRadius: 4 }}
+                    color={colors.primary}
+                    style={{ height: 8, borderRadius: radius.sm }}
                   />
-                  <Text style={{ marginTop: 8, textAlign: 'center' }}>
+                  <Text style={[textStyles.body, { marginTop: spacing[2], textAlign: 'center', color: colors.foregroundMuted }]}>
                     {bulkDone}/{bulkTotal}
                   </Text>
                 </CardContent>
@@ -640,7 +641,7 @@ export default function ProfileDetailScreen() {
           {/* Profile Picture Modal */}
           <Modal visible={pfpVisible} transparent animationType="fade" onRequestClose={() => setPfpVisible(false)}>
             <View style={styles.modalBackdrop}>
-              <View style={[styles.viewer, { backgroundColor: theme.colors.surface }]}>
+              <View style={[styles.viewer, { backgroundColor: colors.surface }]}>
                 {profile?.data?.imageUrl && (
                   <InstagramImage instagramUrl={profile.data.imageUrl} style={styles.player} resizeMode="contain" />
                 )}
@@ -675,14 +676,14 @@ function FeedStoryCard({
   avatarUrl?: string;
   username: string;
 }) {
-  const theme = useTheme();
+  const colors = useColors();
   const isVideo = item.mediaType === 'VIDEO';
 
   return (
     <Card variant="elevated" padding="none" style={styles.feedCard}>
       <View style={styles.feedHeader}>
         <Avatar source={avatarUrl ? { uri: avatarUrl } : undefined} name={username} size="md" />
-        <Text variant="titleSmall" style={{ marginLeft: 8 }}>
+        <Text variant="titleSmall" style={[textStyles.label, { marginLeft: spacing[2], color: colors.foreground }]}>
           @{username}
         </Text>
         <View style={{ marginLeft: 'auto' }}>
@@ -701,13 +702,13 @@ function FeedStoryCard({
         </View>
       </TouchableOpacity>
       <View style={styles.feedFooter}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: spacing[2] }}>
           <Badge variant={isVideo ? 'info' : 'default'} size="sm">
             {item.mediaType}
           </Badge>
         </View>
         {!!item.timestamp && (
-          <Text variant="bodySmall" style={{ opacity: 0.6, marginTop: 4 }}>
+          <Text variant="bodySmall" style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
             {new Date(item.timestamp).toLocaleString()}
           </Text>
         )}
@@ -726,7 +727,7 @@ function FeedPostCard({
   avatarUrl?: string;
   username: string;
 }) {
-  const theme = useTheme();
+  const colors = useColors();
   const isVideo = item.mediaType === 'VIDEO';
   const imageUrl = item.thumbnailUrl || item.mediaUrl || (item as any).thumbnail_url || (item as any).media_url;
 
@@ -734,7 +735,7 @@ function FeedPostCard({
     <Card variant="elevated" padding="none" style={styles.feedCard}>
       <View style={styles.feedHeader}>
         <Avatar source={avatarUrl ? { uri: avatarUrl } : undefined} name={username} size="md" />
-        <Text variant="titleSmall" style={{ marginLeft: 8 }}>
+        <Text variant="titleSmall" style={[textStyles.label, { marginLeft: spacing[2], color: colors.foreground }]}>
           @{username}
         </Text>
         <View style={{ marginLeft: 'auto' }}>
@@ -754,11 +755,11 @@ function FeedPostCard({
       </TouchableOpacity>
       <View style={styles.feedFooter}>
         {item.caption && (
-          <Text variant="bodyMedium" numberOfLines={3} style={{ marginBottom: 8 }}>
+          <Text variant="bodyMedium" numberOfLines={3} style={[textStyles.body, { marginBottom: spacing[2], color: colors.foreground }]}>
             {item.caption}
           </Text>
         )}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] }}>
           {item.likesCount !== undefined && (
             <Badge variant="default" size="sm">
               {item.likesCount} likes
@@ -776,7 +777,7 @@ function FeedPostCard({
           )}
         </View>
         {!!item.timestamp && (
-          <Text variant="bodySmall" style={{ opacity: 0.5, marginTop: 8 }}>
+          <Text variant="bodySmall" style={[textStyles.caption, { color: colors.foregroundSubtle, marginTop: spacing[2] }]}>
             {new Date(item.timestamp).toLocaleString()}
           </Text>
         )}
@@ -787,43 +788,43 @@ function FeedPostCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  headerBox: { margin: 12 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing[4] },
+  headerBox: { margin: spacing[3] },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], marginBottom: spacing[3] },
   headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerText: { gap: 2 },
-  layoutButtons: { flexDirection: 'row', gap: 8 },
-  gridItem: { flex: 1 / 3, aspectRatio: 1, marginBottom: 8 },
-  gridThumb: { width: '100%', height: '75%', borderRadius: 8 },
-  thumbWrapper: { width: '100%', height: '75%', borderRadius: 8, overflow: 'hidden' },
+  headerText: { gap: spacing[0.5] },
+  layoutButtons: { flexDirection: 'row', gap: spacing[2] },
+  gridItem: { flex: 1 / 3, aspectRatio: 1, marginBottom: spacing[2] },
+  gridThumb: { width: '100%', height: '75%', borderRadius: radius.md },
+  thumbWrapper: { width: '100%', height: '75%', borderRadius: radius.md, overflow: 'hidden' },
   playBadge: {
     position: 'absolute',
-    right: 6,
-    top: 6,
+    right: spacing[1.5],
+    top: spacing[1.5],
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[0.5],
   },
   playBadgeText: { color: '#fff', fontSize: 10 },
   carouselBadge: {
     position: 'absolute',
-    right: 6,
-    top: 6,
+    right: spacing[1.5],
+    top: spacing[1.5],
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[0.5],
   },
-  postStats: { flexDirection: 'row', gap: 4, marginTop: 4, flexWrap: 'wrap' },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  postStats: { flexDirection: 'row', gap: spacing[1], marginTop: spacing[1], flexWrap: 'wrap' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing[8] },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  viewer: { width: '90%', height: '70%', borderRadius: 12, overflow: 'hidden', padding: 8 },
+  viewer: { width: '90%', height: '70%', borderRadius: radius.lg, overflow: 'hidden', padding: spacing[2] },
   bulkModal: { width: '80%' },
-  player: { width: '100%', height: '85%', borderRadius: 8, backgroundColor: 'black' },
-  viewerActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8, paddingTop: 8 },
-  feedCard: { marginBottom: 16, overflow: 'hidden' },
-  feedHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
+  player: { width: '100%', height: '85%', borderRadius: radius.md, backgroundColor: 'black' },
+  viewerActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing[2], paddingTop: spacing[2] },
+  feedCard: { marginBottom: spacing[4], overflow: 'hidden', borderRadius: radius.lg },
+  feedHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[3], paddingVertical: spacing[2.5] },
   feedMedia: { width: '100%', height: 380, backgroundColor: '#000' },
-  feedFooter: { paddingHorizontal: 12, paddingVertical: 10 },
+  feedFooter: { paddingHorizontal: spacing[3], paddingVertical: spacing[2.5] },
 });

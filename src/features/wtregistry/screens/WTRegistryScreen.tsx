@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Portal, Dialog, useTheme, Switch } from 'react-native-paper';
+import { Portal, Dialog, Switch } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import {
   Card as UICard,
@@ -27,6 +27,7 @@ import {
   AlertDialog,
   Input,
 } from '@shared/components/ui';
+import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { fetchStudents, addStudent, updateStudent, deleteStudent } from '@features/wtregistry/services/wtRegistry';
 import {
@@ -159,7 +160,7 @@ const getSafeUri = (result: ImagePickerResponse): string | null => {
 
 // Students Tab with Profile Photos
 const StudentsTab: React.FC = () => {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const [students, setStudents] = useState<WTStudent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -294,7 +295,7 @@ const StudentsTab: React.FC = () => {
 
   const renderStudent = ({ item }: { item: WTStudent }) => (
     <UICard
-      style={styles.card}
+      style={{ marginHorizontal: spacing[4], marginBottom: spacing[3] }}
       variant="elevated"
       padding="sm"
       onPress={() => {
@@ -320,15 +321,17 @@ const StudentsTab: React.FC = () => {
           <Avatar source={item.photoUri ? { uri: item.photoUri } : undefined} name={item.name} size="lg" />
         </TouchableOpacity>
         <View style={styles.studentInfo}>
-          <Text style={[styles.studentName, { color: theme.colors.onSurface }]}>{item.name}</Text>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>{item.name}</Text>
           {item.phoneNumber && (
-            <Text style={[styles.studentDetail, { color: theme.colors.onSurfaceVariant }]}>{item.phoneNumber}</Text>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
+              {item.phoneNumber}
+            </Text>
           )}
         </View>
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: item.isActive ? theme.colors.primary : theme.colors.error },
+            { backgroundColor: item.isActive ? colors.success : colors.destructive },
           ]}
         />
       </View>
@@ -336,12 +339,13 @@ const StudentsTab: React.FC = () => {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlashList
         data={students}
         renderItem={renderStudent}
         keyExtractor={(item) => item.id.toString()}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        contentContainerStyle={{ paddingTop: spacing[3], paddingBottom: spacing[20] }}
         ListEmptyComponent={
           <EmptyState
             icon="people-outline"
@@ -377,7 +381,7 @@ const StudentsTab: React.FC = () => {
         <Dialog
           visible={showDetailModal}
           onDismiss={() => setShowDetailModal(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
           <Dialog.Content>
             {selectedStudent && (
@@ -389,7 +393,7 @@ const StudentsTab: React.FC = () => {
                       setShowFullscreenPhoto(true);
                     }
                   }}
-                  style={{ marginBottom: 16 }}
+                  style={{ marginBottom: spacing[4] }}
                 >
                   <Avatar
                     source={selectedStudent.photoUri ? { uri: selectedStudent.photoUri } : undefined}
@@ -399,30 +403,38 @@ const StudentsTab: React.FC = () => {
                 </TouchableOpacity>
 
                 {/* Name */}
-                <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>
+                <Text style={[textStyles.h3, { color: colors.foreground, marginBottom: spacing[4], textAlign: 'center' }]}>
                   {selectedStudent.name}
                 </Text>
 
                 {/* Contact Info */}
-                <View style={{ width: '100%', marginBottom: 20 }}>
+                <View style={{ width: '100%', marginBottom: spacing[5] }}>
                   {selectedStudent.phoneNumber && (
-                    <Text style={{ marginBottom: 8 }}>Phone: {selectedStudent.phoneNumber}</Text>
+                    <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                      Phone: {selectedStudent.phoneNumber}
+                    </Text>
                   )}
                   {selectedStudent.instagram && (
-                    <Text style={{ marginBottom: 8 }}>Instagram: @{selectedStudent.instagram}</Text>
+                    <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                      Instagram: @{selectedStudent.instagram}
+                    </Text>
                   )}
-                  <Text style={{ marginBottom: 8 }}>Status: {selectedStudent.isActive ? 'Active' : 'Passive'}</Text>
-                  <Text style={{ marginBottom: 8 }}>Registration: Registered</Text>
+                  <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                    Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
+                  </Text>
+                  <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                    Registration: Registered
+                  </Text>
                 </View>
 
                 {/* Action Buttons */}
-                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing[4] }}>
                   {selectedStudent.phoneNumber && (
                     <IconButton
                       icon="call"
                       size="lg"
                       variant="filled"
-                      style={{ backgroundColor: '#4CAF50' }}
+                      style={{ backgroundColor: colors.success }}
                       onPress={() => handleCall(selectedStudent.phoneNumber!)}
                     />
                   )}
@@ -456,19 +468,19 @@ const StudentsTab: React.FC = () => {
         <Dialog
           visible={showPhotoOptions}
           onDismiss={() => setShowPhotoOptions(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title>Photo Options</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Photo Options</Dialog.Title>
           <Dialog.Content>
-            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-              <TouchableOpacity style={styles.photoOptionButton} onPress={handleViewPhoto}>
-                <Text style={styles.photoOptionText}>View Photo</Text>
+            <View style={{ alignItems: 'center', paddingVertical: spacing[4] }}>
+              <TouchableOpacity style={[styles.photoOptionButton, { borderBottomColor: colors.border }]} onPress={handleViewPhoto}>
+                <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '500' }]}>View Photo</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.photoOptionButton} onPress={handleChangePhoto}>
-                <Text style={styles.photoOptionText}>Change Photo</Text>
+              <TouchableOpacity style={[styles.photoOptionButton, { borderBottomColor: colors.border }]} onPress={handleChangePhoto}>
+                <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '500' }]}>Change Photo</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.photoOptionButton} onPress={handleRemovePhoto}>
-                <Text style={[styles.photoOptionText, { color: theme.colors.error }]}>Remove Photo</Text>
+              <TouchableOpacity style={[styles.photoOptionButton, { borderBottomColor: colors.border }]} onPress={handleRemovePhoto}>
+                <Text style={[textStyles.body, { color: colors.destructive, fontWeight: '500' }]}>Remove Photo</Text>
               </TouchableOpacity>
             </View>
           </Dialog.Content>
@@ -490,15 +502,15 @@ const StudentsTab: React.FC = () => {
         <Dialog
           visible={showOptionsModal}
           onDismiss={() => setShowOptionsModal(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title>Student Options</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Student Options</Dialog.Title>
           <Dialog.Content>
-            <Text style={{ color: theme.colors.onSurface }}>
+            <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>
               What would you like to do with {selectedStudent?.name}?
             </Text>
           </Dialog.Content>
-          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch', gap: spacing[2], padding: spacing[4] }}>
             <Button
               variant="outline"
               fullWidth
@@ -533,7 +545,7 @@ const StudentsTab: React.FC = () => {
 
 // Register Tab with File Attachments
 const RegisterTab: React.FC = () => {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const [registrations, setRegistrations] = useState<WTRegistration[]>([]);
   const [students, setStudents] = useState<WTStudent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -683,7 +695,7 @@ const RegisterTab: React.FC = () => {
 
   const renderRegistration = ({ item }: { item: WTRegistration }) => (
     <UICard
-      style={styles.card}
+      style={{ marginHorizontal: spacing[4], marginBottom: spacing[3] }}
       variant="elevated"
       padding="md"
       onPress={() => {
@@ -696,26 +708,25 @@ const RegisterTab: React.FC = () => {
       }}
     >
       {/* Header Row: Student Name and Status Chip */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginRight: 8, color: theme.colors.onSurface }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[2] }}>
+        <Text style={[textStyles.h4, { color: colors.foreground, flex: 1, marginRight: spacing[2] }]}>
           {getStudentName(item.studentId)}
         </Text>
         <TouchableOpacity
           onPress={() => handlePaymentStatusToggle(item)}
           style={{
-            backgroundColor: item.isPaid ? theme.colors.primary : theme.colors.tertiary,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 16,
+            backgroundColor: item.isPaid ? colors.success : colors.warning,
+            paddingHorizontal: spacing[3],
+            paddingVertical: spacing[1.5],
+            borderRadius: radius.full,
             alignSelf: 'flex-start',
           }}
         >
           <Text
-            style={{
-              color: item.isPaid ? theme.colors.onPrimary : theme.colors.onTertiary,
-              fontSize: 12,
-              fontWeight: 'bold',
-            }}
+            style={[textStyles.labelSmall, {
+              color: item.isPaid ? colors.successForeground : colors.warningForeground,
+              fontWeight: '600',
+            }]}
           >
             {item.isPaid ? 'Paid' : 'Unpaid'}
           </Text>
@@ -723,41 +734,41 @@ const RegisterTab: React.FC = () => {
       </View>
 
       {/* Amount */}
-      <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 4, color: theme.colors.primary }}>
-        Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
+      <Text style={[textStyles.amountSmall, { color: colors.primary, marginBottom: spacing[1] }]}>
+        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
       </Text>
 
       {/* Date Information */}
       {item.startDate && (
-        <Text style={{ fontSize: 14, color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[0.5] }]}>
           Start: {new Date(item.startDate).toLocaleDateString()}
         </Text>
       )}
       {item.endDate && (
-        <Text style={{ fontSize: 14, color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[0.5] }]}>
           End: {new Date(item.endDate).toLocaleDateString()}
         </Text>
       )}
 
       {/* Notes */}
       {item.notes && (
-        <Text style={{ fontSize: 12, fontStyle: 'italic', color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
+        <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[2] }]}>
           {item.notes}
         </Text>
       )}
 
       {/* Attachment Indicator */}
       {item.attachmentUri && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing[2] }}>
           <IconButton
             icon={isDownloading ? 'hourglass' : 'document'}
             size="sm"
             variant="ghost"
-            color={isDownloading ? theme.colors.onSurfaceDisabled : theme.colors.primary}
+            color={isDownloading ? colors.foregroundSubtle : colors.primary}
             onPress={() => handleViewAttachment(item.attachmentUri!)}
             disabled={isDownloading}
           />
-          <Text style={{ fontSize: 12, color: theme.colors.onSurfaceVariant, marginLeft: 4 }}>
+          <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginLeft: spacing[1] }]}>
             {isDownloading ? 'Opening...' : 'Receipt attached'}
           </Text>
         </View>
@@ -766,10 +777,10 @@ const RegisterTab: React.FC = () => {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Filter Section */}
-      <UICard style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 8 }} variant="elevated">
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12, color: theme.colors.onSurface }}>
+      <UICard style={{ marginHorizontal: spacing[4], marginTop: spacing[4], marginBottom: spacing[2] }} variant="elevated">
+        <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>
           Filters
         </Text>
 
@@ -777,34 +788,32 @@ const RegisterTab: React.FC = () => {
         <TouchableOpacity
           style={{
             borderWidth: 1,
-            borderColor: theme.colors.outline,
-            borderRadius: 12,
-            padding: 12,
+            borderColor: colors.border,
+            borderRadius: radius.lg,
+            padding: spacing[3],
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            backgroundColor: theme.colors.surface,
+            backgroundColor: colors.surface,
           }}
           onPress={() => setShowMonthPicker(true)}
         >
-          <Text style={{ color: theme.colors.onSurface }}>{monthNames[selectedMonth || 0]}</Text>
-          <Ionicons name="chevron-down" size={20} color={theme.colors.onSurfaceVariant} />
+          <Text style={[textStyles.body, { color: colors.foreground }]}>{monthNames[selectedMonth || 0]}</Text>
+          <Ionicons name="chevron-down" size={20} color={colors.foregroundMuted} />
         </TouchableOpacity>
 
         {/* Total Amount Display */}
-        <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant }}>
-          <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.colors.primary }}>Total Amount:</Text>
+        <View style={{ marginTop: spacing[3], paddingTop: spacing[3], borderTopWidth: 1, borderTopColor: colors.border }}>
+          <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Total Amount</Text>
           <Text
-            style={{
-              fontSize: 18,
-              fontWeight: 'bold',
+            style={[textStyles.amount, {
               color:
                 totalAmount < 10000
-                  ? theme.colors.error
+                  ? colors.destructive
                   : totalAmount < 20000
-                    ? theme.colors.tertiary
-                    : theme.colors.primary,
-            }}
+                    ? colors.warning
+                    : colors.success,
+            }]}
           >
             {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
           </Text>
@@ -815,7 +824,8 @@ const RegisterTab: React.FC = () => {
         data={filteredRegistrations}
         renderItem={renderRegistration}
         keyExtractor={(item) => item.id.toString()}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        contentContainerStyle={{ paddingTop: spacing[3], paddingBottom: spacing[20] }}
         ListEmptyComponent={
           <EmptyState
             icon="document-text-outline"
@@ -839,13 +849,13 @@ const RegisterTab: React.FC = () => {
         <Dialog
           visible={showContextMenu}
           onDismiss={() => setShowContextMenu(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title>Registration Options</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Registration Options</Dialog.Title>
           <Dialog.Content>
-            <Text style={{ color: theme.colors.onSurface }}>What would you like to do with this registration?</Text>
+            <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>What would you like to do with this registration?</Text>
           </Dialog.Content>
-          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <Dialog.Actions style={{ flexDirection: 'column', alignItems: 'stretch', gap: spacing[2], padding: spacing[4] }}>
             <Button
               variant="outline"
               fullWidth
@@ -890,52 +900,51 @@ const RegisterTab: React.FC = () => {
         <Dialog
           visible={showDetailsDialog}
           onDismiss={() => setShowDetailsDialog(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title>Registration Details</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Registration Details</Dialog.Title>
           <Dialog.Content>
             {selectedRegistration && (
               <View>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: theme.colors.onSurface }}>
+                <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[2] }]}>
                   {getStudentName(selectedRegistration.studentId)}
                 </Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: theme.colors.primary }}>
-                  Amount:{' '}
+                <Text style={[textStyles.amountSmall, { color: colors.primary, marginBottom: spacing[2] }]}>
                   {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
                     selectedRegistration.amount,
                   )}
                 </Text>
-                <Text style={{ marginBottom: 4, color: theme.colors.onSurface }}>
+                <Text style={[textStyles.body, { color: colors.foreground, marginBottom: spacing[1] }]}>
                   Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
                 </Text>
-                <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
                   Payment Date: {new Date(selectedRegistration.paymentDate).toLocaleDateString()}
                 </Text>
                 {selectedRegistration.startDate && (
-                  <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
                     Start: {new Date(selectedRegistration.startDate).toLocaleDateString()}
                   </Text>
                 )}
                 {selectedRegistration.endDate && (
-                  <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
                     End: {new Date(selectedRegistration.endDate).toLocaleDateString()}
                   </Text>
                 )}
                 {selectedRegistration.notes && (
-                  <Text style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
                     Notes: {selectedRegistration.notes}
                   </Text>
                 )}
                 {selectedRegistration.attachmentUri && (
                   <View
                     style={{
-                      marginTop: 16,
+                      marginTop: spacing[4],
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                     }}
                   >
-                    <Text style={{ marginBottom: 4, color: theme.colors.onSurface }}>Receipt: Attached</Text>
+                    <Text style={[textStyles.body, { color: colors.foreground }]}>Receipt: Attached</Text>
                     <Button
                       variant="outline"
                       size="sm"
@@ -953,7 +962,7 @@ const RegisterTab: React.FC = () => {
               </View>
             )}
           </Dialog.Content>
-          <Dialog.Actions style={{ gap: 8 }}>
+          <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
             <Button variant="ghost" onPress={() => setShowDetailsDialog(false)}>
               Close
             </Button>
@@ -997,46 +1006,45 @@ const RegisterTab: React.FC = () => {
         <Dialog
           visible={showMonthPicker}
           onDismiss={() => setShowMonthPicker(false)}
-          style={{ backgroundColor: theme.colors.surface }}
+          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title>Select Month</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Select Month</Dialog.Title>
           <Dialog.Content>
             <ScrollView style={{ maxHeight: 300 }}>
-              {monthNames.map((month, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={{
-                    padding: 16,
-                    borderBottomWidth: 1,
-                    borderBottomColor: theme.colors.outlineVariant,
-                    backgroundColor:
-                      selectedMonth === index || (index === 0 && selectedMonth === null)
-                        ? theme.colors.primaryContainer
-                        : 'transparent',
-                  }}
-                  onPress={() => {
-                    setSelectedMonth(index === 0 ? null : index);
-                    setShowMonthPicker(false);
-                  }}
-                >
-                  <Text
+              {monthNames.map((month, index) => {
+                const isSelected = selectedMonth === index || (index === 0 && selectedMonth === null);
+                return (
+                  <TouchableOpacity
+                    key={index}
                     style={{
-                      fontSize: 16,
-                      fontWeight:
-                        selectedMonth === index || (index === 0 && selectedMonth === null) ? 'bold' : 'normal',
-                      color:
-                        selectedMonth === index || (index === 0 && selectedMonth === null)
-                          ? theme.colors.onPrimaryContainer
-                          : theme.colors.onSurface,
+                      padding: spacing[4],
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                      backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
+                      borderRadius: isSelected ? radius.md : 0,
+                    }}
+                    onPress={() => {
+                      setSelectedMonth(index === 0 ? null : index);
+                      setShowMonthPicker(false);
                     }}
                   >
-                    {month}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        textStyles.body,
+                        {
+                          fontWeight: isSelected ? '600' : '400',
+                          color: isSelected ? colors.primary : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {month}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </Dialog.Content>
-          <Dialog.Actions>
+          <Dialog.Actions style={{ padding: spacing[4] }}>
             <Button variant="ghost" onPress={() => setShowMonthPicker(false)}>
               Cancel
             </Button>
@@ -1055,7 +1063,7 @@ interface AddStudentDialogProps {
 }
 
 const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss, onSave }) => {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -1106,9 +1114,9 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
       <Dialog
         visible={visible}
         onDismiss={onDismiss}
-        style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}
+        style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}
       >
-        <Dialog.Title>Add Student</Dialog.Title>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Add Student</Dialog.Title>
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Photo Section */}
@@ -1117,9 +1125,9 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} style={styles.photoPreview} />
                 ) : (
-                  <View style={styles.photoPlaceholder}>
-                    <Ionicons name="camera" size={32} color="#666" />
-                    <Text style={styles.photoText}>Add Photo</Text>
+                  <View style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                    <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
+                    <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>Add Photo</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1156,7 +1164,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
             />
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions style={{ gap: 8 }}>
+        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
@@ -1177,7 +1185,7 @@ interface EditStudentDialogProps {
 }
 
 const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student, onDismiss, onSave }) => {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const [name, setName] = useState(student.name);
   const [phoneNumber, setPhoneNumber] = useState(student.phoneNumber || '');
   const [email, setEmail] = useState(student.email || '');
@@ -1281,9 +1289,9 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
       <Dialog
         visible={visible}
         onDismiss={onDismiss}
-        style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}
+        style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}
       >
-        <Dialog.Title>Edit Student</Dialog.Title>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Edit Student</Dialog.Title>
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Photo Section */}
@@ -1300,13 +1308,13 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} style={styles.photoPreview} />
                 ) : (
-                  <View style={styles.photoPlaceholder}>
-                    <Ionicons name="camera" size={32} color="#666" />
-                    <Text style={styles.photoText}>Add Photo</Text>
+                  <View style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                    <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
+                    <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>Add Photo</Text>
                   </View>
                 )}
               </TouchableOpacity>
-              <Text style={styles.photoHint}>
+              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[1] }]}>
                 {photoUri ? 'Tap to view, long press for options' : 'Tap to add photo'}
               </Text>
             </View>
@@ -1343,12 +1351,12 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
 
             {/* Active Status */}
             <View style={styles.switchContainer}>
-              <Text style={[styles.switchLabel, { color: theme.colors.onSurface }]}>Active</Text>
+              <Text style={[textStyles.body, { color: colors.foreground }]}>Active</Text>
               <Switch value={isActive} onValueChange={setIsActive} />
             </View>
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions style={{ gap: 8 }}>
+        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
@@ -1362,11 +1370,11 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
       <Dialog
         visible={showEditPhotoOptions}
         onDismiss={() => setShowEditPhotoOptions(false)}
-        style={{ backgroundColor: theme.colors.surface }}
+        style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
       >
-        <Dialog.Title>Photo Options</Dialog.Title>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Photo Options</Dialog.Title>
         <Dialog.Content>
-          <View style={{ alignItems: 'center', paddingVertical: 16, gap: 8 }}>
+          <View style={{ alignItems: 'center', paddingVertical: spacing[4], gap: spacing[2] }}>
             <Button variant="outline" fullWidth onPress={handleEditViewPhoto}>
               View Photo
             </Button>
@@ -1406,6 +1414,7 @@ interface AddRegistrationDialogProps {
 }
 
 const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, students, onDismiss, onSave }) => {
+  const { colors } = useAppTheme();
   const [studentId, setStudentId] = useState<number | null>(null);
   const [amount, setAmount] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -1485,14 +1494,24 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white', maxHeight: '80%' }}>
-        <Dialog.Title>Add Registration</Dialog.Title>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Add Registration</Dialog.Title>
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Student Selection */}
-            <Text style={styles.label}>Student *</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowStudentPicker(true)}>
-              <Text style={{ color: studentId ? '#000' : '#999' }}>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Student *</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+                backgroundColor: colors.surface,
+              }}
+              onPress={() => setShowStudentPicker(true)}
+            >
+              <Text style={[textStyles.body, { color: studentId ? colors.foreground : colors.foregroundSubtle }]}>
                 {studentId ? students.find((s) => s.id === studentId)?.name || 'Unknown Student' : 'Select Student'}
               </Text>
             </TouchableOpacity>
@@ -1507,15 +1526,35 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
             />
 
             {/* Start Date */}
-            <Text style={styles.label}>Start Date</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowStartDatePicker(true)}>
-              <Text style={{ color: startDate ? '#000' : '#999' }}>{startDate || 'Select Start Date'}</Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Date</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+                backgroundColor: colors.surface,
+              }}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text style={[textStyles.body, { color: startDate ? colors.foreground : colors.foregroundSubtle }]}>{startDate || 'Select Start Date'}</Text>
             </TouchableOpacity>
 
             {/* End Date */}
-            <Text style={styles.label}>End Date</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowEndDatePicker(true)}>
-              <Text style={{ color: endDate ? '#000' : '#999' }}>{endDate || 'Select End Date'}</Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Date</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+                backgroundColor: colors.surface,
+              }}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Text style={[textStyles.body, { color: endDate ? colors.foreground : colors.foregroundSubtle }]}>{endDate || 'Select End Date'}</Text>
             </TouchableOpacity>
 
             {/* Notes */}
@@ -1529,30 +1568,33 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
             />
 
             {/* Payment Status */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing[2] }}>
               <Switch value={isPaid} onValueChange={setIsPaid} />
-              <Text style={{ marginLeft: 8 }}>Paid</Text>
+              <Text style={[textStyles.body, { marginLeft: spacing[2], color: colors.foreground }]}>Paid</Text>
             </View>
 
             {/* File Attachment - only show if paid */}
             {isPaid && (
               <View style={styles.attachmentSection}>
-                <Text style={styles.label}>Receipt</Text>
-                <TouchableOpacity onPress={handlePickAttachment} style={styles.attachmentButton}>
-                  <Ionicons name="document" size={24} color="#2196F3" />
-                  <Text style={styles.attachmentText}>{attachmentUri ? 'Change Receipt' : 'Add Receipt'}</Text>
+                <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Receipt</Text>
+                <TouchableOpacity
+                  onPress={handlePickAttachment}
+                  style={[styles.attachmentButton, { borderColor: colors.primary }]}
+                >
+                  <Ionicons name="document" size={24} color={colors.primary} />
+                  <Text style={[textStyles.body, { color: colors.primary, marginLeft: spacing[2] }]}>{attachmentUri ? 'Change Receipt' : 'Add Receipt'}</Text>
                 </TouchableOpacity>
                 {attachmentUri && (
-                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: 8 }}>
-                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: spacing[2] }}>
+                    <Ionicons name="close-circle" size={24} color={colors.destructive} />
                   </TouchableOpacity>
                 )}
-                {attachmentUri && <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>}
+                {attachmentUri && <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' }]}>{attachmentUri.split('/').pop()}</Text>}
               </View>
             )}
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions style={{ gap: 8 }}>
+        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
@@ -1586,39 +1628,45 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
           <Dialog
             visible={showStudentPicker}
             onDismiss={() => setShowStudentPicker(false)}
-            style={{ backgroundColor: 'white' }}
+            style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
           >
-            <Dialog.Title>Select Student</Dialog.Title>
+            <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Select Student</Dialog.Title>
             <Dialog.Content>
               <ScrollView style={{ maxHeight: 300 }}>
-                {students.map((student) => (
-                  <TouchableOpacity
-                    key={student.id}
-                    style={{
-                      padding: 16,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#eee',
-                      backgroundColor: studentId === student.id ? '#e3f2fd' : 'transparent',
-                    }}
-                    onPress={() => {
-                      setStudentId(student.id);
-                      setShowStudentPicker(false);
-                    }}
-                  >
-                    <Text
+                {students.map((student) => {
+                  const isSelected = studentId === student.id;
+                  return (
+                    <TouchableOpacity
+                      key={student.id}
                       style={{
-                        fontSize: 16,
-                        fontWeight: studentId === student.id ? 'bold' : 'normal',
-                        color: studentId === student.id ? '#1976d2' : '#000',
+                        padding: spacing[4],
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                        backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
+                        borderRadius: isSelected ? radius.md : 0,
+                      }}
+                      onPress={() => {
+                        setStudentId(student.id);
+                        setShowStudentPicker(false);
                       }}
                     >
-                      {student.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          textStyles.body,
+                          {
+                            fontWeight: isSelected ? '600' : '400',
+                            color: isSelected ? colors.primary : colors.foreground,
+                          },
+                        ]}
+                      >
+                        {student.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </Dialog.Content>
-            <Dialog.Actions>
+            <Dialog.Actions style={{ padding: spacing[4] }}>
               <Button variant="ghost" onPress={() => setShowStudentPicker(false)}>
                 Cancel
               </Button>
@@ -1651,6 +1699,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
   onDismiss,
   onSave,
 }) => {
+  const { colors } = useAppTheme();
   const [studentId, setStudentId] = useState(registration.studentId);
   const [amount, setAmount] = useState(registration.amount.toString());
   const [startDate, setStartDate] = useState(
@@ -1753,8 +1802,8 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: 'white', maxHeight: '80%' }}>
-        <Dialog.Title>Edit Registration</Dialog.Title>
+      <Dialog visible={visible} onDismiss={onDismiss} style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}>
+        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Edit Registration</Dialog.Title>
         <Dialog.Content>
           <ScrollView style={{ maxHeight: 400 }}>
             {/* Student Display (Read-only) */}
@@ -1773,14 +1822,34 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
               keyboardType="numeric"
             />
 
-            <Text style={styles.label}>Start Date</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowStartDatePicker(true)}>
-              <Text style={{ color: startDate ? '#000' : '#999' }}>{startDate || 'Select Start Date'}</Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Date</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+                backgroundColor: colors.surface,
+              }}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text style={[textStyles.body, { color: startDate ? colors.foreground : colors.foregroundSubtle }]}>{startDate || 'Select Start Date'}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.label}>End Date</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowEndDatePicker(true)}>
-              <Text style={{ color: endDate ? '#000' : '#999' }}>{endDate || 'Select End Date'}</Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Date</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+                backgroundColor: colors.surface,
+              }}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Text style={[textStyles.body, { color: endDate ? colors.foreground : colors.foregroundSubtle }]}>{endDate || 'Select End Date'}</Text>
             </TouchableOpacity>
 
             <Input
@@ -1793,29 +1862,29 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
             />
 
             {/* Payment Status */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing[2] }}>
               <Switch value={isPaid} onValueChange={setIsPaid} />
-              <Text style={{ marginLeft: 8 }}>Paid</Text>
+              <Text style={[textStyles.body, { marginLeft: spacing[2], color: colors.foreground }]}>Paid</Text>
             </View>
 
             {/* File Attachment - only show if paid */}
             {isPaid && (
               <View style={styles.attachmentSection}>
-                <TouchableOpacity onPress={handlePickAttachment} style={styles.attachmentButton}>
-                  <Ionicons name="document" size={24} color="#2196F3" />
-                  <Text style={styles.attachmentText}>{attachmentUri ? 'Change Receipt' : 'Add Receipt'}</Text>
+                <TouchableOpacity onPress={handlePickAttachment} style={[styles.attachmentButton, { borderColor: colors.primary }]}>
+                  <Ionicons name="document" size={24} color={colors.primary} />
+                  <Text style={[textStyles.body, { color: colors.primary, marginLeft: spacing[2] }]}>{attachmentUri ? 'Change Receipt' : 'Add Receipt'}</Text>
                 </TouchableOpacity>
                 {attachmentUri && (
-                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: 8 }}>
-                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: spacing[2] }}>
+                    <Ionicons name="close-circle" size={24} color={colors.destructive} />
                   </TouchableOpacity>
                 )}
-                {attachmentUri && <Text style={styles.attachmentUri}>{attachmentUri.split('/').pop()}</Text>}
+                {attachmentUri && <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' }]}>{attachmentUri.split('/').pop()}</Text>}
               </View>
             )}
           </ScrollView>
         </Dialog.Content>
-        <Dialog.Actions style={{ gap: 8 }}>
+        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
@@ -1847,7 +1916,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
 };
 
 export function WTRegistryScreen() {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
 
   return (
     <Tab.Navigator
@@ -1869,8 +1938,12 @@ export function WTRegistryScreen() {
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurfaceDisabled,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.foregroundSubtle,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
         headerShown: false,
       })}
     >
@@ -1885,96 +1958,12 @@ export function WTRegistryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  card: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    overflow: 'hidden',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  daySelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
-  },
-  dayButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    margin: 2,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  dayButtonSelected: {
-    backgroundColor: '#007AFF',
-  },
-  dayButtonText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  dayButtonTextSelected: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  timeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
-  timeButtonText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  durationContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  durationText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
   },
   // Student styles
   studentHeader: {
@@ -1990,131 +1979,15 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
   },
-  defaultPhoto: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   studentInfo: {
     flex: 1,
     marginRight: 8,
-  },
-  studentName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  studentDetail: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  studentNotes: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  statusChip: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
   },
   statusIndicator: {
     width: 16,
     height: 16,
     borderRadius: 8,
     marginLeft: 8,
-  },
-  // Registration styles
-  registrationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  registrationInfo: {
-    flex: 1,
-  },
-  registrationAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 4,
-  },
-  registrationDate: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  registrationPeriod: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  registrationStatus: {
-    alignItems: 'flex-end',
-  },
-  attachmentIcon: {
-    marginTop: 8,
-  },
-  registrationNotes: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  // Lesson styles
-  lessonDay: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  lessonTime: {
-    fontSize: 14,
-    color: '#666',
-  },
-  // Seminar styles
-  seminarName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  seminarDate: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  seminarTime: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  seminarDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  seminarLocation: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  // Dialog styles
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
   },
   photoSection: {
     alignItems: 'center',
@@ -2132,24 +2005,10 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ddd',
     borderStyle: 'dashed',
-  },
-  photoText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
-  },
-  photoHint: {
-    color: '#666',
-    fontStyle: 'italic',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
   },
   switchContainer: {
     flexDirection: 'row',
@@ -2158,21 +2017,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  switchLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
   photoOptionButton: {
     width: '100%',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
     alignItems: 'center',
-  },
-  photoOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
   },
   attachmentSection: {
     marginBottom: 16,
@@ -2182,44 +2032,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderWidth: 1,
-    borderColor: '#2196F3',
     borderRadius: 8,
     borderStyle: 'dashed',
   },
-  attachmentText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#2196F3',
-  },
-  attachmentUri: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  studentPicker: {
-    marginBottom: 16,
-  },
-  studentOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-  },
-  selectedStudent: {
-    backgroundColor: '#2196F3',
-  },
-  studentOptionText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  selectedStudentText: {
-    color: 'white',
-  },
   notesInput: {
-    minHeight: 80, // Ensure a minimum height for multiline text input
-    textAlignVertical: 'top', // Align text to the top
+    minHeight: 80,
+    textAlignVertical: 'top',
     paddingTop: 10, // Add some padding to the top
   },
 });

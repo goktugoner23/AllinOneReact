@@ -7,6 +7,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { format, subDays, startOfYear, startOfDay, isAfter, isBefore, parseISO } from 'date-fns';
 import { TransactionCard } from '@features/transactions/components/TransactionCard';
 import { TransactionService } from '@features/transactions/services/transactionService';
+import { useColors, useIsDark, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 const dateRanges = [
   { label: 'Last 7 Days', value: '7d' },
@@ -41,6 +42,8 @@ function filterByDateRange(transactions: Transaction[], range: string) {
 }
 
 export const ReportsTab: React.FC = () => {
+  const colors = useColors();
+  const isDark = useIsDark();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dateRange, setDateRange] = useState('30d');
   const [category, setCategory] = useState('All');
@@ -150,17 +153,51 @@ export const ReportsTab: React.FC = () => {
     );
   };
 
+  // Dynamic chart config based on theme
+  const chartConfig = {
+    backgroundColor: colors.card,
+    backgroundGradientFrom: colors.card,
+    backgroundGradientTo: colors.card,
+    decimalPlaces: 0,
+    color: (opacity = 1) => {
+      const r = parseInt(colors.expense.slice(1, 3), 16);
+      const g = parseInt(colors.expense.slice(3, 5), 16);
+      const b = parseInt(colors.expense.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    },
+    labelColor: (opacity = 1) => {
+      const r = parseInt(colors.foreground.slice(1, 3), 16);
+      const g = parseInt(colors.foreground.slice(3, 5), 16);
+      const b = parseInt(colors.foreground.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    },
+    style: {
+      borderRadius: radius.lg,
+    },
+    propsForDots: {
+      r: '4',
+      strokeWidth: '2',
+      stroke: colors.expense,
+    },
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Title title="Filters" />
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Filters Card */}
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+        <Card.Title title="Filters" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
         <Card.Content>
           <View style={styles.filterRow}>
             <Menu
               visible={categoryMenuVisible}
               onDismiss={() => setCategoryMenuVisible(false)}
               anchor={
-                <Button mode="outlined" onPress={() => setCategoryMenuVisible(true)}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setCategoryMenuVisible(true)}
+                  style={[styles.filterButton, { borderColor: colors.border }]}
+                  labelStyle={{ color: colors.foreground }}
+                >
                   {category}
                 </Button>
               }
@@ -180,7 +217,12 @@ export const ReportsTab: React.FC = () => {
               visible={dateRangeMenuVisible}
               onDismiss={() => setDateRangeMenuVisible(false)}
               anchor={
-                <Button mode="outlined" style={styles.marginLeft8} onPress={() => setDateRangeMenuVisible(true)}>
+                <Button
+                  mode="outlined"
+                  style={[styles.filterButton, styles.marginLeft, { borderColor: colors.border }]}
+                  labelStyle={{ color: colors.foreground }}
+                  onPress={() => setDateRangeMenuVisible(true)}
+                >
                   {dateRanges.find((r) => r.value === dateRange)?.label}
                 </Button>
               }
@@ -199,81 +241,102 @@ export const ReportsTab: React.FC = () => {
           </View>
         </Card.Content>
       </Card>
-      <Card style={styles.card}>
-        <Card.Title title="Summary Statistics" />
-        <Card.Content>
-          <Text>Total Income: {formatCurrencyTRY(totalIncome)}</Text>
-          <Text>Total Expense: {formatCurrencyTRY(totalExpense)}</Text>
-          <Text>Balance: {formatCurrencyTRY(balance)}</Text>
-          <Text>Transactions: {filteredTransactions.length}</Text>
+
+      {/* Summary Statistics Card */}
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+        <Card.Title title="Summary Statistics" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
+        <Card.Content style={styles.summaryContent}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Income</Text>
+              <Text style={[styles.summaryValue, { color: colors.income }]}>{formatCurrencyTRY(totalIncome)}</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Expense</Text>
+              <Text style={[styles.summaryValue, { color: colors.expense }]}>{formatCurrencyTRY(totalExpense)}</Text>
+            </View>
+          </View>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Balance</Text>
+              <Text style={[styles.summaryValue, { color: balance >= 0 ? colors.income : colors.expense }]}>
+                {formatCurrencyTRY(balance)}
+              </Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Transactions</Text>
+              <Text style={[styles.summaryValue, { color: colors.foreground }]}>{filteredTransactions.length}</Text>
+            </View>
+          </View>
         </Card.Content>
       </Card>
-      <Card style={styles.card}>
-        <Card.Title title="Spending Trends" />
+
+      {/* Spending Trends Card */}
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+        <Card.Title title="Spending Trends" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
         <Card.Content>
           {chartData.datasets[0].data.length > 1 && chartData.datasets[0].data[0] !== 0 ? (
             <LineChart
               data={chartData}
-              width={Dimensions.get('window').width - 64}
+              width={Dimensions.get('window').width - spacing[16]}
               height={220}
-              chartConfig={{
-                backgroundColor: '#ffffff',
-                backgroundGradientFrom: '#ffffff',
-                backgroundGradientTo: '#ffffff',
-                decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                style: {
-                  borderRadius: 16,
-                },
-                propsForDots: {
-                  r: '4',
-                  strokeWidth: '2',
-                  stroke: '#e74c3c',
-                },
-              }}
+              chartConfig={chartConfig}
               bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
+              style={styles.chart}
             />
           ) : (
-            <Text>No data for chart.</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No data for chart.</Text>
           )}
         </Card.Content>
       </Card>
-      <Card style={styles.card}>
-        <Card.Title title="Category Breakdown" />
+
+      {/* Category Breakdown Card */}
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+        <Card.Title title="Category Breakdown" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
         <Card.Content>
           {categorySpending.length ? (
             categorySpending.map(([cat, amt], i) => (
-              <View key={cat} style={styles.categoryRow}>
-                <Text style={styles.flex1}>{cat}</Text>
-                <Text style={styles.expenseRedBold}>{formatCurrencyTRY(amt)}</Text>
-                {i < categorySpending.length - 1 && <Divider style={styles.marginVertical4} />}
+              <View key={cat}>
+                <View style={styles.categoryRow}>
+                  <Text style={[styles.categoryText, { color: colors.foreground }]}>{cat}</Text>
+                  <Text style={[styles.categoryAmount, { color: colors.expense }]}>{formatCurrencyTRY(amt)}</Text>
+                </View>
+                {i < categorySpending.length - 1 && (
+                  <Divider style={[styles.categoryDivider, { backgroundColor: colors.border }]} />
+                )}
               </View>
             ))
           ) : (
-            <Text>No spending data available</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No spending data available</Text>
           )}
         </Card.Content>
       </Card>
-      <Card style={styles.card}>
-        <Card.Title title="Insights" />
-        <Card.Content>
-          <Text>Average Transaction: {formatCurrencyTRY(avgTransaction)}</Text>
-          <Text>Most Frequent Category: {mostFrequentCategory}</Text>
-          <Text>Total Transactions: {filteredTransactions.length}</Text>
+
+      {/* Insights Card */}
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+        <Card.Title title="Insights" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
+        <Card.Content style={styles.insightsContent}>
+          <View style={styles.insightRow}>
+            <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Average Transaction</Text>
+            <Text style={[styles.insightValue, { color: colors.foreground }]}>{formatCurrencyTRY(avgTransaction)}</Text>
+          </View>
+          <View style={styles.insightRow}>
+            <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Most Frequent Category</Text>
+            <Text style={[styles.insightValue, { color: colors.foreground }]}>{mostFrequentCategory}</Text>
+          </View>
+          <View style={styles.insightRow}>
+            <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Total Transactions</Text>
+            <Text style={[styles.insightValue, { color: colors.foreground }]}>{filteredTransactions.length}</Text>
+          </View>
         </Card.Content>
       </Card>
 
       {/* Transactions list (date-desc, paginated) */}
-      <Card style={styles.card}>
-        <Card.Title title="Transactions" />
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
+        <Card.Title title="Transactions" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
         <Card.Content>
           {pagedTransactions.length === 0 ? (
-            <Text>No transactions found</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No transactions found</Text>
           ) : (
             <View>
               {pagedTransactions.map((t) => (
@@ -285,16 +348,22 @@ export const ReportsTab: React.FC = () => {
                     mode="contained"
                     onPress={() => setCurrentPage((p) => Math.max(0, p - 1))}
                     disabled={currentPage === 0}
+                    buttonColor={colors.primary}
+                    textColor={colors.primaryForeground}
+                    style={styles.paginationButton}
                   >
                     Previous
                   </Button>
-                  <Text style={styles.pageText}>
+                  <Text style={[styles.pageText, { color: colors.foreground }]}>
                     {currentPage + 1} / {totalPages}
                   </Text>
                   <Button
                     mode="contained"
                     onPress={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={currentPage === totalPages - 1}
+                    buttonColor={colors.primary}
+                    textColor={colors.primaryForeground}
+                    style={styles.paginationButton}
                   >
                     Next
                   </Button>
@@ -311,49 +380,97 @@ export const ReportsTab: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-  },
-  title: {
-    marginBottom: 12,
-    textAlign: 'center',
+    padding: spacing[4],
   },
   card: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
+    borderRadius: radius.lg,
+  },
+  cardTitle: {
+    ...textStyles.h4,
   },
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  marginLeft8: {
-    marginLeft: 8,
+  filterButton: {
+    borderRadius: radius.md,
+  },
+  marginLeft: {
+    marginLeft: spacing[2],
+  },
+  summaryContent: {
+    gap: spacing[3],
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    ...textStyles.caption,
+    marginBottom: spacing[1],
+  },
+  summaryValue: {
+    ...textStyles.amountSmall,
+  },
+  chart: {
+    marginVertical: spacing[2],
+    borderRadius: radius.lg,
+  },
+  emptyText: {
+    ...textStyles.bodySmall,
+    textAlign: 'center',
+    paddingVertical: spacing[4],
+    fontStyle: 'italic',
   },
   categoryRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2,
+    paddingVertical: spacing[2],
   },
-  flex1: {
+  categoryText: {
+    ...textStyles.body,
     flex: 1,
   },
-  expenseRedBold: {
-    color: '#e74c3c',
-    fontWeight: 'bold',
+  categoryAmount: {
+    ...textStyles.label,
+    fontWeight: '700',
   },
-  marginVertical4: {
-    marginVertical: 4,
+  categoryDivider: {
+    marginVertical: spacing[1],
+  },
+  insightsContent: {
+    gap: spacing[2],
+  },
+  insightRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing[1],
+  },
+  insightLabel: {
+    ...textStyles.bodySmall,
+  },
+  insightValue: {
+    ...textStyles.label,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 12,
+    marginTop: spacing[4],
+    gap: spacing[3],
+  },
+  paginationButton: {
+    borderRadius: radius.md,
   },
   pageText: {
-    marginHorizontal: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    ...textStyles.label,
+    marginHorizontal: spacing[4],
   },
 });
