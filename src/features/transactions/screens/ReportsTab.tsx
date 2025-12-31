@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
-import { Card, Text, Button, Menu, Divider } from 'react-native-paper';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, Dimensions, Alert, TouchableOpacity } from 'react-native';
+import { Card, Text, Divider, Button } from 'react-native-paper';
 import { fetchTransactions } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
-import { format, subDays, startOfYear, startOfDay, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, subDays, startOfYear, startOfDay, isBefore, parseISO } from 'date-fns';
 import { TransactionCard } from '@features/transactions/components/TransactionCard';
 import { TransactionService } from '@features/transactions/services/transactionService';
 import { useColors, useIsDark, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const dateRanges = [
   { label: 'Last 7 Days', value: '7d' },
@@ -47,10 +49,32 @@ export const ReportsTab: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dateRange, setDateRange] = useState('30d');
   const [category, setCategory] = useState('All');
-  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
-  const [dateRangeMenuVisible, setDateRangeMenuVisible] = useState(false);
   const [categories, setCategories] = useState<string[]>(['All']);
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Convert categories to dropdown items
+  const categoryItems: DropdownItem[] = useMemo(
+    () =>
+      categories.map((cat) => ({
+        label: cat,
+        value: cat,
+        icon: cat === 'All' ? (
+          <Ionicons name="apps" size={20} color={colors.mutedForeground} />
+        ) : undefined,
+      })),
+    [categories, colors.mutedForeground]
+  );
+
+  // Convert date ranges to dropdown items
+  const dateRangeItems: DropdownItem[] = useMemo(
+    () =>
+      dateRanges.map((range) => ({
+        label: range.label,
+        value: range.value,
+        icon: <Ionicons name="calendar-outline" size={20} color={colors.mutedForeground} />,
+      })),
+    [colors.mutedForeground]
+  );
 
   useEffect(() => {
     fetchTransactions(1000).then((txs) => {
@@ -188,56 +212,24 @@ export const ReportsTab: React.FC = () => {
         <Card.Title title="Filters" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
         <Card.Content>
           <View style={styles.filterRow}>
-            <Menu
-              visible={categoryMenuVisible}
-              onDismiss={() => setCategoryMenuVisible(false)}
-              anchor={
-                <Button
-                  mode="outlined"
-                  onPress={() => setCategoryMenuVisible(true)}
-                  style={[styles.filterButton, { borderColor: colors.border }]}
-                  labelStyle={{ color: colors.foreground }}
-                >
-                  {category}
-                </Button>
-              }
-            >
-              {categories.map((cat) => (
-                <Menu.Item
-                  key={cat}
-                  onPress={() => {
-                    setCategory(cat);
-                    setCategoryMenuVisible(false);
-                  }}
-                  title={cat}
-                />
-              ))}
-            </Menu>
-            <Menu
-              visible={dateRangeMenuVisible}
-              onDismiss={() => setDateRangeMenuVisible(false)}
-              anchor={
-                <Button
-                  mode="outlined"
-                  style={[styles.filterButton, styles.marginLeft, { borderColor: colors.border }]}
-                  labelStyle={{ color: colors.foreground }}
-                  onPress={() => setDateRangeMenuVisible(true)}
-                >
-                  {dateRanges.find((r) => r.value === dateRange)?.label}
-                </Button>
-              }
-            >
-              {dateRanges.map((range) => (
-                <Menu.Item
-                  key={range.value}
-                  onPress={() => {
-                    setDateRange(range.value);
-                    setDateRangeMenuVisible(false);
-                  }}
-                  title={range.label}
-                />
-              ))}
-            </Menu>
+            <View style={styles.filterItem}>
+              <Text style={[styles.filterLabel, { color: colors.mutedForeground }]}>Category</Text>
+              <Dropdown
+                items={categoryItems}
+                selectedValue={category}
+                onValueChange={setCategory}
+                placeholder="Select Category"
+              />
+            </View>
+            <View style={styles.filterItem}>
+              <Text style={[styles.filterLabel, { color: colors.mutedForeground }]}>Date Range</Text>
+              <Dropdown
+                items={dateRangeItems}
+                selectedValue={dateRange}
+                onValueChange={setDateRange}
+                placeholder="Select Period"
+              />
+            </View>
           </View>
         </Card.Content>
       </Card>
@@ -391,13 +383,16 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: spacing[3],
   },
-  filterButton: {
-    borderRadius: radius.md,
+  filterItem: {
+    flex: 1,
   },
-  marginLeft: {
-    marginLeft: spacing[2],
+  filterLabel: {
+    ...textStyles.caption,
+    marginBottom: spacing[1],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   summaryContent: {
     gap: spacing[3],
@@ -461,7 +456,7 @@ const styles = StyleSheet.create({
   },
   pagination: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: spacing[4],
     gap: spacing[3],
