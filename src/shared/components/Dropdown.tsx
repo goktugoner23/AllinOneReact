@@ -8,7 +8,7 @@
  */
 
 import * as React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { ViewStyle } from 'react-native';
 import { SimpleSelect, SimpleSelectOption } from './ui/Select';
 
 export interface DropdownItem {

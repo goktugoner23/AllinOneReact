@@ -41,6 +41,9 @@ export type { EmptyStateProps } from './EmptyState';
 export { ListItem, ListSection, ListDivider } from './List';
 export type { ListItemProps, ListSectionProps, ListDividerProps } from './List';
 
+export { ListCard, ListCardItem, ListCardGroup } from './ListCard';
+export type { ListCardItemProps, ListCardGroupProps } from './ListCard';
+
 // shadcn-style Select (native Modal-based)
 export { Select, SimpleSelect } from './Select';
 export type { SelectOption, SimpleSelectOption, SimpleSelectProps } from './Select';
