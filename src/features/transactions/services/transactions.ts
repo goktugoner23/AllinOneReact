@@ -233,18 +233,33 @@ export async function fetchTransactions(limitCount: number = 50): Promise<Transa
     // Map data exactly like Kotlin app
     const transactions = snapshot.docs.map((docSnapshot) => {
       const data = docSnapshot.data();
+      
+      // Handle date - can be Timestamp, Date, string (ISO), or number (epoch)
+      let dateString: string;
+      if (data.date instanceof Timestamp) {
+        dateString = data.date.toDate().toISOString();
+      } else if (data.date?.toDate) {
+        // Firestore Timestamp-like object
+        dateString = data.date.toDate().toISOString();
+      } else if (typeof data.date === 'string') {
+        // Already an ISO string or date string - validate and use as-is
+        const parsed = new Date(data.date);
+        dateString = isNaN(parsed.getTime()) ? new Date().toISOString() : data.date;
+      } else if (typeof data.date === 'number') {
+        // Epoch timestamp in milliseconds
+        dateString = new Date(data.date).toISOString();
+      } else {
+        // Fallback to current date
+        dateString = new Date().toISOString();
+      }
+      
       return {
         id: data.id?.toString() ?? docSnapshot.id,
         amount: data.amount ?? 0,
         type: data.type ?? '', // Category name
         description: data.description ?? '', // Ensure not null like Kotlin
         isIncome: data.isIncome ?? false,
-        date:
-          data.date instanceof Timestamp
-            ? data.date.toDate().toISOString()
-            : data.date?.toDate?.()
-              ? data.date.toDate().toISOString()
-              : new Date().toISOString(),
+        date: dateString,
         category: data.category ?? '',
         relatedRegistrationId: data.relatedRegistrationId,
         relatedInvestmentId: data.relatedInvestmentId?.toString(),

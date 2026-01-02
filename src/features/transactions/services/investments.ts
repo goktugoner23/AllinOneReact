@@ -56,6 +56,26 @@ export async function fetchInvestments(limit: number = 100): Promise<Investment[
     // Sort in memory instead of in the query
     const investments = snapshot.docs.map((doc) => {
       const data = doc.data();
+      
+      // Handle date - can be Timestamp, Date, string (ISO), or number (epoch)
+      let dateString: string;
+      if (data.date instanceof Timestamp) {
+        dateString = data.date.toDate().toISOString();
+      } else if (data.date?.toDate) {
+        // Firestore Timestamp-like object
+        dateString = data.date.toDate().toISOString();
+      } else if (typeof data.date === 'string') {
+        // Already an ISO string or date string - validate and use as-is
+        const parsed = new Date(data.date);
+        dateString = isNaN(parsed.getTime()) ? new Date().toISOString() : data.date;
+      } else if (typeof data.date === 'number') {
+        // Epoch timestamp in milliseconds
+        dateString = new Date(data.date).toISOString();
+      } else {
+        // Fallback to current date
+        dateString = new Date().toISOString();
+      }
+      
       return {
         id: data.id?.toString() ?? doc.id,
         name: data.name ?? '',
@@ -66,12 +86,7 @@ export async function fetchInvestments(limit: number = 100): Promise<Investment[
         imageUris: data.imageUris ?? '',
         videoUris: data.videoUris ?? '',
         voiceNoteUris: data.voiceNoteUris ?? '',
-        date:
-          data.date instanceof Timestamp
-            ? data.date.toDate().toISOString()
-            : data.date?.toDate?.()
-              ? data.date.toDate().toISOString()
-              : new Date().toISOString(),
+        date: dateString,
         isPast: data.isPast ?? false,
         profitLoss: data.profitLoss ?? 0,
         currentValue: data.currentValue ?? data.amount ?? 0,
