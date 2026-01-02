@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restructured project to feature-first architecture
 - Updated ESLint and Prettier configurations
 - Fixed TypeScript strict mode issues
+- **WebSocket Configuration**: Moved WebSocket URL to environment variables
+  - Added `WS_URL_DEV` and `WS_URL_PROD` to `.env` for flexible configuration
+  - Updated `binanceWebSocket.ts` to use environment-based URLs
+  - Fixed WebSocket endpoint path to use `/ws` as required by backend
 
 ### Fixed
 - **UI Theming Overhaul**: Replaced hardcoded colors with theme-aware colors across entire codebase
@@ -21,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed `Card` component to accept `StyleProp<ViewStyle>` for style arrays
   - Added missing styles: `placeholderText` in AttachmentGallery, `errorChip`/`statusChip`/`loader` in FuturesTab
 - TypeScript compilation errors resolved across all modified files
+- **WebSocket Race Condition**: Fixed subscription calls in `FuturesTab.tsx` to only execute when WebSocket is connected
+  - Added `wsConnected` dependency to useEffect hooks
+  - Prevents "Cannot send message - WebSocket not connected" warnings
+- **COIN-M Styling**: Applied consistent theme colors to COIN-M error chips and status indicators
 
 ---
 
