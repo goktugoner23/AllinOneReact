@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
 import { Button } from './Button';
 
 export interface EmptyStateProps {
@@ -21,15 +21,15 @@ export function EmptyState({
   onAction,
   style,
 }: EmptyStateProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
     <View style={[styles.container, style]}>
-      <View style={[styles.iconContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-        <Ionicons name={icon} size={48} color={theme.colors.onSurfaceVariant} />
+      <View style={[styles.iconContainer, { backgroundColor: colors.muted }]}>
+        <Ionicons name={icon} size={48} color={colors.mutedForeground} />
       </View>
-      <Text style={[styles.title, { color: theme.colors.onSurface }]}>{title}</Text>
-      {description && <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>{description}</Text>}
+      <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+      {description && <Text style={[styles.description, { color: colors.mutedForeground }]}>{description}</Text>}
       {actionLabel && onAction && (
         <Button variant="primary" onPress={onAction} style={styles.actionButton}>
           {actionLabel}

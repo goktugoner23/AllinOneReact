@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ViewStyle, Animated } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { useColors } from '@shared/theme';
 
 export interface SwitchProps {
   value: boolean;
@@ -13,7 +13,7 @@ export interface SwitchProps {
 }
 
 export function Switch({ value, onChange, label, description, disabled = false, size = 'md', style }: SwitchProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const sizes: Record<string, { width: number; height: number; knob: number }> = {
     sm: { width: 36, height: 20, knob: 16 },
@@ -26,7 +26,7 @@ export function Switch({ value, onChange, label, description, disabled = false, 
     width: sizeValues.width,
     height: sizeValues.height,
     borderRadius: sizeValues.height / 2,
-    backgroundColor: value ? theme.colors.primary : theme.colors.surfaceVariant,
+    backgroundColor: value ? colors.primary : colors.muted,
     justifyContent: 'center',
     paddingHorizontal: 2,
     opacity: disabled ? 0.5 : 1,
@@ -36,7 +36,7 @@ export function Switch({ value, onChange, label, description, disabled = false, 
     width: sizeValues.knob,
     height: sizeValues.knob,
     borderRadius: sizeValues.knob / 2,
-    backgroundColor: value ? theme.colors.onPrimary : theme.colors.outline,
+    backgroundColor: value ? colors.primaryForeground : colors.mutedForeground,
     alignSelf: value ? 'flex-end' : 'flex-start',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -60,16 +60,14 @@ export function Switch({ value, onChange, label, description, disabled = false, 
               style={[
                 styles.label,
                 {
-                  color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onSurface,
+                  color: disabled ? colors.mutedForeground : colors.foreground,
                 },
               ]}
             >
               {label}
             </Text>
           )}
-          {description && (
-            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>{description}</Text>
-          )}
+          {description && <Text style={[styles.description, { color: colors.mutedForeground }]}>{description}</Text>}
         </View>
         <View style={trackStyle}>
           <View style={knobStyle} />

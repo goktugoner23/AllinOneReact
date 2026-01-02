@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, ViewStyle } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useColors } from '@shared/theme';
 
 export interface AvatarProps {
   source?: { uri: string } | number;
@@ -10,7 +10,7 @@ export interface AvatarProps {
 }
 
 export function Avatar({ source, name, size = 'md', style }: AvatarProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const sizes: Record<string, number> = {
     xs: 24,
@@ -43,7 +43,7 @@ export function Avatar({ source, name, size = 'md', style }: AvatarProps) {
     width: sizeValue,
     height: sizeValue,
     borderRadius: sizeValue / 2,
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -68,7 +68,7 @@ export function Avatar({ source, name, size = 'md', style }: AvatarProps) {
     <View style={[avatarStyle, style]}>
       <Text
         style={{
-          color: theme.colors.onPrimaryContainer,
+          color: colors.primary,
           fontSize,
           fontWeight: '600',
         }}
@@ -87,7 +87,7 @@ export interface AvatarGroupProps {
 }
 
 export function AvatarGroup({ avatars, max = 4, size = 'md', style }: AvatarGroupProps) {
-  const theme = useTheme();
+  const colors = useColors();
   const displayAvatars = avatars.slice(0, max);
   const remaining = avatars.length - max;
 
@@ -114,7 +114,7 @@ export function AvatarGroup({ avatars, max = 4, size = 'md', style }: AvatarGrou
               zIndex: displayAvatars.length - index,
               borderRadius: sizeValue / 2,
               borderWidth: 2,
-              borderColor: theme.colors.surface,
+              borderColor: colors.background,
             },
           ]}
         >
@@ -130,17 +130,17 @@ export function AvatarGroup({ avatars, max = 4, size = 'md', style }: AvatarGrou
               width: sizeValue,
               height: sizeValue,
               borderRadius: sizeValue / 2,
-              backgroundColor: theme.colors.surfaceVariant,
+              backgroundColor: colors.muted,
               alignItems: 'center',
               justifyContent: 'center',
               borderWidth: 2,
-              borderColor: theme.colors.surface,
+              borderColor: colors.background,
             },
           ]}
         >
           <Text
             style={{
-              color: theme.colors.onSurfaceVariant,
+              color: colors.mutedForeground,
               fontSize: sizeValue * 0.35,
               fontWeight: '600',
             }}

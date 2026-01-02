@@ -1,18 +1,15 @@
 import React from 'react';
-import { FAB, FABProps, useTheme } from 'react-native-paper';
+import { ViewStyle } from 'react-native';
+import { FAB } from './FAB';
 
-type RefreshFabProps = Omit<FABProps, 'icon' | 'color' | 'style'> & {
-  style?: any;
-};
+interface RefreshFabProps {
+  style?: ViewStyle;
+  onPress: () => void;
+  disabled?: boolean;
+}
 
-export default function RefreshFab({ style, ...rest }: RefreshFabProps) {
-  const theme = useTheme();
+export default function RefreshFab({ style, onPress, disabled }: RefreshFabProps) {
   return (
-    <FAB
-      icon="refresh"
-      color={theme.colors.onPrimary}
-      style={[{ position: 'absolute', left: 16, bottom: 16, backgroundColor: theme.colors.primary }, style]}
-      {...rest}
-    />
+    <FAB icon="refresh" onPress={onPress} disabled={disabled} variant="primary" position="bottom-left" style={style} />
   );
 }

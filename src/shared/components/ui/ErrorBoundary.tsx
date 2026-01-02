@@ -1,6 +1,6 @@
-import React, { Component, ReactNode, useContext } from 'react';
+import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useTheme, MD3Theme } from 'react-native-paper';
+import { colors as themeColors } from '@shared/theme';
 
 interface Props {
   children: ReactNode;
@@ -13,15 +13,18 @@ interface State {
   error?: Error;
 }
 
-// Theme context for class component
-const ThemeContext = React.createContext<MD3Theme | null>(null);
+// Get colors based on color scheme
+const getColors = () => {
+  // Default to light mode colors for error boundary since it's a class component
+  return themeColors.light;
+};
 
 /**
  * ErrorBoundary component to catch JavaScript errors anywhere in the child component tree
  * Following React Native guidelines for error handling
  */
-class ErrorBoundaryClass extends Component<Props & { theme: MD3Theme }, State> {
-  constructor(props: Props & { theme: MD3Theme }) {
+class ErrorBoundaryClass extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
   }
@@ -52,7 +55,7 @@ class ErrorBoundaryClass extends Component<Props & { theme: MD3Theme }, State> {
   };
 
   render(): ReactNode {
-    const { theme } = this.props;
+    const colors = getColors();
 
     if (this.state.hasError) {
       // Return custom fallback UI if provided
@@ -62,16 +65,16 @@ class ErrorBoundaryClass extends Component<Props & { theme: MD3Theme }, State> {
 
       // Default fallback UI
       return (
-        <View style={[styles.errorContainer, { backgroundColor: theme.colors.background }]}>
-          <Text style={[styles.errorTitle, { color: theme.colors.error }]}>Oops! Something went wrong</Text>
-          <Text style={[styles.errorMessage, { color: theme.colors.onSurfaceVariant }]}>
+        <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.errorTitle, { color: colors.destructive }]}>Oops! Something went wrong</Text>
+          <Text style={[styles.errorMessage, { color: colors.mutedForeground }]}>
             {__DEV__ && this.state.error ? this.state.error.message : 'An unexpected error occurred. Please try again.'}
           </Text>
           <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
             onPress={this.handleRetry}
           >
-            <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Try Again</Text>
+            <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -81,10 +84,9 @@ class ErrorBoundaryClass extends Component<Props & { theme: MD3Theme }, State> {
   }
 }
 
-// Wrapper component to provide theme to class component
+// Export with same name for compatibility
 export function ErrorBoundary(props: Props) {
-  const theme = useTheme();
-  return <ErrorBoundaryClass {...props} theme={theme} />;
+  return <ErrorBoundaryClass {...props} />;
 }
 
 const styles = StyleSheet.create({

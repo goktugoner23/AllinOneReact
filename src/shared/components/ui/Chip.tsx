@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
 
 export interface ChipProps {
   children: React.ReactNode;
@@ -26,37 +26,37 @@ export function Chip({
   leftIcon,
   style,
 }: ChipProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const getColors = () => {
-    const colors = {
+    const colorMap = {
       primary: {
-        bg: theme.colors.primaryContainer,
-        text: theme.colors.onPrimaryContainer,
-        border: theme.colors.primary,
+        bg: colors.primaryMuted,
+        text: colors.primary,
+        border: colors.primary,
       },
       success: {
-        bg: theme.colors.tertiaryContainer ?? theme.colors.primaryContainer,
-        text: theme.colors.onTertiaryContainer ?? theme.colors.onPrimaryContainer,
-        border: theme.colors.tertiary ?? theme.colors.primary,
+        bg: colors.successMuted,
+        text: colors.success,
+        border: colors.success,
       },
       warning: {
-        bg: theme.colors.secondaryContainer,
-        text: theme.colors.onSecondaryContainer,
-        border: theme.colors.secondary,
+        bg: colors.warningMuted,
+        text: colors.warning,
+        border: colors.warning,
       },
       error: {
-        bg: theme.colors.errorContainer,
-        text: theme.colors.onErrorContainer,
-        border: theme.colors.error,
+        bg: colors.destructiveMuted,
+        text: colors.destructive,
+        border: colors.destructive,
       },
       default: {
-        bg: theme.colors.surfaceVariant,
-        text: theme.colors.onSurfaceVariant,
-        border: theme.colors.outline,
+        bg: colors.muted,
+        text: colors.mutedForeground,
+        border: colors.border,
       },
     };
-    return colors[color];
+    return colorMap[color];
   };
 
   const chipColors = getColors();
