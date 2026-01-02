@@ -10,7 +10,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useColors } from '@shared/theme';
 import { Button } from './Button';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -34,7 +34,7 @@ export function Dialog({
   showCloseButton = false,
   dismissible = true,
 }: DialogProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
     <Modal
@@ -46,11 +46,9 @@ export function Dialog({
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={dismissible ? onClose : undefined} />
-        <View style={[styles.dialog, { backgroundColor: theme.colors.surface }]}>
-          {title && <Text style={[styles.title, { color: theme.colors.onSurface }]}>{title}</Text>}
-          {description && (
-            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>{description}</Text>
-          )}
+        <View style={[styles.dialog, { backgroundColor: colors.card }]}>
+          {title && <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>}
+          {description && <Text style={[styles.description, { color: colors.mutedForeground }]}>{description}</Text>}
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>
@@ -90,16 +88,16 @@ export function AlertDialog({
   variant = 'default',
   loading = false,
 }: AlertDialogProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.alertDialog, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.alertTitle, { color: theme.colors.onSurface }]}>{title}</Text>
+        <View style={[styles.alertDialog, { backgroundColor: colors.card }]}>
+          <Text style={[styles.alertTitle, { color: colors.foreground }]}>{title}</Text>
           {description && (
-            <Text style={[styles.alertDescription, { color: theme.colors.onSurfaceVariant }]}>{description}</Text>
+            <Text style={[styles.alertDescription, { color: colors.mutedForeground }]}>{description}</Text>
           )}
           <View style={styles.alertActions}>
             <Button variant="ghost" onPress={onClose} style={styles.alertButton} disabled={loading}>

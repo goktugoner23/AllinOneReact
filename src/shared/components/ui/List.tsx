@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
 
 export interface ListItemProps {
   title: string;
@@ -26,31 +26,31 @@ export function ListItem({
   disabled = false,
   style,
 }: ListItemProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const content = (
     <>
       {(leftIcon || leftElement) && (
         <View style={styles.leftContainer}>
-          {leftElement || <Ionicons name={leftIcon!} size={24} color={theme.colors.onSurfaceVariant} />}
+          {leftElement || <Ionicons name={leftIcon!} size={24} color={colors.mutedForeground} />}
         </View>
       )}
       <View style={styles.textContainer}>
         <Text
-          style={[styles.title, { color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onSurface }]}
+          style={[styles.title, { color: disabled ? colors.mutedForeground : colors.foreground }]}
           numberOfLines={1}
         >
           {title}
         </Text>
         {subtitle && (
-          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]} numberOfLines={2}>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]} numberOfLines={2}>
             {subtitle}
           </Text>
         )}
       </View>
       {(rightIcon || rightElement) && (
         <View style={styles.rightContainer}>
-          {rightElement || (onPress && <Ionicons name={rightIcon} size={20} color={theme.colors.onSurfaceVariant} />)}
+          {rightElement || (onPress && <Ionicons name={rightIcon} size={20} color={colors.mutedForeground} />)}
         </View>
       )}
     </>
@@ -63,7 +63,7 @@ export function ListItem({
         disabled={disabled}
         style={({ pressed }) => [
           styles.container,
-          pressed && { backgroundColor: theme.colors.surfaceVariant },
+          pressed && { backgroundColor: colors.muted },
           disabled && { opacity: 0.5 },
           style,
         ]}
@@ -83,12 +83,12 @@ export interface ListSectionProps {
 }
 
 export function ListSection({ title, children, style }: ListSectionProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
     <View style={[styles.section, style]}>
-      {title && <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>{title}</Text>}
-      <View style={[styles.sectionContent, { backgroundColor: theme.colors.surface }]}>{children}</View>
+      {title && <Text style={[styles.sectionTitle, { color: colors.primary }]}>{title}</Text>}
+      <View style={[styles.sectionContent, { backgroundColor: colors.card }]}>{children}</View>
     </View>
   );
 }
@@ -99,13 +99,9 @@ export interface ListDividerProps {
 }
 
 export function ListDivider({ inset = false, style }: ListDividerProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
-  return (
-    <View
-      style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }, inset && styles.dividerInset, style]}
-    />
-  );
+  return <View style={[styles.divider, { backgroundColor: colors.border }, inset && styles.dividerInset, style]} />;
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, ViewStyle } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useColors } from '@shared/theme';
 
 export interface ProgressBarProps {
   progress: number; // 0-100
@@ -19,7 +19,7 @@ export function ProgressBar({
   showTrack = true,
   style,
 }: ProgressBarProps) {
-  const theme = useTheme();
+  const colors = useColors();
   const animatedWidth = useRef(new Animated.Value(0)).current;
 
   const clampedProgress = Math.min(100, Math.max(0, progress));
@@ -39,13 +39,13 @@ export function ProgressBar({
   const getColor = () => {
     switch (variant) {
       case 'success':
-        return theme.colors.tertiary ?? theme.colors.primary;
+        return colors.success;
       case 'warning':
-        return theme.colors.secondary;
+        return colors.warning;
       case 'error':
-        return theme.colors.error;
+        return colors.destructive;
       default:
-        return theme.colors.primary;
+        return colors.primary;
     }
   };
 
@@ -69,7 +69,7 @@ export function ProgressBar({
         styles.track,
         {
           height,
-          backgroundColor: showTrack ? theme.colors.surfaceVariant : 'transparent',
+          backgroundColor: showTrack ? colors.muted : 'transparent',
         },
         style,
       ]}
@@ -107,13 +107,10 @@ export function CircularProgress({
   children,
   style,
 }: CircularProgressProps) {
-  const theme = useTheme();
-  const progressColor = color || theme.colors.primary;
-  const bgColor = trackColor || theme.colors.surfaceVariant;
+  const colors = useColors();
+  const progressColor = color || colors.primary;
+  const bgColor = trackColor || colors.muted;
   const clampedProgress = Math.min(100, Math.max(0, progress));
-
-  // For React Native, we'll use a simple view-based approach
-  // For more complex circular progress, consider using react-native-svg
 
   return (
     <View

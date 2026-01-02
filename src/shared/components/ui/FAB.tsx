@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, ViewStyle, Text, Animated } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { Pressable, StyleSheet, ViewStyle, Text, Animated, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
 
 export interface FABProps {
   icon: string;
@@ -24,29 +24,29 @@ export function FAB({
   style,
   disabled = false,
 }: FABProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const getColors = () => {
     switch (variant) {
       case 'primary':
         return {
-          bg: theme.colors.primary,
-          icon: theme.colors.onPrimary,
+          bg: colors.primary,
+          icon: colors.primaryForeground,
         };
       case 'secondary':
         return {
-          bg: theme.colors.secondaryContainer,
-          icon: theme.colors.onSecondaryContainer,
+          bg: colors.secondary,
+          icon: colors.secondaryForeground,
         };
       case 'surface':
         return {
-          bg: theme.colors.surface,
-          icon: theme.colors.primary,
+          bg: colors.card,
+          icon: colors.primary,
         };
       default:
         return {
-          bg: theme.colors.primary,
-          icon: theme.colors.onPrimary,
+          bg: colors.primary,
+          icon: colors.primaryForeground,
         };
     }
   };
@@ -74,7 +74,7 @@ export function FAB({
     }
   };
 
-  const colors = getColors();
+  const fabColors = getColors();
   const sizeValues = getSizeValues();
   const isExtended = !!label;
 
@@ -82,7 +82,7 @@ export function FAB({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bg,
+    backgroundColor: fabColors.bg,
     borderRadius: isExtended ? 16 : sizeValues.size / 2,
     height: sizeValues.size,
     minWidth: sizeValues.size,
@@ -107,8 +107,8 @@ export function FAB({
         style,
       ]}
     >
-      <Ionicons name={icon} size={sizeValues.iconSize} color={colors.icon} />
-      {label && <Text style={[styles.label, { color: colors.icon }]}>{label}</Text>}
+      <Ionicons name={icon} size={sizeValues.iconSize} color={fabColors.icon} />
+      {label && <Text style={[styles.label, { color: fabColors.icon }]}>{label}</Text>}
     </Pressable>
   );
 }
@@ -126,7 +126,7 @@ export interface FABGroupProps {
 }
 
 export function FABGroup({ mainIcon, actions, open, onToggle, style }: FABGroupProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   return (
     <>
@@ -139,8 +139,8 @@ export function FABGroup({ mainIcon, actions, open, onToggle, style }: FABGroupP
                 style={[
                   styles.actionLabel,
                   {
-                    color: theme.colors.onSurface,
-                    backgroundColor: theme.colors.surface,
+                    color: colors.foreground,
+                    backgroundColor: colors.card,
                   },
                 ]}
               >

@@ -5,16 +5,13 @@
  * @format
  */
 
-import './global.css';
 import React, { useState, useMemo, createContext, useContext, useEffect } from 'react';
-import { PortalHost } from '@rn-primitives/portal';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
-  DrawerItem,
   DrawerItemList,
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
@@ -335,7 +332,6 @@ export default function App() {
               />
             </Drawer.Navigator>
           </NavigationContainer>
-          <PortalHost />
           </PaperProvider>
           </ThemeContext.Provider>
         </AppThemeProvider>

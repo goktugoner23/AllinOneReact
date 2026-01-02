@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, ViewStyle, PressableProps, ActivityIndicator } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { Pressable, ViewStyle, PressableProps, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
 
 export interface IconButtonProps extends PressableProps {
   icon: string;
@@ -22,7 +22,7 @@ export function IconButton({
   style,
   ...props
 }: IconButtonProps) {
-  const theme = useTheme();
+  const colors = useColors();
   const isDisabled = disabled || loading;
 
   const sizes: Record<string, { button: number; icon: number }> = {
@@ -34,18 +34,18 @@ export function IconButton({
   const sizeValues = sizes[size];
 
   const getColors = () => {
-    const baseColor = color || theme.colors.onSurface;
+    const baseColor = color || colors.foreground;
     switch (variant) {
       case 'filled':
         return {
-          bg: theme.colors.primary,
-          icon: theme.colors.onPrimary,
+          bg: colors.primary,
+          icon: colors.primaryForeground,
         };
       case 'outlined':
         return {
           bg: 'transparent',
           icon: baseColor,
-          border: theme.colors.outline,
+          border: colors.border,
         };
       case 'ghost':
         return {
@@ -54,25 +54,25 @@ export function IconButton({
         };
       default:
         return {
-          bg: theme.colors.surfaceVariant,
+          bg: colors.muted,
           icon: baseColor,
         };
     }
   };
 
-  const colors = getColors();
+  const buttonColors = getColors();
 
   const buttonStyle: ViewStyle = {
     width: sizeValues.button,
     height: sizeValues.button,
     borderRadius: sizeValues.button / 2,
-    backgroundColor: colors.bg,
+    backgroundColor: buttonColors.bg,
     alignItems: 'center',
     justifyContent: 'center',
     opacity: isDisabled ? 0.5 : 1,
     ...(variant === 'outlined' && {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: buttonColors.border,
     }),
   };
 
@@ -83,9 +83,9 @@ export function IconButton({
       style={({ pressed }) => [buttonStyle, pressed && { opacity: 0.7 }, style]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={colors.icon} />
+        <ActivityIndicator size="small" color={buttonColors.icon} />
       ) : (
-        <Ionicons name={icon} size={sizeValues.icon} color={colors.icon} />
+        <Ionicons name={icon} size={sizeValues.icon} color={buttonColors.icon} />
       )}
     </Pressable>
   );

@@ -41,19 +41,9 @@ export type { EmptyStateProps } from './EmptyState';
 export { ListItem, ListSection, ListDivider } from './List';
 export type { ListItemProps, ListSectionProps, ListDividerProps } from './List';
 
-// shadcn-style Select (using @rn-primitives)
-export {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-  SimpleSelect,
-} from './Select';
-export type { Option as SelectOption, SimpleSelectOption, SimpleSelectProps } from './Select';
+// shadcn-style Select (native Modal-based)
+export { Select, SimpleSelect } from './Select';
+export type { SelectOption, SimpleSelectOption, SimpleSelectProps } from './Select';
 
 // Text primitive
 export { Text } from './text';

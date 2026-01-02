@@ -1,19 +1,25 @@
 import React from 'react';
-import { FAB, FABProps, useTheme } from 'react-native-paper';
+import { ViewStyle } from 'react-native';
+import { FAB } from './FAB';
 
-type AddFabProps = Omit<FABProps, 'icon' | 'color' | 'style'> & {
+interface AddFabProps {
   iconName?: string;
-  style?: any;
-};
+  style?: ViewStyle;
+  onPress: () => void;
+  disabled?: boolean;
+  label?: string;
+}
 
-export default function AddFab({ iconName = 'plus', style, ...rest }: AddFabProps) {
-  const theme = useTheme();
+export default function AddFab({ iconName = 'add', style, onPress, disabled, label }: AddFabProps) {
   return (
     <FAB
       icon={iconName}
-      color={theme.colors.onPrimary}
-      style={[{ position: 'absolute', right: 16, bottom: 16, backgroundColor: theme.colors.primary }, style]}
-      {...rest}
+      onPress={onPress}
+      disabled={disabled}
+      label={label}
+      variant="primary"
+      position="bottom-right"
+      style={style}
     />
   );
 }

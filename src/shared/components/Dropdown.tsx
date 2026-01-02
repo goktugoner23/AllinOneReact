@@ -1,8 +1,10 @@
 /**
  * Dropdown Component
  *
- * A shadcn-style dropdown using @rn-primitives/select under the hood.
+ * A shadcn/ui styled dropdown using native React Native Modal.
  * This wrapper provides backwards compatibility with the old Dropdown API.
+ *
+ * @see Select.tsx for the underlying implementation
  */
 
 import * as React from 'react';

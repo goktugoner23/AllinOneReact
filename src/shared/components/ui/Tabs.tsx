@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle, ScrollView } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useColors } from '@shared/theme';
 
 export interface Tab {
   key: string;
@@ -28,7 +28,7 @@ export function Tabs({
   scrollable = false,
   style,
 }: TabsProps) {
-  const theme = useTheme();
+  const colors = useColors();
 
   const renderTab = (tab: Tab) => {
     const isActive = tab.key === activeTab;
@@ -47,19 +47,19 @@ export function Tabs({
         case 'pills':
           return {
             ...base,
-            backgroundColor: isActive ? theme.colors.primary : 'transparent',
+            backgroundColor: isActive ? colors.primary : 'transparent',
             borderRadius: 999,
           };
         case 'underlined':
           return {
             ...base,
             borderBottomWidth: 2,
-            borderBottomColor: isActive ? theme.colors.primary : 'transparent',
+            borderBottomColor: isActive ? colors.primary : 'transparent',
           };
         default:
           return {
             ...base,
-            backgroundColor: isActive ? theme.colors.primaryContainer : 'transparent',
+            backgroundColor: isActive ? colors.primaryMuted : 'transparent',
             borderRadius: 12,
           };
       }
@@ -67,9 +67,9 @@ export function Tabs({
 
     const getTextColor = () => {
       if (variant === 'pills' && isActive) {
-        return theme.colors.onPrimary;
+        return colors.primaryForeground;
       }
-      return isActive ? theme.colors.primary : theme.colors.onSurfaceVariant;
+      return isActive ? colors.primary : colors.mutedForeground;
     };
 
     return (
@@ -81,8 +81,8 @@ export function Tabs({
         {tab.icon}
         <Text style={[styles.tabLabel, { color: getTextColor() }, isActive && styles.activeTabLabel]}>{tab.label}</Text>
         {tab.badge !== undefined && tab.badge > 0 && (
-          <View style={[styles.badge, { backgroundColor: theme.colors.error }]}>
-            <Text style={[styles.badgeText, { color: theme.colors.onError }]}>
+          <View style={[styles.badge, { backgroundColor: colors.destructive }]}>
+            <Text style={[styles.badgeText, { color: colors.destructiveForeground }]}>
               {tab.badge > 99 ? '99+' : tab.badge}
             </Text>
           </View>
@@ -93,12 +93,12 @@ export function Tabs({
 
   const containerStyle: ViewStyle = {
     flexDirection: 'row',
-    backgroundColor: variant === 'underlined' ? 'transparent' : theme.colors.surfaceVariant,
+    backgroundColor: variant === 'underlined' ? 'transparent' : colors.muted,
     borderRadius: variant === 'underlined' ? 0 : 16,
     padding: variant === 'underlined' ? 0 : 4,
     ...(variant === 'underlined' && {
       borderBottomWidth: 1,
-      borderBottomColor: theme.colors.outlineVariant,
+      borderBottomColor: colors.border,
     }),
   };
 

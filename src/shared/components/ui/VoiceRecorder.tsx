@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, Text } from 'react-native';
-import { ProgressBar, Button, IconButton, useTheme } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, Text, Pressable } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
+import { ProgressBar } from './ProgressBar';
+import { Button } from './Button';
 import RNFS from 'react-native-fs';
 import AudioRecorderPlayer, {
   AVEncoderAudioQualityIOSType,
@@ -30,7 +32,7 @@ interface VoiceRecorderState {
 }
 
 const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCancel }) => {
-  const theme = useTheme();
+  const colors = useColors();
   const [state, setState] = useState<VoiceRecorderState>({
     isRecording: false,
     isPlaying: false,
@@ -262,18 +264,18 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
 
   const getProgress = () => {
     if (state.duration > 0) {
-      return state.playingTime / state.duration;
+      return (state.playingTime / state.duration) * 100;
     }
     return 0;
   };
 
   if (!state.hasPermission) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-        <Text style={[styles.permissionText, { color: theme.colors.onSurfaceVariant }]}>
+      <View style={[styles.container, { backgroundColor: colors.card }]}>
+        <Text style={[styles.permissionText, { color: colors.mutedForeground }]}>
           Microphone permission is required to record audio.
         </Text>
-        <Button mode="contained" onPress={checkPermission}>
+        <Button variant="primary" onPress={checkPermission}>
           Grant Permission
         </Button>
       </View>
@@ -281,52 +283,51 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
       {state.isRecording ? (
         // Recording View
         <View style={styles.recordingContainer}>
           <View style={styles.recordingIndicator}>
-            <Icon name="fiber-manual-record" size={24} color={theme.colors.error} />
-            <Text style={[styles.recordingText, { color: theme.colors.error }]}>Recording...</Text>
+            <Ionicons name="radio-button-on" size={24} color={colors.destructive} />
+            <Text style={[styles.recordingText, { color: colors.destructive }]}>Recording...</Text>
           </View>
 
-          <Text style={[styles.timeText, { color: theme.colors.onSurface }]}>{formatTime(state.recordingTime)}</Text>
+          <Text style={[styles.timeText, { color: colors.foreground }]}>{formatTime(state.recordingTime)}</Text>
 
           <TouchableOpacity
-            style={[styles.stopButton, { backgroundColor: theme.colors.error }, isLoading && styles.disabledButton]}
+            style={[styles.stopButton, { backgroundColor: colors.destructive }, isLoading && styles.disabledButton]}
             onPress={stopRecording}
             disabled={isLoading}
           >
-            <Icon name="stop" size={32} color={theme.colors.onPrimary} />
+            <Ionicons name="stop" size={32} color={colors.destructiveForeground} />
           </TouchableOpacity>
-          {isLoading && <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>Stopping...</Text>}
+          {isLoading && <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Stopping...</Text>}
         </View>
       ) : state.recordedFilePath ? (
         // Playback View
         <View style={styles.playbackContainer}>
-          <Text style={[styles.playbackTitle, { color: theme.colors.onSurface }]}>Voice Recording</Text>
+          <Text style={[styles.playbackTitle, { color: colors.foreground }]}>Voice Recording</Text>
 
           <View style={styles.progressContainer}>
-            <ProgressBar progress={getProgress()} style={styles.progressBar} color={theme.colors.primary} />
+            <ProgressBar progress={getProgress()} style={styles.progressBar} />
             <View style={styles.timeContainer}>
-              <Text style={[styles.timeText, { color: theme.colors.onSurface }]}>{formatTime(state.playingTime)}</Text>
-              <Text style={[styles.timeText, { color: theme.colors.onSurface }]}>{formatTime(state.duration)}</Text>
+              <Text style={[styles.timeText, { color: colors.foreground }]}>{formatTime(state.playingTime)}</Text>
+              <Text style={[styles.timeText, { color: colors.foreground }]}>{formatTime(state.duration)}</Text>
             </View>
           </View>
 
           <View style={styles.controls}>
-            <IconButton icon="stop" size={24} onPress={stopPlaying} disabled={isLoading} />
-            <IconButton
-              icon={state.isPlaying ? 'pause' : 'play'}
-              size={32}
-              iconColor={theme.colors.onPrimary}
-              style={[styles.playButton, { backgroundColor: theme.colors.primary }]}
+            <Pressable onPress={stopPlaying} disabled={isLoading} style={styles.controlButton}>
+              <Ionicons name="stop" size={24} color={colors.foreground} />
+            </Pressable>
+            <Pressable
               onPress={state.isPlaying ? stopPlaying : playRecording}
               disabled={isLoading}
-            />
-            <IconButton
-              icon="refresh"
-              size={24}
+              style={[styles.playButton, { backgroundColor: colors.primary }]}
+            >
+              <Ionicons name={state.isPlaying ? 'pause' : 'play'} size={32} color={colors.primaryForeground} />
+            </Pressable>
+            <Pressable
               onPress={() => {
                 stopPlaying();
                 setState((prev) => ({
@@ -337,20 +338,23 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
                 }));
               }}
               disabled={isLoading}
-            />
+              style={styles.controlButton}
+            >
+              <Ionicons name="refresh" size={24} color={colors.foreground} />
+            </Pressable>
           </View>
 
           {isLoading && (
-            <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
               {state.isPlaying ? 'Stopping...' : 'Starting...'}
             </Text>
           )}
 
           <View style={styles.actionButtons}>
-            <Button mode="outlined" onPress={handleCancel}>
+            <Button variant="outline" onPress={handleCancel}>
               Cancel
             </Button>
-            <Button mode="contained" onPress={handleSave}>
+            <Button variant="primary" onPress={handleSave}>
               Save
             </Button>
           </View>
@@ -358,16 +362,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
       ) : (
         // Start Recording View
         <View style={styles.startContainer}>
-          <Text style={[styles.startText, { color: theme.colors.onSurfaceVariant }]}>Ready to record</Text>
+          <Text style={[styles.startText, { color: colors.mutedForeground }]}>Ready to record</Text>
           <TouchableOpacity
-            style={[styles.recordButton, { backgroundColor: theme.colors.primary }, isLoading && styles.disabledButton]}
+            style={[styles.recordButton, { backgroundColor: colors.primary }, isLoading && styles.disabledButton]}
             onPress={startRecording}
             disabled={isLoading}
           >
-            <Icon name="mic" size={32} color={theme.colors.onPrimary} />
+            <Ionicons name="mic" size={32} color={colors.primaryForeground} />
           </TouchableOpacity>
-          {isLoading && <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>Starting...</Text>}
-          <Button mode="outlined" onPress={handleCancel}>
+          {isLoading && <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Starting...</Text>}
+          <Button variant="outline" onPress={handleCancel}>
             Cancel
           </Button>
         </View>
@@ -422,8 +426,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
     marginBottom: 8,
   },
   timeContainer: {
@@ -437,7 +439,16 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 16,
   },
-  playButton: {},
+  controlButton: {
+    padding: 8,
+  },
+  playButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actionButtons: {
     flexDirection: 'row',
     gap: 12,

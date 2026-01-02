@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp, Pressable, PressableProps } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { View, Text, StyleSheet, ViewStyle, StyleProp, Pressable, PressableProps } from 'react-native';
 import { useColors, radius, shadow as shadowTokens, spacing } from '@shared/theme';
 
 export interface CardProps {
@@ -87,11 +86,7 @@ export function CardTitle({ children, style }: CardTitleProps) {
   return (
     <View style={[styles.cardTitle, style]}>
       {typeof children === 'string' ? (
-        <View>
-          {React.Children.map(children, (child) => (
-            <View style={{ ...styles.titleText, color: colors.foreground } as ViewStyle}>{child}</View>
-          ))}
-        </View>
+        <Text style={[styles.titleText, { color: colors.foreground }]}>{children}</Text>
       ) : (
         children
       )}
@@ -105,7 +100,16 @@ export interface CardDescriptionProps {
 }
 
 export function CardDescription({ children, style }: CardDescriptionProps) {
-  return <View style={[styles.cardDescription, style]}>{children}</View>;
+  const colors = useColors();
+  return (
+    <View style={[styles.cardDescription, style]}>
+      {typeof children === 'string' ? (
+        <Text style={[styles.descriptionText, { color: colors.mutedForeground }]}>{children}</Text>
+      ) : (
+        children
+      )}
+    </View>
+  );
 }
 
 export interface CardContentProps {
@@ -140,6 +144,10 @@ const styles = StyleSheet.create({
   },
   cardDescription: {
     marginBottom: spacing[2], // 8px
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   cardContent: {
     flex: 1,

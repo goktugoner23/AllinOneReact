@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Image, TouchableOpacity, Alert } from 'react-native';
-import { IconButton, Text, Surface, Portal, Modal, useTheme } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, StyleSheet, Dimensions, Image, TouchableOpacity, Alert, Text, Pressable } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useColors } from '@shared/theme';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import AudioPlayer from '@shared/components/ui/AudioPlayer';
 
@@ -12,7 +13,7 @@ interface MediaViewerProps {
 }
 
 const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
-  const theme = useTheme();
+  const colors = useColors();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -24,9 +25,9 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
 
       case MediaType.VIDEO:
         return (
-          <View style={[styles.videoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <Text style={[styles.placeholderText, { color: theme.colors.onSurface }]}>Video Player</Text>
-            <Text style={[styles.placeholderSubtext, { color: theme.colors.onSurfaceVariant }]}>
+          <View style={[styles.videoContainer, { backgroundColor: colors.muted }]}>
+            <Text style={[styles.placeholderText, { color: colors.foreground }]}>Video Player</Text>
+            <Text style={[styles.placeholderSubtext, { color: colors.mutedForeground }]}>
               Video playback will be implemented in Phase 4
             </Text>
           </View>
@@ -34,15 +35,15 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
 
       case MediaType.AUDIO:
         return (
-          <View style={[styles.audioContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+          <View style={[styles.audioContainer, { backgroundColor: colors.muted }]}>
             <AudioPlayer attachment={attachment} />
           </View>
         );
 
       default:
         return (
-          <View style={[styles.placeholderContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <Text style={[styles.placeholderText, { color: theme.colors.onSurface }]}>Unsupported Media Type</Text>
+          <View style={[styles.placeholderContainer, { backgroundColor: colors.muted }]}>
+            <Text style={[styles.placeholderText, { color: colors.foreground }]}>Unsupported Media Type</Text>
           </View>
         );
     }
@@ -64,17 +65,23 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
         <View style={styles.headerLeft}>
-          <IconButton icon="close" size={24} iconColor={theme.colors.onSurface} onPress={onClose} />
-          <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>{attachment.name}</Text>
+          <Pressable onPress={onClose} style={styles.iconButton}>
+            <Ionicons name="close" size={24} color={colors.foreground} />
+          </Pressable>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>{attachment.name}</Text>
         </View>
 
         <View style={styles.headerRight}>
-          <IconButton icon="share" size={24} iconColor={theme.colors.onSurface} onPress={handleShare} />
-          <IconButton icon="download" size={24} iconColor={theme.colors.onSurface} onPress={handleDownload} />
+          <Pressable onPress={handleShare} style={styles.iconButton}>
+            <Ionicons name="share-outline" size={24} color={colors.foreground} />
+          </Pressable>
+          <Pressable onPress={handleDownload} style={styles.iconButton}>
+            <Ionicons name="download-outline" size={24} color={colors.foreground} />
+          </Pressable>
         </View>
       </View>
 
@@ -82,16 +89,16 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
       <View style={styles.content}>{renderMediaContent()}</View>
 
       {/* Footer */}
-      <View style={[styles.footer, { backgroundColor: theme.colors.elevation.level2 }]}>
+      <View style={[styles.footer, { backgroundColor: colors.card }]}>
         <View style={styles.metaInfo}>
-          <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Type: {attachment.type}</Text>
+          <Text style={[styles.metaText, { color: colors.mutedForeground }]}>Type: {attachment.type}</Text>
           {attachment.size && (
-            <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+            <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
               Size: {formatFileSize(attachment.size)}
             </Text>
           )}
           {attachment.duration && (
-            <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+            <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
               Duration: {formatDuration(attachment.duration)}
             </Text>
           )}
@@ -131,6 +138,9 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: 'row',
+  },
+  iconButton: {
+    padding: 8,
   },
   content: {
     flex: 1,
