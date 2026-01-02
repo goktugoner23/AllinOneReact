@@ -216,7 +216,9 @@ export default function WorkoutPrograms() {
               {detailsOpen.exercises.map((ex, idx) => (
                 <Card key={idx} variant="filled" padding="sm">
                   <CardContent>
-                    <Text style={[textStyles.label, { fontWeight: '700', color: colors.foreground }]}>{ex.exerciseName}</Text>
+                    <Text style={[textStyles.label, { fontWeight: '700', color: colors.foreground }]}>
+                      {ex.exerciseName}
+                    </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginTop: spacing[1] }}>
                       {ex.muscleGroup && <Badge variant="info">{ex.muscleGroup}</Badge>}
                       {ex.sets && <Badge>{ex.sets} sets</Badge>}

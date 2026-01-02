@@ -124,7 +124,10 @@ const NotesScreen: React.FC = () => {
         padding="md"
       >
         <View style={styles.noteHeader}>
-          <Text style={[textStyles.h4, { color: colors.foreground, flex: 1, marginRight: spacing[2] }]} numberOfLines={2}>
+          <Text
+            style={[textStyles.h4, { color: colors.foreground, flex: 1, marginRight: spacing[2] }]}
+            numberOfLines={2}
+          >
             {item.title || 'Untitled Note'}
           </Text>
           <View style={styles.noteActions}>
@@ -140,7 +143,10 @@ const NotesScreen: React.FC = () => {
           </View>
         </View>
 
-        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[3] }]} numberOfLines={3}>
+        <Text
+          style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}
+          numberOfLines={3}
+        >
           {stripHtmlTags(item.content) || 'No content'}
         </Text>
 
@@ -183,7 +189,9 @@ const NotesScreen: React.FC = () => {
             })}
             {allAttachments.length > 3 && (
               <View style={[styles.moreAttachments, { backgroundColor: colors.muted, borderRadius: radius.md }]}>
-                <Text style={[textStyles.labelSmall, { color: colors.foregroundMuted }]}>+{allAttachments.length - 3}</Text>
+                <Text style={[textStyles.labelSmall, { color: colors.foregroundMuted }]}>
+                  +{allAttachments.length - 3}
+                </Text>
               </View>
             )}
           </View>

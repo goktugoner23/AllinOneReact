@@ -622,7 +622,12 @@ const EditNoteScreen: React.FC = () => {
 
       {/* Upload Progress */}
       {uploadProgress > 0 && uploadProgress < 100 && (
-        <View style={[styles.uploadProgressContainer, { backgroundColor: colors.muted, paddingHorizontal: spacing[4], paddingVertical: spacing[2] }]}>
+        <View
+          style={[
+            styles.uploadProgressContainer,
+            { backgroundColor: colors.muted, paddingHorizontal: spacing[4], paddingVertical: spacing[2] },
+          ]}
+        >
           <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
             Uploading attachments... {Math.round(uploadProgress)}%
           </Text>
@@ -657,7 +662,16 @@ const EditNoteScreen: React.FC = () => {
           {/* Attachment Buttons */}
           <View style={[styles.attachmentButtons, { gap: spacing[3], marginBottom: spacing[4] }]}>
             <TouchableOpacity
-              style={[styles.attachmentButton, { backgroundColor: colors.muted, borderRadius: radius.md, paddingHorizontal: spacing[3], paddingVertical: spacing[2], gap: spacing[1.5] }]}
+              style={[
+                styles.attachmentButton,
+                {
+                  backgroundColor: colors.muted,
+                  borderRadius: radius.md,
+                  paddingHorizontal: spacing[3],
+                  paddingVertical: spacing[2],
+                  gap: spacing[1.5],
+                },
+              ]}
               onPress={handleAddImage}
             >
               <Icon name="photo" size={20} color={colors.primary} />
@@ -665,7 +679,16 @@ const EditNoteScreen: React.FC = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.attachmentButton, { backgroundColor: colors.muted, borderRadius: radius.md, paddingHorizontal: spacing[3], paddingVertical: spacing[2], gap: spacing[1.5] }]}
+              style={[
+                styles.attachmentButton,
+                {
+                  backgroundColor: colors.muted,
+                  borderRadius: radius.md,
+                  paddingHorizontal: spacing[3],
+                  paddingVertical: spacing[2],
+                  gap: spacing[1.5],
+                },
+              ]}
               onPress={handleAddVideo}
             >
               <Icon name="videocam" size={20} color={colors.primary} />
@@ -673,7 +696,16 @@ const EditNoteScreen: React.FC = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.attachmentButton, { backgroundColor: colors.muted, borderRadius: radius.md, paddingHorizontal: spacing[3], paddingVertical: spacing[2], gap: spacing[1.5] }]}
+              style={[
+                styles.attachmentButton,
+                {
+                  backgroundColor: colors.muted,
+                  borderRadius: radius.md,
+                  paddingHorizontal: spacing[3],
+                  paddingVertical: spacing[2],
+                  gap: spacing[1.5],
+                },
+              ]}
               onPress={handleAddAudio}
             >
               <Icon name="mic" size={20} color={colors.primary} />
@@ -739,7 +771,9 @@ const EditNoteScreen: React.FC = () => {
                         </View>
                       ) : */ <View style={[styles.previewAudio, { backgroundColor: colors.primaryMuted }]}>
                           <Icon name="music-note" size={40} color={colors.primary} />
-                          <Text style={[textStyles.caption, { color: colors.primary, marginTop: spacing[1] }]}>Voice Note</Text>
+                          <Text style={[textStyles.caption, { color: colors.primary, marginTop: spacing[1] }]}>
+                            Voice Note
+                          </Text>
                         </View>
                       )}
                     </TouchableOpacity>

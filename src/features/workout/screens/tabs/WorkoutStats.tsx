@@ -88,9 +88,7 @@ export default function WorkoutStats() {
       {/* Latest Stats Card */}
       <Card>
         <CardHeader>
-          <Text style={[textStyles.h4, { color: colors.foreground }]}>
-            My Latest Stats
-          </Text>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>My Latest Stats</Text>
         </CardHeader>
         <CardContent>
           {latest ? (
@@ -112,9 +110,7 @@ export default function WorkoutStats() {
               {/* Measurements */}
               {latest.measurements && Object.keys(latest.measurements).length > 0 && (
                 <View style={{ marginTop: spacing[2] }}>
-                  <Text
-                    style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}
-                  >
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
                     Measurements
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] }}>
@@ -181,9 +177,7 @@ export default function WorkoutStats() {
             />
 
             {/* Upper Body */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
-              Upper Body
-            </Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Upper Body</Text>
             <TextInput
               mode="outlined"
               label="Shoulder (cm)"
@@ -202,9 +196,7 @@ export default function WorkoutStats() {
             />
 
             {/* Arms */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
-              Arms
-            </Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Arms</Text>
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
               <TextInput
                 mode="outlined"
@@ -243,9 +235,7 @@ export default function WorkoutStats() {
             </View>
 
             {/* Core */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
-              Core
-            </Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Core</Text>
             <TextInput
               mode="outlined"
               label="Waist (cm)"
@@ -264,9 +254,7 @@ export default function WorkoutStats() {
             />
 
             {/* Legs */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>
-              Legs
-            </Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Legs</Text>
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
               <TextInput
                 mode="outlined"

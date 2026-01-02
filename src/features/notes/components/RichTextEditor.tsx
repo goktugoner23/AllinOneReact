@@ -305,7 +305,13 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
     };
 
     return (
-      <View style={[styles.container, { borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.md }, style]}>
+      <View
+        style={[
+          styles.container,
+          { borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.md },
+          style,
+        ]}
+      >
         {/* Basic Toolbar */}
         <ScrollView
           horizontal
@@ -486,7 +492,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
 
               <ScrollView style={[styles.modalContent, { padding: spacing[4] }]}>
                 <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
-                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Text Formatting</Text>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
+                    Text Formatting
+                  </Text>
                   <View style={[styles.chipContainer, { gap: spacing[2] }]}>
                     <Chip onPress={handleBold}>Bold</Chip>
                     <Chip onPress={handleItalic}>Italic</Chip>
@@ -496,7 +504,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
                 </View>
 
                 <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
-                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Headings</Text>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
+                    Headings
+                  </Text>
                   <View style={[styles.chipContainer, { gap: spacing[2] }]}>
                     <Chip onPress={handleHeading1}>Heading 1</Chip>
                     <Chip onPress={handleHeading2}>Heading 2</Chip>
@@ -514,7 +524,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
                 </View>
 
                 <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
-                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Alignment</Text>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
+                    Alignment
+                  </Text>
                   <View style={[styles.chipContainer, { gap: spacing[2] }]}>
                     <Chip onPress={handleAlignLeft}>Left</Chip>
                     <Chip onPress={handleAlignCenter}>Center</Chip>
@@ -523,7 +535,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
                 </View>
 
                 <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
-                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Special</Text>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
+                    Special
+                  </Text>
                   <View style={[styles.chipContainer, { gap: spacing[2] }]}>
                     <Chip onPress={handleBlockquote}>Quote</Chip>
                     <Chip onPress={handleCode}>Code</Chip>
@@ -533,7 +547,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
                 </View>
 
                 <View style={[styles.modalSection, { marginBottom: spacing[5] }]}>
-                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>History</Text>
+                  <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
+                    History
+                  </Text>
                   <View style={[styles.chipContainer, { gap: spacing[2] }]}>
                     <Chip onPress={handleUndo}>Undo</Chip>
                     <Chip onPress={handleRedo}>Redo</Chip>

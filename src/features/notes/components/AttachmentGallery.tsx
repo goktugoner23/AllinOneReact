@@ -95,7 +95,9 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                 {playingVideo === item.uri ? (
                   videoError ? (
                     <View style={[styles.videoErrorContainer, { backgroundColor: colors.backgroundSecondary }]}>
-                      <Text style={[textStyles.body, { color: colors.foreground, marginBottom: spacing[4] }]}>Video playback failed</Text>
+                      <Text style={[textStyles.body, { color: colors.foreground, marginBottom: spacing[4] }]}>
+                        Video playback failed
+                      </Text>
                       <TouchableOpacity
                         style={[styles.retryButton, { backgroundColor: colors.primary, borderRadius: radius.sm }]}
                         onPress={() => {
@@ -175,7 +177,9 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                 <View style={[styles.audioThumbnail, { backgroundColor: colors.primaryMuted }]}>
                   <Icon name="music-note" size={60} color={colors.primary} />
                 </View>
-                <Text style={[textStyles.bodyLarge, { color: colors.background, marginTop: spacing[4] }]}>Voice Note</Text>
+                <Text style={[textStyles.bodyLarge, { color: colors.background, marginTop: spacing[4] }]}>
+                  Voice Note
+                </Text>
                 <AudioPlayer attachment={{ ...item, uri: cachedUri }} />
               </View>
             );
@@ -292,9 +296,20 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
         <Modal visible={true} onDismiss={onClose} contentContainerStyle={styles.modalContainer}>
           <Surface style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Header */}
-            <View style={[styles.header, { paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[2] }]}>
+            <View
+              style={[
+                styles.header,
+                { paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[2] },
+              ]}
+            >
               <View style={styles.headerLeft}>
-                <IconButton icon="close" size={24} onPress={onClose} style={styles.headerButton} iconColor={colors.foreground} />
+                <IconButton
+                  icon="close"
+                  size={24}
+                  onPress={onClose}
+                  style={styles.headerButton}
+                  iconColor={colors.foreground}
+                />
                 <Text style={[textStyles.label, { color: colors.foreground, marginLeft: spacing[2], flex: 1 }]}>
                   {currentAttachment?.name || `Attachment ${currentIndex + 1}`}
                 </Text>
@@ -320,7 +335,9 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
             {downloading && (
               <View style={[styles.progressContainer, { paddingHorizontal: spacing[4], paddingVertical: spacing[2] }]}>
                 <ProgressBar progress={downloadProgress / 100} color={colors.primary} style={styles.progressBar} />
-                <Text style={[textStyles.caption, { color: colors.foreground, textAlign: 'center', marginTop: spacing[1] }]}>
+                <Text
+                  style={[textStyles.caption, { color: colors.foreground, textAlign: 'center', marginTop: spacing[1] }]}
+                >
                   Downloading... {Math.round(downloadProgress)}%
                 </Text>
               </View>

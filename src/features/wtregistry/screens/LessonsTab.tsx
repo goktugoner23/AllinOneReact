@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert, Text } from 'react-native';
-import {
-  Card,
-  Portal,
-  Dialog,
-  Button as PaperButton,
-  IconButton,
-  Surface,
-  SegmentedButtons,
-} from 'react-native-paper';
+import { Card, Portal, Dialog, Button as PaperButton, IconButton, Surface, SegmentedButtons } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import { Button } from '@shared/components/ui';
 import { useSelector, useDispatch } from 'react-redux';
@@ -205,7 +197,9 @@ export function LessonsTab() {
             <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
               {dayNames[lesson.dayOfWeek]}
             </Text>
-            <Text style={[textStyles.bodyLarge, { color: colors.primary, fontWeight: '600', marginBottom: spacing[1] }]}>
+            <Text
+              style={[textStyles.bodyLarge, { color: colors.primary, fontWeight: '600', marginBottom: spacing[1] }]}
+            >
               {formatTime(lesson.startHour, lesson.startMinute)} - {formatTime(lesson.endHour, lesson.endMinute)}
             </Text>
             <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
@@ -267,9 +261,13 @@ export function LessonsTab() {
           onDismiss={handleCloseDialog}
           style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>{editingLesson ? 'Edit Lesson' : 'Add Lesson'}</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>
+            {editingLesson ? 'Edit Lesson' : 'Add Lesson'}
+          </Dialog.Title>
           <Dialog.Content>
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2], marginTop: spacing[4] }]}>
+            <Text
+              style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2], marginTop: spacing[4] }]}
+            >
               Day of Week
             </Text>
             <SegmentedButtons
@@ -279,9 +277,7 @@ export function LessonsTab() {
               style={{ marginBottom: spacing[4] }}
             />
 
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
-              Start Time
-            </Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Time</Text>
             <PaperButton
               mode="outlined"
               onPress={() => setShowTimePicker('start')}
@@ -291,9 +287,7 @@ export function LessonsTab() {
               {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
             </PaperButton>
 
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
-              End Time
-            </Text>
+            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Time</Text>
             <PaperButton
               mode="outlined"
               onPress={() => setShowTimePicker('end')}
@@ -316,7 +310,9 @@ export function LessonsTab() {
             </View>
           </Dialog.Content>
           <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
-            <Button variant="ghost" onPress={handleCloseDialog}>Cancel</Button>
+            <Button variant="ghost" onPress={handleCloseDialog}>
+              Cancel
+            </Button>
             <Button variant="primary" onPress={handleSave} disabled={formData.startTime >= formData.endTime}>
               {editingLesson ? 'Update' : 'Add'}
             </Button>

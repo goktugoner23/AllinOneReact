@@ -39,7 +39,12 @@ const PostDetailScreen: React.FC = () => {
           subtitleStyle={{ color: colors.foregroundMuted }}
           left={(props) => <Ionicons {...props} name="logo-instagram" size={24} color={colors.primary} />}
           right={(props) => (
-            <IconButton {...props} icon="open-in-new" iconColor={colors.foregroundMuted} onPress={() => Linking.openURL(post.permalink)} />
+            <IconButton
+              {...props}
+              icon="open-in-new"
+              iconColor={colors.foregroundMuted}
+              onPress={() => Linking.openURL(post.permalink)}
+            />
           )}
         />
         <Card.Content>
@@ -54,7 +59,12 @@ const PostDetailScreen: React.FC = () => {
           ) : null}
 
           <View style={styles.rowBetween}>
-            <Chip mode="outlined" icon="tag-outline" style={[styles.typeChip, { borderColor: colors.border }]} textStyle={{ color: colors.foregroundMuted }}>
+            <Chip
+              mode="outlined"
+              icon="tag-outline"
+              style={[styles.typeChip, { borderColor: colors.border }]}
+              textStyle={{ color: colors.foregroundMuted }}
+            >
               {post.mediaType}
             </Chip>
             <Text style={[styles.engagement, { color: colors.primary }]}>
@@ -78,14 +88,26 @@ const PostDetailScreen: React.FC = () => {
           {(post.hashtags?.length ?? 0) > 0 && (
             <View style={styles.hashtags}>
               {post.hashtags.slice(0, 10).map((h, i) => (
-                <Chip key={i} mode="outlined" compact style={[styles.hashtag, { borderColor: colors.border }]} textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}>
+                <Chip
+                  key={i}
+                  mode="outlined"
+                  compact
+                  style={[styles.hashtag, { borderColor: colors.border }]}
+                  textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}
+                >
                   {formatHashtagForDisplay(h)}
                 </Chip>
               ))}
             </View>
           )}
 
-          <Button mode="contained" style={[styles.backBtn, { backgroundColor: colors.primary }]} labelStyle={{ color: colors.primaryForeground }} icon="arrow-left" onPress={() => navigation.goBack()}>
+          <Button
+            mode="contained"
+            style={[styles.backBtn, { backgroundColor: colors.primary }]}
+            labelStyle={{ color: colors.primaryForeground }}
+            icon="arrow-left"
+            onPress={() => navigation.goBack()}
+          >
             Back
           </Button>
         </Card.Content>

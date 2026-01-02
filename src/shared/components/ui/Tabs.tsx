@@ -82,7 +82,9 @@ export function Tabs({
         <Text style={[styles.tabLabel, { color: getTextColor() }, isActive && styles.activeTabLabel]}>{tab.label}</Text>
         {tab.badge !== undefined && tab.badge > 0 && (
           <View style={[styles.badge, { backgroundColor: theme.colors.error }]}>
-            <Text style={[styles.badgeText, { color: theme.colors.onError }]}>{tab.badge > 99 ? '99+' : tab.badge}</Text>
+            <Text style={[styles.badgeText, { color: theme.colors.onError }]}>
+              {tab.badge > 99 ? '99+' : tab.badge}
+            </Text>
           </View>
         )}
       </Pressable>

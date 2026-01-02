@@ -1,16 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Alert, ScrollView, Modal, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  Input,
-  Button,
-  Select,
-  SelectOption,
-  SegmentedControl,
-} from '@shared/components/ui';
+import { Card, CardHeader, CardContent, Input, Button, SegmentedControl } from '@shared/components/ui';
+import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import { TransactionCategories } from '@features/transactions/config/TransactionCategories';
 import { useAddTransaction, useInvestments, useUpdateInvestment } from '@shared/hooks/useTransactionsQueries';
 import { logger } from '@shared/utils/logger';
@@ -36,23 +28,33 @@ export const TransactionForm: React.FC = () => {
   const updateInvestmentMutation = useUpdateInvestment();
   const { data: investmentOptions = [] } = useInvestments();
 
-  // Get categories for Select component
-  const categoryOptions: SelectOption<string>[] = TransactionCategories.CATEGORIES.map((category) => {
-    const iconData =
-      TransactionCategories.CATEGORY_ICONS[category as keyof typeof TransactionCategories.CATEGORY_ICONS];
-    return {
-      label: category,
-      value: category,
-      icon: iconData?.name,
-    };
-  });
+  // Get categories for Dropdown component
+  const categoryItems: DropdownItem[] = useMemo(
+    () =>
+      TransactionCategories.CATEGORIES.map((category) => {
+        const iconData =
+          TransactionCategories.CATEGORY_ICONS[category as keyof typeof TransactionCategories.CATEGORY_ICONS];
+        return {
+          label: category,
+          value: category,
+          icon: iconData?.name ? (
+            <Ionicons name={iconData.name} size={20} color={iconData.color || colors.mutedForeground} />
+          ) : undefined,
+        };
+      }),
+    [colors.mutedForeground],
+  );
 
-  // Investment type options for Select component
-  const investmentTypeOptions: SelectOption<string>[] = InvestmentCategories.TYPES.map((type) => ({
-    label: type,
-    value: type,
-    icon: 'trending-up',
-  }));
+  // Investment type options for Dropdown component
+  const investmentTypeItems: DropdownItem[] = useMemo(
+    () =>
+      InvestmentCategories.TYPES.map((type) => ({
+        label: type,
+        value: type,
+        icon: <Ionicons name="trending-up" size={20} color={colors.investment} />,
+      })),
+    [colors.investment],
+  );
 
   const isSubmitting = addTransactionMutation.isPending || updateInvestmentMutation.isPending;
 
@@ -224,26 +226,30 @@ export const TransactionForm: React.FC = () => {
           </View>
         </View>
 
-        {/* Category Select */}
-        <Select
-          label="Category"
-          placeholder="Select category"
-          options={categoryOptions}
-          value={selectedCategory}
-          onChange={setSelectedCategory}
-          disabled={isSubmitting}
-        />
-
-        {/* Investment Sub-Category Select */}
-        {selectedCategory === 'Investment' && (
-          <Select
-            label="Investment Type"
-            placeholder="Select investment type"
-            options={investmentTypeOptions}
-            value={selectedInvestmentType}
-            onChange={setSelectedInvestmentType}
+        {/* Category Dropdown */}
+        <View>
+          <Text style={[styles.inputLabel, { color: colors.foreground }]}>Category</Text>
+          <Dropdown
+            items={categoryItems}
+            selectedValue={selectedCategory}
+            onValueChange={setSelectedCategory}
+            placeholder="Select category"
             disabled={isSubmitting}
           />
+        </View>
+
+        {/* Investment Sub-Category Dropdown */}
+        {selectedCategory === 'Investment' && (
+          <View>
+            <Text style={[styles.inputLabel, { color: colors.foreground }]}>Investment Type</Text>
+            <Dropdown
+              items={investmentTypeItems}
+              selectedValue={selectedInvestmentType}
+              onValueChange={setSelectedInvestmentType}
+              placeholder="Select investment type"
+              disabled={isSubmitting}
+            />
+          </View>
         )}
 
         {/* Description Input */}
@@ -350,6 +356,11 @@ const styles = StyleSheet.create({
   quickAmountText: {
     ...textStyles.caption,
     fontWeight: '600',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
   },
   descriptionInput: {
     marginBottom: 0,

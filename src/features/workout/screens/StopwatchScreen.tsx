@@ -80,9 +80,7 @@ export default function StopwatchScreen() {
               <Text style={[textStyles.h4, { color: colors.foreground }]}>
                 {activeSession.programName || 'Custom Workout'}
               </Text>
-              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                Stopwatch
-              </Text>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Stopwatch</Text>
             </View>
             <Badge variant={stopwatch.isPaused ? 'warning' : 'success'}>
               {stopwatch.isPaused ? 'Paused' : 'Active'}
@@ -105,9 +103,7 @@ export default function StopwatchScreen() {
           {/* Overall Progress */}
           <View style={{ marginVertical: spacing[3] }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing[1] }}>
-              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                Overall Progress
-              </Text>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Overall Progress</Text>
               <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
                 {completedSets}/{totalSets} sets
               </Text>
@@ -146,9 +142,7 @@ export default function StopwatchScreen() {
                   <View>
                     <Text style={[textStyles.label, { color: colors.foreground }]}>{item.exerciseName}</Text>
                     {item.muscleGroup && (
-                      <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                        {item.muscleGroup}
-                      </Text>
+                      <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>{item.muscleGroup}</Text>
                     )}
                   </View>
                   {allCompleted && <Badge variant="success">Done</Badge>}

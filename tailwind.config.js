@@ -1,61 +1,65 @@
+const { hairlineWidth } = require('nativewind/theme');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './App.{js,jsx,ts,tsx}',
     './src/**/*.{js,jsx,ts,tsx}',
   ],
+  presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
+        // shadcn/ui CSS variable based colors
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#7C3AED',
-          light: '#A78BFA',
-          dark: '#6D28D9',
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: '#7C3AED',
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
         },
-        surface: {
-          light: '#FFFFFF',
-          dark: '#232136',
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
-        background: {
-          light: '#FFFFFF',
-          dark: '#18181B',
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
         },
-        income: '#4CAF50',
-        expense: '#F44336',
-        investment: '#FF9800',
-        registration: '#2196F3',
-        border: {
-          light: '#EEEEEE',
-          dark: '#232136',
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
         },
-        divider: {
-          light: '#E0E0E0',
-          dark: '#2D2A45',
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
         },
-        chip: {
-          light: '#F3F0FF',
-          dark: '#2D2A45',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
         },
-        text: {
-          primary: '#333333',
-          secondary: '#666666',
-          muted: '#888888',
-          light: '#FFFFFF',
-        },
-      },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
+        // App-specific semantic colors
+        income: 'hsl(var(--income))',
+        expense: 'hsl(var(--expense))',
+        investment: 'hsl(var(--investment))',
       },
       borderRadius: {
-        'xl': '1rem',
-        '2xl': '1.5rem',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      borderWidth: {
+        hairline: hairlineWidth(),
       },
       fontSize: {
-        'xxs': '0.625rem',
+        'xxs': ['0.625rem', { lineHeight: '0.875rem' }],
       },
     },
   },

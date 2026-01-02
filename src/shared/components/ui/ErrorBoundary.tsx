@@ -67,7 +67,10 @@ class ErrorBoundaryClass extends Component<Props & { theme: MD3Theme }, State> {
           <Text style={[styles.errorMessage, { color: theme.colors.onSurfaceVariant }]}>
             {__DEV__ && this.state.error ? this.state.error.message : 'An unexpected error occurred. Please try again.'}
           </Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} onPress={this.handleRetry}>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+            onPress={this.handleRetry}
+          >
             <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Try Again</Text>
           </TouchableOpacity>
         </View>

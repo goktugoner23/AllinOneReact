@@ -77,7 +77,11 @@ function FuturesPositionCard({
                 styles.positionSideChip,
                 { backgroundColor: positionSideColor, paddingHorizontal: 6, height: 26 },
               ]}
-              textStyle={{ color: isLong ? colors.incomeForeground : colors.expenseForeground, fontWeight: 'bold', lineHeight: 16 }}
+              textStyle={{
+                color: isLong ? colors.incomeForeground : colors.expenseForeground,
+                fontWeight: 'bold',
+                lineHeight: 16,
+              }}
             >
               {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
             </Chip>
@@ -92,7 +96,13 @@ function FuturesPositionCard({
               </Chip>
             )}
           </View>
-          <IconButton icon="target" size={20} onPress={() => onSetTPSL(position)} style={styles.tpslButton} iconColor={colors.primary} />
+          <IconButton
+            icon="target"
+            size={20}
+            onPress={() => onSetTPSL(position)}
+            style={styles.tpslButton}
+            iconColor={colors.primary}
+          />
         </View>
 
         <Divider style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -182,17 +192,23 @@ function FuturesPositionCard({
         <View style={styles.marginSection}>
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Notional Value:</Text>
-            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(calculations.notionalValue, 'USDT', 2)}</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>
+              {formatCurrency(calculations.notionalValue, 'USDT', 2)}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Initial Margin:</Text>
-            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(calculations.initialMargin, 'USDT', 2)}</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>
+              {formatCurrency(calculations.initialMargin, 'USDT', 2)}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Maintenance Margin:</Text>
-            <Text style={[styles.value, { color: colors.foreground }]}>{formatCurrency(calculations.maintMargin, 'USDT', 2)}</Text>
+            <Text style={[styles.value, { color: colors.foreground }]}>
+              {formatCurrency(calculations.maintMargin, 'USDT', 2)}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
@@ -213,7 +229,8 @@ function FuturesPositionsList({
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
   const colors = useColors();
-  if (!positions.length) return <Text style={[styles.empty, { color: colors.mutedForeground }]}>No open positions.</Text>;
+  if (!positions.length)
+    return <Text style={[styles.empty, { color: colors.mutedForeground }]}>No open positions.</Text>;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -311,7 +328,11 @@ function CoinMFuturesAccountCard({
 
   return (
     <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-      <Card.Title title="COIN-M Account Overview" titleVariant="titleMedium" titleStyle={{ color: colors.foreground }} />
+      <Card.Title
+        title="COIN-M Account Overview"
+        titleVariant="titleMedium"
+        titleStyle={{ color: colors.foreground }}
+      />
       <Card.Content>
         <View style={styles.accountGrid}>
           <View style={styles.accountItem}>
@@ -491,17 +512,19 @@ function UsdMFuturesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {error && (
-        <Chip icon="alert" style={[styles.errorChip, { backgroundColor: colors.destructiveMuted }]} textStyle={{ color: colors.destructive }} onClose={() => setError(null)}>
+        <Chip
+          icon="alert"
+          style={[styles.errorChip, { backgroundColor: colors.destructiveMuted }]}
+          textStyle={{ color: colors.destructive }}
+          onClose={() => setError(null)}
+        >
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for USD-M Futures */}
       <Chip
         icon={wsConnectedLocal ? 'wifi' : 'wifi-off'}
-        style={[
-          styles.statusChip,
-          { backgroundColor: wsConnectedLocal ? colors.income : colors.warning },
-        ]}
+        style={[styles.statusChip, { backgroundColor: wsConnectedLocal ? colors.income : colors.warning }]}
         textStyle={{ color: wsConnectedLocal ? colors.incomeForeground : colors.warningForeground }}
       >
         {wsConnectedLocal ? 'Live Data Connected' : 'Live Data Disconnected'}
