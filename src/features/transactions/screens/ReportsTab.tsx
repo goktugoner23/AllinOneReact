@@ -12,9 +12,9 @@ import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const dateRanges = [
-  { label: 'Last 7 Days', value: '7d' },
-  { label: 'Last 30 Days', value: '30d' },
-  { label: 'Last 90 Days', value: '90d' },
+  { label: 'Last 7', value: '7d' },
+  { label: 'Last 30', value: '30d' },
+  { label: 'Last 90', value: '90d' },
   { label: 'This Year', value: 'year' },
   { label: 'All Time', value: 'all' },
 ];
