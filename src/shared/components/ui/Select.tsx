@@ -9,12 +9,11 @@ import {
   Modal,
   View,
   Text,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   Dimensions,
   Platform,
-  ViewStyle,
-  TextStyle,
+  StyleSheet,
 } from 'react-native';
 import { Check, ChevronDown } from 'lucide-react-native';
 import { useColors } from '@shared/theme';
@@ -40,7 +39,7 @@ export interface SimpleSelectProps {
   label?: string;
   error?: string;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: any;
 }
 
 // ============================================
@@ -66,95 +65,44 @@ export function SimpleSelect({
     setOpen(false);
   };
 
-  // Styles
-  const containerStyle: ViewStyle = {
-    marginBottom: 16,
-    ...style,
-  };
-
-  const labelStyle: TextStyle = {
-    fontSize: 14,
-    fontWeight: '500',
-    color: error ? colors.destructive : colors.mutedForeground,
-    marginBottom: 6,
-  };
-
-  const triggerStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 44,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: error ? colors.destructive : colors.border,
-    backgroundColor: colors.card,
-    opacity: disabled ? 0.5 : 1,
-  };
-
-  const triggerTextStyle: TextStyle = {
-    flex: 1,
-    fontSize: 14,
-    color: selectedOption ? colors.foreground : colors.mutedForeground,
-  };
-
-  const modalOverlayStyle: ViewStyle = {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  };
-
-  const contentStyle: ViewStyle = {
-    width: '100%',
-    maxWidth: 340,
-    maxHeight: SCREEN_HEIGHT * 0.5,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 25,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  };
-
   return (
-    <View style={containerStyle}>
+    <View style={[styles.container, style]}>
       {/* Label */}
-      {label && <Text style={labelStyle}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: error ? colors.destructive : colors.mutedForeground }]}>
+          {label}
+        </Text>
+      )}
 
       {/* Trigger */}
-      <Pressable
+      <TouchableOpacity
         onPress={() => !disabled && setOpen(true)}
         disabled={disabled}
-        style={triggerStyle}
+        activeOpacity={0.7}
+        style={[
+          styles.trigger,
+          {
+            borderColor: error ? colors.destructive : colors.border,
+            backgroundColor: colors.card,
+            opacity: disabled ? 0.5 : 1,
+          },
+        ]}
       >
-        {selectedOption?.icon && (
-          <View style={{ marginRight: 10, flexDirection: 'row' }}>
-            {selectedOption.icon}
-          </View>
-        )}
-        <Text style={triggerTextStyle} numberOfLines={1}>
+        {selectedOption?.icon && <View style={styles.triggerIcon}>{selectedOption.icon}</View>}
+        <Text
+          style={[
+            styles.triggerText,
+            { color: selectedOption ? colors.foreground : colors.mutedForeground },
+          ]}
+          numberOfLines={1}
+        >
           {selectedOption?.label || placeholder}
         </Text>
         <ChevronDown size={18} color={colors.mutedForeground} />
-      </Pressable>
+      </TouchableOpacity>
 
       {/* Error */}
-      {error && (
-        <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
-          {error}
-        </Text>
-      )}
+      {error && <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>}
 
       {/* Dropdown Modal */}
       <Modal
@@ -164,71 +112,155 @@ export function SimpleSelect({
         onRequestClose={() => setOpen(false)}
         statusBarTranslucent
       >
-        <Pressable style={modalOverlayStyle} onPress={() => setOpen(false)}>
-          <Pressable style={contentStyle} onPress={(e) => e.stopPropagation()}>
-            <ScrollView
-              contentContainerStyle={{ padding: 4 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {options.map((item) => {
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOpen(false)}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {options.map((item, index) => {
                 const isSelected = item.value === value;
-                const itemStyle: ViewStyle = {
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  marginHorizontal: 4,
-                  marginVertical: 2,
-                  borderRadius: 6,
-                  backgroundColor: 'transparent',
-                  opacity: item.disabled ? 0.5 : 1,
-                };
+                const isLast = index === options.length - 1;
 
                 return (
-                  <Pressable
-                    key={item.value}
-                    onPress={() => !item.disabled && handleSelect(item.value)}
-                    disabled={item.disabled}
-                    style={({ pressed }) => [
-                      itemStyle,
-                      pressed && !item.disabled && { backgroundColor: colors.muted },
-                    ]}
-                  >
-                    {/* Checkmark indicator */}
-                    <View style={{ width: 24, marginRight: 8 }}>
-                      {isSelected && (
-                        <Check size={16} strokeWidth={3} color={colors.foreground} />
-                      )}
-                    </View>
-
-                    {/* Icon - inline with text */}
-                    {item.icon && (
-                      <View style={{ marginRight: 12 }}>
+                  <React.Fragment key={item.value}>
+                    <TouchableOpacity
+                      onPress={() => !item.disabled && handleSelect(item.value)}
+                      disabled={item.disabled}
+                      activeOpacity={0.6}
+                      style={[
+                        styles.item,
+                        isSelected && { backgroundColor: colors.muted },
+                        item.disabled && styles.itemDisabled,
+                      ]}
+                    >
+                      {/* Icon on left */}
+                      <View style={styles.itemIconContainer}>
                         {item.icon}
                       </View>
-                    )}
 
-                    {/* Label text */}
-                    <Text
-                      style={{
-                        flex: 1,
-                        fontSize: 14,
-                        color: colors.foreground,
-                      }}
-                      numberOfLines={1}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
+                      {/* Label */}
+                      <Text
+                        style={[styles.itemText, { color: colors.foreground }]}
+                        numberOfLines={1}
+                      >
+                        {item.label}
+                      </Text>
+
+                      {/* Checkmark on right */}
+                      {isSelected && (
+                        <Check size={18} strokeWidth={2.5} color={colors.primary} />
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Separator line */}
+                    {!isLast && (
+                      <View style={[styles.separator, { backgroundColor: colors.border }]} />
+                    )}
+                  </React.Fragment>
                 );
               })}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
 }
+
+// ============================================
+// Styles
+// ============================================
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  triggerIcon: {
+    marginRight: 12,
+  },
+  triggerText: {
+    flex: 1,
+    fontSize: 15,
+  },
+  error: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 360,
+    maxHeight: SCREEN_HEIGHT * 0.55,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 30,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  itemDisabled: {
+    opacity: 0.4,
+  },
+  itemIconContainer: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  itemText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 58,
+  },
+});
 
 // ============================================
 // Compound Select (for advanced usage)
@@ -288,37 +320,32 @@ function SelectTrigger({ children }: { children?: React.ReactNode }) {
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={() => !disabled && setOpen(true)}
       disabled={disabled}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        height: 44,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.card,
-        opacity: disabled ? 0.5 : 1,
-      }}
+      activeOpacity={0.7}
+      style={[
+        styles.trigger,
+        {
+          borderColor: colors.border,
+          backgroundColor: colors.card,
+          opacity: disabled ? 0.5 : 1,
+        },
+      ]}
     >
-      {selectedOption?.icon && (
-        <View style={{ marginRight: 10 }}>{selectedOption.icon}</View>
-      )}
+      {selectedOption?.icon && <View style={styles.triggerIcon}>{selectedOption.icon}</View>}
       <Text
-        style={{
-          flex: 1,
-          fontSize: 14,
-          color: selectedOption ? colors.foreground : colors.mutedForeground,
-        }}
+        style={[
+          styles.triggerText,
+          { color: selectedOption ? colors.foreground : colors.mutedForeground },
+        ]}
         numberOfLines={1}
       >
         {selectedOption?.label || placeholder}
       </Text>
       {children}
       <ChevronDown size={18} color={colors.mutedForeground} />
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -329,11 +356,10 @@ function SelectValue({ placeholder: ph }: { placeholder?: string }) {
 
   return (
     <Text
-      style={{
-        flex: 1,
-        fontSize: 14,
-        color: selectedOption ? colors.foreground : colors.mutedForeground,
-      }}
+      style={[
+        styles.triggerText,
+        { color: selectedOption ? colors.foreground : colors.mutedForeground },
+      ]}
       numberOfLines={1}
     >
       {selectedOption?.label || ph || placeholder}
@@ -358,84 +384,59 @@ function SelectContent({ children }: { children?: React.ReactNode }) {
       onRequestClose={() => setOpen(false)}
       statusBarTranslucent
     >
-      <Pressable
-        style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 20,
-        }}
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
         onPress={() => setOpen(false)}
       >
-        <Pressable
-          style={{
-            width: '100%',
-            maxWidth: 340,
-            maxHeight: SCREEN_HEIGHT * 0.5,
-            backgroundColor: colors.card,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.border,
-            overflow: 'hidden',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.2,
-                shadowRadius: 25,
-              },
-              android: {
-                elevation: 10,
-              },
-            }),
-          }}
-          onPress={(e) => e.stopPropagation()}
+        <View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
         >
           {children || (
-            <ScrollView
-              contentContainerStyle={{ padding: 4 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {options.map((item) => {
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {options.map((item, index) => {
                 const isSelected = item.value === value;
+                const isLast = index === options.length - 1;
 
                 return (
-                  <Pressable
-                    key={item.value}
-                    onPress={() => !item.disabled && handleSelect(item.value)}
-                    disabled={item.disabled}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 12,
-                      paddingHorizontal: 12,
-                      marginHorizontal: 4,
-                      marginVertical: 2,
-                      borderRadius: 6,
-                      backgroundColor: pressed && !item.disabled ? colors.muted : 'transparent',
-                      opacity: item.disabled ? 0.5 : 1,
-                    })}
-                  >
-                    <View style={{ width: 24, marginRight: 8 }}>
-                      {isSelected && (
-                        <Check size={16} strokeWidth={3} color={colors.foreground} />
-                      )}
-                    </View>
-                    {item.icon && <View style={{ marginRight: 12 }}>{item.icon}</View>}
-                    <Text
-                      style={{ flex: 1, fontSize: 14, color: colors.foreground }}
-                      numberOfLines={1}
+                  <React.Fragment key={item.value}>
+                    <TouchableOpacity
+                      onPress={() => !item.disabled && handleSelect(item.value)}
+                      disabled={item.disabled}
+                      activeOpacity={0.6}
+                      style={[
+                        styles.item,
+                        isSelected && { backgroundColor: colors.muted },
+                        item.disabled && styles.itemDisabled,
+                      ]}
                     >
-                      {item.label}
-                    </Text>
-                  </Pressable>
+                      <View style={styles.itemIconContainer}>{item.icon}</View>
+                      <Text
+                        style={[styles.itemText, { color: colors.foreground }]}
+                        numberOfLines={1}
+                      >
+                        {item.label}
+                      </Text>
+                      {isSelected && (
+                        <Check size={18} strokeWidth={2.5} color={colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                    {!isLast && (
+                      <View style={[styles.separator, { backgroundColor: colors.border }]} />
+                    )}
+                  </React.Fragment>
                 );
               })}
             </ScrollView>
           )}
-        </Pressable>
-      </Pressable>
+        </View>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -446,7 +447,7 @@ function SelectItem({ value, label, disabled, icon }: SelectOption) {
   const isSelected = value === selectedValue;
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={() => {
         if (!disabled) {
           onValueChange(value);
@@ -454,26 +455,19 @@ function SelectItem({ value, label, disabled, icon }: SelectOption) {
         }
       }}
       disabled={disabled}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        marginHorizontal: 4,
-        marginVertical: 2,
-        borderRadius: 6,
-        backgroundColor: pressed && !disabled ? colors.muted : 'transparent',
-        opacity: disabled ? 0.5 : 1,
-      })}
+      activeOpacity={0.6}
+      style={[
+        styles.item,
+        isSelected && { backgroundColor: colors.muted },
+        disabled && styles.itemDisabled,
+      ]}
     >
-      <View style={{ width: 24, marginRight: 8 }}>
-        {isSelected && <Check size={16} strokeWidth={3} color={colors.foreground} />}
-      </View>
-      {icon && <View style={{ marginRight: 12 }}>{icon}</View>}
-      <Text style={{ flex: 1, fontSize: 14, color: colors.foreground }} numberOfLines={1}>
+      <View style={styles.itemIconContainer}>{icon}</View>
+      <Text style={[styles.itemText, { color: colors.foreground }]} numberOfLines={1}>
         {label}
       </Text>
-    </Pressable>
+      {isSelected && <Check size={18} strokeWidth={2.5} color={colors.primary} />}
+    </TouchableOpacity>
   );
 }
 
@@ -489,9 +483,8 @@ function SelectLabel({ children }: { children: React.ReactNode }) {
         fontSize: 12,
         fontWeight: '600',
         color: colors.mutedForeground,
-        paddingVertical: 6,
-        paddingLeft: 36,
-        paddingRight: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
       }}
     >
       {children}
@@ -501,16 +494,7 @@ function SelectLabel({ children }: { children: React.ReactNode }) {
 
 function SelectSeparator() {
   const colors = useColors();
-  return (
-    <View
-      style={{
-        height: 1,
-        backgroundColor: colors.border,
-        marginHorizontal: 8,
-        marginVertical: 4,
-      }}
-    />
-  );
+  return <View style={[styles.separator, { backgroundColor: colors.border, marginLeft: 0 }]} />;
 }
 
 // Export compound component
