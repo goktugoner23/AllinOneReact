@@ -24,7 +24,7 @@ class BinanceWebSocketService {
   private callbacks: WebSocketCallbacks = {};
   private subscribedChannels: Set<string> = new Set();
 
-  private readonly BASE_WS_URL = 'ws://129.212.143.6:3000';
+  private readonly BASE_WS_URL = 'ws://116.203.124.249:3000';
 
   constructor(callbacks: WebSocketCallbacks = {}) {
     this.callbacks = callbacks;
