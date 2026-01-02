@@ -188,7 +188,13 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
       {/* Input area */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {messages.length > 0 && (
-          <IconButton icon="delete-outline" size={20} onPress={handleClearChat} style={styles.clearButton} iconColor={colors.foregroundMuted} />
+          <IconButton
+            icon="delete-outline"
+            size={20}
+            onPress={handleClearChat}
+            style={styles.clearButton}
+            iconColor={colors.foregroundMuted}
+          />
         )}
 
         <TextInput
@@ -275,7 +281,8 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
                   </Text>
                   {message.processingTime && (
                     <Text style={[styles.metadataText, { color: colors.foregroundMuted }]}>
-                      {' '}• {message.processingTime}ms
+                      {' '}
+                      • {message.processingTime}ms
                     </Text>
                   )}
                 </View>
@@ -303,9 +310,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
         </Card.Content>
       </Card>
 
-      <Text style={[styles.messageTime, { color: colors.foregroundSubtle }]}>
-        {formatTime(message.timestamp)}
-      </Text>
+      <Text style={[styles.messageTime, { color: colors.foregroundSubtle }]}>{formatTime(message.timestamp)}</Text>
     </View>
   );
 });

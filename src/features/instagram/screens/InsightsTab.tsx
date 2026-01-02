@@ -46,7 +46,13 @@ const InsightsTab: React.FC = () => {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
-        <IconButton icon="refresh" size={24} onPress={handleRetry} style={styles.retryButton} iconColor={colors.primary} />
+        <IconButton
+          icon="refresh"
+          size={24}
+          onPress={handleRetry}
+          style={styles.retryButton}
+          iconColor={colors.primary}
+        />
         <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
       </View>
     );
@@ -123,9 +129,7 @@ const InsightsTab: React.FC = () => {
         <Card.Content>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNumber, { color: colors.primary }]}>
-                {analytics.summary.totalPosts}
-              </Text>
+              <Text style={[styles.summaryNumber, { color: colors.primary }]}>{analytics.summary.totalPosts}</Text>
               <Text style={[styles.summaryLabel, { color: colors.foregroundMuted }]}>Total Posts</Text>
             </View>
             <View style={styles.summaryItem}>

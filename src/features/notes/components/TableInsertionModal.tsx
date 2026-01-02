@@ -57,10 +57,14 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
             </View>
 
             <View style={[styles.inputSection, { marginBottom: spacing[5] }]}>
-              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>Custom Size</Text>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[3] }]}>
+                Custom Size
+              </Text>
               <View style={[styles.inputRow, { gap: spacing[4] }]}>
                 <View style={styles.inputContainer}>
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Rows</Text>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+                    Rows
+                  </Text>
                   <TextInput
                     value={rows}
                     onChangeText={setRows}
@@ -72,7 +76,9 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
                   />
                 </View>
                 <View style={styles.inputContainer}>
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Columns</Text>
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+                    Columns
+                  </Text>
                   <TextInput
                     value={columns}
                     onChangeText={setColumns}
@@ -92,8 +98,13 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
                 {Array.from({ length: Math.min(parseInt(rows) || 3, 4) }).map((_, rowIndex) => (
                   <View key={rowIndex} style={styles.previewRow}>
                     {Array.from({ length: Math.min(parseInt(columns) || 3, 6) }).map((_, colIndex) => (
-                      <View key={colIndex} style={[styles.previewCell, { borderColor: colors.border, backgroundColor: colors.muted }]}>
-                        <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>{rowIndex === 0 ? 'H' : 'C'}</Text>
+                      <View
+                        key={colIndex}
+                        style={[styles.previewCell, { borderColor: colors.border, backgroundColor: colors.muted }]}
+                      >
+                        <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>
+                          {rowIndex === 0 ? 'H' : 'C'}
+                        </Text>
                       </View>
                     ))}
                   </View>

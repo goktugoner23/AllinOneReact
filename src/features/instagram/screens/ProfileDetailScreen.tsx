@@ -622,7 +622,10 @@ export default function ProfileDetailScreen() {
             <View style={styles.modalBackdrop}>
               <Card variant="elevated" padding="lg" style={styles.bulkModal}>
                 <CardContent>
-                  <Text variant="titleMedium" style={[textStyles.h4, { marginBottom: spacing[3], textAlign: 'center', color: colors.foreground }]}>
+                  <Text
+                    variant="titleMedium"
+                    style={[textStyles.h4, { marginBottom: spacing[3], textAlign: 'center', color: colors.foreground }]}
+                  >
                     Saving stories...
                   </Text>
                   <ProgressBar
@@ -630,7 +633,12 @@ export default function ProfileDetailScreen() {
                     color={colors.primary}
                     style={{ height: 8, borderRadius: radius.sm }}
                   />
-                  <Text style={[textStyles.body, { marginTop: spacing[2], textAlign: 'center', color: colors.foregroundMuted }]}>
+                  <Text
+                    style={[
+                      textStyles.body,
+                      { marginTop: spacing[2], textAlign: 'center', color: colors.foregroundMuted },
+                    ]}
+                  >
                     {bulkDone}/{bulkTotal}
                   </Text>
                 </CardContent>
@@ -708,7 +716,10 @@ function FeedStoryCard({
           </Badge>
         </View>
         {!!item.timestamp && (
-          <Text variant="bodySmall" style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
+          <Text
+            variant="bodySmall"
+            style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}
+          >
             {new Date(item.timestamp).toLocaleString()}
           </Text>
         )}
@@ -755,7 +766,11 @@ function FeedPostCard({
       </TouchableOpacity>
       <View style={styles.feedFooter}>
         {item.caption && (
-          <Text variant="bodyMedium" numberOfLines={3} style={[textStyles.body, { marginBottom: spacing[2], color: colors.foreground }]}>
+          <Text
+            variant="bodyMedium"
+            numberOfLines={3}
+            style={[textStyles.body, { marginBottom: spacing[2], color: colors.foreground }]}
+          >
             {item.caption}
           </Text>
         )}
@@ -777,7 +792,10 @@ function FeedPostCard({
           )}
         </View>
         {!!item.timestamp && (
-          <Text variant="bodySmall" style={[textStyles.caption, { color: colors.foregroundSubtle, marginTop: spacing[2] }]}>
+          <Text
+            variant="bodySmall"
+            style={[textStyles.caption, { color: colors.foregroundSubtle, marginTop: spacing[2] }]}
+          >
             {new Date(item.timestamp).toLocaleString()}
           </Text>
         )}
@@ -822,9 +840,19 @@ const styles = StyleSheet.create({
   viewer: { width: '90%', height: '70%', borderRadius: radius.lg, overflow: 'hidden', padding: spacing[2] },
   bulkModal: { width: '80%' },
   player: { width: '100%', height: '85%', borderRadius: radius.md, backgroundColor: 'black' },
-  viewerActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing[2], paddingTop: spacing[2] },
+  viewerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[2],
+    paddingTop: spacing[2],
+  },
   feedCard: { marginBottom: spacing[4], overflow: 'hidden', borderRadius: radius.lg },
-  feedHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing[3], paddingVertical: spacing[2.5] },
+  feedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
+  },
   feedMedia: { width: '100%', height: 380, backgroundColor: '#000' },
   feedFooter: { paddingHorizontal: spacing[3], paddingVertical: spacing[2.5] },
 });

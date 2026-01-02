@@ -250,9 +250,12 @@ export function SeminarsTab() {
                     alignSelf: 'flex-start',
                     backgroundColor: upcoming ? colors.primaryMuted : colors.muted,
                   }}
-                  textStyle={[textStyles.labelSmall, {
-                    color: upcoming ? colors.primary : colors.foregroundMuted,
-                  }]}
+                  textStyle={[
+                    textStyles.labelSmall,
+                    {
+                      color: upcoming ? colors.primary : colors.foregroundMuted,
+                    },
+                  ]}
                 >
                   {upcoming ? 'Upcoming' : 'Past'}
                 </Chip>
@@ -265,7 +268,12 @@ export function SeminarsTab() {
                 {formatTime(seminar.startHour, seminar.startMinute)} - {formatTime(seminar.endHour, seminar.endMinute)}
               </Text>
 
-              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[1] }]}>
+              <Text
+                style={[
+                  textStyles.caption,
+                  { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[1] },
+                ]}
+              >
                 Duration: {getDuration(seminar.startHour, seminar.startMinute, seminar.endHour, seminar.endMinute)}
               </Text>
 
@@ -276,14 +284,29 @@ export function SeminarsTab() {
               )}
 
               {seminar.description && (
-                <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[2] }]}>
+                <Text
+                  style={[
+                    textStyles.caption,
+                    { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[2] },
+                  ]}
+                >
                   {seminar.description}
                 </Text>
               )}
             </View>
             <View style={styles.seminarActions}>
-              <IconButton icon="pencil" size={20} iconColor={colors.primary} onPress={() => handleOpenDialog(seminar)} />
-              <IconButton icon="delete" size={20} iconColor={colors.destructive} onPress={() => handleDelete(seminar)} />
+              <IconButton
+                icon="pencil"
+                size={20}
+                iconColor={colors.primary}
+                onPress={() => handleOpenDialog(seminar)}
+              />
+              <IconButton
+                icon="delete"
+                size={20}
+                iconColor={colors.destructive}
+                onPress={() => handleDelete(seminar)}
+              />
             </View>
           </View>
         </Card.Content>
@@ -303,9 +326,7 @@ export function SeminarsTab() {
         }}
         elevation={0}
       >
-        <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
-          Wing Tzun Seminars
-        </Text>
+        <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>Wing Tzun Seminars</Text>
         <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
           {seminars.length} seminar{seminars.length !== 1 ? 's' : ''} total
         </Text>
@@ -337,7 +358,9 @@ export function SeminarsTab() {
           onDismiss={handleCloseDialog}
           style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
         >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>{editingSeminar ? 'Edit Seminar' : 'Add Seminar'}</Dialog.Title>
+          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>
+            {editingSeminar ? 'Edit Seminar' : 'Add Seminar'}
+          </Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="Seminar Name *"
@@ -348,7 +371,12 @@ export function SeminarsTab() {
               autoFocus
             />
 
-            <PaperButton mode="outlined" onPress={() => setShowDatePicker(true)} style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }} icon="calendar">
+            <PaperButton
+              mode="outlined"
+              onPress={() => setShowDatePicker(true)}
+              style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }}
+              icon="calendar"
+            >
               Date: {formData.date.toLocaleDateString()}
             </PaperButton>
 
@@ -403,7 +431,9 @@ export function SeminarsTab() {
             </View>
           </Dialog.Content>
           <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
-            <Button variant="ghost" onPress={handleCloseDialog}>Cancel</Button>
+            <Button variant="ghost" onPress={handleCloseDialog}>
+              Cancel
+            </Button>
             <Button variant="primary" onPress={handleSave} disabled={!formData.name.trim()}>
               {editingSeminar ? 'Update' : 'Add'} Seminar
             </Button>

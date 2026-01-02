@@ -264,8 +264,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
         <View style={styles.progressContainer}>
           <ProgressBar progress={getProgress()} style={styles.progressBar} color={theme.colors.primary} />
           <View style={styles.timeContainer}>
-            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>{formatDuration(state.currentTime)}</Text>
-            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>{formatDuration(state.duration)}</Text>
+            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+              {formatDuration(state.currentTime)}
+            </Text>
+            <Text style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+              {formatDuration(state.duration)}
+            </Text>
           </View>
         </View>
 
@@ -282,8 +286,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
         </View>
 
         <View style={styles.metaContainer}>
-          <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Duration: {formatDuration(state.duration)}</Text>
-          {attachment.size && <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Size: {formatFileSize(attachment.size)}</Text>}
+          <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+            Duration: {formatDuration(state.duration)}
+          </Text>
+          {attachment.size && (
+            <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+              Size: {formatFileSize(attachment.size)}
+            </Text>
+          )}
         </View>
       </Card.Content>
     </Card>
@@ -351,8 +361,7 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 16,
   },
-  playButton: {
-  },
+  playButton: {},
   metaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

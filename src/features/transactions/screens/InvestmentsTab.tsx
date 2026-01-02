@@ -288,10 +288,7 @@ function InvestmentsContent() {
           {item.isPast && (
             <View style={styles.profitLossContainer}>
               <Text
-                style={[
-                  styles.profitLoss,
-                  { color: (item.profitLoss || 0) >= 0 ? colors.income : colors.expense },
-                ]}
+                style={[styles.profitLoss, { color: (item.profitLoss || 0) >= 0 ? colors.income : colors.expense }]}
               >
                 {(item.profitLoss || 0) >= 0 ? '+' : ''}
                 {formatCurrency(item.profitLoss || 0)}
@@ -315,11 +312,14 @@ function InvestmentsContent() {
         renderItem={renderInvestment}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
         }
-        ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.mutedForeground }]}>No investments yet</Text>
-        }
+        ListEmptyComponent={<Text style={[styles.empty, { color: colors.mutedForeground }]}>No investments yet</Text>}
         estimatedItemSize={120}
       />
 
@@ -365,14 +365,20 @@ function InvestmentsContent() {
           <View style={[styles.editModal, { backgroundColor: colors.card }, shadow.xl]}>
             <Text style={[styles.editTitle, { color: colors.foreground }]}>Add Investment</Text>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface },
+              ]}
               placeholder="Name"
               placeholderTextColor={colors.foregroundSubtle}
               value={addForm.name}
               onChangeText={(text) => setAddForm((f) => ({ ...f, name: text }))}
             />
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface },
+              ]}
               placeholder="Amount"
               placeholderTextColor={colors.foregroundSubtle}
               keyboardType="numeric"
@@ -428,7 +434,10 @@ function InvestmentsContent() {
               </Modal>
             </View>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface },
+              ]}
               placeholder="Description"
               placeholderTextColor={colors.foregroundSubtle}
               value={addForm.description}
@@ -438,7 +447,12 @@ function InvestmentsContent() {
             {/* Past Investment Switch (Add) */}
             <View style={styles.switchRow}>
               <Text style={[styles.switchLabel, { color: colors.foreground }]}>Past Investment</Text>
-              <Switch value={addIsPast} onValueChange={setAddIsPast} trackColor={{ false: colors.muted, true: colors.primaryMuted }} thumbColor={addIsPast ? colors.primary : colors.mutedForeground} />
+              <Switch
+                value={addIsPast}
+                onValueChange={setAddIsPast}
+                trackColor={{ false: colors.muted, true: colors.primaryMuted }}
+                thumbColor={addIsPast ? colors.primary : colors.mutedForeground}
+              />
             </View>
 
             <View style={styles.attachmentButtons}>
@@ -484,7 +498,10 @@ function InvestmentsContent() {
                 <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.attachmentButton, { backgroundColor: colors.muted }]} onPress={() => setShowVoiceRecorder(true)}>
+              <TouchableOpacity
+                style={[styles.attachmentButton, { backgroundColor: colors.muted }]}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
                 <Icon name="mic" size={20} color={colors.primary} />
                 <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Voice</Text>
               </TouchableOpacity>
@@ -568,7 +585,12 @@ function InvestmentsContent() {
               >
                 Save
               </Button>
-              <Button mode="text" onPress={() => setAddModalVisible(false)} disabled={isSaving} textColor={colors.mutedForeground}>
+              <Button
+                mode="text"
+                onPress={() => setAddModalVisible(false)}
+                disabled={isSaving}
+                textColor={colors.mutedForeground}
+              >
                 Cancel
               </Button>
             </View>
@@ -609,14 +631,20 @@ function InvestmentsContent() {
           <View style={[styles.editModal, { backgroundColor: colors.card }, shadow.xl]}>
             <Text style={[styles.editTitle, { color: colors.foreground }]}>Edit Investment</Text>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface },
+              ]}
               placeholder="Name"
               placeholderTextColor={colors.foregroundSubtle}
               value={editForm.name}
               onChangeText={(text) => setEditForm((f) => ({ ...f, name: text }))}
             />
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface },
+              ]}
               placeholder="Amount"
               placeholderTextColor={colors.foregroundSubtle}
               keyboardType="numeric"
@@ -672,7 +700,10 @@ function InvestmentsContent() {
               </Modal>
             </View>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface }]}
+              style={[
+                styles.input,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.surface },
+              ]}
               placeholder="Description"
               placeholderTextColor={colors.foregroundSubtle}
               value={editForm.description}
@@ -681,7 +712,12 @@ function InvestmentsContent() {
             {/* Past Investment Switch (Edit) */}
             <View style={styles.switchRow}>
               <Text style={[styles.switchLabel, { color: colors.foreground }]}>Past Investment</Text>
-              <Switch value={editIsPast} onValueChange={setEditIsPast} trackColor={{ false: colors.muted, true: colors.primaryMuted }} thumbColor={editIsPast ? colors.primary : colors.mutedForeground} />
+              <Switch
+                value={editIsPast}
+                onValueChange={setEditIsPast}
+                trackColor={{ false: colors.muted, true: colors.primaryMuted }}
+                thumbColor={editIsPast ? colors.primary : colors.mutedForeground}
+              />
             </View>
 
             {/* Attachment controls */}
@@ -728,7 +764,10 @@ function InvestmentsContent() {
                 <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Video</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.attachmentButton, { backgroundColor: colors.muted }]} onPress={() => setShowVoiceRecorder(true)}>
+              <TouchableOpacity
+                style={[styles.attachmentButton, { backgroundColor: colors.muted }]}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
                 <Icon name="mic" size={20} color={colors.primary} />
                 <Text style={[styles.attachmentButtonText, { color: colors.primary }]}>Voice</Text>
               </TouchableOpacity>
@@ -763,10 +802,22 @@ function InvestmentsContent() {
               </View>
             )}
             <View style={styles.modalActions}>
-              <Button mode="contained" onPress={confirmEdit} loading={isSaving} disabled={isSaving} buttonColor={colors.primary} textColor={colors.primaryForeground}>
+              <Button
+                mode="contained"
+                onPress={confirmEdit}
+                loading={isSaving}
+                disabled={isSaving}
+                buttonColor={colors.primary}
+                textColor={colors.primaryForeground}
+              >
                 Save
               </Button>
-              <Button mode="text" onPress={() => setEditModalVisible(false)} disabled={isSaving} textColor={colors.mutedForeground}>
+              <Button
+                mode="text"
+                onPress={() => setEditModalVisible(false)}
+                disabled={isSaving}
+                textColor={colors.mutedForeground}
+              >
                 Cancel
               </Button>
             </View>
@@ -788,7 +839,12 @@ function InvestmentsContent() {
               Are you sure you want to delete "{selectedInvestment?.name}"? This action cannot be undone.
             </Text>
             <View style={styles.modalActions}>
-              <Button mode="contained" onPress={confirmDelete} buttonColor={colors.destructive} textColor={colors.destructiveForeground}>
+              <Button
+                mode="contained"
+                onPress={confirmDelete}
+                buttonColor={colors.destructive}
+                textColor={colors.destructiveForeground}
+              >
                 Delete
               </Button>
               <Button mode="text" onPress={() => setDeleteDialogVisible(false)} textColor={colors.mutedForeground}>
@@ -814,7 +870,12 @@ function InvestmentsContent() {
               affecting your transaction history.
             </Text>
             <View style={styles.modalActions}>
-              <Button mode="contained" onPress={confirmLiquidate} buttonColor={colors.warning} textColor={colors.warningForeground}>
+              <Button
+                mode="contained"
+                onPress={confirmLiquidate}
+                buttonColor={colors.warning}
+                textColor={colors.warningForeground}
+              >
                 Liquidate
               </Button>
               <Button mode="text" onPress={() => setLiquidateDialogVisible(false)} textColor={colors.mutedForeground}>
@@ -858,10 +919,7 @@ export const InvestmentsTab: React.FC = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            { borderBottomColor: activeTab === 'futures' ? colors.primary : 'transparent' },
-          ]}
+          style={[styles.tabButton, { borderBottomColor: activeTab === 'futures' ? colors.primary : 'transparent' }]}
           onPress={() => setActiveTab('futures')}
         >
           <Text

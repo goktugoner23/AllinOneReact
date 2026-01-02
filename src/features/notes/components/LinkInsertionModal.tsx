@@ -73,7 +73,17 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
     <Portal>
       <Modal visible={visible} onDismiss={handleCancel} contentContainerStyle={styles.modalContainer}>
         <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border, paddingHorizontal: spacing[5], paddingTop: spacing[5], paddingBottom: spacing[3] }]}>
+          <View
+            style={[
+              styles.modalHeader,
+              {
+                borderBottomColor: colors.border,
+                paddingHorizontal: spacing[5],
+                paddingTop: spacing[5],
+                paddingBottom: spacing[3],
+              },
+            ]}
+          >
             <Text style={[textStyles.h4, { color: colors.foreground }]}>Insert Link</Text>
             <IconButton icon="close" size={20} onPress={handleCancel} />
           </View>
@@ -94,11 +104,17 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
                 outlineColor={colors.border}
                 activeOutlineColor={colors.primary}
               />
-              {urlError ? <Text style={[textStyles.caption, { color: colors.destructive, marginTop: spacing[1] }]}>{urlError}</Text> : null}
+              {urlError ? (
+                <Text style={[textStyles.caption, { color: colors.destructive, marginTop: spacing[1] }]}>
+                  {urlError}
+                </Text>
+              ) : null}
             </View>
 
             <View style={[styles.inputContainer, { marginBottom: spacing[4] }]}>
-              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Link Text (optional)</Text>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
+                Link Text (optional)
+              </Text>
               <TextInput
                 mode="outlined"
                 placeholder="Display text for the link"
@@ -111,14 +127,31 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
                 outlineColor={colors.border}
                 activeOutlineColor={colors.primary}
               />
-              <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' }]}>
+              <Text
+                style={[
+                  textStyles.caption,
+                  { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' },
+                ]}
+              >
                 If left empty, the URL will be used as the link text
               </Text>
             </View>
 
-            <View style={[styles.previewContainer, { backgroundColor: colors.muted, padding: spacing[3], borderRadius: radius.md, marginTop: spacing[2] }]}>
-              <Text style={[textStyles.labelSmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>Preview:</Text>
-              <Text style={[textStyles.bodySmall, { color: colors.primary, textDecorationLine: 'underline', marginBottom: spacing[0.5] }]}>
+            <View
+              style={[
+                styles.previewContainer,
+                { backgroundColor: colors.muted, padding: spacing[3], borderRadius: radius.md, marginTop: spacing[2] },
+              ]}
+            >
+              <Text style={[textStyles.labelSmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+                Preview:
+              </Text>
+              <Text
+                style={[
+                  textStyles.bodySmall,
+                  { color: colors.primary, textDecorationLine: 'underline', marginBottom: spacing[0.5] },
+                ]}
+              >
                 {text.trim() || url.trim() || 'No link text'}
               </Text>
               <Text style={[textStyles.caption, { color: colors.foregroundMuted, fontStyle: 'italic' }]}>
@@ -127,7 +160,9 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
             </View>
           </View>
 
-          <View style={[styles.modalActions, { paddingHorizontal: spacing[5], paddingBottom: spacing[5], gap: spacing[3] }]}>
+          <View
+            style={[styles.modalActions, { paddingHorizontal: spacing[5], paddingBottom: spacing[5], gap: spacing[3] }]}
+          >
             <Button mode="outlined" onPress={handleCancel} style={styles.actionButton}>
               Cancel
             </Button>

@@ -71,7 +71,13 @@ const PostsTab: React.FC = () => {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
-        <IconButton icon="refresh" size={24} onPress={handleRetry} style={styles.retryButton} iconColor={colors.primary} />
+        <IconButton
+          icon="refresh"
+          size={24}
+          onPress={handleRetry}
+          style={styles.retryButton}
+          iconColor={colors.primary}
+        />
         <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
       </View>
     );
@@ -93,7 +99,12 @@ const PostsTab: React.FC = () => {
       {posts && (
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>{posts.count} Posts</Text>
-          <Chip mode="outlined" compact style={[styles.sourceChip, { borderColor: colors.border }]} textStyle={[textStyles.caption, { color: colors.foregroundMuted }]}>
+          <Chip
+            mode="outlined"
+            compact
+            style={[styles.sourceChip, { borderColor: colors.border }]}
+            textStyle={[textStyles.caption, { color: colors.foregroundMuted }]}
+          >
             {posts.source}
           </Chip>
         </View>
@@ -194,7 +205,13 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
         {post.hashtags.length > 0 ? (
           <View style={styles.hashtagsContainer}>
             {post.hashtags.slice(0, 3).map((hashtag, index) => (
-              <Chip key={index} mode="outlined" compact style={[styles.hashtagChip, { borderColor: colors.border }]} textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}>
+              <Chip
+                key={index}
+                mode="outlined"
+                compact
+                style={[styles.hashtagChip, { borderColor: colors.border }]}
+                textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}
+              >
                 {formatHashtagForDisplay(hashtag)}
               </Chip>
             ))}

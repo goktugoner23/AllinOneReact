@@ -13,7 +13,7 @@ import {
   EmptyState,
   Badge,
   ProgressBar,
-  Select,
+  SimpleSelect,
   Dialog,
   AlertDialog,
 } from '@shared/components/ui';
@@ -24,11 +24,11 @@ import { useColors, spacing, textStyles } from '@shared/theme';
 type Period = 'ALL' | 'DAY_1' | 'DAYS_7' | 'DAYS_30' | 'DAYS_90';
 
 const PERIOD_OPTIONS = [
-  { label: 'Last Day', value: 'DAY_1' as Period },
-  { label: 'Last 7 Days', value: 'DAYS_7' as Period },
-  { label: 'Last 30 Days', value: 'DAYS_30' as Period },
-  { label: 'Last 90 Days', value: 'DAYS_90' as Period },
-  { label: 'All Time', value: 'ALL' as Period },
+  { label: 'Last Day', value: 'DAY_1' },
+  { label: 'Last 7 Days', value: 'DAYS_7' },
+  { label: 'Last 30 Days', value: 'DAYS_30' },
+  { label: 'Last 90 Days', value: 'DAYS_90' },
+  { label: 'All Time', value: 'ALL' },
 ];
 
 export default function WorkoutExercise() {
@@ -81,12 +81,8 @@ export default function WorkoutExercise() {
       {/* Control Center Card */}
       <Card>
         <CardHeader>
-          <Text style={[textStyles.h4, { color: colors.foreground }]}>
-            Exercise
-          </Text>
-          <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-            Control Center
-          </Text>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>Exercise</Text>
+          <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Control Center</Text>
         </CardHeader>
         <CardContent>
           {active ? (
@@ -146,9 +142,7 @@ export default function WorkoutExercise() {
       {/* Filters Card */}
       <Card>
         <CardHeader>
-          <Text style={[textStyles.h4, { color: colors.foreground }]}>
-            Filter Workouts
-          </Text>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>Filter Workouts</Text>
         </CardHeader>
         <CardContent style={{ gap: spacing[3] }}>
           <TextInput
@@ -158,16 +152,19 @@ export default function WorkoutExercise() {
             onChangeText={setSearch}
             style={{ backgroundColor: colors.surface }}
           />
-          <Select label="Time Period" options={PERIOD_OPTIONS} value={period} onChange={setPeriod} />
+          <SimpleSelect
+            label="Time Period"
+            options={PERIOD_OPTIONS}
+            value={period}
+            onValueChange={(v) => setPeriod(v as Period)}
+          />
         </CardContent>
       </Card>
 
       {/* Workouts List Card */}
       <Card>
         <CardHeader>
-          <Text style={[textStyles.h4, { color: colors.foreground }]}>
-            Workouts
-          </Text>
+          <Text style={[textStyles.h4, { color: colors.foreground }]}>Workouts</Text>
         </CardHeader>
         <CardContent>
           {filteredHistory.length === 0 ? (
@@ -200,9 +197,7 @@ export default function WorkoutExercise() {
                     </View>
                     <View style={{ marginTop: spacing[2] }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing[1] }}>
-                        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                          Completion
-                        </Text>
+                        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Completion</Text>
                         <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
                           {Math.round(w.completionPercentage)}%
                         </Text>
@@ -256,9 +251,7 @@ export default function WorkoutExercise() {
         {selectedWorkout && (
           <View style={{ gap: spacing[3] }}>
             <View>
-              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                Time
-              </Text>
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Time</Text>
               <Text style={[textStyles.body, { color: colors.foreground }]}>
                 {new Date(selectedWorkout.startTime).toLocaleString()} -{' '}
                 {new Date(selectedWorkout.endTime).toLocaleString()}
@@ -266,17 +259,13 @@ export default function WorkoutExercise() {
             </View>
             <View style={{ flexDirection: 'row', gap: spacing[4] }}>
               <View style={{ flex: 1 }}>
-                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                  Duration
-                </Text>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Duration</Text>
                 <Text style={[textStyles.body, { color: colors.foreground }]}>
                   {Math.round(selectedWorkout.durationMs / 60000)} min
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                  Active Time
-                </Text>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Active Time</Text>
                 <Text style={[textStyles.body, { color: colors.foreground }]}>
                   {Math.round(selectedWorkout.activeDurationMs / 60000)} min
                 </Text>
@@ -284,9 +273,7 @@ export default function WorkoutExercise() {
             </View>
             <View style={{ flexDirection: 'row', gap: spacing[4] }}>
               <View style={{ flex: 1 }}>
-                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                  Completed
-                </Text>
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Completed</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2] }}>
                   <Badge
                     variant={
@@ -302,16 +289,14 @@ export default function WorkoutExercise() {
                 </View>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
-                  Total Volume
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Total Volume</Text>
+                <Text style={[textStyles.body, { color: colors.foreground }]}>
+                  {Math.round(selectedWorkout.totalVolume)} kg
                 </Text>
-                <Text style={[textStyles.body, { color: colors.foreground }]}>{Math.round(selectedWorkout.totalVolume)} kg</Text>
               </View>
             </View>
             <View>
-              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
-                Exercises
-              </Text>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Exercises</Text>
               {selectedWorkout.exercises.map((ex: any, idx: number) => (
                 <Card key={idx} variant="filled" padding="sm" style={{ marginBottom: spacing[2] }}>
                   <CardContent>

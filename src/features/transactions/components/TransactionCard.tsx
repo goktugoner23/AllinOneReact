@@ -38,7 +38,12 @@ export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({ tra
       activeOpacity={0.7}
     >
       <View style={styles.row}>
-        <View style={[styles.iconContainer, { backgroundColor: transaction.isIncome ? colors.incomeMuted : colors.expenseMuted }]}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: transaction.isIncome ? colors.incomeMuted : colors.expenseMuted },
+          ]}
+        >
           <Ionicons name={iconName} size={20} color={amountColor} />
         </View>
 

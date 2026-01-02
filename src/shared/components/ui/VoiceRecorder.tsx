@@ -270,7 +270,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
   if (!state.hasPermission) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-        <Text style={[styles.permissionText, { color: theme.colors.onSurfaceVariant }]}>Microphone permission is required to record audio.</Text>
+        <Text style={[styles.permissionText, { color: theme.colors.onSurfaceVariant }]}>
+          Microphone permission is required to record audio.
+        </Text>
         <Button mode="contained" onPress={checkPermission}>
           Grant Permission
         </Button>
@@ -338,7 +340,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
             />
           </View>
 
-          {isLoading && <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>{state.isPlaying ? 'Stopping...' : 'Starting...'}</Text>}
+          {isLoading && (
+            <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
+              {state.isPlaying ? 'Stopping...' : 'Starting...'}
+            </Text>
+          )}
 
           <View style={styles.actionButtons}>
             <Button mode="outlined" onPress={handleCancel}>
@@ -431,8 +437,7 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 16,
   },
-  playButton: {
-  },
+  playButton: {},
   actionButtons: {
     flexDirection: 'row',
     gap: 12,

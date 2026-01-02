@@ -26,7 +26,9 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
         return (
           <View style={[styles.videoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
             <Text style={[styles.placeholderText, { color: theme.colors.onSurface }]}>Video Player</Text>
-            <Text style={[styles.placeholderSubtext, { color: theme.colors.onSurfaceVariant }]}>Video playback will be implemented in Phase 4</Text>
+            <Text style={[styles.placeholderSubtext, { color: theme.colors.onSurfaceVariant }]}>
+              Video playback will be implemented in Phase 4
+            </Text>
           </View>
         );
 
@@ -83,8 +85,16 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
       <View style={[styles.footer, { backgroundColor: theme.colors.elevation.level2 }]}>
         <View style={styles.metaInfo}>
           <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Type: {attachment.type}</Text>
-          {attachment.size && <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Size: {formatFileSize(attachment.size)}</Text>}
-          {attachment.duration && <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>Duration: {formatDuration(attachment.duration)}</Text>}
+          {attachment.size && (
+            <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+              Size: {formatFileSize(attachment.size)}
+            </Text>
+          )}
+          {attachment.duration && (
+            <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
+              Duration: {formatDuration(attachment.duration)}
+            </Text>
+          )}
         </View>
       </View>
     </View>

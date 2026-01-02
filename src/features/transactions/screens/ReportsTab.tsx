@@ -58,11 +58,9 @@ export const ReportsTab: React.FC = () => {
       categories.map((cat) => ({
         label: cat,
         value: cat,
-        icon: cat === 'All' ? (
-          <Ionicons name="apps" size={20} color={colors.mutedForeground} />
-        ) : undefined,
+        icon: cat === 'All' ? <Ionicons name="apps" size={20} color={colors.mutedForeground} /> : undefined,
       })),
-    [categories, colors.mutedForeground]
+    [categories, colors.mutedForeground],
   );
 
   // Convert date ranges to dropdown items
@@ -73,7 +71,7 @@ export const ReportsTab: React.FC = () => {
         value: range.value,
         icon: <Ionicons name="calendar-outline" size={20} color={colors.mutedForeground} />,
       })),
-    [colors.mutedForeground]
+    [colors.mutedForeground],
   );
 
   useEffect(() => {
