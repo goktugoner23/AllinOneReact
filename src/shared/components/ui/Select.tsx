@@ -87,9 +87,11 @@ export function Select<T = string>({
       {error && <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text>}
 
       <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setIsOpen(false)} />
-        <View style={styles.modalContainer}>
-          <View style={[styles.optionsList, { backgroundColor: theme.colors.surface }]}>
+        <Pressable style={styles.modalOverlay} onPress={() => setIsOpen(false)}>
+          <View 
+            style={[styles.optionsList, { backgroundColor: theme.colors.surface }]}
+            onStartShouldSetResponder={() => true}
+          >
             <FlatList
               data={options}
               keyExtractor={(item, index) => `${item.value}-${index}`}
@@ -108,7 +110,7 @@ export function Select<T = string>({
                   {item.icon && (
                     <Ionicons
                       name={item.icon}
-                      size={20}
+                      size={22}
                       color={item.value === value ? theme.colors.onPrimaryContainer : theme.colors.onSurface}
                       style={styles.optionIcon}
                     />
@@ -128,7 +130,7 @@ export function Select<T = string>({
               )}
             />
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -159,20 +161,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 24,
   },
   optionsList: {
     width: '100%',
-    maxWidth: 360,
-    maxHeight: 400,
+    maxWidth: 380,
+    maxHeight: 450,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -184,14 +183,15 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    minHeight: 58,
   },
   optionIcon: {
-    marginRight: 12,
+    marginRight: 14,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 17,
     flex: 1,
   },
 });
