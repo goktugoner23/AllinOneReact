@@ -407,24 +407,42 @@ export function CalendarScreen() {
               style={styles.emptyState}
             />
           ) : (
-            selectedDateEvents.map((event) => {
-              const eventBgColor = getEventTypeColor(event.type);
-              return (
+            selectedDateEvents.map((event) => (
                 <Card
                   key={event.id}
-                  variant="filled"
+                  variant="outlined"
                   padding="sm"
-                  style={{ ...styles.eventCard, backgroundColor: eventBgColor }}
+                  style={styles.eventCard}
                   onPress={() => handleEventPress(event)}
                 >
                   <CardContent style={styles.eventContent}>
-                    <View style={styles.eventHeader}>
-                      <View style={styles.eventIconContainer}>
-                        <RNText style={styles.eventIcon}>{getEventTypeIcon(event.type)}</RNText>
-                      </View>
+                    <View style={styles.eventRow}>
+                      {/* Left indicator bar */}
+                      <View style={[styles.eventIndicator, { backgroundColor: getEventTypeColor(event.type) }]} />
+                      
+                      {/* Event content */}
                       <View style={styles.eventInfo}>
-                        <RNText style={[textStyles.label, styles.eventTitle]}>{event.title}</RNText>
-                        <RNText style={[textStyles.caption, styles.eventTime]}>
+                        {/* Header with title and chip */}
+                        <View style={styles.eventHeaderRow}>
+                          <RNText 
+                            style={[textStyles.label, { color: colors.foreground, flex: 1 }]} 
+                            numberOfLines={2}
+                          >
+                            {event.title}
+                          </RNText>
+                          <Chip color={getChipColor(event.type)} size="sm" variant="filled">
+                            {event.type === 'lesson' 
+                              ? 'Lesson' 
+                              : event.type.includes('Registration Start')
+                                ? 'Start'
+                                : event.type.includes('Registration End')
+                                  ? 'End'
+                                  : event.type.replace('_', ' ')}
+                          </Chip>
+                        </View>
+                        
+                        {/* Time info */}
+                        <RNText style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
                           {event.date.toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -436,18 +454,21 @@ export function CalendarScreen() {
                               minute: '2-digit',
                             })}`}
                         </RNText>
+                        
+                        {/* Description */}
                         {event.description && (
-                          <RNText style={[textStyles.caption, styles.eventDescription]}>{event.description}</RNText>
+                          <RNText 
+                            style={[textStyles.bodySmall, { color: colors.foregroundSubtle, marginTop: spacing[1] }]}
+                            numberOfLines={2}
+                          >
+                            {event.description}
+                          </RNText>
                         )}
                       </View>
-                      <Chip color={getChipColor(event.type)} size="sm" variant="filled">
-                        {event.type === 'lesson' ? 'Lesson' : event.type.replace('_', ' ')}
-                      </Chip>
                     </View>
                   </CardContent>
                 </Card>
-              );
-            })
+              ))
           )}
         </ScrollView>
       </Card>
@@ -713,41 +734,23 @@ const styles = StyleSheet.create({
   eventContent: {
     paddingVertical: spacing[1],
   },
-  eventHeader: {
+  eventRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
   },
-  eventIconContainer: {
-    width: 28,
-    height: 28,
+  eventIndicator: {
+    width: 4,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: spacing[3],
-  },
-  eventIcon: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
   eventInfo: {
     flex: 1,
-    marginRight: spacing[2],
   },
-  eventTitle: {
-    color: '#FFFFFF',
-    marginBottom: spacing[0.5],
-  },
-  eventTime: {
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: spacing[1],
-  },
-  eventDescription: {
-    fontStyle: 'italic',
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: spacing[1],
+  eventHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing[2],
   },
   formGroup: {
     marginBottom: spacing[4],
