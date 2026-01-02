@@ -204,12 +204,21 @@ import { useAppTheme } from '@App';
 3. **Environment Setup**
    Create a `.env` file in the root directory:
    ```env
+   # Firebase Configuration
    FIREBASE_API_KEY=your_api_key
    FIREBASE_AUTH_DOMAIN=your_auth_domain
    FIREBASE_PROJECT_ID=your_project_id
    FIREBASE_STORAGE_BUCKET=your_storage_bucket
    FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    FIREBASE_APP_ID=your_app_id
+
+   # API Configuration (Backend Server)
+   API_BASE_URL_DEV=http://localhost:3000/
+   API_BASE_URL_PROD=http://your-server-ip:3000/
+
+   # WebSocket Configuration (Real-time Binance Data)
+   WS_URL_DEV=ws://localhost:3000/ws
+   WS_URL_PROD=ws://your-server-ip:3000/ws
    ```
 
 4. **Firebase Setup**
