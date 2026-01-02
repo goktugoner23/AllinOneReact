@@ -293,23 +293,38 @@ const StudentsTab: React.FC = () => {
     }
   };
 
-  const renderStudent = ({ item }: { item: WTStudent }) => (
-    <UICard
-      style={{ marginHorizontal: spacing[4], marginBottom: spacing[3] }}
-      variant="elevated"
-      padding="sm"
-      onPress={() => {
-        setSelectedStudent(item);
-        setShowDetailModal(true);
-      }}
-      onLongPress={() => {
-        setSelectedStudent(item);
-        setShowOptionsModal(true);
-      }}
-    >
-      <View style={styles.studentHeader}>
+  const renderStudent = ({ item, index }: { item: WTStudent; index: number }) => {
+    const isFirst = index === 0;
+    const isLast = index === students.length - 1;
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => {
+          setSelectedStudent(item);
+          setShowDetailModal(true);
+        }}
+        onLongPress={() => {
+          setSelectedStudent(item);
+          setShowOptionsModal(true);
+        }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          marginHorizontal: 16,
+          backgroundColor: colors.card,
+          borderTopLeftRadius: isFirst ? 12 : 0,
+          borderTopRightRadius: isFirst ? 12 : 0,
+          borderBottomLeftRadius: isLast ? 12 : 0,
+          borderBottomRightRadius: isLast ? 12 : 0,
+          borderBottomWidth: !isLast ? StyleSheet.hairlineWidth : 0,
+          borderBottomColor: colors.border,
+        }}
+      >
+        {/* Avatar */}
         <TouchableOpacity
-          style={styles.studentPhotoContainer}
           onPress={() => {
             if (item.photoUri) {
               setSelectedStudent(item);
@@ -317,32 +332,44 @@ const StudentsTab: React.FC = () => {
             }
           }}
           activeOpacity={item.photoUri ? 0.7 : 1}
+          style={{ marginRight: 14 }}
         >
           <Avatar source={item.photoUri ? { uri: item.photoUri } : undefined} name={item.name} size="lg" />
         </TouchableOpacity>
-        <View style={styles.studentInfo}>
-          <Text style={[textStyles.h4, { color: colors.foreground }]}>{item.name}</Text>
+
+        {/* Info */}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: '500', color: colors.foreground }}>{item.name}</Text>
           {item.phoneNumber && (
-            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
-              {item.phoneNumber}
-            </Text>
+            <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 2 }}>{item.phoneNumber}</Text>
           )}
         </View>
+
+        {/* Status Indicator */}
         <View
-          style={[styles.statusIndicator, { backgroundColor: item.isActive ? colors.success : colors.destructive }]}
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: item.isActive ? colors.success : colors.destructive,
+            marginLeft: 12,
+          }}
         />
-      </View>
-    </UICard>
-  );
+
+        {/* Chevron */}
+        <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} style={{ marginLeft: 8 }} />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlashList
         data={students}
-        renderItem={renderStudent}
+        renderItem={({ item, index }) => renderStudent({ item, index })}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        contentContainerStyle={{ paddingTop: spacing[3], paddingBottom: spacing[20] }}
+        contentContainerStyle={{ paddingTop: spacing[4], paddingBottom: spacing[20] }}
         ListEmptyComponent={
           <EmptyState
             icon="people-outline"
@@ -352,7 +379,7 @@ const StudentsTab: React.FC = () => {
             onAction={() => setShowAddDialog(true)}
           />
         }
-        estimatedItemSize={110}
+        estimatedItemSize={72}
       />
 
       <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
@@ -427,33 +454,54 @@ const StudentsTab: React.FC = () => {
                 </View>
 
                 {/* Action Buttons */}
-                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing[4] }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
                   {selectedStudent.phoneNumber && (
-                    <IconButton
-                      icon="call"
-                      size="lg"
-                      variant="filled"
-                      style={{ backgroundColor: colors.success }}
+                    <TouchableOpacity
                       onPress={() => handleCall(selectedStudent.phoneNumber!)}
-                    />
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 28,
+                        backgroundColor: '#22C55E',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="call" size={26} color="#fff" />
+                    </TouchableOpacity>
                   )}
                   {selectedStudent.phoneNumber && (
-                    <IconButton
-                      icon="logo-whatsapp"
-                      size="lg"
-                      variant="filled"
-                      style={{ backgroundColor: '#25D366' }}
+                    <TouchableOpacity
                       onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
-                    />
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 28,
+                        backgroundColor: '#25D366',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="logo-whatsapp" size={26} color="#fff" />
+                    </TouchableOpacity>
                   )}
                   {selectedStudent.instagram && (
-                    <IconButton
-                      icon="logo-instagram"
-                      size="lg"
-                      variant="filled"
-                      style={{ backgroundColor: '#E4405F' }}
+                    <TouchableOpacity
                       onPress={() => handleInstagram(selectedStudent.instagram!)}
-                    />
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 28,
+                        backgroundColor: '#E4405F',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="logo-instagram" size={26} color="#fff" />
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -703,100 +751,100 @@ const RegisterTab: React.FC = () => {
     }
   };
 
-  const renderRegistration = ({ item }: { item: WTRegistration }) => (
-    <UICard
-      style={{ marginHorizontal: spacing[4], marginBottom: spacing[3] }}
-      variant="elevated"
-      padding="md"
-      onPress={() => {
-        setSelectedRegistration(item);
-        setShowDetailsDialog(true);
-      }}
-      onLongPress={() => {
-        setSelectedRegistration(item);
-        setShowContextMenu(true);
-      }}
-    >
-      {/* Header Row: Student Name and Status Chip */}
-      <View
+  const renderRegistration = ({ item, index }: { item: WTRegistration; index: number }) => {
+    const isFirst = index === 0;
+    const isLast = index === filteredRegistrations.length - 1;
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => {
+          setSelectedRegistration(item);
+          setShowDetailsDialog(true);
+        }}
+        onLongPress={() => {
+          setSelectedRegistration(item);
+          setShowContextMenu(true);
+        }}
         style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: spacing[2],
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          marginHorizontal: 16,
+          backgroundColor: colors.card,
+          borderTopLeftRadius: isFirst ? 12 : 0,
+          borderTopRightRadius: isFirst ? 12 : 0,
+          borderBottomLeftRadius: isLast ? 12 : 0,
+          borderBottomRightRadius: isLast ? 12 : 0,
+          borderBottomWidth: !isLast ? StyleSheet.hairlineWidth : 0,
+          borderBottomColor: colors.border,
         }}
       >
-        <Text style={[textStyles.h4, { color: colors.foreground, flex: 1, marginRight: spacing[2] }]}>
-          {getStudentName(item.studentId)}
-        </Text>
-        <TouchableOpacity
-          onPress={() => handlePaymentStatusToggle(item)}
-          style={{
-            backgroundColor: item.isPaid ? colors.success : colors.warning,
-            paddingHorizontal: spacing[3],
-            paddingVertical: spacing[1.5],
-            borderRadius: radius.full,
-            alignSelf: 'flex-start',
-          }}
-        >
-          <Text
-            style={[
-              textStyles.labelSmall,
-              {
-                color: item.isPaid ? colors.successForeground : colors.warningForeground,
-                fontWeight: '600',
-              },
-            ]}
+        {/* Header Row: Student Name and Status Badge */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ flex: 1, fontSize: 16, fontWeight: '500', color: colors.foreground }} numberOfLines={1}>
+            {getStudentName(item.studentId)}
+          </Text>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              handlePaymentStatusToggle(item);
+            }}
+            style={{
+              backgroundColor: item.isPaid ? colors.success : colors.warning,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 12,
+            }}
           >
-            {item.isPaid ? 'Paid' : 'Unpaid'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Amount */}
-      <Text style={[textStyles.amountSmall, { color: colors.primary, marginBottom: spacing[1] }]}>
-        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
-      </Text>
-
-      {/* Date Information */}
-      {item.startDate && (
-        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[0.5] }]}>
-          Start: {new Date(item.startDate).toLocaleDateString()}
-        </Text>
-      )}
-      {item.endDate && (
-        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[0.5] }]}>
-          End: {new Date(item.endDate).toLocaleDateString()}
-        </Text>
-      )}
-
-      {/* Notes */}
-      {item.notes && (
-        <Text
-          style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[2] }]}
-        >
-          {item.notes}
-        </Text>
-      )}
-
-      {/* Attachment Indicator */}
-      {item.attachmentUri && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing[2] }}>
-          <IconButton
-            icon={isDownloading ? 'hourglass' : 'document'}
-            size="sm"
-            variant="ghost"
-            color={isDownloading ? colors.foregroundSubtle : colors.primary}
-            onPress={() => handleViewAttachment(item.attachmentUri!)}
-            disabled={isDownloading}
-          />
-          <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginLeft: spacing[1] }]}>
-            {isDownloading ? 'Opening...' : 'Receipt attached'}
-          </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: item.isPaid ? '#fff' : '#000',
+              }}
+            >
+              {item.isPaid ? 'Paid' : 'Unpaid'}
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </UICard>
-  );
+
+        {/* Amount & Dates Row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.primary }}>
+            {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.amount)}
+          </Text>
+          {item.startDate && (
+            <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
+              {new Date(item.startDate).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
+              {item.endDate && ` - ${new Date(item.endDate).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}`}
+            </Text>
+          )}
+        </View>
+
+        {/* Notes & Attachment Row */}
+        {(item.notes || item.attachmentUri) && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            {item.notes && (
+              <Text style={{ flex: 1, fontSize: 13, color: colors.mutedForeground, fontStyle: 'italic' }} numberOfLines={1}>
+                {item.notes}
+              </Text>
+            )}
+            {item.attachmentUri && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleViewAttachment(item.attachmentUri!);
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}
+              >
+                <Ionicons name="document-attach" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -847,7 +895,7 @@ const RegisterTab: React.FC = () => {
 
       <FlashList
         data={filteredRegistrations}
-        renderItem={renderRegistration}
+        renderItem={({ item, index }) => renderRegistration({ item, index })}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingTop: spacing[3], paddingBottom: spacing[20] }}
@@ -864,7 +912,7 @@ const RegisterTab: React.FC = () => {
             onAction={() => setShowAddDialog(true)}
           />
         }
-        estimatedItemSize={120}
+        estimatedItemSize={100}
       />
 
       <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
