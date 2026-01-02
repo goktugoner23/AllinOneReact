@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, Alert, TouchableOpacity } from 'react-native';
 import { Card, Text, Divider, Button } from 'react-native-paper';
 import { fetchTransactions } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
-import { format, subDays, startOfYear, startOfDay, isBefore, parseISO } from 'date-fns';
+import { format, subDays, startOfYear, startOfDay } from 'date-fns';
 import { TransactionCard } from '@features/transactions/components/TransactionCard';
 import { TransactionService } from '@features/transactions/services/transactionService';
 import { useColors, useIsDark, spacing, textStyles, radius, shadow } from '@shared/theme';
@@ -22,25 +22,17 @@ const dateRanges = [
 const formatCurrencyTRY = (amount: number) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
 
-function filterByDateRange(transactions: Transaction[], range: string) {
+// Get the start date for a given range (computed once, not per-transaction)
+function getStartDateForRange(range: string): number | null {
   const now = new Date();
-  if (range === 'all') return transactions;
-  if (range === 'year') {
-    const start = startOfYear(now);
-    // Use !isBefore to include transactions ON or AFTER the start date
-    return transactions.filter((t) => !isBefore(parseISO(t.date), start));
-  }
-  let days = 0;
-  if (range === '7d') days = 7;
-  if (range === '30d') days = 30;
-  if (range === '90d') days = 90;
-  if (days > 0) {
-    // Use startOfDay to include all transactions from that day
-    const start = startOfDay(subDays(now, days));
-    // Use !isBefore to include transactions ON or AFTER the start date
-    return transactions.filter((t) => !isBefore(parseISO(t.date), start));
-  }
-  return transactions;
+  if (range === 'all') return null; // No filtering
+  if (range === 'year') return startOfYear(now).getTime();
+  
+  const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
+  const days = daysMap[range];
+  if (days) return startOfDay(subDays(now, days)).getTime();
+  
+  return null;
 }
 
 export const ReportsTab: React.FC = () => {
@@ -82,29 +74,61 @@ export const ReportsTab: React.FC = () => {
     });
   }, []);
 
-  // Filter transactions by date range and category
-  const filteredTransactions = transactions.filter((t) => {
-    if (category !== 'All' && t.category !== category) return false;
-    return filterByDateRange([t], dateRange).length > 0;
-  });
-
-  // Sort filtered transactions by date desc (latest first)
-  const sortedTransactions = filteredTransactions
-    .slice()
-    .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-
-  // Summary statistics - updated to use isIncome field
-  const totalIncome = filteredTransactions.filter((t) => t.isIncome).reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = filteredTransactions.filter((t) => !t.isIncome).reduce((sum, t) => sum + t.amount, 0);
-  const balance = totalIncome - totalExpense;
-
-  // Chart data: spending per day - updated to use isIncome field
-  const chartData = (() => {
-    const map: { [date: string]: number } = {};
-    filteredTransactions.forEach((t) => {
-      const d = format(parseISO(t.date), 'MM-dd');
-      map[d] = (map[d] || 0) + (!t.isIncome ? t.amount : 0);
+  // Memoize filtered and sorted transactions - this is the main performance fix
+  const { filteredTransactions, sortedTransactions } = useMemo(() => {
+    // Get start date threshold once for the entire filter operation
+    const startTimestamp = getStartDateForRange(dateRange);
+    
+    // Filter transactions efficiently (single pass)
+    const filtered = transactions.filter((t) => {
+      // Category filter
+      if (category !== 'All' && t.category !== category) return false;
+      
+      // Date filter - compare timestamps directly (no parsing per iteration)
+      if (startTimestamp !== null) {
+        const txTime = new Date(t.date).getTime();
+        if (txTime < startTimestamp) return false;
+      }
+      
+      return true;
     });
+    
+    // Sort by date descending (parse once per transaction)
+    const sorted = filtered
+      .slice()
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return { filteredTransactions: filtered, sortedTransactions: sorted };
+  }, [transactions, dateRange, category]);
+
+  // Memoize summary statistics
+  const { totalIncome, totalExpense, balance } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    
+    // Single pass through filtered transactions
+    for (const t of filteredTransactions) {
+      if (t.isIncome) {
+        income += t.amount;
+      } else {
+        expense += t.amount;
+      }
+    }
+    
+    return { totalIncome: income, totalExpense: expense, balance: income - expense };
+  }, [filteredTransactions]);
+
+  // Memoize chart data
+  const chartData = useMemo(() => {
+    const map: { [date: string]: number } = {};
+    
+    for (const t of filteredTransactions) {
+      if (!t.isIncome) {
+        const d = format(new Date(t.date), 'MM-dd');
+        map[d] = (map[d] || 0) + t.amount;
+      }
+    }
+    
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
     const labels = sorted.map(([date]) => date);
     const data = sorted.map(([_, value]) => value);
@@ -119,28 +143,40 @@ export const ReportsTab: React.FC = () => {
         },
       ],
     };
-  })();
+  }, [filteredTransactions]);
 
-  // Category breakdown - updated to use isIncome field
-  const categorySpending = (() => {
+  // Memoize category breakdown
+  const categorySpending = useMemo(() => {
     const map: { [cat: string]: number } = {};
-    filteredTransactions.forEach((t) => {
-      if (!t.isIncome) map[t.category] = (map[t.category] || 0) + t.amount;
-    });
+    
+    for (const t of filteredTransactions) {
+      if (!t.isIncome) {
+        map[t.category] = (map[t.category] || 0) + t.amount;
+      }
+    }
+    
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  })();
+  }, [filteredTransactions]);
 
-  // Insights
-  const avgTransaction = filteredTransactions.length
-    ? filteredTransactions.reduce((sum, t) => sum + t.amount, 0) / filteredTransactions.length
-    : 0;
-  const mostFrequentCategory = (() => {
-    const map: { [cat: string]: number } = {};
-    filteredTransactions.forEach((t) => {
-      map[t.category] = (map[t.category] || 0) + 1;
-    });
-    return Object.entries(map).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-  })();
+  // Memoize insights
+  const { avgTransaction, mostFrequentCategory } = useMemo(() => {
+    if (filteredTransactions.length === 0) {
+      return { avgTransaction: 0, mostFrequentCategory: 'N/A' };
+    }
+    
+    let totalAmount = 0;
+    const categoryCount: { [cat: string]: number } = {};
+    
+    for (const t of filteredTransactions) {
+      totalAmount += t.amount;
+      categoryCount[t.category] = (categoryCount[t.category] || 0) + 1;
+    }
+    
+    const avg = totalAmount / filteredTransactions.length;
+    const mostFrequent = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+    
+    return { avgTransaction: avg, mostFrequentCategory: mostFrequent };
+  }, [filteredTransactions]);
 
   // Pagination for transactions list (apply on filtered & sorted list)
   const PAGE_SIZE = 5;
