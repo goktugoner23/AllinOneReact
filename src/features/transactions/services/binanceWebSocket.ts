@@ -1,4 +1,5 @@
 import { logger } from '@shared/utils/logger';
+import { WS_URL_DEV, WS_URL_PROD } from '@env';
 
 export interface WebSocketMessage {
   type: string;
@@ -24,7 +25,7 @@ class BinanceWebSocketService {
   private callbacks: WebSocketCallbacks = {};
   private subscribedChannels: Set<string> = new Set();
 
-  private readonly BASE_WS_URL = 'ws://116.203.124.249:3000';
+  private readonly BASE_WS_URL = __DEV__ ? WS_URL_DEV : WS_URL_PROD;
 
   constructor(callbacks: WebSocketCallbacks = {}) {
     this.callbacks = callbacks;
