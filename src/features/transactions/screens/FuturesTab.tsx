@@ -431,13 +431,13 @@ function UsdMFuturesScreen() {
     addListener('order_update', handleOrders);
     addListener('balance_update', handleBalance);
 
-    // Initial subscriptions
-    subscribeToPositions();
-    subscribeToOrders();
-    subscribeToBalance();
-
-    // Subscribe tickers for current positions
-    positions.forEach((p) => subscribeToTicker(p.symbol));
+    // Only subscribe when WebSocket is connected
+    if (wsConnected) {
+      subscribeToPositions();
+      subscribeToOrders();
+      subscribeToBalance();
+      positions.forEach((p) => subscribeToTicker(p.symbol));
+    }
 
     return () => {
       removeListener('positions_update', handlePositions);
@@ -445,7 +445,7 @@ function UsdMFuturesScreen() {
       removeListener('balance_update', handleBalance);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wsConnected]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -547,6 +547,7 @@ function UsdMFuturesScreen() {
 }
 
 function CoinMFuturesScreen() {
+  const colors = useColors();
   const [positions, setPositions] = useState<EnhancedPositionData[]>([]);
   const [account, setAccount] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -578,10 +579,13 @@ function CoinMFuturesScreen() {
     addListenerCoin('order_update', handleOrders);
     addListenerCoin('balance_update', handleBalance);
 
-    subPosCoin();
-    subOrdCoin();
-    subBalCoin();
-    positions.forEach((p) => subTickerCoin(p.symbol));
+    // Only subscribe when WebSocket is connected
+    if (wsConnectedCoin) {
+      subPosCoin();
+      subOrdCoin();
+      subBalCoin();
+      positions.forEach((p) => subTickerCoin(p.symbol));
+    }
 
     return () => {
       removeListenerCoin('positions_update', handlePositions);
@@ -589,7 +593,7 @@ function CoinMFuturesScreen() {
       removeListenerCoin('balance_update', handleBalance);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wsConnectedCoin]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -653,26 +657,27 @@ function CoinMFuturesScreen() {
   }, [loadData]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {error && (
-        <Chip icon="alert" style={{ marginBottom: 8 }} onClose={() => setError(null)}>
+        <Chip
+          icon="alert"
+          style={[styles.errorChip, { backgroundColor: colors.destructiveMuted }]}
+          textStyle={{ color: colors.destructive }}
+          onClose={() => setError(null)}
+        >
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for COIN-M Futures */}
       <Chip
         icon={wsConnectedCoin ? 'wifi' : 'wifi-off'}
-        style={{
-          marginBottom: 8,
-          backgroundColor: wsConnectedCoin ? '#4CAF50' : '#FF9800',
-          alignSelf: 'flex-start',
-        }}
-        textStyle={{ color: 'white' }}
+        style={[styles.statusChip, { backgroundColor: wsConnectedCoin ? colors.income : colors.warning }]}
+        textStyle={{ color: wsConnectedCoin ? colors.incomeForeground : colors.warningForeground }}
       >
         {wsConnectedCoin ? 'Live Data Connected' : 'Live Data Disconnected'}
       </Chip>
       <CoinMFuturesAccountCard account={account} positions={positions} />
-      {loading ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
+      {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
       <FuturesPositionsList positions={positions} onSetTPSL={handleSetTPSL} />
 
       <TPSLModal
