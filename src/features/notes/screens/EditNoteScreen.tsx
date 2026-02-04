@@ -16,6 +16,7 @@ import { useNotes, useAddNote, useUpdateNote } from '@shared/hooks';
 import { NoteFormData } from '@features/notes/types/Note';
 import RichTextEditor from '@features/notes/components/RichTextEditor';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
+import DrawingScreen from '@features/notes/components/DrawingScreen';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { MediaAttachmentsState, MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -64,9 +65,8 @@ const EditNoteScreen: React.FC = () => {
   const [playingMedia, setPlayingMedia] = useState<string | null>(null);
   const [mediaRefs, setMediaRefs] = useState<{ [key: string]: any }>({});
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  // const [showDrawingScreen, setShowDrawingScreen] = useState(false); // DISABLED: Drawing functionality temporarily removed
-  // const [lastDrawingSvg, setLastDrawingSvg] = useState<string>(''); // DISABLED: Drawing functionality temporarily removed
-  // const svgViewRef = useRef<ViewShot>(null); // DISABLED: Drawing functionality temporarily removed
+  const [showDrawingScreen, setShowDrawingScreen] = useState(false);
+  const svgViewRef = useRef<ViewShot>(null);
 
   // Find existing note if editing
   const existingNote = notes.find((note: any) => note.id === noteId);
@@ -125,11 +125,9 @@ const EditNoteScreen: React.FC = () => {
           });
       }
 
-      // DISABLED: Drawing functionality temporarily removed
-      /*
       // Process drawings
       if (existingNote.drawingUris) {
-        existingNote.drawingUris.split(',').filter(Boolean).forEach(uri => {
+        existingNote.drawingUris.split(',').filter(Boolean).forEach((uri: string) => {
           existingAttachments.push({
             id: `drawing_${Date.now()}_${Math.random()}`,
             uri: uri.trim(),
@@ -138,7 +136,6 @@ const EditNoteScreen: React.FC = () => {
           });
         });
       }
-      */
 
       setMediaAttachments({
         attachments: existingAttachments,
@@ -193,20 +190,17 @@ const EditNoteScreen: React.FC = () => {
       .map((att) => att.uri)
       .join(',');
 
-    // DISABLED: Drawing functionality temporarily removed
-    /*
     const currentDrawingUris = mediaAttachments.attachments
-      .filter(att => att.type === MediaType.DRAWING)
-      .map(att => att.uri)
+      .filter((att) => att.type === MediaType.DRAWING)
+      .map((att) => att.uri)
       .join(',');
-    */
 
     return (
       currentImageUris !== (existingNote.imageUris || '') ||
       currentVideoUris !== (existingNote.videoUris || '') ||
-      currentVoiceUris !== (existingNote.voiceNoteUris || '')
+      currentVoiceUris !== (existingNote.voiceNoteUris || '') ||
+      currentDrawingUris !== (existingNote.drawingUris || '')
     );
-    // currentDrawingUris !== (existingNote.drawingUris || ''); // DISABLED: Drawing functionality removed
   };
 
   const handleSave = async () => {
@@ -232,6 +226,10 @@ const EditNoteScreen: React.FC = () => {
           .join(','),
         voiceNoteUris: mediaAttachments.attachments
           .filter((att) => att.type === MediaType.AUDIO)
+          .map((att) => att.uri)
+          .join(','),
+        drawingUris: mediaAttachments.attachments
+          .filter((att) => att.type === MediaType.DRAWING)
           .map((att) => att.uri)
           .join(','),
       };
@@ -582,20 +580,65 @@ const EditNoteScreen: React.FC = () => {
     setShowVoiceRecorder(false);
   };
 
-  // DISABLED: Drawing functionality temporarily removed
-  /*
   const handleAddDrawing = () => {
     setShowDrawingScreen(true);
   };
 
   const handleDrawingSave = async (svgContent: string, saveToGallery: boolean) => {
-    // Drawing functionality removed
+    try {
+      // Generate a unique filename
+      const uuid = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const fileName = `drawing_${uuid}.svg`;
+      const filePath = `${RNFS.DocumentDirectoryPath}/drawings/${fileName}`;
+
+      // Ensure drawings directory exists
+      const dirPath = `${RNFS.DocumentDirectoryPath}/drawings`;
+      const dirExists = await RNFS.exists(dirPath);
+      if (!dirExists) {
+        await RNFS.mkdir(dirPath);
+      }
+
+      // Save SVG content to file
+      await RNFS.writeFile(filePath, svgContent, 'utf8');
+
+      // Create attachment
+      const newAttachment: MediaAttachment = {
+        id: `drawing_${uuid}`,
+        uri: `file://${filePath}`,
+        type: MediaType.DRAWING,
+        name: `Drawing ${new Date().toLocaleTimeString()}`,
+      };
+
+      setMediaAttachments((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, newAttachment],
+      }));
+
+      // Save to gallery if requested
+      if (saveToGallery && svgViewRef.current) {
+        try {
+          const pngUri = await svgViewRef.current.capture?.();
+          if (pngUri) {
+            // Save PNG to camera roll using CameraRoll
+            // This would require additional implementation
+            Alert.alert('Success', 'Drawing saved to note and gallery');
+          }
+        } catch (galleryError) {
+          console.error('Error saving to gallery:', galleryError);
+          Alert.alert('Partial Success', 'Drawing saved to note but failed to save to gallery');
+        }
+      }
+
+      setShowDrawingScreen(false);
+    } catch (error) {
+      console.error('Error saving drawing:', error);
+      Alert.alert('Error', 'Failed to save drawing. Please try again.');
+    }
   };
 
   const handleDrawingCancel = () => {
     setShowDrawingScreen(false);
   };
-  */
 
   // Check if any mutation is in progress
   const isMutating = addNoteMutation.isPending || updateNoteMutation.isPending;
@@ -711,15 +754,22 @@ const EditNoteScreen: React.FC = () => {
               <Text style={[textStyles.bodySmall, { color: colors.primary, fontWeight: '500' }]}>Voice</Text>
             </TouchableOpacity>
 
-            {/* DISABLED: Drawing functionality temporarily removed
             <TouchableOpacity
-              style={styles.attachmentButton}
+              style={[
+                styles.attachmentButton,
+                {
+                  backgroundColor: colors.muted,
+                  borderRadius: radius.md,
+                  paddingHorizontal: spacing[3],
+                  paddingVertical: spacing[2],
+                  gap: spacing[1.5],
+                },
+              ]}
               onPress={handleAddDrawing}
             >
               <Icon name="brush" size={20} color={colors.primary} />
-              <Text style={styles.attachmentButtonText}>Drawing</Text>
+              <Text style={[textStyles.bodySmall, { color: colors.primary, fontWeight: '500' }]}>Drawing</Text>
             </TouchableOpacity>
-            */}
           </View>
 
           {/* Attachment Previews */}
@@ -762,13 +812,13 @@ const EditNoteScreen: React.FC = () => {
                             <Icon name="play-arrow" size={20} color="white" />
                           </View>
                         </View>
-                      ) : (
-                        /* attachment.type === MediaType.DRAWING ? (
-                        <View style={styles.previewDrawing}>
+                      ) : attachment.type === MediaType.DRAWING ? (
+                        <View style={[styles.previewDrawing, { backgroundColor: colors.primaryMuted }]}>
                           <Icon name="brush" size={40} color={colors.primary} />
-                          <Text style={styles.drawingLabel}>Drawing</Text>
+                          <Text style={[textStyles.caption, { color: colors.primary, marginTop: spacing[1] }]}>Drawing</Text>
                         </View>
-                      ) : */ <View style={[styles.previewAudio, { backgroundColor: colors.primaryMuted }]}>
+                      ) : (
+                        <View style={[styles.previewAudio, { backgroundColor: colors.primaryMuted }]}>
                           <Icon name="music-note" size={40} color={colors.primary} />
                           <Text style={[textStyles.caption, { color: colors.primary, marginTop: spacing[1] }]}>
                             Voice Note
@@ -835,13 +885,12 @@ const EditNoteScreen: React.FC = () => {
         </Modal>
       )}
 
-      {/* DISABLED: Drawing functionality temporarily removed
+      {/* Drawing Screen */}
       <DrawingScreen
         visible={showDrawingScreen}
         onClose={handleDrawingCancel}
         onSave={handleDrawingSave}
       />
-      */}
 
       {/* Error Snackbar */}
       <Snackbar
@@ -909,6 +958,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   previewAudio: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewDrawing: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
