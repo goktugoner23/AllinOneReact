@@ -76,10 +76,10 @@ export const Input = forwardRef<TextInput, InputProps>(
       paddingHorizontal: spacing[3],
       minHeight: currentSize.height,
       gap: spacing[2],
-      // Focus ring effect
+      // Focus ring effect - softer using borderFocus
       ...(isFocused && {
         borderWidth: 2,
-        borderColor: hasError ? colors.destructive : colors.ring,
+        borderColor: hasError ? colors.destructive : colors.borderFocus,
       }),
     };
 
@@ -113,7 +113,7 @@ export const Input = forwardRef<TextInput, InputProps>(
             ref={ref}
             {...props}
             style={[inputStyle, style]}
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={colors.foregroundSubtle}
             onFocus={(e) => {
               setIsFocused(true);
               props.onFocus?.(e);

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, RefreshControl } from 'react-native';
+import { View, StyleSheet, RefreshControl, Text, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Appbar, Text, ActivityIndicator } from 'react-native-paper';
+import { Appbar, AppbarAction } from '@shared/components/ui';
 import { AddFab } from '@shared/components';
 import {
   useTasks,
@@ -204,9 +204,7 @@ const TasksScreen: React.FC = () => {
           } else if (item.type === 'header') {
             return (
               <View style={styles.ungroupedHeader}>
-                <Text variant="titleMedium" style={[textStyles.label, { color: colors.foregroundMuted }]}>
-                  {item.title}
-                </Text>
+                <Text style={[textStyles.label, { color: colors.foregroundMuted }]}>{item.title}</Text>
               </View>
             );
           }
@@ -234,9 +232,7 @@ const TasksScreen: React.FC = () => {
   if (loading && !refreshing) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Appbar.Header style={[styles.header, { backgroundColor: colors.surface }]}>
-          <Appbar.Content title="Tasks" titleStyle={[textStyles.h4, { color: colors.foreground }]} />
-        </Appbar.Header>
+        <Appbar title="Tasks" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -246,21 +242,25 @@ const TasksScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Appbar.Header style={[styles.header, { backgroundColor: colors.surface }]}>
-        <Appbar.Content title="Tasks" titleStyle={[textStyles.h4, { color: colors.foreground }]} />
-        <Appbar.Action
-          icon={isGroupedView ? 'view-list' : 'view-module'}
-          onPress={() => setIsGroupedView(!isGroupedView)}
-          iconColor={colors.foregroundMuted}
-        />
-        {isGroupedView && (
-          <Appbar.Action
-            icon="folder-plus"
-            onPress={() => setShowAddGroupDialog(true)}
-            iconColor={colors.foregroundMuted}
-          />
-        )}
-      </Appbar.Header>
+      <Appbar
+        title="Tasks"
+        trailing={
+          <>
+            <AppbarAction
+              icon={isGroupedView ? 'list-outline' : 'grid-outline'}
+              onPress={() => setIsGroupedView(!isGroupedView)}
+              color={colors.foregroundMuted}
+            />
+            {isGroupedView && (
+              <AppbarAction
+                icon="folder-open-outline"
+                onPress={() => setShowAddGroupDialog(true)}
+                color={colors.foregroundMuted}
+              />
+            )}
+          </>
+        }
+      />
 
       {tasks.length === 0 ? (
         <EmptyTasksState onCreateTask={() => setShowAddTaskDialog(true)} />

@@ -7,28 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Soft Minimal UI Design System**: Complete UI overhaul with new aesthetic
+  - New color palette: Indigo primary (#6366F1 light, #818CF8 dark)
+  - Softer backgrounds (#FAFBFC light, #0C0D10 dark)
+  - Larger border radii (sm: 6, md: 10, lg: 14, xl: 20)
+  - Reduced shadow opacity for subtler depth
+- **New Custom UI Components**:
+  - `Appbar`: Header with back/menu/close navigation, safe area aware
+  - `Searchbar`: Pill-shaped search input with clear button
+  - `Snackbar`: Animated toast notifications with Reanimated
+  - `Checkbox`: Rounded checkbox with label support
+  - `Divider`: Horizontal/vertical separators
+- **Typography Refinements**:
+  - Reduced heading weights (700 → 600) for softer appearance
+  - New `subtitle` text style
+  - Lighter button font weight
+
 ### Changed
+- **Complete React Native Paper Migration**: Removed dependency on react-native-paper
+  - Migrated 41 files across 8 features to custom shadcn-style components
+  - Consolidated dual theme system into single unified ThemeContext
+  - Deleted legacy `src/theme.ts`
+- **Package Updates**:
+  - Updated `@shopify/react-native-skia` to 2.4.18 (fixes peer dependency conflict with reanimated 4.x)
+  - Added npm overrides for `fast-xml-parser` to fix security vulnerability
 - Migrated to TanStack Query for data fetching and caching
 - Integrated NativeWind (Tailwind CSS) for styling
 - Restructured project to feature-first architecture
 - Updated ESLint and Prettier configurations
 - Fixed TypeScript strict mode issues
 - **WebSocket Configuration**: Moved WebSocket URL to environment variables
-  - Added `WS_URL_DEV` and `WS_URL_PROD` to `.env` for flexible configuration
-  - Updated `binanceWebSocket.ts` to use environment-based URLs
-  - Fixed WebSocket endpoint path to use `/ws` as required by backend
 
 ### Fixed
 - **UI Theming Overhaul**: Replaced hardcoded colors with theme-aware colors across entire codebase
   - Shared UI components: `AddFab`, `RefreshFab`, `Chip`, `Tabs`, `ProgressBar`, `AudioPlayer`, `Card`
   - All components now properly support light/dark theme switching
   - Fixed `Card` component to accept `StyleProp<ViewStyle>` for style arrays
-  - Added missing styles: `placeholderText` in AttachmentGallery, `errorChip`/`statusChip`/`loader` in FuturesTab
 - TypeScript compilation errors resolved across all modified files
 - **WebSocket Race Condition**: Fixed subscription calls in `FuturesTab.tsx` to only execute when WebSocket is connected
-  - Added `wsConnected` dependency to useEffect hooks
-  - Prevents "Cannot send message - WebSocket not connected" warnings
 - **COIN-M Styling**: Applied consistent theme colors to COIN-M error chips and status indicators
+
+### Removed
+- `react-native-paper` dependency (replaced with custom components)
+- Legacy `src/theme.ts` file (consolidated into `src/shared/theme/`)
+
+### Security
+- Fixed 7 npm audit vulnerabilities (axios, fast-xml-parser, glob, js-yaml, lodash, tmp)
+- Resolved peer dependency conflict between @shopify/react-native-skia and react-native-reanimated
 
 ---
 

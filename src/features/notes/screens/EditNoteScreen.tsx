@@ -9,9 +9,9 @@ import {
   TouchableOpacity,
   Platform,
   PermissionsAndroid,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { TextInput, Appbar, Snackbar, Portal, Modal, Dialog, Button as PaperButton } from 'react-native-paper';
 import { useNotes, useAddNote, useUpdateNote } from '@shared/hooks';
 import { NoteFormData } from '@features/notes/types/Note';
 import RichTextEditor from '@features/notes/components/RichTextEditor';
@@ -20,7 +20,7 @@ import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { MediaAttachmentsState, MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import { Button, Skeleton, SkeletonCard, ProgressBar } from '@shared/components/ui';
+import { Button, Skeleton, SkeletonCard, ProgressBar, Appbar, AppbarAction, Snackbar, Dialog, Input } from '@shared/components/ui';
 import { useAppTheme } from '@shared/theme';
 
 import { Video } from 'react-native-video';
@@ -610,15 +610,18 @@ const EditNoteScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Appbar.Header style={{ backgroundColor: colors.surface }}>
-        <Appbar.BackAction onPress={handleBackPress} disabled={saving || isMutating} />
-        <Appbar.Content title={noteId ? 'Edit Note' : 'New Note'} />
-        <Appbar.Action
-          icon={saving || isMutating ? 'loading' : 'content-save'}
-          onPress={handleSave}
-          disabled={!hasUnsavedChanges || saving || isMutating}
-        />
-      </Appbar.Header>
+      <Appbar
+        title={noteId ? 'Edit Note' : 'New Note'}
+        leading="back"
+        onLeadingPress={saving || isMutating ? undefined : handleBackPress}
+        trailing={
+          <AppbarAction
+            icon={saving || isMutating ? 'hourglass-outline' : 'save-outline'}
+            onPress={handleSave}
+            disabled={!hasUnsavedChanges || saving || isMutating}
+          />
+        }
+      />
 
       {/* Upload Progress */}
       {uploadProgress > 0 && uploadProgress < 100 && (
@@ -636,16 +639,12 @@ const EditNoteScreen: React.FC = () => {
       )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={{ padding: spacing[4] }}>
-        <TextInput
+        <Input
           label="Title"
           value={title}
           onChangeText={setTitle}
-          style={[styles.titleInput, { marginBottom: spacing[4] }]}
-          mode="outlined"
+          containerStyle={{ marginBottom: spacing[4] }}
           placeholder="Enter note title..."
-          outlineColor={colors.border}
-          activeOutlineColor={colors.primary}
-          textColor={colors.foreground}
         />
 
         <RichTextEditor
@@ -792,25 +791,24 @@ const EditNoteScreen: React.FC = () => {
       </ScrollView>
 
       {/* Unsaved Changes Dialog */}
-      <Portal>
-        <Dialog visible={showSaveDialog} onDismiss={handleKeepEditing} style={{ backgroundColor: colors.surface }}>
-          <Dialog.Title style={{ color: colors.foreground }}>Unsaved Changes</Dialog.Title>
-          <Dialog.Content>
-            <Text style={{ color: colors.foregroundMuted }}>You have unsaved changes. Do you want to save them?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button variant="ghost" onPress={handleDiscardChanges}>
-              Discard
-            </Button>
-            <Button variant="outline" onPress={handleKeepEditing}>
-              Keep Editing
-            </Button>
-            <Button variant="primary" onPress={handleSave} loading={isMutating}>
-              Save
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <Dialog
+        visible={showSaveDialog}
+        onClose={handleKeepEditing}
+        title="Unsaved Changes"
+        description="You have unsaved changes. Do you want to save them?"
+      >
+        <View style={styles.dialogActions}>
+          <Button variant="ghost" onPress={handleDiscardChanges}>
+            Discard
+          </Button>
+          <Button variant="outline" onPress={handleKeepEditing}>
+            Keep Editing
+          </Button>
+          <Button variant="primary" onPress={handleSave} loading={isMutating}>
+            Save
+          </Button>
+        </View>
+      </Dialog>
 
       {/* Attachment Gallery */}
       {showAttachmentGallery && (
@@ -823,15 +821,18 @@ const EditNoteScreen: React.FC = () => {
 
       {/* Voice Recorder Modal */}
       {showVoiceRecorder && (
-        <Portal>
-          <Modal
-            visible={showVoiceRecorder}
-            onDismiss={handleVoiceRecordingCancel}
-            contentContainerStyle={[styles.voiceRecorderModal, { backgroundColor: colors.surface }]}
-          >
-            <VoiceRecorder onRecordingComplete={handleVoiceRecordingComplete} onCancel={handleVoiceRecordingCancel} />
-          </Modal>
-        </Portal>
+        <Modal
+          visible={showVoiceRecorder}
+          onRequestClose={handleVoiceRecordingCancel}
+          transparent
+          animationType="fade"
+        >
+          <View style={styles.voiceRecorderOverlay}>
+            <View style={[styles.voiceRecorderModal, { backgroundColor: colors.surface }]}>
+              <VoiceRecorder onRecordingComplete={handleVoiceRecordingComplete} onCancel={handleVoiceRecordingCancel} />
+            </View>
+          </View>
+        </Modal>
       )}
 
       {/* DISABLED: Drawing functionality temporarily removed
@@ -845,14 +846,13 @@ const EditNoteScreen: React.FC = () => {
       {/* Error Snackbar */}
       <Snackbar
         visible={!!error}
+        message={error || ''}
         onDismiss={clearError}
         action={{
           label: 'Dismiss',
           onPress: clearError,
         }}
-      >
-        {error}
-      </Snackbar>
+      />
     </View>
   );
 };
@@ -864,7 +864,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  titleInput: {},
   attachmentPreviewsSection: {},
   attachmentButtons: {
     flexDirection: 'row',
@@ -941,9 +940,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  voiceRecorderOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   voiceRecorderModal: {
-    margin: 0,
-    padding: 0,
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  dialogActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 16,
   },
 });
 

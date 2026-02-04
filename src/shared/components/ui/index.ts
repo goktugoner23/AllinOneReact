@@ -20,6 +20,21 @@ export type { SegmentedControlProps, SegmentedControlOption } from './SegmentedC
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { Searchbar } from './Searchbar';
+export type { SearchbarProps } from './Searchbar';
+
+export { Appbar, AppbarAction } from './Appbar';
+export type { AppbarProps, AppbarActionProps } from './Appbar';
+
+export { Snackbar } from './Snackbar';
+export type { SnackbarProps } from './Snackbar';
+
+export { Checkbox } from './Checkbox';
+export type { CheckboxProps } from './Checkbox';
+
+export { Divider } from './Divider';
+export type { DividerProps } from './Divider';
+
 export { Dialog, AlertDialog } from './Dialog';
 export type { DialogProps, AlertDialogProps } from './Dialog';
 

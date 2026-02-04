@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { Card, Text, Button, ActivityIndicator, Chip, Divider, IconButton, useTheme } from 'react-native-paper';
+import { Card, CardContent, CardHeader, CardTitle, Button, Chip, Divider, IconButton } from '@shared/components/ui';
 import RefreshFab from '@shared/components/ui/RefreshFab';
 import BinanceWebSocketService from '../services/binanceWebSocket';
 import { logger } from '@shared/utils/logger';
@@ -39,7 +39,6 @@ function FuturesPositionCard({
   position: EnhancedPositionData;
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
-  const theme = useTheme();
   const colors = useColors();
   const calculations = position.calculations || calculatePositionMetrics(position);
   const isLong = position.positionAmount > 0;
@@ -63,45 +62,47 @@ function FuturesPositionCard({
   };
 
   return (
-    <Card style={[styles.positionCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-      <Card.Content>
+    <Card style={[styles.positionCard, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+      <CardContent>
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.symbolSection}>
-            <Text variant="titleMedium" style={[styles.symbol, { color: colors.foreground }]}>
-              {position.symbol}
-            </Text>
+            <Text style={[styles.symbol, { color: colors.foreground }]}>{position.symbol}</Text>
             <Chip
-              mode="flat"
+              variant="filled"
               style={[
                 styles.positionSideChip,
-                { backgroundColor: positionSideColor, paddingHorizontal: 6, height: 26 },
+                { backgroundColor: positionSideColor },
               ]}
-              textStyle={{
-                color: isLong ? colors.incomeForeground : colors.expenseForeground,
-                fontWeight: 'bold',
-                lineHeight: 16,
-              }}
             >
-              {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
+              <Text
+                style={{
+                  color: isLong ? colors.incomeForeground : colors.expenseForeground,
+                  fontWeight: 'bold',
+                  fontSize: 12,
+                }}
+              >
+                {position.positionAmount > 0 ? 'LONG' : 'SHORT'}
+              </Text>
             </Chip>
             {/* Only show COIN-M chip if it's actually COIN-M and has valid data */}
             {isCoinMFutures && position.symbol.includes('USD_PERP') && (
               <Chip
-                mode="outlined"
-                style={[styles.futuresTypeChip, { borderColor: colors.primary }]}
-                textStyle={{ color: colors.primary, fontSize: 10 }}
+                variant="outlined"
+                color="primary"
+                size="sm"
+                style={styles.futuresTypeChip}
               >
                 COIN-M
               </Chip>
             )}
           </View>
           <IconButton
-            icon="target"
-            size={20}
+            icon="crosshairs"
+            size="sm"
             onPress={() => onSetTPSL(position)}
             style={styles.tpslButton}
-            iconColor={colors.primary}
+            color={colors.primary}
           />
         </View>
 
@@ -216,7 +217,7 @@ function FuturesPositionCard({
             <Text style={[styles.value, { color: colors.foreground }]}>{position.marginType}</Text>
           </View>
         </View>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }
@@ -251,9 +252,11 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
   const availableBalance = totalBalance + unrealizedPnL;
 
   return (
-    <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-      <Card.Title title="Account Overview" titleVariant="titleMedium" titleStyle={{ color: colors.foreground }} />
-      <Card.Content>
+    <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+      <CardHeader>
+        <CardTitle>Account Overview</CardTitle>
+      </CardHeader>
+      <CardContent>
         <View style={styles.accountGrid}>
           <View style={styles.accountItem}>
             <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Total Balance</Text>
@@ -283,7 +286,7 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
             </Text>
           </View>
         </View>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }
@@ -327,13 +330,11 @@ function CoinMFuturesAccountCard({
   const totalValue = totalCoinValue + totalPositionValue + totalUnrealizedPnL;
 
   return (
-    <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-      <Card.Title
-        title="COIN-M Account Overview"
-        titleVariant="titleMedium"
-        titleStyle={{ color: colors.foreground }}
-      />
-      <Card.Content>
+    <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+      <CardHeader>
+        <CardTitle>COIN-M Account Overview</CardTitle>
+      </CardHeader>
+      <CardContent>
         <View style={styles.accountGrid}>
           <View style={styles.accountItem}>
             <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Coin Balances</Text>
@@ -376,7 +377,7 @@ function CoinMFuturesAccountCard({
               </Text>
             </View>
           ))}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }
@@ -513,21 +514,24 @@ function UsdMFuturesScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {error && (
         <Chip
-          icon="alert"
+          color="error"
+          variant="filled"
           style={[styles.errorChip, { backgroundColor: colors.destructiveMuted }]}
-          textStyle={{ color: colors.destructive }}
           onClose={() => setError(null)}
+          leftIcon={null}
         >
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for USD-M Futures */}
       <Chip
-        icon={wsConnectedLocal ? 'wifi' : 'wifi-off'}
+        color={wsConnectedLocal ? 'success' : 'warning'}
+        variant="filled"
         style={[styles.statusChip, { backgroundColor: wsConnectedLocal ? colors.income : colors.warning }]}
-        textStyle={{ color: wsConnectedLocal ? colors.incomeForeground : colors.warningForeground }}
       >
-        {wsConnectedLocal ? 'Live Data Connected' : 'Live Data Disconnected'}
+        <Text style={{ color: wsConnectedLocal ? colors.incomeForeground : colors.warningForeground }}>
+          {wsConnectedLocal ? 'Live Data Connected' : 'Live Data Disconnected'}
+        </Text>
       </Chip>
       <FuturesAccountCard account={account} />
       {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
@@ -660,21 +664,24 @@ function CoinMFuturesScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {error && (
         <Chip
-          icon="alert"
+          color="error"
+          variant="filled"
           style={[styles.errorChip, { backgroundColor: colors.destructiveMuted }]}
-          textStyle={{ color: colors.destructive }}
           onClose={() => setError(null)}
+          leftIcon={null}
         >
           {error}
         </Chip>
       )}
       {/* WebSocket Connection Status for COIN-M Futures */}
       <Chip
-        icon={wsConnectedCoin ? 'wifi' : 'wifi-off'}
+        color={wsConnectedCoin ? 'success' : 'warning'}
+        variant="filled"
         style={[styles.statusChip, { backgroundColor: wsConnectedCoin ? colors.income : colors.warning }]}
-        textStyle={{ color: wsConnectedCoin ? colors.incomeForeground : colors.warningForeground }}
       >
-        {wsConnectedCoin ? 'Live Data Connected' : 'Live Data Disconnected'}
+        <Text style={{ color: wsConnectedCoin ? colors.incomeForeground : colors.warningForeground }}>
+          {wsConnectedCoin ? 'Live Data Connected' : 'Live Data Disconnected'}
+        </Text>
       </Chip>
       <CoinMFuturesAccountCard account={account} positions={positions} />
       {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null}
@@ -732,12 +739,15 @@ const styles = StyleSheet.create({
   symbol: {
     fontWeight: 'bold',
     marginRight: 8,
+    fontSize: 16,
   },
   positionSideChip: {
     borderRadius: 12,
     minWidth: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   futuresTypeChip: {
     height: 20,

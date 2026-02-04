@@ -70,7 +70,7 @@ export function Chip({
     borderRadius: 999,
     backgroundColor: variant === 'filled' || selected ? chipColors.bg : 'transparent',
     borderWidth: variant === 'outlined' ? 1 : 0,
-    borderColor: chipColors.border,
+    borderColor: variant === 'outlined' ? colors.borderMuted : chipColors.border,
     gap: 6,
   };
 

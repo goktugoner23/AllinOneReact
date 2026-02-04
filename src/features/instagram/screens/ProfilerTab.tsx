@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, Snackbar } from 'react-native-paper';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Text } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { usePrefetchInstagramData } from '@shared/hooks';
-import { Card, CardContent, Avatar, Button, IconButton, Badge, Skeleton, AddFab } from '@shared/components/ui';
+import { Card, CardContent, Avatar, Button, IconButton, Badge, Skeleton, AddFab, Input, Snackbar } from '@shared/components/ui';
 import { StorageService, STORAGE_KEYS } from '@shared/services/storage/asyncStorage';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
@@ -160,7 +160,7 @@ export default function ProfilerTab() {
           />
           <View style={styles.cardTextContent}>
             <View style={styles.titleRow}>
-              <Text variant="titleMedium" style={[styles.username, { color: colors.foreground }]}>
+              <Text style={[styles.username, textStyles.label, { color: colors.foreground }]}>
                 @{item.username}
               </Text>
               {avatars[item.username] && (
@@ -169,12 +169,12 @@ export default function ProfilerTab() {
                 </Badge>
               )}
             </View>
-            <Text variant="bodySmall" style={{ color: colors.foregroundMuted }}>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
               Tap to view profile
             </Text>
           </View>
           <IconButton
-            icon="delete-outline"
+            icon="trash-outline"
             size="md"
             variant="ghost"
             onPress={() => {
@@ -194,18 +194,15 @@ export default function ProfilerTab() {
       {adding && (
         <Card variant="elevated" style={styles.addCard}>
           <CardContent>
-            <TextInput
-              mode="outlined"
+            <Input
               label="Username"
               value={newUsername}
               onChangeText={setNewUsername}
               autoCapitalize="none"
               autoCorrect={false}
-              left={<TextInput.Icon icon="at" />}
+              leftIcon={<Ionicons name="at" size={20} color={colors.foregroundMuted} />}
               onSubmitEditing={handleAdd}
-              outlineColor={colors.border}
-              activeOutlineColor={colors.primary}
-              textColor={colors.foreground}
+              variant="outlined"
             />
             <View style={styles.addActions}>
               <Button variant="primary" onPress={handleAdd}>
@@ -239,7 +236,7 @@ export default function ProfilerTab() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={() => (
             <View style={styles.empty}>
-              <Text style={{ color: colors.foregroundMuted }}>Add usernames to start profiling</Text>
+              <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>Add usernames to start profiling</Text>
             </View>
           )}
         />
@@ -251,10 +248,8 @@ export default function ProfilerTab() {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={2000}
-        style={{ backgroundColor: colors.surface }}
-      >
-        {snackbar.message}
-      </Snackbar>
+        message={snackbar.message}
+      />
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button } from '@shared/components/ui';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
 interface EmptyTasksStateProps {
@@ -16,12 +16,7 @@ const EmptyTasksState: React.FC<EmptyTasksStateProps> = ({ onCreateTask }) => {
       <Text style={[textStyles.body, styles.description, { color: colors.foregroundMuted }]}>
         Create your first task to get started with task management.
       </Text>
-      <Button
-        mode="contained"
-        onPress={onCreateTask}
-        style={[styles.button, { backgroundColor: colors.primary }]}
-        labelStyle={[textStyles.button, { color: colors.primaryForeground }]}
-      >
+      <Button variant="primary" onPress={onCreateTask} style={styles.button}>
         Create Your First Task
       </Button>
     </View>

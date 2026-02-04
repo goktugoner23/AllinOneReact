@@ -10,7 +10,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useColors } from '@shared/theme';
+import { useColors, radius, shadow, textStyles } from '@shared/theme';
 import { Button } from './Button';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -126,23 +126,18 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   dialog: {
     width: SCREEN_WIDTH - 48,
     maxWidth: 400,
     maxHeight: '80%',
-    borderRadius: 24,
+    borderRadius: radius['2xl'],
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
+    ...shadow.xl,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...textStyles.h4,
     marginBottom: 8,
   },
   description: {
@@ -160,17 +155,12 @@ const styles = StyleSheet.create({
   alertDialog: {
     width: SCREEN_WIDTH - 64,
     maxWidth: 340,
-    borderRadius: 20,
+    borderRadius: radius['2xl'],
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
+    ...shadow.xl,
   },
   alertTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...textStyles.h4,
     marginBottom: 8,
     textAlign: 'center',
   },

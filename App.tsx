@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useState, useMemo, createContext, useContext, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -30,17 +30,9 @@ import { WorkoutTabs } from '@features/workout';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { enableFreeze } from 'react-native-screens';
-import {
-  Provider as PaperProvider,
-  useTheme,
-  Switch,
-  Divider,
-  MD3LightTheme,
-  MD3DarkTheme,
-} from 'react-native-paper';
-import { lightTheme, darkTheme } from '@theme';
+import { Switch, Divider } from '@shared/components/ui';
 import StopwatchScreen from '@features/workout/screens/StopwatchScreen';
-import { ThemeProvider as AppThemeProvider } from '@shared/theme';
+import { ThemeProvider, useAppTheme, useColors } from '@shared/theme';
 
 // Initialize Firebase
 import '@shared/services/firebase/firebase';
@@ -67,7 +59,7 @@ const WorkoutStack = createStackNavigator();
 
 // Transactions Dashboard with bottom tabs (Home, Investments, Reports)
 function TransactionsDashboard() {
-  const theme = useTheme();
+  const colors = useColors();
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -84,8 +76,8 @@ function TransactionsDashboard() {
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurface,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.foreground,
       })}
     >
       <Tab.Screen name="Home" component={TransactionHomeScreen} />
@@ -119,49 +111,148 @@ function WorkoutNavigator() {
   );
 }
 
-interface CustomDrawerContentProps extends DrawerContentComponentProps {
-  dark: boolean;
-  toggleTheme: () => void;
-}
+function CustomDrawerContent(props: DrawerContentComponentProps) {
+  const { isDark, toggleTheme, colors } = useAppTheme();
 
-function CustomDrawerContent(props: CustomDrawerContentProps) {
-  const { dark, toggleTheme, ...drawerProps } = props;
-  const theme = useTheme();
-  
   return (
-    <DrawerContentScrollView {...drawerProps} style={styles.drawerContent}>
+    <DrawerContentScrollView {...props} style={styles.drawerContent}>
       <View style={styles.drawerHeader}>
-        <Text style={[styles.drawerTitle, { color: theme.colors.onSurface }]}>
-          AllInOne App
-        </Text>
+        <Text style={[styles.drawerTitle, { color: colors.foreground }]}>AllInOne App</Text>
       </View>
       <Divider />
-      <DrawerItemList {...drawerProps} />
+      <DrawerItemList {...props} />
       <Divider style={styles.divider} />
       {/** Settings removed per request */}
       <View style={styles.themeToggle}>
-        <Text style={[styles.themeLabel, { color: theme.colors.onSurface }]}>
-          Dark Mode
-        </Text>
-        <Switch value={dark} onValueChange={toggleTheme} />
+        <Text style={[styles.themeLabel, { color: colors.foreground }]}>Dark Mode</Text>
+        <Switch value={isDark} onChange={toggleTheme} />
       </View>
     </DrawerContentScrollView>
   );
 }
 
-export const ThemeContext = createContext({
-  theme: lightTheme,
-  setTheme: (theme: typeof lightTheme) => {},
-});
+function AppContent() {
+  const { colors, isDark } = useAppTheme();
 
-export function useAppTheme() {
-  return useContext(ThemeContext);
+  return (
+    <NavigationContainer
+      documentTitle={{ enabled: false }}
+      theme={{
+        dark: isDark,
+        colors: {
+          background: colors.background,
+          card: colors.surface,
+          text: colors.foreground,
+          border: colors.border,
+          primary: colors.primary,
+          notification: colors.accent,
+        },
+        fonts: {
+          regular: {
+            fontFamily: 'System',
+            fontWeight: '400',
+          },
+          medium: {
+            fontFamily: 'System',
+            fontWeight: '500',
+          },
+          bold: {
+            fontFamily: 'System',
+            fontWeight: '700',
+          },
+          heavy: {
+            fontFamily: 'System',
+            fontWeight: '900',
+          },
+        },
+      }}
+    >
+      <Drawer.Navigator
+        initialRouteName="Transactions"
+        drawerContent={(props) => <CustomDrawerContent {...props} />}
+        screenOptions={{
+          drawerStyle: {
+            backgroundColor: colors.surface,
+            width: 280,
+          },
+          headerStyle: {
+            backgroundColor: colors.primary,
+          },
+          headerTintColor: '#FFFFFF',
+          drawerActiveTintColor: colors.primary,
+          drawerInactiveTintColor: colors.foreground,
+        }}
+      >
+        <Drawer.Screen
+          name="Transactions"
+          component={TransactionsDashboard}
+          options={{
+            title: 'Transactions',
+            drawerIcon: ({ color, size }) => <Ionicons name="card-outline" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="WT Registry"
+          component={WTRegistryScreen}
+          options={{
+            title: 'WT Registry',
+            drawerIcon: ({ color, size }) => <Ionicons name="school-outline" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="Calendar"
+          component={CalendarScreen}
+          options={{
+            title: 'Calendar',
+            drawerIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="Notes"
+          component={NotesStack}
+          options={{
+            title: 'Notes',
+            drawerIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="Tasks"
+          component={TasksScreen}
+          options={{
+            title: 'Tasks',
+            drawerIcon: ({ color, size }) => <Ionicons name="checkbox-outline" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="Instagram"
+          component={InstagramScreen}
+          options={{
+            title: 'Instagram',
+            drawerIcon: ({ color, size }) => <Ionicons name="logo-instagram" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="Workout"
+          component={WorkoutNavigator}
+          options={{
+            title: 'Workout',
+            drawerIcon: ({ color, size }) => <Ionicons name="barbell-outline" size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{
+            title: 'History',
+            drawerIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
+          }}
+        />
+      </Drawer.Navigator>
+    </NavigationContainer>
+  );
 }
 
 export default function App() {
-  const [isDark, setIsDark] = useState(false);
-  const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
-
   // Setup global error handler to suppress Firestore assertion errors
   useEffect(() => {
     setupGlobalErrorHandler();
@@ -174,167 +265,12 @@ export default function App() {
     } catch (_) {}
   }, []);
 
-  // Balance preloading removed - will load when needed
-
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <AppThemeProvider initialMode={isDark ? 'dark' : 'light'}>
-          <ThemeContext.Provider value={{ theme, setTheme: (t) => setIsDark(t.mode === 'dark') }}>
-            <PaperProvider
-          theme={{
-            ...(isDark ? MD3DarkTheme : MD3LightTheme),
-            colors: {
-              ...(isDark ? MD3DarkTheme.colors : MD3LightTheme.colors),
-              primary: theme.primary,
-              secondary: theme.accent,
-              background: theme.background,
-              surface: theme.surface,
-              error: theme.expense,
-              onSurface: theme.text,
-              onBackground: theme.text,
-            },
-          }}
-        >
-          <NavigationContainer
-            documentTitle={{ enabled: false }}
-            theme={{
-            dark: isDark,
-            colors: {
-              background: theme.background,
-              card: theme.surface,
-              text: theme.text,
-              border: theme.border,
-              primary: theme.primary,
-              notification: theme.accent
-            },
-            fonts: {
-              regular: {
-                fontFamily: 'System',
-                fontWeight: '400',
-              },
-              medium: {
-                fontFamily: 'System',
-                fontWeight: '500',
-              },
-              bold: {
-                fontFamily: 'System',
-                fontWeight: '700',
-              },
-              heavy: {
-                fontFamily: 'System',
-                fontWeight: '900',
-              },
-            },
-          }}
-          >
-            <Drawer.Navigator
-              initialRouteName="Transactions"
-              drawerContent={(props) => (
-                <CustomDrawerContent
-                  {...props}
-                  dark={isDark}
-                  toggleTheme={() => setIsDark(d => !d)}
-                />
-              )}
-              screenOptions={{
-                drawerStyle: {
-                  backgroundColor: theme.surface,
-                  width: 280,
-                },
-                headerStyle: {
-                  backgroundColor: theme.primary,
-                },
-                headerTintColor: '#FFFFFF',
-                drawerActiveTintColor: theme.primary,
-                drawerInactiveTintColor: theme.text,
-              }}
-            >
-              <Drawer.Screen
-                name="Transactions"
-                component={TransactionsDashboard}
-                options={{
-                  title: 'Transactions',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="card-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="WT Registry"
-                component={WTRegistryScreen}
-                options={{
-                  title: 'WT Registry',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="school-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="Calendar"
-                component={CalendarScreen}
-                options={{
-                  title: 'Calendar',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="calendar-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="Notes"
-                component={NotesStack}
-                options={{
-                  title: 'Notes',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="document-text-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="Tasks"
-                component={TasksScreen}
-                options={{
-                  title: 'Tasks',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="checkbox-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="Instagram"
-                component={InstagramScreen}
-                options={{
-                  title: 'Instagram',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="logo-instagram" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="Workout"
-                component={WorkoutNavigator}
-                options={{
-                  title: 'Workout',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="barbell-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-              <Drawer.Screen
-                name="History"
-                component={HistoryScreen}
-                options={{
-                  title: 'History',
-                  drawerIcon: ({ color, size }) => (
-                    <Ionicons name="time-outline" size={size} color={color} />
-                  ),
-                }}
-              />
-            </Drawer.Navigator>
-          </NavigationContainer>
-          </PaperProvider>
-          </ThemeContext.Provider>
-        </AppThemeProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
       </Provider>
     </QueryClientProvider>
   );

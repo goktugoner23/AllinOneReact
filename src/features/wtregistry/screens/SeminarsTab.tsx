@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert, Text } from 'react-native';
-import { Card, Portal, Dialog, TextInput, Button as PaperButton, IconButton, Surface, Chip } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, Text, TouchableOpacity } from 'react-native';
 import { AddFab } from '@shared/components';
-import { Button } from '@shared/components/ui';
+import {
+  Card,
+  CardContent,
+  Button,
+  IconButton,
+  Dialog,
+  Input,
+  Chip,
+} from '@shared/components/ui';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
 import { WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export function SeminarsTab() {
   const dispatch = useDispatch<AppDispatch>();
@@ -228,16 +236,12 @@ export function SeminarsTab() {
         style={{
           marginHorizontal: spacing[4],
           marginBottom: spacing[3],
-          backgroundColor: colors.surface,
-          borderRadius: radius.lg,
-          borderWidth: 1,
-          borderColor: colors.border,
           borderLeftWidth: 4,
           borderLeftColor: upcoming ? colors.primary : colors.foregroundSubtle,
         }}
-        mode="elevated"
+        variant="elevated"
       >
-        <Card.Content style={{ padding: spacing[4] }}>
+        <CardContent style={{ padding: spacing[4] }}>
           <View style={styles.seminarHeader}>
             <View style={styles.seminarInfo}>
               <View style={styles.titleRow}>
@@ -245,17 +249,10 @@ export function SeminarsTab() {
                   {seminar.name}
                 </Text>
                 <Chip
-                  mode="outlined"
-                  style={{
-                    alignSelf: 'flex-start',
-                    backgroundColor: upcoming ? colors.primaryMuted : colors.muted,
-                  }}
-                  textStyle={[
-                    textStyles.labelSmall,
-                    {
-                      color: upcoming ? colors.primary : colors.foregroundMuted,
-                    },
-                  ]}
+                  variant="filled"
+                  color={upcoming ? 'primary' : 'default'}
+                  size="sm"
+                  style={{ alignSelf: 'flex-start' }}
                 >
                   {upcoming ? 'Upcoming' : 'Past'}
                 </Chip>
@@ -295,28 +292,18 @@ export function SeminarsTab() {
               )}
             </View>
             <View style={styles.seminarActions}>
-              <IconButton
-                icon="pencil"
-                size={20}
-                iconColor={colors.primary}
-                onPress={() => handleOpenDialog(seminar)}
-              />
-              <IconButton
-                icon="delete"
-                size={20}
-                iconColor={colors.destructive}
-                onPress={() => handleDelete(seminar)}
-              />
+              <IconButton icon="pencil" size="sm" color={colors.primary} onPress={() => handleOpenDialog(seminar)} />
+              <IconButton icon="trash" size="sm" color={colors.destructive} onPress={() => handleDelete(seminar)} />
             </View>
           </View>
-        </Card.Content>
+        </CardContent>
       </Card>
     );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Surface
+      <View
         style={{
           padding: spacing[4],
           alignItems: 'center',
@@ -324,13 +311,12 @@ export function SeminarsTab() {
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
         }}
-        elevation={0}
       >
         <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>Wing Tzun Seminars</Text>
         <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
           {seminars.length} seminar{seminars.length !== 1 ? 's' : ''} total
         </Text>
-      </Surface>
+      </View>
 
       <FlatList
         data={sortedSeminars}
@@ -352,94 +338,115 @@ export function SeminarsTab() {
 
       <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
-      <Portal>
-        <Dialog
-          visible={showDialog}
-          onDismiss={handleCloseDialog}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
+      <Dialog
+        visible={showDialog}
+        onClose={handleCloseDialog}
+        title={editingSeminar ? 'Edit Seminar' : 'Add Seminar'}
+      >
+        <Input
+          label="Seminar Name *"
+          value={formData.name}
+          onChangeText={(text) => setFormData({ ...formData, name: text })}
+          autoFocus
+        />
+
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: spacing[4],
+            paddingVertical: spacing[3],
+            paddingHorizontal: spacing[4],
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            gap: spacing[2],
+            alignSelf: 'flex-start',
+          }}
         >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>
-            {editingSeminar ? 'Edit Seminar' : 'Add Seminar'}
-          </Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Seminar Name *"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              style={{ marginBottom: spacing[4] }}
-              mode="outlined"
-              autoFocus
-            />
+          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          <Text style={[textStyles.body, { color: colors.foreground }]}>
+            Date: {formData.date.toLocaleDateString()}
+          </Text>
+        </TouchableOpacity>
 
-            <PaperButton
-              mode="outlined"
-              onPress={() => setShowDatePicker(true)}
-              style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }}
-              icon="calendar"
-            >
-              Date: {formData.date.toLocaleDateString()}
-            </PaperButton>
+        <View style={styles.timeContainer}>
+          <TouchableOpacity
+            onPress={() => setShowTimePicker('start')}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: spacing[3],
+              paddingHorizontal: spacing[4],
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              gap: spacing[2],
+            }}
+          >
+            <Ionicons name="time-outline" size={20} color={colors.primary} />
+            <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
+              Start: {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowTimePicker('end')}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: spacing[3],
+              paddingHorizontal: spacing[4],
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              gap: spacing[2],
+            }}
+          >
+            <Ionicons name="time-outline" size={20} color={colors.primary} />
+            <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
+              End: {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-            <View style={styles.timeContainer}>
-              <PaperButton
-                mode="outlined"
-                onPress={() => setShowTimePicker('start')}
-                style={{ flex: 0.48 }}
-                icon="clock-outline"
-              >
-                Start: {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
-              </PaperButton>
-              <PaperButton
-                mode="outlined"
-                onPress={() => setShowTimePicker('end')}
-                style={{ flex: 0.48 }}
-                icon="clock-outline"
-              >
-                End: {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
-              </PaperButton>
-            </View>
+        <Input
+          label="Location"
+          value={formData.location}
+          onChangeText={(text) => setFormData({ ...formData, location: text })}
+        />
 
-            <TextInput
-              label="Location"
-              value={formData.location}
-              onChangeText={(text) => setFormData({ ...formData, location: text })}
-              style={{ marginBottom: spacing[4] }}
-              mode="outlined"
-              left={<TextInput.Icon icon="map-marker" />}
-            />
+        <Input
+          label="Description"
+          value={formData.description}
+          onChangeText={(text) => setFormData({ ...formData, description: text })}
+          multiline
+          numberOfLines={3}
+        />
 
-            <TextInput
-              label="Description"
-              value={formData.description}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
-              style={{ marginBottom: spacing[4] }}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-            />
+        <View style={styles.durationContainer}>
+          <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic' }]}>
+            Duration:{' '}
+            {getDuration(
+              formData.startTime.getHours(),
+              formData.startTime.getMinutes(),
+              formData.endTime.getHours(),
+              formData.endTime.getMinutes(),
+            )}
+          </Text>
+        </View>
 
-            <View style={styles.durationContainer}>
-              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic' }]}>
-                Duration:{' '}
-                {getDuration(
-                  formData.startTime.getHours(),
-                  formData.startTime.getMinutes(),
-                  formData.endTime.getHours(),
-                  formData.endTime.getMinutes(),
-                )}
-              </Text>
-            </View>
-          </Dialog.Content>
-          <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
-            <Button variant="ghost" onPress={handleCloseDialog}>
-              Cancel
-            </Button>
-            <Button variant="primary" onPress={handleSave} disabled={!formData.name.trim()}>
-              {editingSeminar ? 'Update' : 'Add'} Seminar
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+          <Button variant="ghost" onPress={handleCloseDialog}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave} disabled={!formData.name.trim()}>
+            {editingSeminar ? 'Update' : 'Add'} Seminar
+          </Button>
+        </View>
+      </Dialog>
 
       {showDatePicker && (
         <DateTimePicker
@@ -501,6 +508,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
+    gap: 8,
   },
   durationContainer: {
     alignItems: 'center',

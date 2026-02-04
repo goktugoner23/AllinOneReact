@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, ScrollView } from 'react-native';
-import { Text, TextInput } from 'react-native-paper';
+import { View, FlatList, ScrollView, Text } from 'react-native';
 import {
   Card,
   CardHeader,
@@ -13,6 +12,7 @@ import {
   AlertDialog,
   FAB,
   Badge,
+  Input,
 } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { Program, ProgramExerciseSpec } from '@features/workout/types/Workout';
@@ -103,19 +103,17 @@ export default function WorkoutPrograms() {
         title={editOpen ? 'Edit Program' : 'Add Program'}
       >
         <View style={{ gap: spacing[3] }}>
-          <TextInput
-            mode="outlined"
+          <Input
             label="Program Name"
             value={newName}
             onChangeText={setNewName}
-            style={{ backgroundColor: colors.surface }}
+            containerStyle={{ marginBottom: 0 }}
           />
           <ScrollView style={{ maxHeight: 320 }}>
             {newExercises.map((item, index) => (
               <Card key={index} variant="outlined" padding="sm" style={{ marginBottom: spacing[2] }}>
                 <CardContent style={{ gap: spacing[2] }}>
-                  <TextInput
-                    mode="outlined"
+                  <Input
                     label="Exercise Name"
                     value={item.exerciseName}
                     onChangeText={(t) => {
@@ -123,10 +121,9 @@ export default function WorkoutPrograms() {
                       arr[index] = { ...arr[index], exerciseName: t };
                       setNewExercises(arr);
                     }}
-                    style={{ backgroundColor: colors.surface }}
+                    containerStyle={{ marginBottom: 0 }}
                   />
-                  <TextInput
-                    mode="outlined"
+                  <Input
                     label="Muscle Group"
                     value={item.muscleGroup || ''}
                     onChangeText={(t) => {
@@ -134,11 +131,10 @@ export default function WorkoutPrograms() {
                       arr[index] = { ...arr[index], muscleGroup: t };
                       setNewExercises(arr);
                     }}
-                    style={{ backgroundColor: colors.surface }}
+                    containerStyle={{ marginBottom: 0 }}
                   />
                   <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-                    <TextInput
-                      mode="outlined"
+                    <Input
                       keyboardType="number-pad"
                       label="Sets"
                       value={item.sets?.toString() || ''}
@@ -147,10 +143,9 @@ export default function WorkoutPrograms() {
                         arr[index] = { ...arr[index], sets: t ? Number(t) : null };
                         setNewExercises(arr);
                       }}
-                      style={{ flex: 1, backgroundColor: colors.surface }}
+                      containerStyle={{ flex: 1, marginBottom: 0 }}
                     />
-                    <TextInput
-                      mode="outlined"
+                    <Input
                       keyboardType="number-pad"
                       label="Reps"
                       value={item.reps?.toString() || ''}
@@ -159,11 +154,10 @@ export default function WorkoutPrograms() {
                         arr[index] = { ...arr[index], reps: t ? Number(t) : null };
                         setNewExercises(arr);
                       }}
-                      style={{ flex: 1, backgroundColor: colors.surface }}
+                      containerStyle={{ flex: 1, marginBottom: 0 }}
                     />
                   </View>
-                  <TextInput
-                    mode="outlined"
+                  <Input
                     label="Weight (optional)"
                     value={item.weight || ''}
                     onChangeText={(t) => {
@@ -171,8 +165,8 @@ export default function WorkoutPrograms() {
                       arr[index] = { ...arr[index], weight: t || null };
                       setNewExercises(arr);
                     }}
-                    style={{ backgroundColor: colors.surface }}
                     placeholder="e.g., 20 or bodyweight"
+                    containerStyle={{ marginBottom: 0 }}
                   />
                   <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                     <IconButton

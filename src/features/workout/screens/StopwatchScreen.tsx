@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, FlatList } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, FlatList, Text } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
 import {
   startStopwatch,

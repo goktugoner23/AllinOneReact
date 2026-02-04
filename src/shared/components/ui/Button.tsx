@@ -131,11 +131,11 @@ export function Button({
   const textStyle: TextStyle = {
     color: getTextColor(),
     fontSize: currentSize.fontSize,
-    fontWeight: '600',
+    fontWeight: textStyles.button.fontWeight, // Use theme token for Soft Minimal (500)
   };
 
   return (
-    <TouchableOpacity {...props} disabled={isDisabled} style={[buttonStyle, style as ViewStyle]} activeOpacity={0.8}>
+    <TouchableOpacity {...props} disabled={isDisabled} style={[buttonStyle, style as ViewStyle]} activeOpacity={0.85}>
       {loading ? (
         <ActivityIndicator size="small" color={getTextColor()} />
       ) : (

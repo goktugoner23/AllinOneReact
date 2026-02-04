@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { View, StyleSheet, Alert, ScrollView, Dimensions, Linking } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, Dimensions, Linking, Modal, Text, Pressable } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
-import { IconButton, Portal, Modal, Button, Chip, Divider, Text, Surface } from 'react-native-paper';
+import { IconButton, Button, Chip, Divider } from '@shared/components/ui';
 import TableInsertionModal from '@features/notes/components/TableInsertionModal';
 import ChecklistModal from '@features/tasks/components/ChecklistModal';
 import LinkInsertionModal from '@features/notes/components/LinkInsertionModal';
@@ -321,60 +321,60 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
         >
           {/* Text Formatting */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="format-bold" size={20} onPress={handleBold} />
-            <IconButton icon="format-italic" size={20} onPress={handleItalic} />
-            <IconButton icon="format-underline" size={20} onPress={handleUnderline} />
-            <IconButton icon="format-strikethrough" size={20} onPress={handleStrikethrough} />
+            <IconButton icon="text" size="sm" variant="ghost" onPress={handleBold} />
+            <IconButton icon="text-outline" size="sm" variant="ghost" onPress={handleItalic} />
+            <IconButton icon="remove-outline" size="sm" variant="ghost" onPress={handleUnderline} />
+            <IconButton icon="cut-outline" size="sm" variant="ghost" onPress={handleStrikethrough} />
           </View>
 
-          <Divider style={styles.toolbarDivider} />
+          <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Headings */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="format-header-1" size={20} onPress={handleHeading1} />
-            <IconButton icon="format-header-2" size={20} onPress={handleHeading2} />
-            <IconButton icon="format-header-3" size={20} onPress={handleHeading3} />
+            <IconButton icon="heading" size="sm" variant="ghost" onPress={handleHeading1} />
+            <IconButton icon="text" size="sm" variant="ghost" onPress={handleHeading2} />
+            <IconButton icon="text-outline" size="sm" variant="ghost" onPress={handleHeading3} />
           </View>
 
-          <Divider style={styles.toolbarDivider} />
+          <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Lists */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="format-list-bulleted" size={20} onPress={handleBullets} />
-            <IconButton icon="format-list-numbered" size={20} onPress={handleNumbers} />
-            <IconButton icon="format-list-checks" size={20} onPress={onPressChecklist} />
+            <IconButton icon="list-outline" size="sm" variant="ghost" onPress={handleBullets} />
+            <IconButton icon="list" size="sm" variant="ghost" onPress={handleNumbers} />
+            <IconButton icon="checkbox-outline" size="sm" variant="ghost" onPress={onPressChecklist} />
           </View>
 
-          <Divider style={styles.toolbarDivider} />
+          <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Alignment */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="format-align-left" size={20} onPress={handleAlignLeft} />
-            <IconButton icon="format-align-center" size={20} onPress={handleAlignCenter} />
-            <IconButton icon="format-align-right" size={20} onPress={handleAlignRight} />
+            <IconButton icon="reorder-three-outline" size="sm" variant="ghost" onPress={handleAlignLeft} />
+            <IconButton icon="reorder-four-outline" size="sm" variant="ghost" onPress={handleAlignCenter} />
+            <IconButton icon="reorder-two-outline" size="sm" variant="ghost" onPress={handleAlignRight} />
           </View>
 
-          <Divider style={styles.toolbarDivider} />
+          <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Special Formatting */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="format-quote-close" size={20} onPress={handleBlockquote} />
-            <IconButton icon="code-tags" size={20} onPress={handleCode} />
-            <IconButton icon="link" size={20} onPress={onPressLink} />
-            <IconButton icon="table" size={20} onPress={onPressTable} />
+            <IconButton icon="chatbox-outline" size="sm" variant="ghost" onPress={handleBlockquote} />
+            <IconButton icon="code-slash-outline" size="sm" variant="ghost" onPress={handleCode} />
+            <IconButton icon="link-outline" size="sm" variant="ghost" onPress={onPressLink} />
+            <IconButton icon="grid-outline" size="sm" variant="ghost" onPress={onPressTable} />
           </View>
 
-          <Divider style={styles.toolbarDivider} />
+          <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* History */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="undo" size={20} onPress={handleUndo} />
-            <IconButton icon="redo" size={20} onPress={handleRedo} />
+            <IconButton icon="arrow-undo-outline" size="sm" variant="ghost" onPress={handleUndo} />
+            <IconButton icon="arrow-redo-outline" size="sm" variant="ghost" onPress={handleRedo} />
           </View>
 
           {/* Advanced Toolbar Toggle */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="dots-horizontal" size={20} onPress={() => setShowAdvancedToolbar(true)} />
+            <IconButton icon="ellipsis-horizontal" size="sm" variant="ghost" onPress={() => setShowAdvancedToolbar(true)} />
           </View>
         </ScrollView>
 
@@ -478,16 +478,17 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
         />
 
         {/* Advanced Toolbar Modal */}
-        <Portal>
-          <Modal
-            visible={showAdvancedToolbar}
-            onDismiss={() => setShowAdvancedToolbar(false)}
-            contentContainerStyle={styles.modalContainer}
-          >
-            <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+        <Modal
+          visible={showAdvancedToolbar}
+          onRequestClose={() => setShowAdvancedToolbar(false)}
+          transparent
+          animationType="fade"
+        >
+          <Pressable style={styles.modalContainer} onPress={() => setShowAdvancedToolbar(false)}>
+            <Pressable style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[textStyles.h4, { color: colors.foreground }]}>Advanced Formatting</Text>
-                <IconButton icon="close" size={20} onPress={() => setShowAdvancedToolbar(false)} />
+                <IconButton icon="close" size="sm" variant="ghost" onPress={() => setShowAdvancedToolbar(false)} />
               </View>
 
               <ScrollView style={[styles.modalContent, { padding: spacing[4] }]}>
@@ -556,9 +557,9 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
                   </View>
                 </View>
               </ScrollView>
-            </Surface>
-          </Modal>
-        </Portal>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* Table Insertion Modal */}
         <TableInsertionModal

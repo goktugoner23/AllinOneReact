@@ -9,10 +9,9 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Switch,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Card, Button, Chip, Divider, useTheme } from 'react-native-paper';
+import { Card, CardContent, Button, Chip, Switch } from '@shared/components/ui';
 import { AddFab } from '@shared/components';
 import {
   fetchInvestments,
@@ -36,7 +35,6 @@ import { TransactionService } from '@features/transactions/services/transactionS
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
 function InvestmentsContent() {
-  const theme = useTheme();
   const colors = useColors();
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -186,16 +184,17 @@ function InvestmentsContent() {
 
   const renderInvestment = ({ item }: { item: Investment }) => (
     <TouchableOpacity activeOpacity={0.8} onLongPress={() => handleLongPress(item)} delayLongPress={300}>
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Content>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardContent>
           <View style={styles.cardHeader}>
             <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={1} ellipsizeMode="tail">
               {item.name}
             </Text>
             <Chip
-              mode="outlined"
+              variant="outlined"
+              color="primary"
+              size="sm"
               style={[styles.typeChip, { borderColor: colors.primary }]}
-              textStyle={[styles.typeChipText, { color: colors.primary }]}
             >
               {(item.type || '').toUpperCase()}
             </Chip>
@@ -298,7 +297,7 @@ function InvestmentsContent() {
               </Text>
             </View>
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
     </TouchableOpacity>
   );
@@ -447,12 +446,7 @@ function InvestmentsContent() {
             {/* Past Investment Switch (Add) */}
             <View style={styles.switchRow}>
               <Text style={[styles.switchLabel, { color: colors.foreground }]}>Past Investment</Text>
-              <Switch
-                value={addIsPast}
-                onValueChange={setAddIsPast}
-                trackColor={{ false: colors.muted, true: colors.primaryMuted }}
-                thumbColor={addIsPast ? colors.primary : colors.mutedForeground}
-              />
+              <Switch value={addIsPast} onChange={setAddIsPast} />
             </View>
 
             <View style={styles.attachmentButtons}>
@@ -538,11 +532,9 @@ function InvestmentsContent() {
 
             <View style={styles.modalActions}>
               <Button
-                mode="contained"
+                variant="primary"
                 loading={isSaving}
                 disabled={isSaving}
-                buttonColor={colors.primary}
-                textColor={colors.primaryForeground}
                 onPress={async () => {
                   setIsSaving(true);
                   try {
@@ -585,12 +577,7 @@ function InvestmentsContent() {
               >
                 Save
               </Button>
-              <Button
-                mode="text"
-                onPress={() => setAddModalVisible(false)}
-                disabled={isSaving}
-                textColor={colors.mutedForeground}
-              >
+              <Button variant="ghost" onPress={() => setAddModalVisible(false)} disabled={isSaving}>
                 Cancel
               </Button>
             </View>
@@ -712,12 +699,7 @@ function InvestmentsContent() {
             {/* Past Investment Switch (Edit) */}
             <View style={styles.switchRow}>
               <Text style={[styles.switchLabel, { color: colors.foreground }]}>Past Investment</Text>
-              <Switch
-                value={editIsPast}
-                onValueChange={setEditIsPast}
-                trackColor={{ false: colors.muted, true: colors.primaryMuted }}
-                thumbColor={editIsPast ? colors.primary : colors.mutedForeground}
-              />
+              <Switch value={editIsPast} onChange={setEditIsPast} />
             </View>
 
             {/* Attachment controls */}
@@ -802,22 +784,10 @@ function InvestmentsContent() {
               </View>
             )}
             <View style={styles.modalActions}>
-              <Button
-                mode="contained"
-                onPress={confirmEdit}
-                loading={isSaving}
-                disabled={isSaving}
-                buttonColor={colors.primary}
-                textColor={colors.primaryForeground}
-              >
+              <Button variant="primary" onPress={confirmEdit} loading={isSaving} disabled={isSaving}>
                 Save
               </Button>
-              <Button
-                mode="text"
-                onPress={() => setEditModalVisible(false)}
-                disabled={isSaving}
-                textColor={colors.mutedForeground}
-              >
+              <Button variant="ghost" onPress={() => setEditModalVisible(false)} disabled={isSaving}>
                 Cancel
               </Button>
             </View>
@@ -839,15 +809,10 @@ function InvestmentsContent() {
               Are you sure you want to delete "{selectedInvestment?.name}"? This action cannot be undone.
             </Text>
             <View style={styles.modalActions}>
-              <Button
-                mode="contained"
-                onPress={confirmDelete}
-                buttonColor={colors.destructive}
-                textColor={colors.destructiveForeground}
-              >
+              <Button variant="destructive" onPress={confirmDelete}>
                 Delete
               </Button>
-              <Button mode="text" onPress={() => setDeleteDialogVisible(false)} textColor={colors.mutedForeground}>
+              <Button variant="ghost" onPress={() => setDeleteDialogVisible(false)}>
                 Cancel
               </Button>
             </View>
@@ -871,14 +836,13 @@ function InvestmentsContent() {
             </Text>
             <View style={styles.modalActions}>
               <Button
-                mode="contained"
+                variant="secondary"
+                style={{ backgroundColor: colors.warning }}
                 onPress={confirmLiquidate}
-                buttonColor={colors.warning}
-                textColor={colors.warningForeground}
               >
                 Liquidate
               </Button>
-              <Button mode="text" onPress={() => setLiquidateDialogVisible(false)} textColor={colors.mutedForeground}>
+              <Button variant="ghost" onPress={() => setLiquidateDialogVisible(false)}>
                 Cancel
               </Button>
             </View>
@@ -892,7 +856,6 @@ function InvestmentsContent() {
 }
 
 export const InvestmentsTab: React.FC = () => {
-  const theme = useTheme();
   const colors = useColors();
   const [activeTab, setActiveTab] = useState<'investments' | 'futures'>('investments');
 
@@ -984,10 +947,6 @@ const styles = StyleSheet.create({
   },
   typeChip: {
     height: 24,
-  },
-  typeChipText: {
-    ...textStyles.caption,
-    fontWeight: '700',
   },
   modalItem: {
     flexDirection: 'row',

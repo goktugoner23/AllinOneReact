@@ -82,7 +82,7 @@ A comprehensive personal finance and life management mobile application built wi
 | **Database** | Firebase Firestore |
 | **Storage** | Firebase Storage |
 | **Navigation** | React Navigation 7 |
-| **UI Components** | React Native Paper |
+| **UI Components** | Custom shadcn-style components |
 | **Lists** | FlashList (@shopify/flash-list) |
 | **Calendar** | React Native Calendars |
 | **Charts** | React Native Chart Kit |
@@ -165,7 +165,7 @@ src/
 │   ├── tasksSlice.ts
 │   ├── workoutSlice.ts
 │   └── wtRegistrySlice.ts
-├── theme.ts                    # Theme configuration (light/dark)
+│   └── theme/                  # Theme configuration (colors, typography, spacing)
 ├── declarations.d.ts           # TypeScript declarations
 └── App.tsx                     # Root component
 ```
@@ -382,8 +382,10 @@ npx react-native link react-native-vector-icons
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ### Current Version: v2.1.0 (Unreleased)
-- **UI Theming Overhaul**: Full dark/light mode support across all components
-- Theme-aware shared UI components (Card, Chip, Tabs, ProgressBar, etc.)
+- **Soft Minimal UI Design**: Complete visual refresh with indigo primary color
+- **React Native Paper Removal**: Migrated to custom shadcn-style components
+- 5 new UI components: Appbar, Searchbar, Snackbar, Checkbox, Divider
+- Unified theme system with improved dark/light mode support
 - TanStack Query integration
 - NativeWind/Tailwind CSS styling
 - Feature-first architecture
@@ -391,6 +393,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 - Workout tracking module
 - COIN-M futures support
 - Enhanced TypeScript strict mode
+- Fixed all npm audit vulnerabilities
 
 ### Previous Versions
 - **v2.0.0**: TanStack Query, NativeWind, feature-first architecture

@@ -1,28 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import {
   Card,
-  Text,
-  Portal,
+  CardContent,
   Dialog,
-  TextInput,
+  Input,
   Button,
   Switch,
   Chip,
   IconButton,
-  Menu,
-  useTheme,
-  Surface,
-  SegmentedButtons,
-  ActivityIndicator,
-} from 'react-native-paper';
+  AlertDialog,
+} from '@shared/components/ui';
 import { AddFab } from '@shared/components';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addRegistration, updateRegistration, deleteRegistration } from '@features/wtregistry/store/wtRegistrySlice';
 import { WTRegistration, WTStudent } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Helper to convert string | Date to Date
 const toDate = (date: string | Date): Date => {
@@ -52,7 +49,7 @@ const downloadAndOpenFile = async (_uri: string): Promise<void> => {
 
 export function RegisterTab() {
   const dispatch = useDispatch<AppDispatch>();
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const { students, registrations, loading } = useSelector((state: RootState) => state.wtRegistry);
 
   const [showDialog, setShowDialog] = useState(false);
@@ -268,133 +265,126 @@ export function RegisterTab() {
 
   const renderRegistrationCard = ({ item: registration }: { item: WTRegistration & { studentName: string } }) => {
     return (
-      <Card
-        style={[styles.registrationCard, { backgroundColor: theme.colors.surface }]}
-        mode="outlined"
+      <TouchableOpacity
         onPress={() => handleCardPress(registration)}
         onLongPress={() => handleLongPress(registration)}
+        activeOpacity={0.7}
       >
-        <Card.Content style={styles.cardContent}>
-          {/* Header Row: Student Name and Status Chip */}
-          <View style={styles.cardHeader}>
-            <Text variant="titleMedium" style={styles.studentName}>
-              {registration.studentName}
-            </Text>
-            <Chip
-              mode="outlined"
-              style={[
-                styles.statusChip,
-                {
-                  backgroundColor: registration.isPaid ? theme.colors.primaryContainer : theme.colors.errorContainer,
-                },
-              ]}
-              textStyle={{
-                color: registration.isPaid ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
-              }}
-            >
-              {registration.isPaid ? 'Paid' : 'Unpaid'}
-            </Chip>
-          </View>
-
-          {/* Amount */}
-          <Text variant="bodyLarge" style={styles.amount}>
-            Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}
-          </Text>
-
-          {/* Date Information */}
-          {registration.startDate && (
-            <Text variant="bodyMedium" style={styles.dateInfo}>
-              Start: {toDate(registration.startDate).toLocaleDateString()}
-            </Text>
-          )}
-          {registration.endDate && (
-            <Text variant="bodyMedium" style={styles.dateInfo}>
-              End: {toDate(registration.endDate).toLocaleDateString()}
-            </Text>
-          )}
-
-          {/* Notes */}
-          {registration.notes && (
-            <Text variant="bodySmall" style={styles.notes}>
-              {registration.notes}
-            </Text>
-          )}
-
-          {/* Attachment Indicator */}
-          {registration.attachmentUri && (
-            <View style={styles.attachmentIndicator}>
-              <IconButton
-                icon={isDownloading ? 'loading' : 'attachment'}
-                size={16}
-                onPress={() => handleViewAttachment(registration.attachmentUri!)}
-                disabled={isDownloading}
-              />
-              <Text variant="bodySmall" style={styles.attachmentText}>
-                {isDownloading ? 'Opening...' : 'Receipt attached'}
+        <Card style={styles.registrationCard} variant="outlined">
+          <CardContent style={styles.cardContent}>
+            {/* Header Row: Student Name and Status Chip */}
+            <View style={styles.cardHeader}>
+              <Text style={[textStyles.bodyLarge, styles.studentName, { color: colors.foreground }]}>
+                {registration.studentName}
               </Text>
+              <Chip
+                variant="filled"
+                color={registration.isPaid ? 'success' : 'error'}
+                size="sm"
+                style={styles.statusChip}
+              >
+                {registration.isPaid ? 'Paid' : 'Unpaid'}
+              </Chip>
             </View>
-          )}
-        </Card.Content>
-      </Card>
+
+            {/* Amount */}
+            <Text style={[textStyles.bodyLarge, styles.amount, { color: colors.primary }]}>
+              Amount: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}
+            </Text>
+
+            {/* Date Information */}
+            {registration.startDate && (
+              <Text style={[textStyles.body, styles.dateInfo, { color: colors.foregroundMuted }]}>
+                Start: {toDate(registration.startDate).toLocaleDateString()}
+              </Text>
+            )}
+            {registration.endDate && (
+              <Text style={[textStyles.body, styles.dateInfo, { color: colors.foregroundMuted }]}>
+                End: {toDate(registration.endDate).toLocaleDateString()}
+              </Text>
+            )}
+
+            {/* Notes */}
+            {registration.notes && (
+              <Text style={[textStyles.bodySmall, styles.notes, { color: colors.foregroundMuted }]}>
+                {registration.notes}
+              </Text>
+            )}
+
+            {/* Attachment Indicator */}
+            {registration.attachmentUri && (
+              <View style={styles.attachmentIndicator}>
+                <IconButton
+                  icon={isDownloading ? 'sync' : 'attach'}
+                  size="sm"
+                  onPress={() => handleViewAttachment(registration.attachmentUri!)}
+                  disabled={isDownloading}
+                />
+                <Text style={[textStyles.bodySmall, styles.attachmentText, { color: colors.foregroundMuted }]}>
+                  {isDownloading ? 'Opening...' : 'Receipt attached'}
+                </Text>
+              </View>
+            )}
+          </CardContent>
+        </Card>
+      </TouchableOpacity>
     );
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading registrations...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[textStyles.body, styles.loadingText, { color: colors.foregroundMuted }]}>Loading registrations...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Surface style={styles.header} elevation={2}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <View style={styles.filterContainer}>
-          <Menu
-            visible={showMonthMenu}
-            onDismiss={() => setShowMonthMenu(false)}
-            anchor={
-              <Button mode="outlined" onPress={() => setShowMonthMenu(true)} icon="calendar">
-                {monthNames[filterMonth]} {filterYear}
-              </Button>
-            }
+          <TouchableOpacity
+            onPress={() => setShowMonthMenu(true)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: spacing[2],
+              paddingHorizontal: spacing[3],
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              gap: spacing[2],
+            }}
           >
-            {monthNames.map((month, index) => (
-              <Menu.Item
-                key={index}
-                onPress={() => {
-                  setFilterMonth(index);
-                  setShowMonthMenu(false);
-                }}
-                title={month}
-              />
-            ))}
-          </Menu>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+            <Text style={[textStyles.body, { color: colors.foreground }]}>
+              {monthNames[filterMonth]} {filterYear}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.summaryContainer}>
           <View style={styles.summaryItem}>
-            <Text variant="bodySmall">Total</Text>
-            <Text variant="titleMedium">
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Total</Text>
+            <Text style={[textStyles.bodyLarge, { color: colors.foreground }]}>
               {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
             </Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text variant="bodySmall">Paid</Text>
-            <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Paid</Text>
+            <Text style={[textStyles.bodyLarge, { color: colors.success }]}>
               {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(paidAmount)}
             </Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text variant="bodySmall">Unpaid</Text>
-            <Text variant="titleMedium" style={{ color: theme.colors.error }}>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>Unpaid</Text>
+            <Text style={[textStyles.bodyLarge, { color: colors.destructive }]}>
               {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(unpaidAmount)}
             </Text>
           </View>
         </View>
-      </Surface>
+      </View>
 
       <FlashList
         data={filteredRegistrations}
@@ -404,10 +394,10 @@ export function RegisterTab() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text variant="bodyLarge" style={styles.emptyText}>
+            <Text style={[textStyles.bodyLarge, styles.emptyText, { color: colors.foreground }]}>
               No registrations found for {monthNames[filterMonth]} {filterYear}
             </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtext}>
+            <Text style={[textStyles.body, styles.emptySubtext, { color: colors.foregroundMuted }]}>
               Tap the + button to add a new registration
             </Text>
           </View>
@@ -418,271 +408,254 @@ export function RegisterTab() {
       <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Add/Edit Registration Dialog */}
-      <Portal>
-        <Dialog
-          visible={showDialog}
-          onDismiss={handleCloseDialog}
-          style={[styles.dialog, { backgroundColor: 'white', maxHeight: '80%' }]}
-        >
-          <Dialog.Title>{editingRegistration ? 'Edit Registration' : 'Add Registration'}</Dialog.Title>
-          <Dialog.Content>
-            <ScrollView style={{ maxHeight: 400 }}>
-              <View style={styles.dialogContent}>
-                {/* Student Selection */}
-                <Text variant="bodyMedium" style={styles.sectionTitle}>
-                  Student *
-                </Text>
-                <View style={styles.studentSelector}>
-                  {students
-                    .filter((s) => s.isActive)
-                    .map((student) => (
-                      <Chip
-                        key={student.id}
-                        mode={formData.studentId === student.id ? 'flat' : 'outlined'}
-                        selected={formData.studentId === student.id}
-                        onPress={() => setFormData({ ...formData, studentId: student.id })}
-                        style={styles.studentChip}
-                      >
-                        {student.name}
-                      </Chip>
-                    ))}
-                </View>
-
-                {/* Amount */}
-                <TextInput
-                  label="Amount *"
-                  value={formData.amount}
-                  onChangeText={(text) => setFormData({ ...formData, amount: text })}
-                  style={styles.input}
-                  mode="outlined"
-                  keyboardType="numeric"
-                  left={<TextInput.Icon icon="currency-usd" />}
-                />
-
-                {/* Date Selection */}
-                <Text variant="bodyMedium" style={styles.sectionTitle}>
-                  Registration Period
-                </Text>
-                <View style={styles.dateContainer}>
-                  <Button
-                    mode="outlined"
-                    onPress={() => setShowDatePicker('start')}
-                    style={styles.dateButton}
-                    icon="calendar"
+      <Dialog
+        visible={showDialog}
+        onClose={handleCloseDialog}
+        title={editingRegistration ? 'Edit Registration' : 'Add Registration'}
+      >
+        <ScrollView style={{ maxHeight: 400 }}>
+          <View style={styles.dialogContent}>
+            {/* Student Selection */}
+            <Text style={[textStyles.label, styles.sectionTitle, { color: colors.foreground }]}>
+              Student *
+            </Text>
+            <View style={styles.studentSelector}>
+              {students
+                .filter((s) => s.isActive)
+                .map((student) => (
+                  <Chip
+                    key={student.id}
+                    variant={formData.studentId === student.id ? 'filled' : 'outlined'}
+                    selected={formData.studentId === student.id}
+                    onPress={() => setFormData({ ...formData, studentId: student.id })}
+                    color={formData.studentId === student.id ? 'primary' : 'default'}
+                    style={styles.studentChip}
                   >
-                    Start: {formData.startDate.toLocaleDateString()}
-                  </Button>
+                    {student.name}
+                  </Chip>
+                ))}
+            </View>
+
+            {/* Amount */}
+            <Input
+              label="Amount *"
+              value={formData.amount}
+              onChangeText={(text) => setFormData({ ...formData, amount: text })}
+              keyboardType="numeric"
+            />
+
+            {/* Date Selection */}
+            <Text style={[textStyles.label, styles.sectionTitle, { color: colors.foreground }]}>
+              Registration Period
+            </Text>
+            <View style={styles.dateContainer}>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker('start')}
+                style={[styles.dateButton, { borderColor: colors.border }]}
+              >
+                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
+                  Start: {formData.startDate.toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker('end')}
+                style={[styles.dateButton, { borderColor: colors.border }]}
+              >
+                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
+                  End: {formData.endDate.toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Notes */}
+            <Input
+              label="Notes"
+              value={formData.notes}
+              onChangeText={(text) => setFormData({ ...formData, notes: text })}
+              multiline
+              numberOfLines={4}
+            />
+
+            {/* Payment Status */}
+            <Switch
+              value={formData.isPaid}
+              onChange={(value) => setFormData({ ...formData, isPaid: value })}
+              label="Paid"
+            />
+
+            {/* Receipt/Attachment section (only show if paid) */}
+            {formData.isPaid && (
+              <>
+                <Text style={[textStyles.label, styles.sectionTitle, { color: colors.foreground }]}>
+                  Receipt/Attachment
+                </Text>
+                <View style={styles.attachmentContainer}>
                   <Button
-                    mode="outlined"
-                    onPress={() => setShowDatePicker('end')}
-                    style={styles.dateButton}
-                    icon="calendar"
+                    variant="outline"
+                    onPress={handlePickAttachment}
+                    style={styles.attachmentButtonStyle}
                   >
-                    End: {formData.endDate.toLocaleDateString()}
+                    {formData.attachmentUri ? 'Change Receipt' : 'Add Receipt'}
                   </Button>
+
+                  {formData.attachmentUri && (
+                    <IconButton
+                      icon="close-circle"
+                      size="sm"
+                      onPress={() => setFormData({ ...formData, attachmentUri: '' })}
+                    />
+                  )}
                 </View>
 
-                {/* Notes */}
-                <TextInput
-                  label="Notes"
-                  value={formData.notes}
-                  onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                  style={[styles.input, styles.notesInput]}
-                  mode="outlined"
-                  multiline
-                  numberOfLines={4}
-                  scrollEnabled={true}
-                />
-
-                {/* Payment Status */}
-                <View style={styles.switchContainer}>
-                  <Text variant="bodyMedium">Paid</Text>
-                  <Switch
-                    value={formData.isPaid}
-                    onValueChange={(value) => setFormData({ ...formData, isPaid: value })}
-                  />
-                </View>
-
-                {/* Receipt/Attachment section (only show if paid) */}
-                {formData.isPaid && (
-                  <>
-                    <Text variant="bodyMedium" style={styles.sectionTitle}>
-                      Receipt/Attachment
-                    </Text>
-                    <View style={styles.attachmentContainer}>
-                      <Button
-                        mode="outlined"
-                        onPress={handlePickAttachment}
-                        icon="attachment"
-                        style={styles.attachmentButton}
-                      >
-                        {formData.attachmentUri ? 'Change Receipt' : 'Add Receipt'}
-                      </Button>
-
-                      {formData.attachmentUri && (
-                        <IconButton
-                          icon="close"
-                          size={20}
-                          onPress={() => setFormData({ ...formData, attachmentUri: '' })}
-                        />
-                      )}
-                    </View>
-
-                    {formData.attachmentUri && (
-                      <Text variant="bodySmall" style={styles.attachmentTextDialog}>
-                        File selected: {formData.attachmentUri.split('/').pop() || 'Unknown'}
-                      </Text>
-                    )}
-                  </>
+                {formData.attachmentUri && (
+                  <Text style={[textStyles.bodySmall, styles.attachmentTextDialog, { color: colors.foregroundMuted }]}>
+                    File selected: {formData.attachmentUri.split('/').pop() || 'Unknown'}
+                  </Text>
                 )}
-              </View>
-            </ScrollView>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button onPress={handleSave} mode="contained">
-              {editingRegistration ? 'Update' : 'Add'}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+              </>
+            )}
+          </View>
+        </ScrollView>
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+          <Button variant="ghost" onPress={handleCloseDialog}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave}>
+            {editingRegistration ? 'Update' : 'Add'}
+          </Button>
+        </View>
+      </Dialog>
 
       {/* Context Menu */}
-      <Portal>
-        <Menu visible={showContextMenu} onDismiss={() => setShowContextMenu(false)} anchor={{ x: 0, y: 0 }}>
-          {selectedRegistration && (
-            <>
-              <Menu.Item
-                onPress={() => {
-                  setShowContextMenu(false);
-                  handleOpenDialog(selectedRegistration);
-                }}
-                title="Edit"
-                leadingIcon="pencil"
-              />
-              <Menu.Item
-                onPress={() => {
-                  setShowContextMenu(false);
-                  handleDelete(selectedRegistration);
-                }}
-                title="Delete"
-                leadingIcon="delete"
-              />
-              {selectedRegistration.attachmentUri && (
-                <Menu.Item
-                  onPress={() => {
-                    setShowContextMenu(false);
-                    handleViewAttachment(selectedRegistration.attachmentUri!);
-                  }}
-                  title="View Attachment"
-                  leadingIcon="attachment"
-                />
-              )}
-            </>
-          )}
-        </Menu>
-      </Portal>
-
-      {/* Delete Confirmation Dialog */}
-      <Portal>
-        <Dialog
-          visible={showDeleteDialog}
-          onDismiss={() => setShowDeleteDialog(false)}
-          style={{ backgroundColor: 'white' }}
-        >
-          <Dialog.Title>Delete Registration</Dialog.Title>
-          <Dialog.Content>
-            <Text>
-              Are you sure you want to delete this registration for {selectedRegistration?.studentName}? This will also
-              delete any related transactions.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button onPress={confirmDelete} textColor={theme.colors.error}>
-              Delete
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
-      {/* Details Dialog */}
-      <Portal>
-        <Dialog
-          visible={showDetailsDialog}
-          onDismiss={() => setShowDetailsDialog(false)}
-          style={{ backgroundColor: 'white' }}
-        >
-          <Dialog.Title>Registration Details</Dialog.Title>
-          <Dialog.Content>
-            {selectedRegistration && (
-              <View>
-                <Text variant="titleMedium" style={styles.detailTitle}>
-                  {selectedRegistration.studentName}
-                </Text>
-                <Text variant="bodyLarge" style={styles.detailAmount}>
-                  Amount:{' '}
-                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
-                    selectedRegistration.amount,
-                  )}
-                </Text>
-                <Text variant="bodyMedium" style={styles.detailText}>
-                  Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
-                </Text>
-                <Text variant="bodyMedium" style={styles.detailText}>
-                  Payment Date: {toDate(selectedRegistration.paymentDate).toLocaleDateString()}
-                </Text>
-                {selectedRegistration.startDate && (
-                  <Text variant="bodyMedium" style={styles.detailText}>
-                    Start: {toDate(selectedRegistration.startDate).toLocaleDateString()}
-                  </Text>
-                )}
-                {selectedRegistration.endDate && (
-                  <Text variant="bodyMedium" style={styles.detailText}>
-                    End: {toDate(selectedRegistration.endDate).toLocaleDateString()}
-                  </Text>
-                )}
-                {selectedRegistration.notes && (
-                  <Text variant="bodyMedium" style={styles.detailText}>
-                    Notes: {selectedRegistration.notes}
-                  </Text>
-                )}
-                {selectedRegistration.attachmentUri && (
-                  <View style={styles.detailAttachment}>
-                    <Text variant="bodyMedium" style={styles.detailText}>
-                      Receipt: Attached
-                    </Text>
-                    <Button
-                      mode="outlined"
-                      onPress={() => {
-                        setShowDetailsDialog(false);
-                        handleViewAttachment(selectedRegistration.attachmentUri!);
-                      }}
-                      icon="attachment"
-                      loading={isDownloading}
-                      disabled={isDownloading}
-                    >
-                      {isDownloading ? 'Opening...' : 'View Receipt'}
-                    </Button>
-                  </View>
-                )}
-              </View>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDetailsDialog(false)}>Close</Button>
+      <Dialog
+        visible={showContextMenu}
+        onClose={() => setShowContextMenu(false)}
+        title="Registration Options"
+      >
+        {selectedRegistration && (
+          <View style={{ flexDirection: 'column', gap: spacing[2], marginTop: spacing[4] }}>
             <Button
+              variant="outline"
+              fullWidth
               onPress={() => {
-                setShowDetailsDialog(false);
-                handleOpenDialog(selectedRegistration!);
+                setShowContextMenu(false);
+                handleOpenDialog(selectedRegistration);
               }}
-              mode="contained"
             >
               Edit
             </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+            <Button
+              variant="destructive"
+              fullWidth
+              onPress={() => {
+                setShowContextMenu(false);
+                handleDelete(selectedRegistration);
+              }}
+            >
+              Delete
+            </Button>
+            {selectedRegistration.attachmentUri && (
+              <Button
+                variant="outline"
+                fullWidth
+                onPress={() => {
+                  setShowContextMenu(false);
+                  handleViewAttachment(selectedRegistration.attachmentUri!);
+                }}
+              >
+                View Attachment
+              </Button>
+            )}
+            <Button variant="ghost" fullWidth onPress={() => setShowContextMenu(false)}>
+              Cancel
+            </Button>
+          </View>
+        )}
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        visible={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        title="Delete Registration"
+        description={`Are you sure you want to delete this registration for ${selectedRegistration?.studentName}? This will also delete any related transactions.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
+
+      {/* Details Dialog */}
+      <Dialog visible={showDetailsDialog} onClose={() => setShowDetailsDialog(false)} title="Registration Details">
+        {selectedRegistration && (
+          <View>
+            <Text style={[textStyles.bodyLarge, styles.detailTitle, { color: colors.foreground }]}>
+              {selectedRegistration.studentName}
+            </Text>
+            <Text style={[textStyles.bodyLarge, styles.detailAmount, { color: colors.primary }]}>
+              Amount:{' '}
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
+                selectedRegistration.amount,
+              )}
+            </Text>
+            <Text style={[textStyles.body, styles.detailText, { color: colors.foreground }]}>
+              Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
+            </Text>
+            <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+              Payment Date: {toDate(selectedRegistration.paymentDate).toLocaleDateString()}
+            </Text>
+            {selectedRegistration.startDate && (
+              <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                Start: {toDate(selectedRegistration.startDate).toLocaleDateString()}
+              </Text>
+            )}
+            {selectedRegistration.endDate && (
+              <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                End: {toDate(selectedRegistration.endDate).toLocaleDateString()}
+              </Text>
+            )}
+            {selectedRegistration.notes && (
+              <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                Notes: {selectedRegistration.notes}
+              </Text>
+            )}
+            {selectedRegistration.attachmentUri && (
+              <View style={styles.detailAttachment}>
+                <Text style={[textStyles.body, styles.detailText, { color: colors.foreground }]}>
+                  Receipt: Attached
+                </Text>
+                <Button
+                  variant="outline"
+                  onPress={() => {
+                    setShowDetailsDialog(false);
+                    handleViewAttachment(selectedRegistration.attachmentUri!);
+                  }}
+                  loading={isDownloading}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? 'Opening...' : 'View Receipt'}
+                </Button>
+              </View>
+            )}
+            <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+              <Button variant="ghost" onPress={() => setShowDetailsDialog(false)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onPress={() => {
+                  setShowDetailsDialog(false);
+                  handleOpenDialog(selectedRegistration!);
+                }}
+              >
+                Edit
+              </Button>
+            </View>
+          </View>
+        )}
+      </Dialog>
 
       {/* Date Picker */}
       {showDatePicker && (
@@ -693,6 +666,48 @@ export function RegisterTab() {
           onChange={handleDateChange}
         />
       )}
+
+      {/* Month Picker Dialog */}
+      <Dialog visible={showMonthMenu} onClose={() => setShowMonthMenu(false)} title="Select Month">
+        <ScrollView style={{ maxHeight: 300 }}>
+          {monthNames.map((month, index) => {
+            const isSelected = filterMonth === index;
+            return (
+              <TouchableOpacity
+                key={index}
+                style={{
+                  padding: spacing[4],
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
+                  borderRadius: isSelected ? radius.md : 0,
+                }}
+                onPress={() => {
+                  setFilterMonth(index);
+                  setShowMonthMenu(false);
+                }}
+              >
+                <Text
+                  style={[
+                    textStyles.body,
+                    {
+                      fontWeight: isSelected ? '600' : '400',
+                      color: isSelected ? colors.primary : colors.foreground,
+                    },
+                  ]}
+                >
+                  {month}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <View style={{ marginTop: spacing[4], alignItems: 'flex-end' }}>
+          <Button variant="ghost" onPress={() => setShowMonthMenu(false)}>
+            Cancel
+          </Button>
+        </View>
+      </Dialog>
     </View>
   );
 }
@@ -747,21 +762,16 @@ const styles = StyleSheet.create({
   },
   dateInfo: {
     marginBottom: 2,
-    color: '#666',
   },
   notes: {
     marginTop: 8,
     fontStyle: 'italic',
-    color: '#888',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-  },
-  input: {
-    marginBottom: 16,
   },
   studentSelector: {
     flexDirection: 'row',
@@ -775,15 +785,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
+    gap: 8,
   },
   dateButton: {
-    flex: 0.48,
-  },
-  switchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
   },
   attachmentIndicator: {
     flexDirection: 'row',
@@ -793,7 +804,6 @@ const styles = StyleSheet.create({
   },
   attachmentText: {
     marginLeft: 4,
-    color: '#666',
   },
   attachmentContainer: {
     flexDirection: 'row',
@@ -801,17 +811,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  attachmentButton: {
+  attachmentButtonStyle: {
     flex: 1,
   },
   attachmentTextDialog: {
     marginTop: 8,
-    color: '#666',
   },
-  notesInput: {
-    minHeight: 80, // Ensure minimum height for multiline text input
-  },
-
   detailTitle: {
     fontWeight: 'bold',
     marginBottom: 8,
@@ -851,10 +856,6 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     textAlign: 'center',
-    color: '#888',
-  },
-  dialog: {
-    margin: 16,
   },
   dialogContent: {
     paddingBottom: 16,

@@ -39,15 +39,15 @@ export function Card({ children, variant = 'elevated', padding = 'md', style, on
     backgroundColor: getBackgroundColor(),
     borderRadius: radius.lg,
     padding: paddingSizes[padding],
-    // Outlined variant: subtle border
+    // Outlined variant: softer border (Soft Minimal)
     ...(variant === 'outlined' && {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.borderMuted,
     }),
-    // Elevated variant: subtle shadow + border (shadcn style)
+    // Elevated variant: soft shadow + subtle border (Soft Minimal)
     ...(variant === 'elevated' && {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.borderMuted,
       ...shadowTokens.sm,
     }),
   };

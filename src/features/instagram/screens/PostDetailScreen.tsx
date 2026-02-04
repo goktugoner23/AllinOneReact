@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Linking } from 'react-native';
+import { View, ScrollView, StyleSheet, Linking, Text } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { InstagramPost } from '@features/instagram/types/Instagram';
-import { Text, Card, IconButton, Chip, Button } from 'react-native-paper';
-import { formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
 import InstagramImage from '@features/instagram/components/InstagramImage';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { Card, CardContent, IconButton, Chip, Button } from '@shared/components/ui';
 
 type Params = {
   PostDetail: { post: InstagramPost };
@@ -31,23 +31,26 @@ const PostDetailScreen: React.FC = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-        <Card.Title
-          title={post.username || 'Instagram Post'}
-          titleStyle={[textStyles.h4, { color: colors.foreground }]}
-          subtitle={formattedDate}
-          subtitleStyle={{ color: colors.foregroundMuted }}
-          left={(props) => <Ionicons {...props} name="logo-instagram" size={24} color={colors.primary} />}
-          right={(props) => (
+      <Card style={[styles.card, shadow.md]}>
+        <CardContent>
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <View style={styles.headerLeft}>
+              <Ionicons name="logo-instagram" size={24} color={colors.primary} />
+              <View style={styles.headerTitles}>
+                <Text style={[textStyles.h4, { color: colors.foreground }]}>{post.username || 'Instagram Post'}</Text>
+                <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>{formattedDate}</Text>
+              </View>
+            </View>
             <IconButton
-              {...props}
-              icon="open-in-new"
-              iconColor={colors.foregroundMuted}
+              icon="open-outline"
+              size="md"
+              variant="ghost"
+              color={colors.foregroundMuted}
               onPress={() => Linking.openURL(post.permalink)}
             />
-          )}
-        />
-        <Card.Content>
+          </View>
+
           {post.mediaUrl || post.thumbnailUrl ? (
             <InstagramImage
               instagramUrl={post.mediaUrl || post.thumbnailUrl!}
@@ -60,10 +63,10 @@ const PostDetailScreen: React.FC = () => {
 
           <View style={styles.rowBetween}>
             <Chip
-              mode="outlined"
-              icon="tag-outline"
-              style={[styles.typeChip, { borderColor: colors.border }]}
-              textStyle={{ color: colors.foregroundMuted }}
+              variant="outlined"
+              size="sm"
+              leftIcon={<Ionicons name="pricetag-outline" size={12} color={colors.mutedForeground} />}
+              style={styles.typeChip}
             >
               {post.mediaType}
             </Chip>
@@ -90,10 +93,9 @@ const PostDetailScreen: React.FC = () => {
               {post.hashtags.slice(0, 10).map((h, i) => (
                 <Chip
                   key={i}
-                  mode="outlined"
-                  compact
-                  style={[styles.hashtag, { borderColor: colors.border }]}
-                  textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}
+                  variant="outlined"
+                  size="sm"
+                  style={styles.hashtag}
                 >
                   {formatHashtagForDisplay(h)}
                 </Chip>
@@ -102,15 +104,14 @@ const PostDetailScreen: React.FC = () => {
           )}
 
           <Button
-            mode="contained"
-            style={[styles.backBtn, { backgroundColor: colors.primary }]}
-            labelStyle={{ color: colors.primaryForeground }}
-            icon="arrow-left"
+            variant="primary"
+            style={styles.backBtn}
+            leftIcon={<Ionicons name="arrow-back" size={18} color={colors.primaryForeground} />}
             onPress={() => navigation.goBack()}
           >
             Back
           </Button>
-        </Card.Content>
+        </CardContent>
       </Card>
     </ScrollView>
   );
@@ -132,28 +133,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing[4] },
   card: { marginBottom: spacing[4], borderRadius: radius.lg },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[3] },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], flex: 1 },
+  headerTitles: { flex: 1 },
   media: { width: '100%', height: 260, borderRadius: radius.md, marginBottom: spacing[3] },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[2] },
-  typeChip: { height: 26 },
+  typeChip: {},
   engagement: { ...textStyles.h4 },
   caption: { ...textStyles.bodySmall, marginTop: spacing[2] },
   metricsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing[3] },
   metricItem: { flexDirection: 'row', alignItems: 'center', marginRight: spacing[4], marginBottom: spacing[1.5] },
   metricText: { marginLeft: spacing[1.5], marginRight: spacing[1], ...textStyles.bodySmall },
   metricLabel: { ...textStyles.caption },
-  hashtags: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing[2] },
-  hashtag: {
-    marginRight: spacing[1.5],
-    marginBottom: spacing[1.5],
-    borderRadius: radius.full,
-    paddingVertical: spacing[0.5],
-    paddingHorizontal: spacing[2],
-  },
+  hashtags: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing[2], gap: spacing[1.5] },
+  hashtag: {},
   hashtagText: {
     fontSize: 11,
     lineHeight: 14,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   backBtn: { marginTop: spacing[4], borderRadius: radius.md },
 });

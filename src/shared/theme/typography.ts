@@ -48,45 +48,54 @@ export const letterSpacing = {
   wider: 0.8,
 } as const;
 
-// Pre-composed text styles for common use cases
+// Pre-composed text styles for common use cases (Soft Minimal - refined, lighter)
 export const textStyles = {
-  // Headings
+  // Headings - reduced weights for softer feel
   h1: {
-    fontSize: 36,
+    fontSize: 32,
     lineHeight: 40,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontWeight: '600',
+    letterSpacing: -0.5,
   } as TextStyle,
   h2: {
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 26,
+    lineHeight: 34,
     fontWeight: '600',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   } as TextStyle,
   h3: {
-    fontSize: 24,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: '600',
+    letterSpacing: -0.2,
   } as TextStyle,
   h4: {
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: '600',
   } as TextStyle,
 
-  // Body text
+  // Subtitle - NEW for secondary headings
+  subtitle: {
+    fontSize: 17,
+    lineHeight: 26,
+    fontWeight: '500',
+    letterSpacing: 0.1,
+  } as TextStyle,
+
+  // Body text - slightly refined
   body: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 24,
     fontWeight: '400',
   } as TextStyle,
   bodyLarge: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 17,
+    lineHeight: 26,
     fontWeight: '400',
   } as TextStyle,
   bodySmall: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
     fontWeight: '400',
   } as TextStyle,
@@ -108,21 +117,21 @@ export const textStyles = {
     fontWeight: '500',
   } as TextStyle,
 
-  // Button text
+  // Button text - lighter weight for soft minimal
   button: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: '500',
   } as TextStyle,
   buttonSmall: {
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: '600',
+    fontWeight: '500',
   } as TextStyle,
   buttonLarge: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
+    fontWeight: '500',
   } as TextStyle,
 
   // Monospace (for code, numbers)
@@ -137,19 +146,19 @@ export const textStyles = {
   amount: {
     fontSize: 24,
     lineHeight: 32,
-    fontWeight: '700',
+    fontWeight: '600',
     fontFamily: fontFamily.mono,
   } as TextStyle,
   amountLarge: {
     fontSize: 32,
     lineHeight: 40,
-    fontWeight: '700',
+    fontWeight: '600',
     fontFamily: fontFamily.mono,
   } as TextStyle,
   amountSmall: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
+    fontWeight: '500',
     fontFamily: fontFamily.mono,
   } as TextStyle,
 } as const;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import { Modal, Portal, Surface, Text, Button, TextInput, IconButton, Chip } from 'react-native-paper';
+import { View, StyleSheet, Dimensions, Modal, Text, Pressable } from 'react-native';
+import { Button, Input, IconButton, Chip } from '@shared/components/ui';
 import { useAppTheme } from '@shared/theme';
 
 interface TableInsertionModalProps {
@@ -32,12 +32,17 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
   ];
 
   return (
-    <Portal>
-      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContainer}>
-        <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+    <Modal
+      visible={visible}
+      onRequestClose={onDismiss}
+      transparent
+      animationType="fade"
+    >
+      <Pressable style={styles.modalContainer} onPress={onDismiss}>
+        <Pressable style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border, padding: spacing[4] }]}>
             <Text style={[textStyles.h4, { color: colors.foreground }]}>Insert Table</Text>
-            <IconButton icon="close" size={20} onPress={onDismiss} />
+            <IconButton icon="close" size="sm" variant="ghost" onPress={onDismiss} />
           </View>
 
           <View style={[styles.modalContent, { padding: spacing[4] }]}>
@@ -62,31 +67,23 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
               </Text>
               <View style={[styles.inputRow, { gap: spacing[4] }]}>
                 <View style={styles.inputContainer}>
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
-                    Rows
-                  </Text>
-                  <TextInput
+                  <Input
+                    label="Rows"
                     value={rows}
                     onChangeText={setRows}
                     keyboardType="numeric"
-                    mode="outlined"
-                    style={styles.input}
-                    outlineColor={colors.border}
-                    activeOutlineColor={colors.primary}
+                    size="sm"
+                    containerStyle={{ marginBottom: 0 }}
                   />
                 </View>
                 <View style={styles.inputContainer}>
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
-                    Columns
-                  </Text>
-                  <TextInput
+                  <Input
+                    label="Columns"
                     value={columns}
                     onChangeText={setColumns}
                     keyboardType="numeric"
-                    mode="outlined"
-                    style={styles.input}
-                    outlineColor={colors.border}
-                    activeOutlineColor={colors.primary}
+                    size="sm"
+                    containerStyle={{ marginBottom: 0 }}
                   />
                 </View>
               </View>
@@ -114,21 +111,22 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
           </View>
 
           <View style={[styles.modalActions, { borderTopColor: colors.border, padding: spacing[4], gap: spacing[3] }]}>
-            <Button onPress={onDismiss} style={styles.actionButton}>
+            <Button variant="outline" onPress={onDismiss} style={styles.actionButton}>
               Cancel
             </Button>
-            <Button mode="contained" onPress={handleInsert} style={styles.actionButton}>
+            <Button variant="primary" onPress={handleInsert} style={styles.actionButton}>
               Insert Table
             </Button>
           </View>
-        </Surface>
-      </Modal>
-    </Portal>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   modalContainer: {
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -136,7 +134,6 @@ const styles = StyleSheet.create({
   modalSurface: {
     width: screenWidth * 0.9,
     maxHeight: '80%',
-    elevation: 5,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -155,9 +152,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flex: 1,
-  },
-  input: {
-    height: 40,
   },
   previewSection: {},
   tablePreview: {

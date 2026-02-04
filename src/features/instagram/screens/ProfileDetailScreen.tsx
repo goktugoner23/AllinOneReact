@@ -10,8 +10,9 @@ import {
   RefreshControl,
   Linking,
   PermissionsAndroid,
+  Text,
 } from 'react-native';
-import { Appbar, Text, ProgressBar } from 'react-native-paper';
+import { ProgressBar } from '@shared/components/ui';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useInstagramAllData } from '@shared/hooks';
 import {
@@ -24,6 +25,7 @@ import {
   SkeletonCard,
   Tabs,
   LinearProgressBar,
+  Appbar,
 } from '@shared/components/ui';
 import {
   InstagramProfilePictureResponse,
@@ -399,10 +401,7 @@ export default function ProfileDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Appbar.Header mode="small" elevated style={{ backgroundColor: colors.surface }}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} iconColor={colors.foreground} />
-        <Appbar.Content title={`@${username}`} titleStyle={[textStyles.h4, { color: colors.foreground }]} />
-      </Appbar.Header>
+      <Appbar title={`@${username}`} leading="back" onLeadingPress={() => navigation.goBack()} elevated />
 
       <LinearProgressBar visible={isLoading || isFetching} />
 
@@ -412,7 +411,7 @@ export default function ProfileDetailScreen() {
         <View style={[styles.center, { padding: 24 }]}>
           <Card variant="outlined" padding="lg">
             <CardContent>
-              <Text variant="titleMedium" style={{ textAlign: 'center', marginBottom: 8 }}>
+              <Text style={[textStyles.label, { textAlign: 'center', marginBottom: 8, color: colors.foreground }]}>
                 {errorMessage}
               </Text>
               <Button variant="primary" onPress={handleRefresh}>
@@ -443,9 +442,9 @@ export default function ProfileDetailScreen() {
                 />
               </TouchableOpacity>
               <View style={styles.headerText}>
-                <Text variant="titleMedium">@{username}</Text>
+                <Text style={[textStyles.label, { color: colors.foreground }]}>@{username}</Text>
                 {!!profile?.data?.fullName && (
-                  <Text variant="bodySmall" style={{ opacity: 0.7 }}>
+                  <Text style={[textStyles.bodySmall, { opacity: 0.7, color: colors.foreground }]}>
                     {profile.data.fullName}
                   </Text>
                 )}
@@ -502,7 +501,9 @@ export default function ProfileDetailScreen() {
                 renderItem={renderGridItem}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyState}>
-                    <Text style={{ opacity: 0.6 }}>No stories available</Text>
+                    <Text style={[textStyles.body, { opacity: 0.6, color: colors.foreground }]}>
+                      No stories available
+                    </Text>
                   </View>
                 )}
               />
@@ -520,7 +521,9 @@ export default function ProfileDetailScreen() {
                 renderItem={renderRowItem}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyState}>
-                    <Text style={{ opacity: 0.6 }}>No stories available</Text>
+                    <Text style={[textStyles.body, { opacity: 0.6, color: colors.foreground }]}>
+                      No stories available
+                    </Text>
                   </View>
                 )}
               />
@@ -541,7 +544,7 @@ export default function ProfileDetailScreen() {
               renderItem={renderPostGridItem}
               ListEmptyComponent={() => (
                 <View style={styles.emptyState}>
-                  <Text style={{ opacity: 0.6 }}>No posts available</Text>
+                  <Text style={[textStyles.body, { opacity: 0.6, color: colors.foreground }]}>No posts available</Text>
                 </View>
               )}
             />
@@ -559,7 +562,7 @@ export default function ProfileDetailScreen() {
               renderItem={renderPostRowItem}
               ListEmptyComponent={() => (
                 <View style={styles.emptyState}>
-                  <Text style={{ opacity: 0.6 }}>No posts available</Text>
+                  <Text style={[textStyles.body, { opacity: 0.6, color: colors.foreground }]}>No posts available</Text>
                 </View>
               )}
             />
@@ -623,15 +626,14 @@ export default function ProfileDetailScreen() {
               <Card variant="elevated" padding="lg" style={styles.bulkModal}>
                 <CardContent>
                   <Text
-                    variant="titleMedium"
                     style={[textStyles.h4, { marginBottom: spacing[3], textAlign: 'center', color: colors.foreground }]}
                   >
                     Saving stories...
                   </Text>
                   <ProgressBar
-                    progress={bulkTotal ? bulkDone / bulkTotal : 0}
-                    color={colors.primary}
-                    style={{ height: 8, borderRadius: radius.sm }}
+                    progress={bulkTotal ? (bulkDone / bulkTotal) * 100 : 0}
+                    size="md"
+                    style={{ borderRadius: radius.sm }}
                   />
                   <Text
                     style={[
@@ -691,9 +693,7 @@ function FeedStoryCard({
     <Card variant="elevated" padding="none" style={styles.feedCard}>
       <View style={styles.feedHeader}>
         <Avatar source={avatarUrl ? { uri: avatarUrl } : undefined} name={username} size="md" />
-        <Text variant="titleSmall" style={[textStyles.label, { marginLeft: spacing[2], color: colors.foreground }]}>
-          @{username}
-        </Text>
+        <Text style={[textStyles.label, { marginLeft: spacing[2], color: colors.foreground }]}>@{username}</Text>
         <View style={{ marginLeft: 'auto' }}>
           <Button size="sm" variant="ghost" onPress={onDownload}>
             Save
@@ -716,10 +716,7 @@ function FeedStoryCard({
           </Badge>
         </View>
         {!!item.timestamp && (
-          <Text
-            variant="bodySmall"
-            style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}
-          >
+          <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
             {new Date(item.timestamp).toLocaleString()}
           </Text>
         )}
@@ -746,9 +743,7 @@ function FeedPostCard({
     <Card variant="elevated" padding="none" style={styles.feedCard}>
       <View style={styles.feedHeader}>
         <Avatar source={avatarUrl ? { uri: avatarUrl } : undefined} name={username} size="md" />
-        <Text variant="titleSmall" style={[textStyles.label, { marginLeft: spacing[2], color: colors.foreground }]}>
-          @{username}
-        </Text>
+        <Text style={[textStyles.label, { marginLeft: spacing[2], color: colors.foreground }]}>@{username}</Text>
         <View style={{ marginLeft: 'auto' }}>
           <Button size="sm" variant="ghost" onPress={() => Linking.openURL(item.permalink)}>
             View
@@ -766,11 +761,7 @@ function FeedPostCard({
       </TouchableOpacity>
       <View style={styles.feedFooter}>
         {item.caption && (
-          <Text
-            variant="bodyMedium"
-            numberOfLines={3}
-            style={[textStyles.body, { marginBottom: spacing[2], color: colors.foreground }]}
-          >
+          <Text numberOfLines={3} style={[textStyles.body, { marginBottom: spacing[2], color: colors.foreground }]}>
             {item.caption}
           </Text>
         )}
@@ -792,10 +783,7 @@ function FeedPostCard({
           )}
         </View>
         {!!item.timestamp && (
-          <Text
-            variant="bodySmall"
-            style={[textStyles.caption, { color: colors.foregroundSubtle, marginTop: spacing[2] }]}
-          >
+          <Text style={[textStyles.caption, { color: colors.foregroundSubtle, marginTop: spacing[2] }]}>
             {new Date(item.timestamp).toLocaleString()}
           </Text>
         )}
