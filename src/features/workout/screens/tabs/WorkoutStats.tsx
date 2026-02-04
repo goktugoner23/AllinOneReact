@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, ScrollView } from 'react-native';
-import { Text, TextInput } from 'react-native-paper';
-import { Card, CardHeader, CardContent, Button, EmptyState, Dialog, FAB, Badge } from '@shared/components/ui';
+import { View, ScrollView, Text } from 'react-native';
+import { Card, CardHeader, CardContent, Button, EmptyState, Dialog, FAB, Badge, Input } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { StatsSnapshot } from '@features/workout/types/Workout';
 import { useColors, spacing, textStyles } from '@shared/theme';
@@ -158,57 +157,51 @@ export default function WorkoutStats() {
         <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
           <View style={{ gap: spacing[3] }}>
             {!latest?.heightCm && (
-              <TextInput
-                mode="outlined"
+              <Input
                 label="Height (cm)"
                 keyboardType="numeric"
                 value={height}
                 onChangeText={setHeight}
-                style={{ backgroundColor: colors.surface }}
+                containerStyle={{ marginBottom: 0 }}
               />
             )}
-            <TextInput
-              mode="outlined"
+            <Input
               label="Bodyweight (kg)"
               keyboardType="numeric"
               value={weight}
               onChangeText={setWeight}
-              style={{ backgroundColor: colors.surface }}
+              containerStyle={{ marginBottom: 0 }}
             />
 
             {/* Upper Body */}
             <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Upper Body</Text>
-            <TextInput
-              mode="outlined"
+            <Input
               label="Shoulder (cm)"
               keyboardType="numeric"
               value={shoulder}
               onChangeText={setShoulder}
-              style={{ backgroundColor: colors.surface }}
+              containerStyle={{ marginBottom: 0 }}
             />
-            <TextInput
-              mode="outlined"
+            <Input
               label="Chest (cm)"
               keyboardType="numeric"
               value={chest}
               onChangeText={setChest}
-              style={{ backgroundColor: colors.surface }}
+              containerStyle={{ marginBottom: 0 }}
             />
 
             {/* Arms */}
             <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Arms</Text>
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Biceps L"
                 keyboardType="numeric"
                 value={bicepsL}
                 onChangeText={setBicepsL}
               />
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Biceps R"
                 keyboardType="numeric"
                 value={bicepsR}
@@ -216,17 +209,15 @@ export default function WorkoutStats() {
               />
             </View>
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Forearm L"
                 keyboardType="numeric"
                 value={forearmL}
                 onChangeText={setForearmL}
               />
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Forearm R"
                 keyboardType="numeric"
                 value={forearmR}
@@ -236,37 +227,33 @@ export default function WorkoutStats() {
 
             {/* Core */}
             <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Core</Text>
-            <TextInput
-              mode="outlined"
+            <Input
               label="Waist (cm)"
               keyboardType="numeric"
               value={waist}
               onChangeText={setWaist}
-              style={{ backgroundColor: colors.surface }}
+              containerStyle={{ marginBottom: 0 }}
             />
-            <TextInput
-              mode="outlined"
+            <Input
               label="Hip (cm)"
               keyboardType="numeric"
               value={hip}
               onChangeText={setHip}
-              style={{ backgroundColor: colors.surface }}
+              containerStyle={{ marginBottom: 0 }}
             />
 
             {/* Legs */}
             <Text style={[textStyles.label, { color: colors.foreground, marginTop: spacing[2] }]}>Legs</Text>
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Upper Leg L"
                 keyboardType="numeric"
                 value={upperLegL}
                 onChangeText={setUpperLegL}
               />
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Upper Leg R"
                 keyboardType="numeric"
                 value={upperLegR}
@@ -274,17 +261,15 @@ export default function WorkoutStats() {
               />
             </View>
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Calf L"
                 keyboardType="numeric"
                 value={calfL}
                 onChangeText={setCalfL}
               />
-              <TextInput
-                mode="outlined"
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <Input
+                containerStyle={{ flex: 1, marginBottom: 0 }}
                 label="Calf R"
                 keyboardType="numeric"
                 value={calfR}
@@ -293,12 +278,11 @@ export default function WorkoutStats() {
             </View>
 
             {/* Note */}
-            <TextInput
-              mode="outlined"
+            <Input
               label="Note (optional)"
               value={note}
               onChangeText={setNote}
-              style={{ backgroundColor: colors.surface, marginTop: spacing[2] }}
+              containerStyle={{ marginBottom: 0, marginTop: spacing[2] }}
               multiline
             />
 

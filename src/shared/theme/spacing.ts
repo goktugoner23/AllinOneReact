@@ -32,54 +32,54 @@ export const spacing = {
   32: 128,
 } as const;
 
-// Border radius scale
+// Border radius scale - larger for softer corners (Soft Minimal)
 export const radius = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  '2xl': 20,
-  '3xl': 24,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 28,
   full: 9999,
 } as const;
 
-// Shadow definitions for React Native
+// Shadow definitions for React Native - softer, subtler (Soft Minimal)
 export const shadow = {
   none: {} as ViewStyle,
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
     elevation: 1,
   } as ViewStyle,
   md: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2,
   } as ViewStyle,
   lg: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 4,
   } as ViewStyle,
   xl: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
     elevation: 8,
   } as ViewStyle,
   '2xl': {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
+    shadowOpacity: 0.1,
+    shadowRadius: 28,
     elevation: 12,
   } as ViewStyle,
 } as const;

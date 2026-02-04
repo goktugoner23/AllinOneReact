@@ -15,7 +15,6 @@ import {
   Dimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Portal, Dialog, Switch } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import {
   Card as UICard,
@@ -26,6 +25,8 @@ import {
   IconButton,
   AlertDialog,
   Input,
+  Dialog,
+  Switch,
 } from '@shared/components/ui';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -401,147 +402,130 @@ const StudentsTab: React.FC = () => {
       )}
 
       {/* Detailed Student Modal */}
-      <Portal>
-        <Dialog
-          visible={showDetailModal}
-          onDismiss={() => setShowDetailModal(false)}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-        >
-          <Dialog.Content>
-            {selectedStudent && (
-              <View style={{ alignItems: 'center' }}>
-                {/* Photo */}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (selectedStudent.photoUri) {
-                      setShowFullscreenPhoto(true);
-                    }
-                  }}
-                  style={{ marginBottom: spacing[4] }}
-                >
-                  <Avatar
-                    source={selectedStudent.photoUri ? { uri: selectedStudent.photoUri } : undefined}
-                    name={selectedStudent.name}
-                    size="xl"
-                  />
-                </TouchableOpacity>
+      <Dialog visible={showDetailModal} onClose={() => setShowDetailModal(false)}>
+        {selectedStudent && (
+          <View style={{ alignItems: 'center' }}>
+            {/* Photo */}
+            <TouchableOpacity
+              onPress={() => {
+                if (selectedStudent.photoUri) {
+                  setShowFullscreenPhoto(true);
+                }
+              }}
+              style={{ marginBottom: spacing[4] }}
+            >
+              <Avatar
+                source={selectedStudent.photoUri ? { uri: selectedStudent.photoUri } : undefined}
+                name={selectedStudent.name}
+                size="xl"
+              />
+            </TouchableOpacity>
 
-                {/* Name */}
-                <Text
-                  style={[textStyles.h3, { color: colors.foreground, marginBottom: spacing[4], textAlign: 'center' }]}
-                >
-                  {selectedStudent.name}
+            {/* Name */}
+            <Text
+              style={[textStyles.h3, { color: colors.foreground, marginBottom: spacing[4], textAlign: 'center' }]}
+            >
+              {selectedStudent.name}
+            </Text>
+
+            {/* Contact Info */}
+            <View style={{ width: '100%', marginBottom: spacing[5] }}>
+              {selectedStudent.phoneNumber && (
+                <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                  Phone: {selectedStudent.phoneNumber}
                 </Text>
+              )}
+              {selectedStudent.instagram && (
+                <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                  Instagram: @{selectedStudent.instagram}
+                </Text>
+              )}
+              <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
+              </Text>
+              <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                Registration: Registered
+              </Text>
+            </View>
 
-                {/* Contact Info */}
-                <View style={{ width: '100%', marginBottom: spacing[5] }}>
-                  {selectedStudent.phoneNumber && (
-                    <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                      Phone: {selectedStudent.phoneNumber}
-                    </Text>
-                  )}
-                  {selectedStudent.instagram && (
-                    <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                      Instagram: @{selectedStudent.instagram}
-                    </Text>
-                  )}
-                  <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                    Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
-                  </Text>
-                  <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                    Registration: Registered
-                  </Text>
-                </View>
-
-                {/* Action Buttons */}
-                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
-                  {selectedStudent.phoneNumber && (
-                    <TouchableOpacity
-                      onPress={() => handleCall(selectedStudent.phoneNumber!)}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
-                        backgroundColor: '#22C55E',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="call" size={26} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                  {selectedStudent.phoneNumber && (
-                    <TouchableOpacity
-                      onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
-                        backgroundColor: '#25D366',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="logo-whatsapp" size={26} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                  {selectedStudent.instagram && (
-                    <TouchableOpacity
-                      onPress={() => handleInstagram(selectedStudent.instagram!)}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
-                        backgroundColor: '#E4405F',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="logo-instagram" size={26} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            )}
-          </Dialog.Content>
-        </Dialog>
-      </Portal>
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+              {selectedStudent.phoneNumber && (
+                <TouchableOpacity
+                  onPress={() => handleCall(selectedStudent.phoneNumber!)}
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: '#22C55E',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="call" size={26} color="#fff" />
+                </TouchableOpacity>
+              )}
+              {selectedStudent.phoneNumber && (
+                <TouchableOpacity
+                  onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: '#25D366',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="logo-whatsapp" size={26} color="#fff" />
+                </TouchableOpacity>
+              )}
+              {selectedStudent.instagram && (
+                <TouchableOpacity
+                  onPress={() => handleInstagram(selectedStudent.instagram!)}
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: '#E4405F',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="logo-instagram" size={26} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+      </Dialog>
 
       {/* Photo Options Dialog */}
-      <Portal>
-        <Dialog
-          visible={showPhotoOptions}
-          onDismiss={() => setShowPhotoOptions(false)}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-        >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Photo Options</Dialog.Title>
-          <Dialog.Content>
-            <View style={{ alignItems: 'center', paddingVertical: spacing[4] }}>
-              <TouchableOpacity
-                style={[styles.photoOptionButton, { borderBottomColor: colors.border }]}
-                onPress={handleViewPhoto}
-              >
-                <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '500' }]}>View Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.photoOptionButton, { borderBottomColor: colors.border }]}
-                onPress={handleChangePhoto}
-              >
-                <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '500' }]}>Change Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.photoOptionButton, { borderBottomColor: colors.border }]}
-                onPress={handleRemovePhoto}
-              >
-                <Text style={[textStyles.body, { color: colors.destructive, fontWeight: '500' }]}>Remove Photo</Text>
-              </TouchableOpacity>
-            </View>
-          </Dialog.Content>
-        </Dialog>
-      </Portal>
+      <Dialog visible={showPhotoOptions} onClose={() => setShowPhotoOptions(false)} title="Photo Options">
+        <View style={{ alignItems: 'center', paddingVertical: spacing[4] }}>
+          <TouchableOpacity
+            style={[styles.photoOptionButton, { borderBottomColor: colors.border }]}
+            onPress={handleViewPhoto}
+          >
+            <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '500' }]}>View Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.photoOptionButton, { borderBottomColor: colors.border }]}
+            onPress={handleChangePhoto}
+          >
+            <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '500' }]}>Change Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.photoOptionButton, { borderBottomColor: colors.border }]}
+            onPress={handleRemovePhoto}
+          >
+            <Text style={[textStyles.body, { color: colors.destructive, fontWeight: '500' }]}>Remove Photo</Text>
+          </TouchableOpacity>
+        </View>
+      </Dialog>
 
       {/* Fullscreen Photo Modal */}
       <Modal
@@ -554,49 +538,40 @@ const StudentsTab: React.FC = () => {
       </Modal>
 
       {/* Student Options Modal */}
-      <Portal>
-        <Dialog
-          visible={showOptionsModal}
-          onDismiss={() => setShowOptionsModal(false)}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-        >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Student Options</Dialog.Title>
-          <Dialog.Content>
-            <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>
-              What would you like to do with {selectedStudent?.name}?
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions
-            style={{ flexDirection: 'column', alignItems: 'stretch', gap: spacing[2], padding: spacing[4] }}
+      <Dialog
+        visible={showOptionsModal}
+        onClose={() => setShowOptionsModal(false)}
+        title="Student Options"
+        description={`What would you like to do with ${selectedStudent?.name}?`}
+      >
+        <View style={{ flexDirection: 'column', alignItems: 'stretch', gap: spacing[2], marginTop: spacing[4] }}>
+          <Button
+            variant="outline"
+            fullWidth
+            onPress={() => {
+              setShowOptionsModal(false);
+              setShowEditDialog(true);
+            }}
           >
-            <Button
-              variant="outline"
-              fullWidth
-              onPress={() => {
-                setShowOptionsModal(false);
-                setShowEditDialog(true);
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="destructive"
-              fullWidth
-              onPress={() => {
-                setShowOptionsModal(false);
-                if (selectedStudent) {
-                  handleDeleteStudent(selectedStudent);
-                }
-              }}
-            >
-              Delete
-            </Button>
-            <Button variant="ghost" fullWidth onPress={() => setShowOptionsModal(false)}>
-              Cancel
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            fullWidth
+            onPress={() => {
+              setShowOptionsModal(false);
+              if (selectedStudent) {
+                handleDeleteStudent(selectedStudent);
+              }
+            }}
+          >
+            Delete
+          </Button>
+          <Button variant="ghost" fullWidth onPress={() => setShowOptionsModal(false)}>
+            Cancel
+          </Button>
+        </View>
+      </Dialog>
     </View>
   );
 };
@@ -918,47 +893,38 @@ const RegisterTab: React.FC = () => {
       <AddFab style={styles.fab} onPress={() => setShowAddDialog(true)} />
 
       {/* Context Menu */}
-      <Portal>
-        <Dialog
-          visible={showContextMenu}
-          onDismiss={() => setShowContextMenu(false)}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-        >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Registration Options</Dialog.Title>
-          <Dialog.Content>
-            <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>
-              What would you like to do with this registration?
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions
-            style={{ flexDirection: 'column', alignItems: 'stretch', gap: spacing[2], padding: spacing[4] }}
+      <Dialog
+        visible={showContextMenu}
+        onClose={() => setShowContextMenu(false)}
+        title="Registration Options"
+        description="What would you like to do with this registration?"
+      >
+        <View style={{ flexDirection: 'column', alignItems: 'stretch', gap: spacing[2], marginTop: spacing[4] }}>
+          <Button
+            variant="outline"
+            fullWidth
+            onPress={() => {
+              setShowContextMenu(false);
+              setShowEditDialog(true);
+            }}
           >
-            <Button
-              variant="outline"
-              fullWidth
-              onPress={() => {
-                setShowContextMenu(false);
-                setShowEditDialog(true);
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="destructive"
-              fullWidth
-              onPress={() => {
-                setShowContextMenu(false);
-                handleDeleteRegistration(selectedRegistration!);
-              }}
-            >
-              Delete
-            </Button>
-            <Button variant="ghost" fullWidth onPress={() => setShowContextMenu(false)}>
-              Cancel
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            fullWidth
+            onPress={() => {
+              setShowContextMenu(false);
+              handleDeleteRegistration(selectedRegistration!);
+            }}
+          >
+            Delete
+          </Button>
+          <Button variant="ghost" fullWidth onPress={() => setShowContextMenu(false)}>
+            Cancel
+          </Button>
+        </View>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
@@ -973,88 +939,79 @@ const RegisterTab: React.FC = () => {
       />
 
       {/* Details Dialog */}
-      <Portal>
-        <Dialog
-          visible={showDetailsDialog}
-          onDismiss={() => setShowDetailsDialog(false)}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-        >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Registration Details</Dialog.Title>
-          <Dialog.Content>
-            {selectedRegistration && (
-              <View>
-                <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[2] }]}>
-                  {getStudentName(selectedRegistration.studentId)}
-                </Text>
-                <Text style={[textStyles.amountSmall, { color: colors.primary, marginBottom: spacing[2] }]}>
-                  {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
-                    selectedRegistration.amount,
-                  )}
-                </Text>
-                <Text style={[textStyles.body, { color: colors.foreground, marginBottom: spacing[1] }]}>
-                  Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
-                </Text>
-                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
-                  Payment Date: {new Date(selectedRegistration.paymentDate).toLocaleDateString()}
-                </Text>
-                {selectedRegistration.startDate && (
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
-                    Start: {new Date(selectedRegistration.startDate).toLocaleDateString()}
-                  </Text>
-                )}
-                {selectedRegistration.endDate && (
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
-                    End: {new Date(selectedRegistration.endDate).toLocaleDateString()}
-                  </Text>
-                )}
-                {selectedRegistration.notes && (
-                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
-                    Notes: {selectedRegistration.notes}
-                  </Text>
-                )}
-                {selectedRegistration.attachmentUri && (
-                  <View
-                    style={{
-                      marginTop: spacing[4],
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <Text style={[textStyles.body, { color: colors.foreground }]}>Receipt: Attached</Text>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      loading={isDownloading}
-                      disabled={isDownloading}
-                      onPress={() => {
-                        setShowDetailsDialog(false);
-                        handleViewAttachment(selectedRegistration.attachmentUri!);
-                      }}
-                    >
-                      {isDownloading ? 'Opening...' : 'View Receipt'}
-                    </Button>
-                  </View>
-                )}
+      <Dialog visible={showDetailsDialog} onClose={() => setShowDetailsDialog(false)} title="Registration Details">
+        {selectedRegistration && (
+          <View>
+            <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[2] }]}>
+              {getStudentName(selectedRegistration.studentId)}
+            </Text>
+            <Text style={[textStyles.amountSmall, { color: colors.primary, marginBottom: spacing[2] }]}>
+              {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(
+                selectedRegistration.amount,
+              )}
+            </Text>
+            <Text style={[textStyles.body, { color: colors.foreground, marginBottom: spacing[1] }]}>
+              Status: {selectedRegistration.isPaid ? 'Paid' : 'Unpaid'}
+            </Text>
+            <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+              Payment Date: {new Date(selectedRegistration.paymentDate).toLocaleDateString()}
+            </Text>
+            {selectedRegistration.startDate && (
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+                Start: {new Date(selectedRegistration.startDate).toLocaleDateString()}
+              </Text>
+            )}
+            {selectedRegistration.endDate && (
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+                End: {new Date(selectedRegistration.endDate).toLocaleDateString()}
+              </Text>
+            )}
+            {selectedRegistration.notes && (
+              <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginBottom: spacing[1] }]}>
+                Notes: {selectedRegistration.notes}
+              </Text>
+            )}
+            {selectedRegistration.attachmentUri && (
+              <View
+                style={{
+                  marginTop: spacing[4],
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Text style={[textStyles.body, { color: colors.foreground }]}>Receipt: Attached</Text>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={isDownloading}
+                  disabled={isDownloading}
+                  onPress={() => {
+                    setShowDetailsDialog(false);
+                    handleViewAttachment(selectedRegistration.attachmentUri!);
+                  }}
+                >
+                  {isDownloading ? 'Opening...' : 'View Receipt'}
+                </Button>
               </View>
             )}
-          </Dialog.Content>
-          <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
-            <Button variant="ghost" onPress={() => setShowDetailsDialog(false)}>
-              Close
-            </Button>
-            <Button
-              variant="primary"
-              onPress={() => {
-                setShowDetailsDialog(false);
-                setShowEditDialog(true);
-              }}
-            >
-              Edit
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+            <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+              <Button variant="ghost" onPress={() => setShowDetailsDialog(false)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onPress={() => {
+                  setShowDetailsDialog(false);
+                  setShowEditDialog(true);
+                }}
+              >
+                Edit
+              </Button>
+            </View>
+          </View>
+        )}
+      </Dialog>
 
       {/* Add Registration Dialog */}
       <AddRegistrationDialog
@@ -1079,55 +1036,46 @@ const RegisterTab: React.FC = () => {
       )}
 
       {/* Month Picker Dialog */}
-      <Portal>
-        <Dialog
-          visible={showMonthPicker}
-          onDismiss={() => setShowMonthPicker(false)}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-        >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Select Month</Dialog.Title>
-          <Dialog.Content>
-            <ScrollView style={{ maxHeight: 300 }}>
-              {monthNames.map((month, index) => {
-                const isSelected = selectedMonth === index || (index === 0 && selectedMonth === null);
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={{
-                      padding: spacing[4],
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                      backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
-                      borderRadius: isSelected ? radius.md : 0,
-                    }}
-                    onPress={() => {
-                      setSelectedMonth(index === 0 ? null : index);
-                      setShowMonthPicker(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        textStyles.body,
-                        {
-                          fontWeight: isSelected ? '600' : '400',
-                          color: isSelected ? colors.primary : colors.foreground,
-                        },
-                      ]}
-                    >
-                      {month}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </Dialog.Content>
-          <Dialog.Actions style={{ padding: spacing[4] }}>
-            <Button variant="ghost" onPress={() => setShowMonthPicker(false)}>
-              Cancel
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <Dialog visible={showMonthPicker} onClose={() => setShowMonthPicker(false)} title="Select Month">
+        <ScrollView style={{ maxHeight: 300 }}>
+          {monthNames.map((month, index) => {
+            const isSelected = selectedMonth === index || (index === 0 && selectedMonth === null);
+            return (
+              <TouchableOpacity
+                key={index}
+                style={{
+                  padding: spacing[4],
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
+                  borderRadius: isSelected ? radius.md : 0,
+                }}
+                onPress={() => {
+                  setSelectedMonth(index === 0 ? null : index);
+                  setShowMonthPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    textStyles.body,
+                    {
+                      fontWeight: isSelected ? '600' : '400',
+                      color: isSelected ? colors.primary : colors.foreground,
+                    },
+                  ]}
+                >
+                  {month}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <View style={{ marginTop: spacing[4], alignItems: 'flex-end' }}>
+          <Button variant="ghost" onPress={() => setShowMonthPicker(false)}>
+            Cancel
+          </Button>
+        </View>
+      </Dialog>
     </View>
   );
 };
@@ -1187,74 +1135,63 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onDismiss,
   };
 
   return (
-    <Portal>
-      <Dialog
-        visible={visible}
-        onDismiss={onDismiss}
-        style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}
-      >
-        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Add Student</Dialog.Title>
-        <Dialog.Content>
-          <ScrollView style={{ maxHeight: 400 }}>
-            {/* Photo Section */}
-            <View style={styles.photoSection}>
-              <TouchableOpacity onPress={pickImage} style={styles.photoButton}>
-                {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                ) : (
-                  <View
-                    style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}
-                  >
-                    <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
-                    <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
-                      Add Photo
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
+    <Dialog visible={visible} onClose={onDismiss} title="Add Student">
+      <ScrollView style={{ maxHeight: 400 }}>
+        {/* Photo Section */}
+        <View style={styles.photoSection}>
+          <TouchableOpacity onPress={pickImage} style={styles.photoButton}>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+            ) : (
+              <View style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
+                <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
+                  Add Photo
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
-            <Input label="Name" placeholder="Enter student name" value={name} onChangeText={setName} />
-            <Input
-              label="Phone Number"
-              placeholder="Enter phone number"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-            />
-            <Input
-              label="Email"
-              placeholder="Enter email (optional)"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-            <Input
-              label="Instagram"
-              placeholder="Enter Instagram handle (optional)"
-              value={instagram}
-              onChangeText={setInstagram}
-            />
-            <Input
-              label="Notes"
-              placeholder="Enter notes (optional)"
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-            />
-          </ScrollView>
-        </Dialog.Content>
-        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
-          <Button variant="ghost" onPress={onDismiss}>
-            Cancel
-          </Button>
-          <Button variant="primary" onPress={handleSave}>
-            Add
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+        <Input label="Name" placeholder="Enter student name" value={name} onChangeText={setName} />
+        <Input
+          label="Phone Number"
+          placeholder="Enter phone number"
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
+          keyboardType="phone-pad"
+        />
+        <Input
+          label="Email"
+          placeholder="Enter email (optional)"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+        />
+        <Input
+          label="Instagram"
+          placeholder="Enter Instagram handle (optional)"
+          value={instagram}
+          onChangeText={setInstagram}
+        />
+        <Input
+          label="Notes"
+          placeholder="Enter notes (optional)"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          numberOfLines={4}
+        />
+      </ScrollView>
+      <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+        <Button variant="ghost" onPress={onDismiss}>
+          Cancel
+        </Button>
+        <Button variant="primary" onPress={handleSave}>
+          Add
+        </Button>
+      </View>
+    </Dialog>
   );
 };
 
@@ -1366,121 +1303,102 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
   };
 
   return (
-    <Portal>
-      <Dialog
-        visible={visible}
-        onDismiss={onDismiss}
-        style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}
-      >
-        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Edit Student</Dialog.Title>
-        <Dialog.Content>
-          <ScrollView style={{ maxHeight: 400 }}>
-            {/* Photo Section */}
-            <View style={styles.photoSection}>
-              <TouchableOpacity
-                onPress={() => {
-                  if (photoUri) {
-                    setShowEditFullscreenPhoto(true);
-                  }
-                }}
-                onLongPress={handleEditPhotoOptions}
-                style={styles.photoButton}
-              >
-                {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                ) : (
-                  <View
-                    style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}
-                  >
-                    <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
-                    <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
-                      Add Photo
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <Text
-                style={[
-                  textStyles.caption,
-                  { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[1] },
-                ]}
-              >
-                {photoUri ? 'Tap to view, long press for options' : 'Tap to add photo'}
-              </Text>
-            </View>
+    <>
+      <Dialog visible={visible} onClose={onDismiss} title="Edit Student">
+        <ScrollView style={{ maxHeight: 400 }}>
+          {/* Photo Section */}
+          <View style={styles.photoSection}>
+            <TouchableOpacity
+              onPress={() => {
+                if (photoUri) {
+                  setShowEditFullscreenPhoto(true);
+                }
+              }}
+              onLongPress={handleEditPhotoOptions}
+              style={styles.photoButton}
+            >
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+              ) : (
+                <View style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                  <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
+                  <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
+                    Add Photo
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text
+              style={[
+                textStyles.caption,
+                { color: colors.foregroundSubtle, fontStyle: 'italic', marginTop: spacing[1] },
+              ]}
+            >
+              {photoUri ? 'Tap to view, long press for options' : 'Tap to add photo'}
+            </Text>
+          </View>
 
-            <Input label="Name" placeholder="Enter student name" value={name} onChangeText={setName} />
-            <Input
-              label="Phone Number"
-              placeholder="Enter phone number"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-            />
-            <Input
-              label="Email"
-              placeholder="Enter email (optional)"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-            <Input
-              label="Instagram"
-              placeholder="Enter Instagram handle (optional)"
-              value={instagram}
-              onChangeText={setInstagram}
-            />
-            <Input
-              label="Notes"
-              placeholder="Enter notes (optional)"
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-            />
+          <Input label="Name" placeholder="Enter student name" value={name} onChangeText={setName} />
+          <Input
+            label="Phone Number"
+            placeholder="Enter phone number"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+          />
+          <Input
+            label="Email"
+            placeholder="Enter email (optional)"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
+          <Input
+            label="Instagram"
+            placeholder="Enter Instagram handle (optional)"
+            value={instagram}
+            onChangeText={setInstagram}
+          />
+          <Input
+            label="Notes"
+            placeholder="Enter notes (optional)"
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+          />
 
-            {/* Active Status */}
-            <View style={styles.switchContainer}>
-              <Text style={[textStyles.body, { color: colors.foreground }]}>Active</Text>
-              <Switch value={isActive} onValueChange={setIsActive} />
-            </View>
-          </ScrollView>
-        </Dialog.Content>
-        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
+          {/* Active Status */}
+          <Switch value={isActive} onChange={setIsActive} label="Active" />
+        </ScrollView>
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
           <Button variant="primary" onPress={handleSave}>
             Save
           </Button>
-        </Dialog.Actions>
+        </View>
       </Dialog>
 
       {/* Edit Photo Options Dialog */}
-      <Dialog
-        visible={showEditPhotoOptions}
-        onDismiss={() => setShowEditPhotoOptions(false)}
-        style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-      >
-        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Photo Options</Dialog.Title>
-        <Dialog.Content>
-          <View style={{ alignItems: 'center', paddingVertical: spacing[4], gap: spacing[2] }}>
-            <Button variant="outline" fullWidth onPress={handleEditViewPhoto}>
-              View Photo
+      <Dialog visible={showEditPhotoOptions} onClose={() => setShowEditPhotoOptions(false)} title="Photo Options">
+        <View style={{ alignItems: 'center', paddingVertical: spacing[4], gap: spacing[2] }}>
+          <Button variant="outline" fullWidth onPress={handleEditViewPhoto}>
+            View Photo
+          </Button>
+          <Button variant="outline" fullWidth onPress={handleEditChangePhoto}>
+            Change Photo
+          </Button>
+          <Button variant="destructive" fullWidth onPress={handleEditRemovePhoto}>
+            Remove Photo
+          </Button>
+          {instagram.trim() && (
+            <Button variant="secondary" fullWidth onPress={handleEditDownloadFromInstagram}>
+              Download from Instagram
             </Button>
-            <Button variant="outline" fullWidth onPress={handleEditChangePhoto}>
-              Change Photo
-            </Button>
-            <Button variant="destructive" fullWidth onPress={handleEditRemovePhoto}>
-              Remove Photo
-            </Button>
-            {instagram.trim() && (
-              <Button variant="secondary" fullWidth onPress={handleEditDownloadFromInstagram}>
-                Download from Instagram
-              </Button>
-            )}
-          </View>
-        </Dialog.Content>
+          )}
+        </View>
       </Dialog>
 
       {/* Edit Fullscreen Photo Modal */}
@@ -1492,7 +1410,7 @@ const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, student,
       >
         <FullscreenImage uri={photoUri || ''} onClose={() => setShowEditFullscreenPhoto(false)} />
       </Modal>
-    </Portal>
+    </>
   );
 };
 
@@ -1583,134 +1501,124 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
   };
 
   return (
-    <Portal>
-      <Dialog
-        visible={visible}
-        onDismiss={onDismiss}
-        style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}
-      >
-        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Add Registration</Dialog.Title>
-        <Dialog.Content>
-          <ScrollView style={{ maxHeight: 400 }}>
-            {/* Student Selection */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Student *</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.lg,
-                padding: spacing[3],
-                marginBottom: spacing[4],
-                backgroundColor: colors.surface,
-              }}
-              onPress={() => setShowStudentPicker(true)}
-            >
-              <Text style={[textStyles.body, { color: studentId ? colors.foreground : colors.foregroundSubtle }]}>
-                {studentId ? students.find((s) => s.id === studentId)?.name || 'Unknown Student' : 'Select Student'}
-              </Text>
-            </TouchableOpacity>
+    <>
+      <Dialog visible={visible} onClose={onDismiss} title="Add Registration">
+        <ScrollView style={{ maxHeight: 400 }}>
+          {/* Student Selection */}
+          <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Student *</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing[3],
+              marginBottom: spacing[4],
+              backgroundColor: colors.surface,
+            }}
+            onPress={() => setShowStudentPicker(true)}
+          >
+            <Text style={[textStyles.body, { color: studentId ? colors.foreground : colors.foregroundSubtle }]}>
+              {studentId ? students.find((s) => s.id === studentId)?.name || 'Unknown Student' : 'Select Student'}
+            </Text>
+          </TouchableOpacity>
 
-            {/* Amount Field */}
-            <Input
-              label="Amount"
-              placeholder="Enter amount"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-            />
+          {/* Amount Field */}
+          <Input
+            label="Amount"
+            placeholder="Enter amount"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="numeric"
+          />
 
-            {/* Start Date */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Date</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.lg,
-                padding: spacing[3],
-                marginBottom: spacing[4],
-                backgroundColor: colors.surface,
-              }}
-              onPress={() => setShowStartDatePicker(true)}
-            >
-              <Text style={[textStyles.body, { color: startDate ? colors.foreground : colors.foregroundSubtle }]}>
-                {startDate || 'Select Start Date'}
-              </Text>
-            </TouchableOpacity>
+          {/* Start Date */}
+          <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Date</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing[3],
+              marginBottom: spacing[4],
+              backgroundColor: colors.surface,
+            }}
+            onPress={() => setShowStartDatePicker(true)}
+          >
+            <Text style={[textStyles.body, { color: startDate ? colors.foreground : colors.foregroundSubtle }]}>
+              {startDate || 'Select Start Date'}
+            </Text>
+          </TouchableOpacity>
 
-            {/* End Date */}
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Date</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.lg,
-                padding: spacing[3],
-                marginBottom: spacing[4],
-                backgroundColor: colors.surface,
-              }}
-              onPress={() => setShowEndDatePicker(true)}
-            >
-              <Text style={[textStyles.body, { color: endDate ? colors.foreground : colors.foregroundSubtle }]}>
-                {endDate || 'Select End Date'}
-              </Text>
-            </TouchableOpacity>
+          {/* End Date */}
+          <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Date</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing[3],
+              marginBottom: spacing[4],
+              backgroundColor: colors.surface,
+            }}
+            onPress={() => setShowEndDatePicker(true)}
+          >
+            <Text style={[textStyles.body, { color: endDate ? colors.foreground : colors.foregroundSubtle }]}>
+              {endDate || 'Select End Date'}
+            </Text>
+          </TouchableOpacity>
 
-            {/* Notes */}
-            <Input
-              label="Notes"
-              placeholder="Enter notes (optional)"
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-            />
+          {/* Notes */}
+          <Input
+            label="Notes"
+            placeholder="Enter notes (optional)"
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+          />
 
-            {/* Payment Status */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing[2] }}>
-              <Switch value={isPaid} onValueChange={setIsPaid} />
-              <Text style={[textStyles.body, { marginLeft: spacing[2], color: colors.foreground }]}>Paid</Text>
-            </View>
+          {/* Payment Status */}
+          <Switch value={isPaid} onChange={setIsPaid} label="Paid" />
 
-            {/* File Attachment - only show if paid */}
-            {isPaid && (
-              <View style={styles.attachmentSection}>
-                <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Receipt</Text>
-                <TouchableOpacity
-                  onPress={handlePickAttachment}
-                  style={[styles.attachmentButton, { borderColor: colors.primary }]}
-                >
-                  <Ionicons name="document" size={24} color={colors.primary} />
-                  <Text style={[textStyles.body, { color: colors.primary, marginLeft: spacing[2] }]}>
-                    {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
-                  </Text>
+          {/* File Attachment - only show if paid */}
+          {isPaid && (
+            <View style={styles.attachmentSection}>
+              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Receipt</Text>
+              <TouchableOpacity
+                onPress={handlePickAttachment}
+                style={[styles.attachmentButton, { borderColor: colors.primary }]}
+              >
+                <Ionicons name="document" size={24} color={colors.primary} />
+                <Text style={[textStyles.body, { color: colors.primary, marginLeft: spacing[2] }]}>
+                  {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
+                </Text>
+              </TouchableOpacity>
+              {attachmentUri && (
+                <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: spacing[2] }}>
+                  <Ionicons name="close-circle" size={24} color={colors.destructive} />
                 </TouchableOpacity>
-                {attachmentUri && (
-                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: spacing[2] }}>
-                    <Ionicons name="close-circle" size={24} color={colors.destructive} />
-                  </TouchableOpacity>
-                )}
-                {attachmentUri && (
-                  <Text
-                    style={[
-                      textStyles.caption,
-                      { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' },
-                    ]}
-                  >
-                    {attachmentUri.split('/').pop()}
-                  </Text>
-                )}
-              </View>
-            )}
-          </ScrollView>
-        </Dialog.Content>
-        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
+              )}
+              {attachmentUri && (
+                <Text
+                  style={[
+                    textStyles.caption,
+                    { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' },
+                  ]}
+                >
+                  {attachmentUri.split('/').pop()}
+                </Text>
+              )}
+            </View>
+          )}
+        </ScrollView>
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
           <Button variant="primary" onPress={handleSave}>
             Save
           </Button>
-        </Dialog.Actions>
+        </View>
       </Dialog>
 
       {/* Date Pickers */}
@@ -1732,58 +1640,47 @@ const AddRegistrationDialog: React.FC<AddRegistrationDialogProps> = ({ visible, 
       )}
 
       {/* Student Picker */}
-      {showStudentPicker && (
-        <Portal>
-          <Dialog
-            visible={showStudentPicker}
-            onDismiss={() => setShowStudentPicker(false)}
-            style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
-          >
-            <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Select Student</Dialog.Title>
-            <Dialog.Content>
-              <ScrollView style={{ maxHeight: 300 }}>
-                {students.map((student) => {
-                  const isSelected = studentId === student.id;
-                  return (
-                    <TouchableOpacity
-                      key={student.id}
-                      style={{
-                        padding: spacing[4],
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                        backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
-                        borderRadius: isSelected ? radius.md : 0,
-                      }}
-                      onPress={() => {
-                        setStudentId(student.id);
-                        setShowStudentPicker(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          textStyles.body,
-                          {
-                            fontWeight: isSelected ? '600' : '400',
-                            color: isSelected ? colors.primary : colors.foreground,
-                          },
-                        ]}
-                      >
-                        {student.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </Dialog.Content>
-            <Dialog.Actions style={{ padding: spacing[4] }}>
-              <Button variant="ghost" onPress={() => setShowStudentPicker(false)}>
-                Cancel
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      )}
-    </Portal>
+      <Dialog visible={showStudentPicker} onClose={() => setShowStudentPicker(false)} title="Select Student">
+        <ScrollView style={{ maxHeight: 300 }}>
+          {students.map((student) => {
+            const isSelected = studentId === student.id;
+            return (
+              <TouchableOpacity
+                key={student.id}
+                style={{
+                  padding: spacing[4],
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  backgroundColor: isSelected ? colors.primaryMuted : 'transparent',
+                  borderRadius: isSelected ? radius.md : 0,
+                }}
+                onPress={() => {
+                  setStudentId(student.id);
+                  setShowStudentPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    textStyles.body,
+                    {
+                      fontWeight: isSelected ? '600' : '400',
+                      color: isSelected ? colors.primary : colors.foreground,
+                    },
+                  ]}
+                >
+                  {student.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <View style={{ marginTop: spacing[4], alignItems: 'flex-end' }}>
+          <Button variant="ghost" onPress={() => setShowStudentPicker(false)}>
+            Cancel
+          </Button>
+        </View>
+      </Dialog>
+    </>
   );
 };
 
@@ -1910,119 +1807,109 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
   };
 
   return (
-    <Portal>
-      <Dialog
-        visible={visible}
-        onDismiss={onDismiss}
-        style={{ backgroundColor: colors.surface, maxHeight: '80%', borderRadius: radius.xl }}
-      >
-        <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>Edit Registration</Dialog.Title>
-        <Dialog.Content>
-          <ScrollView style={{ maxHeight: 400 }}>
-            {/* Student Display (Read-only) */}
-            <Input
-              label="Student"
-              value={students.find((s) => s.id === studentId)?.name || 'Unknown Student'}
-              editable={false}
-              variant="filled"
-            />
+    <>
+      <Dialog visible={visible} onClose={onDismiss} title="Edit Registration">
+        <ScrollView style={{ maxHeight: 400 }}>
+          {/* Student Display (Read-only) */}
+          <Input
+            label="Student"
+            value={students.find((s) => s.id === studentId)?.name || 'Unknown Student'}
+            editable={false}
+            variant="filled"
+          />
 
-            <Input
-              label="Amount"
-              placeholder="Enter amount"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-            />
+          <Input
+            label="Amount"
+            placeholder="Enter amount"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="numeric"
+          />
 
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Date</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.lg,
-                padding: spacing[3],
-                marginBottom: spacing[4],
-                backgroundColor: colors.surface,
-              }}
-              onPress={() => setShowStartDatePicker(true)}
-            >
-              <Text style={[textStyles.body, { color: startDate ? colors.foreground : colors.foregroundSubtle }]}>
-                {startDate || 'Select Start Date'}
-              </Text>
-            </TouchableOpacity>
+          <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Date</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing[3],
+              marginBottom: spacing[4],
+              backgroundColor: colors.surface,
+            }}
+            onPress={() => setShowStartDatePicker(true)}
+          >
+            <Text style={[textStyles.body, { color: startDate ? colors.foreground : colors.foregroundSubtle }]}>
+              {startDate || 'Select Start Date'}
+            </Text>
+          </TouchableOpacity>
 
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Date</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.lg,
-                padding: spacing[3],
-                marginBottom: spacing[4],
-                backgroundColor: colors.surface,
-              }}
-              onPress={() => setShowEndDatePicker(true)}
-            >
-              <Text style={[textStyles.body, { color: endDate ? colors.foreground : colors.foregroundSubtle }]}>
-                {endDate || 'Select End Date'}
-              </Text>
-            </TouchableOpacity>
+          <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Date</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing[3],
+              marginBottom: spacing[4],
+              backgroundColor: colors.surface,
+            }}
+            onPress={() => setShowEndDatePicker(true)}
+          >
+            <Text style={[textStyles.body, { color: endDate ? colors.foreground : colors.foregroundSubtle }]}>
+              {endDate || 'Select End Date'}
+            </Text>
+          </TouchableOpacity>
 
-            <Input
-              label="Notes"
-              placeholder="Enter notes (optional)"
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-            />
+          <Input
+            label="Notes"
+            placeholder="Enter notes (optional)"
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+          />
 
-            {/* Payment Status */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing[2] }}>
-              <Switch value={isPaid} onValueChange={setIsPaid} />
-              <Text style={[textStyles.body, { marginLeft: spacing[2], color: colors.foreground }]}>Paid</Text>
-            </View>
+          {/* Payment Status */}
+          <Switch value={isPaid} onChange={setIsPaid} label="Paid" />
 
-            {/* File Attachment - only show if paid */}
-            {isPaid && (
-              <View style={styles.attachmentSection}>
-                <TouchableOpacity
-                  onPress={handlePickAttachment}
-                  style={[styles.attachmentButton, { borderColor: colors.primary }]}
-                >
-                  <Ionicons name="document" size={24} color={colors.primary} />
-                  <Text style={[textStyles.body, { color: colors.primary, marginLeft: spacing[2] }]}>
-                    {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
-                  </Text>
+          {/* File Attachment - only show if paid */}
+          {isPaid && (
+            <View style={styles.attachmentSection}>
+              <TouchableOpacity
+                onPress={handlePickAttachment}
+                style={[styles.attachmentButton, { borderColor: colors.primary }]}
+              >
+                <Ionicons name="document" size={24} color={colors.primary} />
+                <Text style={[textStyles.body, { color: colors.primary, marginLeft: spacing[2] }]}>
+                  {attachmentUri ? 'Change Receipt' : 'Add Receipt'}
+                </Text>
+              </TouchableOpacity>
+              {attachmentUri && (
+                <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: spacing[2] }}>
+                  <Ionicons name="close-circle" size={24} color={colors.destructive} />
                 </TouchableOpacity>
-                {attachmentUri && (
-                  <TouchableOpacity onPress={() => setAttachmentUri(null)} style={{ marginLeft: spacing[2] }}>
-                    <Ionicons name="close-circle" size={24} color={colors.destructive} />
-                  </TouchableOpacity>
-                )}
-                {attachmentUri && (
-                  <Text
-                    style={[
-                      textStyles.caption,
-                      { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' },
-                    ]}
-                  >
-                    {attachmentUri.split('/').pop()}
-                  </Text>
-                )}
-              </View>
-            )}
-          </ScrollView>
-        </Dialog.Content>
-        <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
+              )}
+              {attachmentUri && (
+                <Text
+                  style={[
+                    textStyles.caption,
+                    { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' },
+                  ]}
+                >
+                  {attachmentUri.split('/').pop()}
+                </Text>
+              )}
+            </View>
+          )}
+        </ScrollView>
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
           <Button variant="ghost" onPress={onDismiss}>
             Cancel
           </Button>
           <Button variant="primary" onPress={handleSave}>
             Save
           </Button>
-        </Dialog.Actions>
+        </View>
       </Dialog>
 
       {/* Date Pickers */}
@@ -2042,7 +1929,7 @@ const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
           onChange={handleEndDateChange}
         />
       )}
-    </Portal>
+    </>
   );
 };
 

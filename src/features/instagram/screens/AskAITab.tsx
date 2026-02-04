@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert, Text, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Text, TextInput, IconButton, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import {
@@ -14,6 +13,7 @@ import {
 } from '@features/instagram/store/instagramSlice';
 import { ChatMessage, ContentType, AttachmentType } from '@features/instagram/types/Instagram';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { Input, IconButton, Card, CardContent, Chip } from '@shared/components/ui';
 
 export interface AskAIHandle {
   scrollToEnd: () => void;
@@ -133,10 +133,9 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
           {suggestedQuestions.map((question, index) => (
             <Chip
               key={index}
-              mode="outlined"
+              variant="outlined"
               onPress={() => handleSuggestedQuestion(question)}
-              style={[styles.suggestionChip, { borderColor: colors.border }]}
-              textStyle={[styles.suggestionText, { color: colors.foregroundMuted }]}
+              style={styles.suggestionChip}
             >
               {question}
             </Chip>
@@ -189,35 +188,34 @@ const AskAITab = forwardRef<AskAIHandle, {}>((props, ref) => {
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {messages.length > 0 && (
           <IconButton
-            icon="delete-outline"
-            size={20}
+            icon="trash-outline"
+            size="sm"
+            variant="ghost"
             onPress={handleClearChat}
             style={styles.clearButton}
-            iconColor={colors.foregroundMuted}
+            color={colors.foregroundMuted}
           />
         )}
 
-        <TextInput
+        <Input
           value={inputText}
           onChangeText={setInputText}
           placeholder="Ask about your Instagram performance..."
-          placeholderTextColor={colors.foregroundSubtle}
           multiline
           maxLength={500}
+          containerStyle={styles.textInputContainer}
           style={styles.textInput}
-          contentStyle={styles.textInputContent}
-          textColor={colors.foreground}
           onSubmitEditing={handleSendMessage}
-          blurOnSubmit={false}
         />
 
         <IconButton
-          icon={loading.isLoading ? 'loading' : 'send'}
-          size={24}
+          icon={loading.isLoading ? 'refresh-outline' : 'send'}
+          size="md"
+          variant="filled"
           onPress={handleSendMessage}
           disabled={!inputText.trim() || loading.isLoading}
-          style={[styles.sendButton, { backgroundColor: colors.primary }]}
-          iconColor={colors.primaryForeground}
+          loading={loading.isLoading}
+          style={styles.sendButton}
         />
       </View>
     </KeyboardAvoidingView>
@@ -235,12 +233,18 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
     });
   };
 
+  const getCardVariant = () => {
+    if (message.isUser) return 'filled';
+    if (message.isError) return 'outlined';
+    return 'elevated';
+  };
+
   return (
     <View style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
       <Card
+        variant={getCardVariant()}
         style={[
           styles.messageCard,
-          shadow.md,
           {
             backgroundColor: message.isUser
               ? colors.primary
@@ -250,7 +254,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
           },
         ]}
       >
-        <Card.Content style={styles.messageContent}>
+        <CardContent style={styles.messageContent}>
           {message.isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -307,7 +311,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = React.memo(({ message 
               )}
             </>
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
 
       <Text style={[styles.messageTime, { color: colors.foregroundSubtle }]}>{formatTime(message.timestamp)}</Text>
@@ -427,14 +431,13 @@ const styles = StyleSheet.create({
   clearButton: {
     marginRight: spacing[2],
   },
-  textInput: {
+  textInputContainer: {
     flex: 1,
-    maxHeight: 100,
+    marginBottom: 0,
     marginRight: spacing[2],
   },
-  textInputContent: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
+  textInput: {
+    maxHeight: 100,
   },
   sendButton: {
     borderRadius: radius.full,

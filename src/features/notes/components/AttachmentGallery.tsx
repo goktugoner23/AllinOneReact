@@ -9,14 +9,16 @@ import {
   Share,
   Platform,
   ActivityIndicator,
+  Modal,
+  Text,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Video } from 'react-native-video';
-import { IconButton, Text, Surface, Portal, Modal, ProgressBar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AudioPlayer from '@shared/components/ui/AudioPlayer';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import { useAppTheme } from '@shared/theme';
+import { IconButton, ProgressBar } from '@shared/components/ui';
 
 import RNFS from 'react-native-fs';
 import { getCachedUriIfExists, warmCache } from '@shared/services/mediaCache';
@@ -292,110 +294,105 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
     }).current;
 
     return (
-      <Portal>
-        <Modal visible={true} onDismiss={onClose} contentContainerStyle={styles.modalContainer}>
-          <Surface style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Header */}
-            <View
-              style={[
-                styles.header,
-                { paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[2] },
-              ]}
-            >
-              <View style={styles.headerLeft}>
-                <IconButton
-                  icon="close"
-                  size={24}
-                  onPress={onClose}
-                  style={styles.headerButton}
-                  iconColor={colors.foreground}
-                />
-                <Text style={[textStyles.label, { color: colors.foreground, marginLeft: spacing[2], flex: 1 }]}>
-                  {currentAttachment?.name || `Attachment ${currentIndex + 1}`}
-                </Text>
-              </View>
-              <View style={styles.headerRight}>
-                <IconButton
-                  icon="download"
-                  size={24}
-                  onPress={handleDownload}
-                  style={styles.headerButton}
-                  disabled={downloading}
-                  iconColor={colors.foreground}
-                />
-                {downloading && (
-                  <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  </View>
-                )}
-              </View>
+      <Modal
+        visible={true}
+        onRequestClose={onClose}
+        transparent
+        animationType="fade"
+      >
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          {/* Header */}
+          <View
+            style={[
+              styles.header,
+              { paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[2] },
+            ]}
+          >
+            <View style={styles.headerLeft}>
+              <IconButton
+                icon="close"
+                size="md"
+                variant="ghost"
+                onPress={onClose}
+              />
+              <Text style={[textStyles.label, { color: colors.foreground, marginLeft: spacing[2], flex: 1 }]}>
+                {currentAttachment?.name || `Attachment ${currentIndex + 1}`}
+              </Text>
             </View>
+            <View style={styles.headerRight}>
+              <IconButton
+                icon="download-outline"
+                size="md"
+                variant="ghost"
+                onPress={handleDownload}
+                disabled={downloading}
+              />
+              {downloading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              )}
+            </View>
+          </View>
 
-            {/* Download Progress */}
-            {downloading && (
-              <View style={[styles.progressContainer, { paddingHorizontal: spacing[4], paddingVertical: spacing[2] }]}>
-                <ProgressBar progress={downloadProgress / 100} color={colors.primary} style={styles.progressBar} />
-                <Text
-                  style={[textStyles.caption, { color: colors.foreground, textAlign: 'center', marginTop: spacing[1] }]}
-                >
-                  Downloading... {Math.round(downloadProgress)}%
-                </Text>
-              </View>
-            )}
+          {/* Download Progress */}
+          {downloading && (
+            <View style={[styles.progressContainer, { paddingHorizontal: spacing[4], paddingVertical: spacing[2] }]}>
+              <ProgressBar progress={downloadProgress} size="sm" style={styles.progressBar} />
+              <Text
+                style={[textStyles.caption, { color: colors.foreground, textAlign: 'center', marginTop: spacing[1] }]}
+              >
+                Downloading... {Math.round(downloadProgress)}%
+              </Text>
+            </View>
+          )}
 
-            {/* Media Content */}
-            <View style={styles.contentContainer}>
-              <FlashList
-                ref={flatListRef}
-                data={attachments}
-                renderItem={renderMediaItem}
-                keyExtractor={(item, index) => index.toString()}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-                initialScrollIndex={initialIndex}
-                estimatedItemSize={screenWidth}
+          {/* Media Content */}
+          <View style={styles.contentContainer}>
+            <FlashList
+              ref={flatListRef}
+              data={attachments}
+              renderItem={renderMediaItem}
+              keyExtractor={(item, index) => index.toString()}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+              initialScrollIndex={initialIndex}
+              estimatedItemSize={screenWidth}
+            />
+          </View>
+
+          {/* Navigation Controls */}
+          {attachments.length > 1 && (
+            <View style={[styles.navigationContainer, { paddingHorizontal: spacing[4], paddingBottom: spacing[4] }]}>
+              <IconButton
+                icon="chevron-back"
+                size="lg"
+                variant="ghost"
+                onPress={handlePrevious}
+                disabled={currentIndex === 0}
+              />
+              <Text style={[textStyles.label, { color: colors.foreground }]}>
+                {currentIndex + 1} / {attachments.length}
+              </Text>
+              <IconButton
+                icon="chevron-forward"
+                size="lg"
+                variant="ghost"
+                onPress={handleNext}
+                disabled={currentIndex === attachments.length - 1}
               />
             </View>
-
-            {/* Navigation Controls */}
-            {attachments.length > 1 && (
-              <View style={[styles.navigationContainer, { paddingHorizontal: spacing[4], paddingBottom: spacing[4] }]}>
-                <IconButton
-                  icon="chevron-left"
-                  size={32}
-                  onPress={handlePrevious}
-                  disabled={currentIndex === 0}
-                  style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
-                  iconColor={colors.foreground}
-                />
-                <Text style={[textStyles.label, { color: colors.foreground }]}>
-                  {currentIndex + 1} / {attachments.length}
-                </Text>
-                <IconButton
-                  icon="chevron-right"
-                  size={32}
-                  onPress={handleNext}
-                  disabled={currentIndex === attachments.length - 1}
-                  style={[styles.navButton, currentIndex === attachments.length - 1 && styles.navButtonDisabled]}
-                  iconColor={colors.foreground}
-                />
-              </View>
-            )}
-          </Surface>
-        </Modal>
-      </Portal>
+          )}
+        </View>
+      </Modal>
     );
   },
 );
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    margin: 0,
-  },
   container: {
     flex: 1,
   },
@@ -412,9 +409,6 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  headerButton: {
-    margin: 0,
   },
   progressContainer: {},
   progressBar: {
@@ -519,12 +513,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  navButton: {
-    margin: 0,
-  },
-  navButtonDisabled: {
-    opacity: 0.3,
   },
 });
 

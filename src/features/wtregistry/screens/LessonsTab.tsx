@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert, Text } from 'react-native';
-import { Card, Portal, Dialog, Button as PaperButton, IconButton, Surface, SegmentedButtons } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, Text, TouchableOpacity } from 'react-native';
 import { AddFab } from '@shared/components';
-import { Button } from '@shared/components/ui';
+import {
+  Card,
+  CardContent,
+  Button,
+  IconButton,
+  Dialog,
+  SegmentedControl,
+} from '@shared/components/ui';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addLesson, updateLesson, deleteLesson, loadLessons } from '@features/wtregistry/store/wtRegistrySlice';
 import { WTLesson } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export function LessonsTab() {
   const dispatch = useDispatch<AppDispatch>();
@@ -27,7 +34,7 @@ export function LessonsTab() {
   });
 
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayButtons = dayNames.map((day, index) => ({ value: index.toString(), label: day.slice(0, 3) }));
+  const dayOptions = dayNames.map((day, index) => ({ value: index, label: day.slice(0, 3) }));
 
   // Load lessons when component mounts
   useEffect(() => {
@@ -184,14 +191,10 @@ export function LessonsTab() {
       style={{
         marginHorizontal: spacing[4],
         marginBottom: spacing[3],
-        backgroundColor: colors.surface,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
       }}
-      mode="outlined"
+      variant="outlined"
     >
-      <Card.Content style={{ padding: spacing[4] }}>
+      <CardContent style={{ padding: spacing[4] }}>
         <View style={styles.lessonHeader}>
           <View style={styles.lessonInfo}>
             <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
@@ -207,17 +210,17 @@ export function LessonsTab() {
             </Text>
           </View>
           <View style={styles.lessonActions}>
-            <IconButton icon="pencil" size={20} iconColor={colors.primary} onPress={() => handleOpenDialog(lesson)} />
-            <IconButton icon="delete" size={20} iconColor={colors.destructive} onPress={() => handleDelete(lesson)} />
+            <IconButton icon="pencil" size="sm" color={colors.primary} onPress={() => handleOpenDialog(lesson)} />
+            <IconButton icon="trash" size="sm" color={colors.destructive} onPress={() => handleDelete(lesson)} />
           </View>
         </View>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Surface
+      <View
         style={{
           padding: spacing[4],
           alignItems: 'center',
@@ -225,7 +228,6 @@ export function LessonsTab() {
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
         }}
-        elevation={0}
       >
         <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[1] }]}>
           Weekly Lesson Schedule
@@ -233,7 +235,7 @@ export function LessonsTab() {
         <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>
           {lessons.length} lesson{lessons.length !== 1 ? 's' : ''} scheduled
         </Text>
-      </Surface>
+      </View>
 
       <FlatList
         data={sortedLessons}
@@ -255,70 +257,90 @@ export function LessonsTab() {
 
       <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
-      <Portal>
-        <Dialog
-          visible={showDialog}
-          onDismiss={handleCloseDialog}
-          style={{ backgroundColor: colors.surface, borderRadius: radius.xl }}
+      <Dialog
+        visible={showDialog}
+        onClose={handleCloseDialog}
+        title={editingLesson ? 'Edit Lesson' : 'Add Lesson'}
+      >
+        <Text
+          style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2], marginTop: spacing[4] }]}
         >
-          <Dialog.Title style={[textStyles.h4, { color: colors.foreground }]}>
-            {editingLesson ? 'Edit Lesson' : 'Add Lesson'}
-          </Dialog.Title>
-          <Dialog.Content>
-            <Text
-              style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2], marginTop: spacing[4] }]}
-            >
-              Day of Week
-            </Text>
-            <SegmentedButtons
-              value={formData.dayOfWeek.toString()}
-              onValueChange={(value) => setFormData({ ...formData, dayOfWeek: parseInt(value) })}
-              buttons={dayButtons}
-              style={{ marginBottom: spacing[4] }}
-            />
+          Day of Week
+        </Text>
+        <SegmentedControl
+          value={formData.dayOfWeek}
+          onChange={(value) => setFormData({ ...formData, dayOfWeek: value })}
+          options={dayOptions}
+          size="sm"
+          fullWidth
+          style={{ marginBottom: spacing[4] }}
+        />
 
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Time</Text>
-            <PaperButton
-              mode="outlined"
-              onPress={() => setShowTimePicker('start')}
-              style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }}
-              icon="clock-outline"
-            >
-              {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
-            </PaperButton>
+        <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>Start Time</Text>
+        <TouchableOpacity
+          onPress={() => setShowTimePicker('start')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: spacing[4],
+            paddingVertical: spacing[3],
+            paddingHorizontal: spacing[4],
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            gap: spacing[2],
+            alignSelf: 'flex-start',
+          }}
+        >
+          <Ionicons name="time-outline" size={20} color={colors.primary} />
+          <Text style={[textStyles.body, { color: colors.foreground }]}>
+            {formatTime(formData.startTime.getHours(), formData.startTime.getMinutes())}
+          </Text>
+        </TouchableOpacity>
 
-            <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Time</Text>
-            <PaperButton
-              mode="outlined"
-              onPress={() => setShowTimePicker('end')}
-              style={{ marginBottom: spacing[4], alignSelf: 'flex-start' }}
-              icon="clock-outline"
-            >
-              {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
-            </PaperButton>
+        <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>End Time</Text>
+        <TouchableOpacity
+          onPress={() => setShowTimePicker('end')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: spacing[4],
+            paddingVertical: spacing[3],
+            paddingHorizontal: spacing[4],
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            gap: spacing[2],
+            alignSelf: 'flex-start',
+          }}
+        >
+          <Ionicons name="time-outline" size={20} color={colors.primary} />
+          <Text style={[textStyles.body, { color: colors.foreground }]}>
+            {formatTime(formData.endTime.getHours(), formData.endTime.getMinutes())}
+          </Text>
+        </TouchableOpacity>
 
-            <View style={styles.durationContainer}>
-              <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic' }]}>
-                Duration:{' '}
-                {getDuration(
-                  formData.startTime.getHours(),
-                  formData.startTime.getMinutes(),
-                  formData.endTime.getHours(),
-                  formData.endTime.getMinutes(),
-                )}
-              </Text>
-            </View>
-          </Dialog.Content>
-          <Dialog.Actions style={{ gap: spacing[2], padding: spacing[4] }}>
-            <Button variant="ghost" onPress={handleCloseDialog}>
-              Cancel
-            </Button>
-            <Button variant="primary" onPress={handleSave} disabled={formData.startTime >= formData.endTime}>
-              {editingLesson ? 'Update' : 'Add'}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+        <View style={styles.durationContainer}>
+          <Text style={[textStyles.caption, { color: colors.foregroundSubtle, fontStyle: 'italic' }]}>
+            Duration:{' '}
+            {getDuration(
+              formData.startTime.getHours(),
+              formData.startTime.getMinutes(),
+              formData.endTime.getHours(),
+              formData.endTime.getMinutes(),
+            )}
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+          <Button variant="ghost" onPress={handleCloseDialog}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave} disabled={formData.startTime >= formData.endTime}>
+            {editingLesson ? 'Update' : 'Add'}
+          </Button>
+        </View>
+      </Dialog>
 
       {showTimePicker && (
         <DateTimePicker

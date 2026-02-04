@@ -1,11 +1,12 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { Text, Card, ActivityIndicator, IconButton } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, RefreshControl, Text, ActivityIndicator } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramAnalytics, clearError } from '@features/instagram/store/instagramSlice';
 import { formatNumber, getErrorMessage } from '@features/instagram/utils/instagramHelpers';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { Card, CardContent, IconButton } from '@shared/components/ui';
 
 const InsightsTab: React.FC = () => {
   const colors = useColors();
@@ -47,11 +48,11 @@ const InsightsTab: React.FC = () => {
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
         <IconButton
-          icon="refresh"
-          size={24}
+          icon="refresh-outline"
+          size="md"
           onPress={handleRetry}
           style={styles.retryButton}
-          iconColor={colors.primary}
+          color={colors.primary}
         />
         <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
       </View>
@@ -82,13 +83,12 @@ const InsightsTab: React.FC = () => {
       showsVerticalScrollIndicator={false}
     >
       {/* Account Overview */}
-      <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-        <Card.Title
-          title="Account Overview"
-          titleStyle={[textStyles.h4, { color: colors.foreground }]}
-          left={(props) => <IconButton {...props} icon="account-circle" iconColor={colors.primary} />}
-        />
-        <Card.Content>
+      <Card style={[styles.card, shadow.md]}>
+        <CardContent>
+          <View style={styles.cardHeader}>
+            <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+            <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Account Overview</Text>
+          </View>
           <View style={styles.accountInfo}>
             <Text style={[styles.username, { color: colors.primary }]}>@{analytics.account.username}</Text>
             {analytics.account.name && (
@@ -116,17 +116,16 @@ const InsightsTab: React.FC = () => {
               <Text style={[styles.statLabel, { color: colors.foregroundMuted }]}>Posts</Text>
             </View>
           </View>
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Summary Stats */}
-      <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-        <Card.Title
-          title="Performance Summary"
-          titleStyle={[textStyles.h4, { color: colors.foreground }]}
-          left={(props) => <IconButton {...props} icon="chart-line" iconColor={colors.primary} />}
-        />
-        <Card.Content>
+      <Card style={[styles.card, shadow.md]}>
+        <CardContent>
+          <View style={styles.cardHeader}>
+            <Ionicons name="analytics-outline" size={24} color={colors.primary} />
+            <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Performance Summary</Text>
+          </View>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryNumber, { color: colors.primary }]}>{analytics.summary.totalPosts}</Text>
@@ -145,18 +144,17 @@ const InsightsTab: React.FC = () => {
               <Text style={[styles.summaryLabel, { color: colors.foregroundMuted }]}>Avg Engagement Rate</Text>
             </View>
           </View>
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Top Performing Post */}
       {analytics.summary.topPerformingPost && (
-        <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-          <Card.Title
-            title="Top Performing Post"
-            titleStyle={[textStyles.h4, { color: colors.foreground }]}
-            left={(props) => <IconButton {...props} icon="trophy" iconColor={colors.warning} />}
-          />
-          <Card.Content>
+        <Card style={[styles.card, shadow.md]}>
+          <CardContent>
+            <View style={styles.cardHeader}>
+              <Ionicons name="trophy-outline" size={24} color={colors.warning} />
+              <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Top Performing Post</Text>
+            </View>
             <Text style={[styles.topPostCaption, { color: colors.foreground }]} numberOfLines={3}>
               {analytics.summary.topPerformingPost.caption}
             </Text>
@@ -174,7 +172,7 @@ const InsightsTab: React.FC = () => {
                 <Text style={[styles.topPostLabel, { color: colors.foregroundMuted }]}>Total Interactions</Text>
               </View>
             </View>
-          </Card.Content>
+          </CardContent>
         </Card>
       )}
 
@@ -182,13 +180,12 @@ const InsightsTab: React.FC = () => {
       {analytics.summary.detailedMetrics && (
         <>
           {/* Totals */}
-          <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-            <Card.Title
-              title="Total Metrics"
-              titleStyle={[textStyles.h4, { color: colors.foreground }]}
-              left={(props) => <IconButton {...props} icon="sigma" iconColor={colors.primary} />}
-            />
-            <Card.Content>
+          <Card style={[styles.card, shadow.md]}>
+            <CardContent>
+              <View style={styles.cardHeader}>
+                <Ionicons name="stats-chart-outline" size={24} color={colors.primary} />
+                <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Total Metrics</Text>
+              </View>
               <View style={styles.metricsGrid}>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: colors.foreground }]}>
@@ -215,17 +212,16 @@ const InsightsTab: React.FC = () => {
                   <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Reach</Text>
                 </View>
               </View>
-            </Card.Content>
+            </CardContent>
           </Card>
 
           {/* Averages */}
-          <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-            <Card.Title
-              title="Average Metrics"
-              titleStyle={[textStyles.h4, { color: colors.foreground }]}
-              left={(props) => <IconButton {...props} icon="calculator" iconColor={colors.primary} />}
-            />
-            <Card.Content>
+          <Card style={[styles.card, shadow.md]}>
+            <CardContent>
+              <View style={styles.cardHeader}>
+                <Ionicons name="calculator-outline" size={24} color={colors.primary} />
+                <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Average Metrics</Text>
+              </View>
               <View style={styles.metricsGrid}>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricNumber, { color: colors.foreground }]}>
@@ -252,20 +248,19 @@ const InsightsTab: React.FC = () => {
                   <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Avg Reach</Text>
                 </View>
               </View>
-            </Card.Content>
+            </CardContent>
           </Card>
         </>
       )}
 
       {/* Recent Growth */}
       {analytics.summary.recentGrowth && (
-        <Card style={[styles.card, { backgroundColor: colors.surface }, shadow.md]}>
-          <Card.Title
-            title="Recent Growth"
-            titleStyle={[textStyles.h4, { color: colors.foreground }]}
-            left={(props) => <IconButton {...props} icon="trending-up" iconColor={colors.success} />}
-          />
-          <Card.Content>
+        <Card style={[styles.card, shadow.md]}>
+          <CardContent>
+            <View style={styles.cardHeader}>
+              <Ionicons name="trending-up-outline" size={24} color={colors.success} />
+              <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Recent Growth</Text>
+            </View>
             <View style={styles.growthRow}>
               <View style={styles.growthItem}>
                 <Text
@@ -292,7 +287,7 @@ const InsightsTab: React.FC = () => {
                 <Text style={[styles.growthLabel, { color: colors.foregroundMuted }]}>Reach Growth</Text>
               </View>
             </View>
-          </Card.Content>
+          </CardContent>
         </Card>
       )}
     </ScrollView>
@@ -313,6 +308,11 @@ const styles = StyleSheet.create({
     margin: spacing[4],
     marginBottom: spacing[2],
     borderRadius: radius.lg,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[4],
   },
   loadingText: {
     marginTop: spacing[4],

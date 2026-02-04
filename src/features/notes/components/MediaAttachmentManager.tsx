@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Dimensions, TouchableOpacity } from 'react-native';
-import { Card, IconButton, Text, Button, ProgressBar, Chip, Portal, Modal, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Dimensions, TouchableOpacity, Modal, Text, Image } from 'react-native';
 import { launchImageLibrary, launchCamera, MediaType as ImagePickerMediaType } from 'react-native-image-picker';
 import { MediaAttachment, MediaType, MediaAttachmentsState } from '@shared/types/MediaAttachment';
 import { MediaService } from '@shared/services/MediaService';
 import MediaViewer from '@shared/components/ui/MediaViewer';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { useAppTheme } from '@shared/theme';
+import { Card, CardContent, IconButton, Button, ProgressBar, Chip } from '@shared/components/ui';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -162,13 +163,13 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
   const getMediaIcon = (type: MediaType) => {
     switch (type) {
       case MediaType.IMAGE:
-        return 'image';
+        return 'image-outline';
       case MediaType.VIDEO:
-        return 'video';
+        return 'videocam-outline';
       case MediaType.AUDIO:
-        return 'music-note';
+        return 'musical-note-outline';
       default:
-        return 'file';
+        return 'document-outline';
     }
   };
 
@@ -192,8 +193,8 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
       {/* Attachment Buttons */}
       <View style={styles.buttonContainer}>
         <Button
-          mode="outlined"
-          icon="image"
+          variant="outline"
+          leftIcon={<Ionicons name="image-outline" size={18} color={colors.primary} />}
           onPress={() => handleImagePicker('photo')}
           style={styles.button}
           disabled={state.isUploading}
@@ -202,8 +203,8 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
         </Button>
 
         <Button
-          mode="outlined"
-          icon="video"
+          variant="outline"
+          leftIcon={<Ionicons name="videocam-outline" size={18} color={colors.primary} />}
           onPress={() => handleImagePicker('video')}
           style={styles.button}
           disabled={state.isUploading}
@@ -212,8 +213,8 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
         </Button>
 
         <Button
-          mode="outlined"
-          icon="camera"
+          variant="outline"
+          leftIcon={<Ionicons name="camera-outline" size={18} color={colors.primary} />}
           onPress={() => handleCamera('photo')}
           style={styles.button}
           disabled={state.isUploading}
@@ -222,8 +223,8 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
         </Button>
 
         <Button
-          mode="outlined"
-          icon="microphone"
+          variant="outline"
+          leftIcon={<Ionicons name="mic-outline" size={18} color={colors.primary} />}
           onPress={() => setShowVoiceRecorder(true)}
           style={styles.button}
           disabled={state.isUploading}
@@ -235,58 +236,59 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
       {/* Upload Progress */}
       {state.isUploading && (
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Uploading media...</Text>
-          <ProgressBar progress={state.uploadProgress / 100} style={styles.progressBar} />
-          <Text style={styles.progressText}>{Math.round(state.uploadProgress)}%</Text>
+          <Text style={[styles.progressText, { color: colors.foregroundMuted }]}>Uploading media...</Text>
+          <ProgressBar progress={state.uploadProgress} size="sm" style={styles.progressBar} />
+          <Text style={[styles.progressText, { color: colors.foregroundMuted }]}>{Math.round(state.uploadProgress)}%</Text>
         </View>
       )}
 
       {/* Error Message */}
       {state.error && (
-        <Card style={styles.errorCard}>
-          <Card.Content>
-            <Text style={styles.errorText}>{state.error}</Text>
-          </Card.Content>
+        <Card style={[styles.errorCard, { backgroundColor: colors.destructiveMuted }]} padding="md">
+          <Text style={[styles.errorText, { color: colors.destructive }]}>{state.error}</Text>
         </Card>
       )}
 
       {/* Attachments List */}
       {state.attachments.length > 0 && (
         <View style={styles.attachmentsContainer}>
-          <Text style={styles.sectionTitle}>Attachments ({state.attachments.length})</Text>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Attachments ({state.attachments.length})</Text>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.attachmentsList}>
               {state.attachments.map((attachment, index) => (
-                <Card key={attachment.id} style={styles.attachmentCard}>
+                <Card key={attachment.id} style={[styles.attachmentCard, { backgroundColor: colors.card }]} padding="none">
                   <TouchableOpacity onPress={() => handleAttachmentPress(attachment, index)}>
-                    <Card.Cover
+                    <Image
                       source={{ uri: attachment.thumbnailUri || attachment.uri }}
                       style={styles.attachmentImage}
                     />
                   </TouchableOpacity>
 
-                  <Card.Content style={styles.attachmentContent}>
-                    <Text style={styles.attachmentName} numberOfLines={1}>
+                  <View style={styles.attachmentContent}>
+                    <Text style={[styles.attachmentName, { color: colors.foreground }]} numberOfLines={1}>
                       {attachment.name}
                     </Text>
 
                     <View style={styles.attachmentMeta}>
-                      <Chip icon={getMediaIcon(attachment.type)} compact>
+                      <Chip
+                        size="sm"
+                        leftIcon={<Ionicons name={getMediaIcon(attachment.type)} size={12} color={colors.mutedForeground} />}
+                      >
                         {attachment.type}
                       </Chip>
 
-                      {attachment.size && <Text style={styles.metaText}>{formatFileSize(attachment.size)}</Text>}
+                      {attachment.size && <Text style={[styles.metaText, { color: colors.foregroundMuted }]}>{formatFileSize(attachment.size)}</Text>}
 
                       {attachment.duration && (
-                        <Text style={styles.metaText}>{formatDuration(attachment.duration)}</Text>
+                        <Text style={[styles.metaText, { color: colors.foregroundMuted }]}>{formatDuration(attachment.duration)}</Text>
                       )}
                     </View>
-                  </Card.Content>
+                  </View>
 
-                  <Card.Actions style={styles.attachmentActions}>
-                    <IconButton icon="delete" size={16} onPress={() => removeAttachment(attachment, index)} />
-                  </Card.Actions>
+                  <View style={styles.attachmentActions}>
+                    <IconButton icon="trash-outline" size="sm" variant="ghost" onPress={() => removeAttachment(attachment, index)} />
+                  </View>
                 </Card>
               ))}
             </View>
@@ -295,30 +297,32 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
       )}
 
       {/* Media Viewer Modal */}
-      <Portal>
-        <Modal
-          visible={showMediaViewer}
-          onDismiss={() => setShowMediaViewer(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
+      <Modal
+        visible={showMediaViewer}
+        onRequestClose={() => setShowMediaViewer(false)}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalContainer}>
           {selectedAttachment && (
             <MediaViewer attachment={selectedAttachment} onClose={() => setShowMediaViewer(false)} />
           )}
-        </Modal>
-      </Portal>
+        </View>
+      </Modal>
 
       {/* Voice Recorder Modal */}
-      <Portal>
-        <Modal
-          visible={showVoiceRecorder}
-          onDismiss={() => setShowVoiceRecorder(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Surface style={styles.modalSurface}>
+      <Modal
+        visible={showVoiceRecorder}
+        onRequestClose={() => setShowVoiceRecorder(false)}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalSurface, { backgroundColor: colors.surface }]}>
             <VoiceRecorder onRecordingComplete={handleRecordingComplete} onCancel={() => setShowVoiceRecorder(false)} />
-          </Surface>
-        </Modal>
-      </Portal>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -342,7 +346,6 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: '#666',
     textAlign: 'center',
     marginVertical: 4,
   },
@@ -351,11 +354,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   errorCard: {
-    backgroundColor: '#ffebee',
     marginBottom: 16,
   },
   errorText: {
-    color: '#c62828',
     fontSize: 14,
   },
   attachmentsContainer: {
@@ -365,7 +366,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#333',
   },
   attachmentsList: {
     flexDirection: 'row',
@@ -394,7 +394,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 10,
-    color: '#666',
   },
   attachmentActions: {
     padding: 4,
@@ -407,11 +406,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSurface: {
-    backgroundColor: 'white',
     borderRadius: 12,
     width: screenWidth * 0.9,
     maxHeight: '80%',
-    elevation: 5,
   },
 });
 

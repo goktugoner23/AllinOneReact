@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, Alert, TouchableOpacity } from 'react-native';
-import { Card, Text, Divider, Button } from 'react-native-paper';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Card, CardContent, CardHeader, CardTitle, Button, Divider } from '@shared/components/ui';
 import { fetchTransactions } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
@@ -27,11 +27,11 @@ function getStartDateForRange(range: string): number | null {
   const now = new Date();
   if (range === 'all') return null; // No filtering
   if (range === 'year') return startOfYear(now).getTime();
-  
+
   const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
   const days = daysMap[range];
   if (days) return startOfDay(subDays(now, days)).getTime();
-  
+
   return null;
 }
 
@@ -78,26 +78,26 @@ export const ReportsTab: React.FC = () => {
   const { filteredTransactions, sortedTransactions } = useMemo(() => {
     // Get start date threshold once for the entire filter operation
     const startTimestamp = getStartDateForRange(dateRange);
-    
+
     // Filter transactions efficiently (single pass)
     const filtered = transactions.filter((t) => {
       // Category filter
       if (category !== 'All' && t.category !== category) return false;
-      
+
       // Date filter - compare timestamps directly (no parsing per iteration)
       if (startTimestamp !== null) {
         const txTime = new Date(t.date).getTime();
         if (txTime < startTimestamp) return false;
       }
-      
+
       return true;
     });
-    
+
     // Sort by date descending (parse once per transaction)
     const sorted = filtered
       .slice()
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
+
     return { filteredTransactions: filtered, sortedTransactions: sorted };
   }, [transactions, dateRange, category]);
 
@@ -105,7 +105,7 @@ export const ReportsTab: React.FC = () => {
   const { totalIncome, totalExpense, balance } = useMemo(() => {
     let income = 0;
     let expense = 0;
-    
+
     // Single pass through filtered transactions
     for (const t of filteredTransactions) {
       if (t.isIncome) {
@@ -114,21 +114,21 @@ export const ReportsTab: React.FC = () => {
         expense += t.amount;
       }
     }
-    
+
     return { totalIncome: income, totalExpense: expense, balance: income - expense };
   }, [filteredTransactions]);
 
   // Memoize chart data
   const chartData = useMemo(() => {
     const map: { [date: string]: number } = {};
-    
+
     for (const t of filteredTransactions) {
       if (!t.isIncome) {
         const d = format(new Date(t.date), 'MM-dd');
         map[d] = (map[d] || 0) + t.amount;
       }
     }
-    
+
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
     const labels = sorted.map(([date]) => date);
     const data = sorted.map(([_, value]) => value);
@@ -148,13 +148,13 @@ export const ReportsTab: React.FC = () => {
   // Memoize category breakdown
   const categorySpending = useMemo(() => {
     const map: { [cat: string]: number } = {};
-    
+
     for (const t of filteredTransactions) {
       if (!t.isIncome) {
         map[t.category] = (map[t.category] || 0) + t.amount;
       }
     }
-    
+
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [filteredTransactions]);
 
@@ -163,18 +163,18 @@ export const ReportsTab: React.FC = () => {
     if (filteredTransactions.length === 0) {
       return { avgTransaction: 0, mostFrequentCategory: 'N/A' };
     }
-    
+
     let totalAmount = 0;
     const categoryCount: { [cat: string]: number } = {};
-    
+
     for (const t of filteredTransactions) {
       totalAmount += t.amount;
       categoryCount[t.category] = (categoryCount[t.category] || 0) + 1;
     }
-    
+
     const avg = totalAmount / filteredTransactions.length;
     const mostFrequent = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-    
+
     return { avgTransaction: avg, mostFrequentCategory: mostFrequent };
   }, [filteredTransactions]);
 
@@ -242,9 +242,11 @@ export const ReportsTab: React.FC = () => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Filters Card */}
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Title title="Filters" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
-        <Card.Content>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardHeader>
+          <CardTitle style={styles.cardTitle}>Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
           <View style={styles.filterRow}>
             <View style={styles.filterItem}>
               <Text style={[styles.filterLabel, { color: colors.mutedForeground }]}>Category</Text>
@@ -265,13 +267,15 @@ export const ReportsTab: React.FC = () => {
               />
             </View>
           </View>
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Summary Statistics Card */}
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Title title="Summary Statistics" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
-        <Card.Content style={styles.summaryContent}>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardHeader>
+          <CardTitle style={styles.cardTitle}>Summary Statistics</CardTitle>
+        </CardHeader>
+        <CardContent style={styles.summaryContent}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Income</Text>
@@ -294,13 +298,15 @@ export const ReportsTab: React.FC = () => {
               <Text style={[styles.summaryValue, { color: colors.foreground }]}>{filteredTransactions.length}</Text>
             </View>
           </View>
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Spending Trends Card */}
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Title title="Spending Trends" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
-        <Card.Content>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardHeader>
+          <CardTitle style={styles.cardTitle}>Spending Trends</CardTitle>
+        </CardHeader>
+        <CardContent>
           {chartData.datasets[0].data.length > 1 && chartData.datasets[0].data[0] !== 0 ? (
             <LineChart
               data={chartData}
@@ -313,13 +319,15 @@ export const ReportsTab: React.FC = () => {
           ) : (
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No data for chart.</Text>
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Category Breakdown Card */}
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Title title="Category Breakdown" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
-        <Card.Content>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardHeader>
+          <CardTitle style={styles.cardTitle}>Category Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
           {categorySpending.length ? (
             categorySpending.map(([cat, amt], i) => (
               <View key={cat}>
@@ -335,13 +343,15 @@ export const ReportsTab: React.FC = () => {
           ) : (
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No spending data available</Text>
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Insights Card */}
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Title title="Insights" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
-        <Card.Content style={styles.insightsContent}>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardHeader>
+          <CardTitle style={styles.cardTitle}>Insights</CardTitle>
+        </CardHeader>
+        <CardContent style={styles.insightsContent}>
           <View style={styles.insightRow}>
             <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Average Transaction</Text>
             <Text style={[styles.insightValue, { color: colors.foreground }]}>{formatCurrencyTRY(avgTransaction)}</Text>
@@ -354,13 +364,15 @@ export const ReportsTab: React.FC = () => {
             <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Total Transactions</Text>
             <Text style={[styles.insightValue, { color: colors.foreground }]}>{filteredTransactions.length}</Text>
           </View>
-        </Card.Content>
+        </CardContent>
       </Card>
 
       {/* Transactions list (date-desc, paginated) */}
-      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} mode="elevated">
-        <Card.Title title="Transactions" titleStyle={[styles.cardTitle, { color: colors.foreground }]} />
-        <Card.Content>
+      <Card style={[styles.card, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
+        <CardHeader>
+          <CardTitle style={styles.cardTitle}>Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
           {pagedTransactions.length === 0 ? (
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No transactions found</Text>
           ) : (
@@ -371,11 +383,9 @@ export const ReportsTab: React.FC = () => {
               {totalPages > 1 && (
                 <View style={styles.pagination}>
                   <Button
-                    mode="contained"
+                    variant="primary"
                     onPress={() => setCurrentPage((p) => Math.max(0, p - 1))}
                     disabled={currentPage === 0}
-                    buttonColor={colors.primary}
-                    textColor={colors.primaryForeground}
                     style={styles.paginationButton}
                   >
                     Previous
@@ -384,11 +394,9 @@ export const ReportsTab: React.FC = () => {
                     {currentPage + 1} / {totalPages}
                   </Text>
                   <Button
-                    mode="contained"
+                    variant="primary"
                     onPress={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                     disabled={currentPage === totalPages - 1}
-                    buttonColor={colors.primary}
-                    textColor={colors.primaryForeground}
                     style={styles.paginationButton}
                   >
                     Next
@@ -397,7 +405,7 @@ export const ReportsTab: React.FC = () => {
               )}
             </View>
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
     </ScrollView>
   );

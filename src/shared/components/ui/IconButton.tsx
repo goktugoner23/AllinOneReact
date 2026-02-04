@@ -38,8 +38,8 @@ export function IconButton({
     switch (variant) {
       case 'filled':
         return {
-          bg: colors.primary,
-          icon: colors.primaryForeground,
+          bg: colors.primaryMuted,
+          icon: colors.primary,
         };
       case 'outlined':
         return {
@@ -80,7 +80,7 @@ export function IconButton({
     <Pressable
       {...props}
       disabled={isDisabled}
-      style={({ pressed }) => [buttonStyle, pressed && { opacity: 0.7 }, style]}
+      style={({ pressed }) => [buttonStyle, pressed && { opacity: 0.85 }, style]}
     >
       {loading ? (
         <ActivityIndicator size="small" color={buttonColors.icon} />

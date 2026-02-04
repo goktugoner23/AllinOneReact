@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useColors } from '@shared/theme';
 
 export interface InstagramImageProps {
   /** Instagram image URL to display */
@@ -59,7 +59,7 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
   loadingComponent,
   errorComponent,
 }) => {
-  const theme = useTheme();
+  const colors = useColors();
   const [imageUrl, setImageUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -155,12 +155,12 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
 
     return (
       <TouchableOpacity
-        style={[styles.container, styles.errorContainer, style, { backgroundColor: theme.colors.errorContainer }]}
+        style={[styles.container, styles.errorContainer, style, { backgroundColor: colors.destructiveMuted }]}
         onPress={handleRetry}
         onLongPress={handleDebugLongPress}
       >
-        <Text style={[styles.errorText, { color: theme.colors.onErrorContainer }]}>Failed to load image</Text>
-        <Text style={[styles.retryText, { color: theme.colors.onErrorContainer }]}>Tap to retry</Text>
+        <Text style={[styles.errorText, { color: colors.destructive }]}>Failed to load image</Text>
+        <Text style={[styles.retryText, { color: colors.destructive }]}>Tap to retry</Text>
       </TouchableOpacity>
     );
   }
@@ -182,10 +182,8 @@ const InstagramImage: React.FC<InstagramImageProps> = ({
         <View style={[styles.loadingOverlay, style]}>
           {loadingComponent || (
             <>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-              {isRetrying && (
-                <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Retrying...</Text>
-              )}
+              <ActivityIndicator size="small" color={colors.primary} />
+              {isRetrying && <Text style={[styles.loadingText, { color: colors.foreground }]}>Retrying...</Text>}
             </>
           )}
         </View>

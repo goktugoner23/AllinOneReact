@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, Alert, Image, Share } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
-import { Searchbar, Chip } from 'react-native-paper';
 import { AddFab } from '@shared/components';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNotes, useDeleteNote } from '@shared/hooks';
 import { Note } from '@features/notes/types/Note';
 import { formatDate, stripHtmlTags } from '@shared/utils/formatters';
@@ -12,7 +12,7 @@ import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import { NavigationProps, NotesStackParamList } from '@shared/types/navigation';
 import { Video } from 'react-native-video';
-import { Card, CardContent, IconButton, Button, Skeleton, SkeletonCard, EmptyState } from '@shared/components/ui';
+import { Card, CardContent, IconButton, Button, Skeleton, SkeletonCard, EmptyState, Searchbar, Chip } from '@shared/components/ui';
 import { useAppTheme } from '@shared/theme';
 
 const NotesScreen: React.FC = () => {
@@ -201,7 +201,11 @@ const NotesScreen: React.FC = () => {
           <Text style={[textStyles.caption, { color: colors.foregroundSubtle }]}>{formatDate(item.lastEdited)}</Text>
 
           {hasAttachments && (
-            <Chip icon="attachment" mode="outlined" compact style={styles.attachmentChip}>
+            <Chip
+              variant="outlined"
+              size="sm"
+              leftIcon={<Ionicons name="attach-outline" size={14} color={colors.mutedForeground} />}
+            >
               {attachmentCount}
             </Chip>
           )}
@@ -240,9 +244,8 @@ const NotesScreen: React.FC = () => {
           placeholder="Search notes..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={[styles.searchBar, { margin: spacing[4], backgroundColor: colors.surface }]}
-          onIconPress={() => setShowSearch(false)}
-          icon={showSearch ? 'close' : 'magnify'}
+          style={[styles.searchBar, { margin: spacing[4] }]}
+          onClear={() => setShowSearch(false)}
         />
       )}
 
@@ -298,9 +301,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  attachmentChip: {
-    height: 24,
   },
   attachmentPreviews: {
     flexDirection: 'row',

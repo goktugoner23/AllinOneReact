@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Card, Text, Checkbox, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ViewStyle, Text } from 'react-native';
+import { Checkbox, IconButton } from '@shared/components/ui';
 import { Task } from '@features/tasks/types/Task';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
@@ -57,12 +57,7 @@ const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, 
     >
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <Checkbox
-            status={task.completed ? 'checked' : 'unchecked'}
-            onPress={() => onToggleComplete(task)}
-            color={colors.primary}
-            uncheckedColor={colors.foregroundMuted}
-          />
+          <Checkbox checked={task.completed} onCheckedChange={() => onToggleComplete(task)} />
         </View>
 
         <View style={styles.middleSection}>
@@ -100,7 +95,13 @@ const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onToggleComplete, 
         </View>
 
         <View style={styles.rightSection}>
-          <IconButton icon="dots-vertical" size={20} onPress={() => onEdit(task)} iconColor={colors.foregroundMuted} />
+          <IconButton
+            icon="ellipsis-vertical"
+            size="sm"
+            variant="ghost"
+            onPress={() => onEdit(task)}
+            color={colors.foregroundMuted}
+          />
         </View>
       </View>
     </View>

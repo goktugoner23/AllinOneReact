@@ -5,64 +5,64 @@
 
 export const colors = {
   light: {
-    // Backgrounds
-    background: '#FFFFFF',
-    backgroundSecondary: '#F8FAFC',
-    backgroundTertiary: '#F1F5F9',
+    // Backgrounds - warmer, softer whites (Soft Minimal)
+    background: '#FAFBFC',
+    backgroundSecondary: '#F5F7F9',
+    backgroundTertiary: '#EEF1F4',
 
     // Surfaces (cards, modals)
     surface: '#FFFFFF',
-    surfaceHover: '#F8FAFC',
-    surfaceActive: '#F1F5F9',
+    surfaceHover: '#F7F9FB',
+    surfaceActive: '#EFF2F5',
 
-    // Borders
-    border: '#E2E8F0',
-    borderMuted: '#F1F5F9',
-    borderFocus: '#1E40AF',
+    // Borders - softer, less harsh
+    border: '#E5E9EF',
+    borderMuted: '#F0F3F6',
+    borderFocus: '#6366F1',
 
-    // Text
-    foreground: '#0F172A',
-    foregroundMuted: '#64748B',
-    foregroundSubtle: '#94A3B8',
+    // Text - slightly warmer
+    foreground: '#1A1F2E',
+    foregroundMuted: '#6B7280',
+    foregroundSubtle: '#9CA3AF',
 
-    // Primary (Dark Blue)
-    primary: '#1E40AF',
+    // Primary - refined indigo (Soft Minimal)
+    primary: '#6366F1',
     primaryForeground: '#FFFFFF',
-    primaryHover: '#1E3A8A',
-    primaryMuted: '#DBEAFE',
+    primaryHover: '#4F46E5',
+    primaryMuted: '#EEF2FF',
 
     // Secondary
     secondary: '#F1F5F9',
-    secondaryForeground: '#0F172A',
+    secondaryForeground: '#1A1F2E',
     secondaryHover: '#E2E8F0',
 
     // Accent
     accent: '#F1F5F9',
-    accentForeground: '#0F172A',
+    accentForeground: '#1A1F2E',
 
-    // Semantic
-    success: '#10B981',
+    // Semantic - muted, gentle
+    success: '#059669',
     successForeground: '#FFFFFF',
     successMuted: '#D1FAE5',
 
-    warning: '#F59E0B',
+    warning: '#D97706',
     warningForeground: '#FFFFFF',
     warningMuted: '#FEF3C7',
 
-    destructive: '#EF4444',
+    destructive: '#DC2626',
     destructiveForeground: '#FFFFFF',
     destructiveMuted: '#FEE2E2',
 
-    info: '#3B82F6',
+    info: '#0284C7',
     infoForeground: '#FFFFFF',
-    infoMuted: '#DBEAFE',
+    infoMuted: '#E0F2FE',
 
-    // Financial specific
-    income: '#10B981',
+    // Financial specific - softer tones
+    income: '#059669',
     incomeForeground: '#FFFFFF',
     incomeMuted: '#D1FAE5',
 
-    expense: '#EF4444',
+    expense: '#DC2626',
     expenseForeground: '#FFFFFF',
     expenseMuted: '#FEE2E2',
 
@@ -72,102 +72,102 @@ export const colors = {
 
     // Card specific
     card: '#FFFFFF',
-    cardForeground: '#0F172A',
+    cardForeground: '#1A1F2E',
 
     // Muted
     muted: '#F1F5F9',
-    mutedForeground: '#64748B',
+    mutedForeground: '#6B7280',
 
     // Ring (focus indicator)
-    ring: '#1E40AF',
+    ring: '#6366F1',
 
-    // Chart colors
-    chart1: '#1E40AF',
-    chart2: '#10B981',
-    chart3: '#F59E0B',
-    chart4: '#EF4444',
+    // Chart colors - harmonious indigo palette
+    chart1: '#6366F1',
+    chart2: '#059669',
+    chart3: '#D97706',
+    chart4: '#DC2626',
     chart5: '#3B82F6',
   },
 
   dark: {
-    // Backgrounds
-    background: '#09090B',
-    backgroundSecondary: '#18181B',
-    backgroundTertiary: '#27272A',
+    // Backgrounds - deep, restful (Zen Depth)
+    background: '#0C0D10',
+    backgroundSecondary: '#141519',
+    backgroundTertiary: '#1E2028',
 
     // Surfaces (cards, modals)
-    surface: '#18181B',
-    surfaceHover: '#27272A',
-    surfaceActive: '#3F3F46',
+    surface: '#16171C',
+    surfaceHover: '#1E2028',
+    surfaceActive: '#282B35',
 
-    // Borders
-    border: '#27272A',
-    borderMuted: '#18181B',
-    borderFocus: '#A78BFA',
+    // Borders - subtle separation
+    border: '#2A2D38',
+    borderMuted: '#1E2028',
+    borderFocus: '#818CF8',
 
-    // Text
-    foreground: '#FAFAFA',
-    foregroundMuted: '#A1A1AA',
-    foregroundSubtle: '#71717A',
+    // Text - comfortable contrast
+    foreground: '#F3F4F6',
+    foregroundMuted: '#9CA3AF',
+    foregroundSubtle: '#6B7280',
 
-    // Primary (Purple - lighter for dark mode)
-    primary: '#A78BFA',
-    primaryForeground: '#09090B',
-    primaryHover: '#8B5CF6',
-    primaryMuted: '#2E1065',
+    // Primary - luminous indigo (Soft Minimal dark)
+    primary: '#818CF8',
+    primaryForeground: '#0C0D10',
+    primaryHover: '#6366F1',
+    primaryMuted: '#1E1B4B',
 
     // Secondary
-    secondary: '#27272A',
-    secondaryForeground: '#FAFAFA',
-    secondaryHover: '#3F3F46',
+    secondary: '#1E2028',
+    secondaryForeground: '#F3F4F6',
+    secondaryHover: '#282B35',
 
     // Accent
-    accent: '#27272A',
-    accentForeground: '#FAFAFA',
+    accent: '#1E2028',
+    accentForeground: '#F3F4F6',
 
     // Semantic
     success: '#34D399',
-    successForeground: '#09090B',
+    successForeground: '#0C0D10',
     successMuted: '#064E3B',
 
     warning: '#FBBF24',
-    warningForeground: '#09090B',
+    warningForeground: '#0C0D10',
     warningMuted: '#78350F',
 
     destructive: '#F87171',
-    destructiveForeground: '#09090B',
+    destructiveForeground: '#0C0D10',
     destructiveMuted: '#7F1D1D',
 
-    info: '#60A5FA',
-    infoForeground: '#09090B',
-    infoMuted: '#1E3A8A',
+    info: '#38BDF8',
+    infoForeground: '#0C0D10',
+    infoMuted: '#0C4A6E',
 
     // Financial specific
     income: '#34D399',
-    incomeForeground: '#09090B',
+    incomeForeground: '#0C0D10',
     incomeMuted: '#064E3B',
 
     expense: '#F87171',
-    expenseForeground: '#09090B',
+    expenseForeground: '#0C0D10',
     expenseMuted: '#7F1D1D',
 
     investment: '#60A5FA',
-    investmentForeground: '#09090B',
+    investmentForeground: '#0C0D10',
     investmentMuted: '#1E3A8A',
 
     // Card specific
-    card: '#18181B',
-    cardForeground: '#FAFAFA',
+    card: '#16171C',
+    cardForeground: '#F3F4F6',
 
     // Muted
-    muted: '#27272A',
-    mutedForeground: '#A1A1AA',
+    muted: '#1E2028',
+    mutedForeground: '#9CA3AF',
 
     // Ring (focus indicator)
-    ring: '#A78BFA',
+    ring: '#818CF8',
 
     // Chart colors
-    chart1: '#A78BFA',
+    chart1: '#818CF8',
     chart2: '#34D399',
     chart3: '#FBBF24',
     chart4: '#F87171',
@@ -175,18 +175,18 @@ export const colors = {
   },
 } as const;
 
-// Category colors for charts and badges
+// Category colors for charts and badges (Soft Minimal palette)
 export const categoryColors = [
-  '#1E40AF', // Dark Blue
-  '#10B981', // Emerald
-  '#F59E0B', // Amber
-  '#EF4444', // Red
+  '#6366F1', // Indigo (primary)
+  '#059669', // Emerald
+  '#D97706', // Amber
+  '#DC2626', // Red
   '#3B82F6', // Blue
-  '#EC4899', // Pink
-  '#06B6D4', // Cyan
-  '#6366F1', // Indigo
-  '#F97316', // Orange
-  '#84CC16', // Lime
+  '#DB2777', // Pink
+  '#0891B2', // Cyan
+  '#7C3AED', // Violet
+  '#EA580C', // Orange
+  '#65A30D', // Lime
 ] as const;
 
 // Create a unified ColorScheme type that works for both light and dark

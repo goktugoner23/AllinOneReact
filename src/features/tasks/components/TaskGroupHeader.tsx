@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { View, StyleSheet, Pressable, Text } from 'react-native';
+import { IconButton } from '@shared/components/ui';
 import { TaskGroup } from '@features/tasks/types/Task';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 
@@ -48,10 +48,11 @@ const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({ group, taskCount, com
 
         <View style={styles.rightSection}>
           <IconButton
-            icon="dots-vertical"
-            size={20}
+            icon="ellipsis-vertical"
+            size="sm"
+            variant="ghost"
             onPress={() => onLongPress(group)}
-            iconColor={colors.foregroundMuted}
+            color={colors.foregroundMuted}
           />
         </View>
       </View>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import { Portal, Modal, Surface, TextInput, Button, Text, IconButton } from 'react-native-paper';
+import { View, StyleSheet, Dimensions, Modal, Text, Pressable } from 'react-native';
+import { Button, Input, IconButton } from '@shared/components/ui';
 import { useAppTheme } from '@shared/theme';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -70,9 +70,14 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
   };
 
   return (
-    <Portal>
-      <Modal visible={visible} onDismiss={handleCancel} contentContainerStyle={styles.modalContainer}>
-        <Surface style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+    <Modal
+      visible={visible}
+      onRequestClose={handleCancel}
+      transparent
+      animationType="fade"
+    >
+      <Pressable style={styles.modalContainer} onPress={handleCancel}>
+        <Pressable style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
           <View
             style={[
               styles.modalHeader,
@@ -85,57 +90,34 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
             ]}
           >
             <Text style={[textStyles.h4, { color: colors.foreground }]}>Insert Link</Text>
-            <IconButton icon="close" size={20} onPress={handleCancel} />
+            <IconButton icon="close" size="sm" variant="ghost" onPress={handleCancel} />
           </View>
 
           <View style={[styles.modalContent, { padding: spacing[5] }]}>
-            <View style={[styles.inputContainer, { marginBottom: spacing[4] }]}>
-              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>URL *</Text>
-              <TextInput
-                mode="outlined"
-                placeholder="https://example.com"
-                value={url}
-                onChangeText={handleUrlChange}
-                style={styles.input}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                returnKeyType="next"
-                outlineColor={colors.border}
-                activeOutlineColor={colors.primary}
-              />
-              {urlError ? (
-                <Text style={[textStyles.caption, { color: colors.destructive, marginTop: spacing[1] }]}>
-                  {urlError}
-                </Text>
-              ) : null}
-            </View>
+            <Input
+              label="URL *"
+              placeholder="https://example.com"
+              value={url}
+              onChangeText={handleUrlChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              returnKeyType="next"
+              error={urlError}
+              containerStyle={{ marginBottom: spacing[4] }}
+            />
 
-            <View style={[styles.inputContainer, { marginBottom: spacing[4] }]}>
-              <Text style={[textStyles.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
-                Link Text (optional)
-              </Text>
-              <TextInput
-                mode="outlined"
-                placeholder="Display text for the link"
-                value={text}
-                onChangeText={setText}
-                style={styles.input}
-                autoCapitalize="sentences"
-                returnKeyType="done"
-                onSubmitEditing={handleInsert}
-                outlineColor={colors.border}
-                activeOutlineColor={colors.primary}
-              />
-              <Text
-                style={[
-                  textStyles.caption,
-                  { color: colors.foregroundMuted, marginTop: spacing[1], fontStyle: 'italic' },
-                ]}
-              >
-                If left empty, the URL will be used as the link text
-              </Text>
-            </View>
+            <Input
+              label="Link Text (optional)"
+              placeholder="Display text for the link"
+              value={text}
+              onChangeText={setText}
+              autoCapitalize="sentences"
+              returnKeyType="done"
+              onSubmitEditing={handleInsert}
+              helperText="If left empty, the URL will be used as the link text"
+              containerStyle={{ marginBottom: spacing[4] }}
+            />
 
             <View
               style={[
@@ -163,16 +145,16 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
           <View
             style={[styles.modalActions, { paddingHorizontal: spacing[5], paddingBottom: spacing[5], gap: spacing[3] }]}
           >
-            <Button mode="outlined" onPress={handleCancel} style={styles.actionButton}>
+            <Button variant="outline" onPress={handleCancel} style={styles.actionButton}>
               Cancel
             </Button>
-            <Button mode="contained" onPress={handleInsert} style={styles.actionButton} disabled={!url.trim()}>
+            <Button variant="primary" onPress={handleInsert} style={styles.actionButton} disabled={!url.trim()}>
               Insert Link
             </Button>
           </View>
-        </Surface>
-      </Modal>
-    </Portal>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 };
 
@@ -186,7 +168,6 @@ const styles = StyleSheet.create({
   modalSurface: {
     width: screenWidth * 0.9,
     maxWidth: 400,
-    elevation: 5,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -195,10 +176,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalContent: {},
-  inputContainer: {},
-  input: {
-    backgroundColor: 'transparent',
-  },
   previewContainer: {},
   modalActions: {
     flexDirection: 'row',

@@ -1,33 +1,30 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image, ScrollView } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity, Linking, Image, ScrollView, Text } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { AddFab } from '@shared/components';
 import {
   Card,
-  Text,
-  Portal,
+  CardContent,
   Dialog,
-  TextInput,
+  Input,
   Button,
   Switch,
   Chip,
   IconButton,
   Searchbar,
-  useTheme,
-  Surface,
-  Menu,
   Divider,
-} from 'react-native-paper';
+} from '@shared/components/ui';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store/rootStore';
 import { addStudent, updateStudent, deleteStudent } from '@features/wtregistry/store/wtRegistrySlice';
 import { WTStudent } from '../types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 
 export function StudentsTab() {
   const dispatch = useDispatch<AppDispatch>();
-  const theme = useTheme();
+  const { colors } = useAppTheme();
   const { students, loading } = useSelector((state: RootState) => state.wtRegistry);
 
   const [showDialog, setShowDialog] = useState(false);
@@ -231,8 +228,8 @@ export function StudentsTab() {
       }}
       activeOpacity={0.7}
     >
-      <Card style={[styles.studentCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
-        <Card.Content style={styles.cardContent}>
+      <Card style={styles.studentCard} variant="outlined">
+        <CardContent style={styles.cardContent}>
           <View style={styles.studentHeader}>
             <View style={styles.studentPhotoContainer}>
               {student.photoUri ? (
@@ -244,18 +241,14 @@ export function StudentsTab() {
               )}
             </View>
             <View style={styles.studentInfo}>
-              <Text variant="titleMedium" style={styles.studentName}>
+              <Text style={[textStyles.bodyLarge, styles.studentName, { color: colors.foreground }]}>
                 {student.name}
               </Text>
               <Chip
-                mode="outlined"
-                style={[
-                  styles.statusChip,
-                  { backgroundColor: student.isActive ? theme.colors.primaryContainer : theme.colors.errorContainer },
-                ]}
-                textStyle={{
-                  color: student.isActive ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
-                }}
+                variant="filled"
+                color={student.isActive ? 'success' : 'error'}
+                size="sm"
+                style={styles.statusChip}
               >
                 {student.isActive ? 'Active' : 'Inactive'}
               </Chip>
@@ -263,39 +256,36 @@ export function StudentsTab() {
           </View>
 
           {student.phoneNumber && (
-            <Text variant="bodySmall" style={styles.contactInfo}>
+            <Text style={[textStyles.bodySmall, styles.contactInfo, { color: colors.foregroundMuted }]}>
               📞 {student.phoneNumber}
             </Text>
           )}
           {student.email && (
-            <Text variant="bodySmall" style={styles.contactInfo}>
+            <Text style={[textStyles.bodySmall, styles.contactInfo, { color: colors.foregroundMuted }]}>
               ✉️ {student.email}
             </Text>
           )}
           {student.instagram && (
-            <Text variant="bodySmall" style={styles.contactInfo}>
+            <Text style={[textStyles.bodySmall, styles.contactInfo, { color: colors.foregroundMuted }]}>
               📱 @{student.instagram}
             </Text>
           )}
-        </Card.Content>
+        </CardContent>
       </Card>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <Surface style={styles.header} elevation={2}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <Searchbar
           placeholder="Search students..."
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.searchbar}
         />
-        <View style={styles.filterContainer}>
-          <Text variant="bodyMedium">Show active only</Text>
-          <Switch value={showActiveOnly} onValueChange={setShowActiveOnly} />
-        </View>
-      </Surface>
+        <Switch value={showActiveOnly} onChange={setShowActiveOnly} label="Show active only" />
+      </View>
 
       <FlashList<WTStudent>
         data={filteredStudents}
@@ -309,222 +299,203 @@ export function StudentsTab() {
       <AddFab style={styles.fab} onPress={() => handleOpenDialog()} />
 
       {/* Detailed Student Modal */}
-      <Portal>
-        <Dialog visible={showDetailModal} onDismiss={() => setShowDetailModal(false)}>
-          <Dialog.Content>
-            {selectedStudent && (
-              <View style={styles.detailContent}>
-                {/* Photo */}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (selectedStudent.photoUri) {
-                      setShowFullscreenPhoto(true);
-                    }
-                  }}
-                  style={styles.detailPhotoContainer}
-                >
-                  {selectedStudent.photoUri ? (
-                    <Image source={{ uri: selectedStudent.photoUri }} style={styles.detailPhoto} />
-                  ) : (
-                    <View style={styles.detailDefaultPhoto}>
-                      <Ionicons name="person" size={60} color="#666" />
-                    </View>
-                  )}
-                </TouchableOpacity>
+      <Dialog visible={showDetailModal} onClose={() => setShowDetailModal(false)}>
+        {selectedStudent && (
+          <View style={styles.detailContent}>
+            {/* Photo */}
+            <TouchableOpacity
+              onPress={() => {
+                if (selectedStudent.photoUri) {
+                  setShowFullscreenPhoto(true);
+                }
+              }}
+              style={styles.detailPhotoContainer}
+            >
+              {selectedStudent.photoUri ? (
+                <Image source={{ uri: selectedStudent.photoUri }} style={styles.detailPhoto} />
+              ) : (
+                <View style={styles.detailDefaultPhoto}>
+                  <Ionicons name="person" size={60} color="#666" />
+                </View>
+              )}
+            </TouchableOpacity>
 
-                {/* Name */}
-                <Text variant="headlineSmall" style={styles.detailName}>
-                  {selectedStudent.name}
+            {/* Name */}
+            <Text style={[textStyles.h3, styles.detailName, { color: colors.foreground }]}>
+              {selectedStudent.name}
+            </Text>
+
+            {/* Contact Info */}
+            <View style={styles.detailInfo}>
+              {selectedStudent.phoneNumber && (
+                <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                  Phone: {selectedStudent.phoneNumber}
                 </Text>
+              )}
+              {selectedStudent.email && (
+                <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                  Email: {selectedStudent.email}
+                </Text>
+              )}
+              {selectedStudent.instagram && (
+                <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                  Instagram: @{selectedStudent.instagram}
+                </Text>
+              )}
+              <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
+              </Text>
+              <Text style={[textStyles.body, styles.detailText, { color: colors.foregroundMuted }]}>
+                Registration: Registered
+              </Text>
+            </View>
 
-                {/* Contact Info */}
-                <View style={styles.detailInfo}>
-                  {selectedStudent.phoneNumber && (
-                    <Text variant="bodyMedium" style={styles.detailText}>
-                      Phone: {selectedStudent.phoneNumber}
-                    </Text>
-                  )}
-                  {selectedStudent.email && (
-                    <Text variant="bodyMedium" style={styles.detailText}>
-                      Email: {selectedStudent.email}
-                    </Text>
-                  )}
-                  {selectedStudent.instagram && (
-                    <Text variant="bodyMedium" style={styles.detailText}>
-                      Instagram: @{selectedStudent.instagram}
-                    </Text>
-                  )}
-                  <Text variant="bodyMedium" style={styles.detailText}>
-                    Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.detailText}>
-                    Registration: Registered
-                  </Text>
-                </View>
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              {selectedStudent.phoneNumber && (
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
+                  onPress={() => handleCall(selectedStudent.phoneNumber!)}
+                >
+                  <Ionicons name="call" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+              {selectedStudent.phoneNumber && (
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#25D366' }]}
+                  onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
+                >
+                  <Ionicons name="logo-whatsapp" size={24} color="white" />
+                </TouchableOpacity>
+              )}
 
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                  {selectedStudent.phoneNumber && (
-                    <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-                      onPress={() => handleCall(selectedStudent.phoneNumber!)}
-                    >
-                      <Ionicons name="call" size={24} color="white" />
-                    </TouchableOpacity>
-                  )}
-                  {selectedStudent.phoneNumber && (
-                    <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: '#25D366' }]}
-                      onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
-                    >
-                      <Ionicons name="logo-whatsapp" size={24} color="white" />
-                    </TouchableOpacity>
-                  )}
-
-                  {selectedStudent.instagram && (
-                    <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: '#E4405F' }]}
-                      onPress={() => handleInstagram(selectedStudent.instagram!)}
-                    >
-                      <Ionicons name="logo-instagram" size={24} color="white" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            )}
-          </Dialog.Content>
-        </Dialog>
-      </Portal>
+              {selectedStudent.instagram && (
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#E4405F' }]}
+                  onPress={() => handleInstagram(selectedStudent.instagram!)}
+                >
+                  <Ionicons name="logo-instagram" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+      </Dialog>
 
       {/* Edit/Add Student Dialog */}
-      <Portal>
-        <Dialog visible={showDialog} onDismiss={handleCloseDialog} style={{ maxHeight: '80%' }}>
-          <Dialog.Title>{editingStudent ? 'Edit Student' : 'Add Student'}</Dialog.Title>
-          <Dialog.Content>
-            <ScrollView style={{ maxHeight: 400 }}>
-              {/* Photo Section */}
-              <View style={styles.photoSection}>
-                <TouchableOpacity
-                  onLongPress={handlePhotoOptions}
-                  onPress={() => {
-                    if (formData.photoUri) {
-                      setShowFullscreenPhoto(true);
-                    }
-                  }}
-                  style={styles.editPhotoContainer}
-                >
-                  {formData.photoUri ? (
-                    <Image source={{ uri: formData.photoUri }} style={styles.editPhoto} />
-                  ) : (
-                    <View style={styles.editDefaultPhoto}>
-                      <Ionicons name="person" size={40} color="#666" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <Text variant="bodySmall" style={styles.photoHint}>
-                  Long press for photo options
-                </Text>
-              </View>
+      <Dialog
+        visible={showDialog}
+        onClose={handleCloseDialog}
+        title={editingStudent ? 'Edit Student' : 'Add Student'}
+      >
+        <ScrollView style={{ maxHeight: 400 }}>
+          {/* Photo Section */}
+          <View style={styles.photoSection}>
+            <TouchableOpacity
+              onLongPress={handlePhotoOptions}
+              onPress={() => {
+                if (formData.photoUri) {
+                  setShowFullscreenPhoto(true);
+                }
+              }}
+              style={styles.editPhotoContainer}
+            >
+              {formData.photoUri ? (
+                <Image source={{ uri: formData.photoUri }} style={styles.editPhoto} />
+              ) : (
+                <View style={styles.editDefaultPhoto}>
+                  <Ionicons name="person" size={40} color="#666" />
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text style={[textStyles.bodySmall, styles.photoHint, { color: colors.foregroundMuted }]}>
+              Long press for photo options
+            </Text>
+          </View>
 
-              <TextInput
-                label="Name *"
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                style={styles.input}
-                mode="outlined"
-              />
-              <TextInput
-                label="Phone Number"
-                value={formData.phoneNumber}
-                onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="phone-pad"
-              />
-              <TextInput
-                label="Email"
-                value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TextInput
-                label="Instagram"
-                value={formData.instagram}
-                onChangeText={(text) => setFormData({ ...formData, instagram: text })}
-                style={styles.input}
-                mode="outlined"
-                autoCapitalize="none"
-              />
-              <TextInput
-                label="Notes"
-                value={formData.notes}
-                onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                style={[styles.input, styles.notesInput]}
-                mode="outlined"
-                multiline
-                numberOfLines={4}
-                scrollEnabled={true}
-              />
-              <View style={styles.switchContainer}>
-                <Text variant="bodyMedium">Active</Text>
-                <Switch
-                  value={formData.isActive}
-                  onValueChange={(value) => setFormData({ ...formData, isActive: value })}
-                />
-              </View>
-            </ScrollView>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleCloseDialog}>Cancel</Button>
-            <Button onPress={handleSave} mode="contained">
-              {editingStudent ? 'Save' : 'Add'}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+          <Input
+            label="Name *"
+            value={formData.name}
+            onChangeText={(text) => setFormData({ ...formData, name: text })}
+          />
+          <Input
+            label="Phone Number"
+            value={formData.phoneNumber}
+            onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+            keyboardType="phone-pad"
+          />
+          <Input
+            label="Email"
+            value={formData.email}
+            onChangeText={(text) => setFormData({ ...formData, email: text })}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Instagram"
+            value={formData.instagram}
+            onChangeText={(text) => setFormData({ ...formData, instagram: text })}
+            autoCapitalize="none"
+          />
+          <Input
+            label="Notes"
+            value={formData.notes}
+            onChangeText={(text) => setFormData({ ...formData, notes: text })}
+            multiline
+            numberOfLines={4}
+          />
+          <Switch
+            value={formData.isActive}
+            onChange={(value) => setFormData({ ...formData, isActive: value })}
+            label="Active"
+          />
+        </ScrollView>
+        <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[4], justifyContent: 'flex-end' }}>
+          <Button variant="ghost" onPress={handleCloseDialog}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave}>
+            {editingStudent ? 'Save' : 'Add'}
+          </Button>
+        </View>
+      </Dialog>
 
       {/* Photo Options Dialog */}
-      <Portal>
-        <Dialog visible={showPhotoOptions} onDismiss={() => setShowPhotoOptions(false)}>
-          <Dialog.Title>Photo Options</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">What would you like to do with this photo?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleViewPhoto}>View Photo</Button>
-            <Button onPress={handleChangePhoto}>Change Photo</Button>
-            <Button onPress={handleRemovePhoto} textColor="red">
-              Remove Photo
+      <Dialog
+        visible={showPhotoOptions}
+        onClose={() => setShowPhotoOptions(false)}
+        title="Photo Options"
+        description="What would you like to do with this photo?"
+      >
+        <View style={{ flexDirection: 'column', gap: spacing[2], marginTop: spacing[4] }}>
+          <Button variant="outline" fullWidth onPress={handleViewPhoto}>
+            View Photo
+          </Button>
+          <Button variant="outline" fullWidth onPress={handleChangePhoto}>
+            Change Photo
+          </Button>
+          <Button variant="destructive" fullWidth onPress={handleRemovePhoto}>
+            Remove Photo
+          </Button>
+          {formData.instagram?.trim() && (
+            <Button variant="secondary" fullWidth onPress={handleDownloadFromInstagram}>
+              Download from Instagram
             </Button>
-            {formData.instagram?.trim() && (
-              <Button onPress={handleDownloadFromInstagram} textColor="primary">
-                Download from Instagram
-              </Button>
-            )}
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+          )}
+        </View>
+      </Dialog>
 
       {/* Fullscreen Photo Modal */}
-      <Portal>
-        <Dialog
-          visible={showFullscreenPhoto}
-          onDismiss={() => setShowFullscreenPhoto(false)}
-          style={styles.fullscreenDialog}
-        >
-          <Dialog.Content style={styles.fullscreenContent}>
-            {selectedStudent?.photoUri && (
-              <Image source={{ uri: selectedStudent.photoUri }} style={styles.fullscreenPhoto} resizeMode="contain" />
-            )}
-            {formData.photoUri && (
-              <Image source={{ uri: formData.photoUri }} style={styles.fullscreenPhoto} resizeMode="contain" />
-            )}
-          </Dialog.Content>
-        </Dialog>
-      </Portal>
+      <Dialog visible={showFullscreenPhoto} onClose={() => setShowFullscreenPhoto(false)}>
+        <View style={styles.fullscreenContent}>
+          {selectedStudent?.photoUri && (
+            <Image source={{ uri: selectedStudent.photoUri }} style={styles.fullscreenPhoto} resizeMode="contain" />
+          )}
+          {formData.photoUri && (
+            <Image source={{ uri: formData.photoUri }} style={styles.fullscreenPhoto} resizeMode="contain" />
+          )}
+        </View>
+      </Dialog>
     </View>
   );
 }
@@ -539,12 +510,6 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     marginBottom: 8,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
   },
   list: {
     padding: 16,
@@ -589,22 +554,12 @@ const styles = StyleSheet.create({
   },
   contactInfo: {
     marginBottom: 2,
-    color: '#666',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
   },
   // Detail modal styles
   detailContent: {
@@ -672,14 +627,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   photoHint: {
-    color: '#666',
     fontStyle: 'italic',
   },
   // Fullscreen photo styles
-  fullscreenDialog: {
-    margin: 0,
-    padding: 0,
-  },
   fullscreenContent: {
     padding: 0,
     backgroundColor: 'black',
@@ -687,8 +637,5 @@ const styles = StyleSheet.create({
   fullscreenPhoto: {
     width: '100%',
     height: 400,
-  },
-  notesInput: {
-    minHeight: 100, // Ensure a minimum height for multiline text input
   },
 });

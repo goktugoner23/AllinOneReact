@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, TextInput, Button, HelperText } from 'react-native-paper';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Input, Button } from '@shared/components/ui';
 import { Investment } from '../types/Investment';
+import { useColors, spacing, textStyles, radius } from '@shared/theme';
 
 interface InvestmentFormProps {
   initial?: Partial<Investment>;
@@ -11,6 +12,7 @@ interface InvestmentFormProps {
 }
 
 export const InvestmentForm: React.FC<InvestmentFormProps> = ({ initial = {}, onSubmit, onCancel, submitLabel }) => {
+  const colors = useColors();
   const [name, setName] = useState(initial.name || '');
   const [amount, setAmount] = useState(initial.amount?.toString() || '');
   const [type, setType] = useState(initial.type || '');
@@ -42,55 +44,67 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({ initial = {}, on
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.form}>
-      <Text variant="titleMedium" style={styles.title}>
-        {submitLabel} Investment
-      </Text>
-      <TextInput label="Name*" value={name} onChangeText={setName} mode="outlined" style={styles.input} />
-      <TextInput
+    <ScrollView contentContainerStyle={[styles.form, { backgroundColor: colors.card }]}>
+      <Text style={[styles.title, { color: colors.foreground }]}>{submitLabel} Investment</Text>
+      <Input
+        label="Name*"
+        value={name}
+        onChangeText={setName}
+        containerStyle={styles.input}
+      />
+      <Input
         label="Amount*"
         value={amount}
         onChangeText={setAmount}
-        mode="outlined"
-        style={styles.input}
         keyboardType="numeric"
+        containerStyle={styles.input}
       />
-      <TextInput label="Type*" value={type} onChangeText={setType} mode="outlined" style={styles.input} />
-      <TextInput
+      <Input
+        label="Type*"
+        value={type}
+        onChangeText={setType}
+        containerStyle={styles.input}
+      />
+      <Input
         label="Description"
         value={description}
         onChangeText={setDescription}
-        mode="outlined"
-        style={styles.input}
+        containerStyle={styles.input}
       />
-      <TextInput label="Image URI" value={imageUri} onChangeText={setImageUri} mode="outlined" style={styles.input} />
-      <TextInput label="Date" value={date} onChangeText={setDate} mode="outlined" style={styles.input} />
-      <TextInput
+      <Input
+        label="Image URI"
+        value={imageUri}
+        onChangeText={setImageUri}
+        containerStyle={styles.input}
+      />
+      <Input
+        label="Date"
+        value={date}
+        onChangeText={setDate}
+        containerStyle={styles.input}
+      />
+      <Input
         label="Profit/Loss"
         value={profitLoss}
         onChangeText={setProfitLoss}
-        mode="outlined"
-        style={styles.input}
         keyboardType="numeric"
+        containerStyle={styles.input}
       />
-      <TextInput
+      <Input
         label="Current Value"
         value={currentValue}
         onChangeText={setCurrentValue}
-        mode="outlined"
-        style={styles.input}
         keyboardType="numeric"
+        containerStyle={styles.input}
       />
       {error ? (
-        <HelperText type="error" visible={!!error}>
-          {error}
-        </HelperText>
+        <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
       ) : null}
       <View style={styles.buttonRow}>
-        <Button mode="contained" onPress={handleSubmit} style={styles.button}>
+        <Button variant="primary" onPress={handleSubmit} style={styles.button}>
           {submitLabel}
         </Button>
-        <Button mode="outlined" onPress={onCancel} style={styles.button}>
+        <Button variant="outline" onPress={onCancel} style={styles.button}>
           Cancel
         </Button>
       </View>
@@ -100,26 +114,31 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({ initial = {}, on
 
 const styles = StyleSheet.create({
   form: {
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    padding: spacing[3],
+    borderRadius: radius.lg,
     minWidth: 250,
   },
   title: {
-    marginBottom: 8,
+    ...textStyles.h4,
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   input: {
-    marginBottom: 8,
+    marginBottom: spacing[2],
+  },
+  errorText: {
+    ...textStyles.bodySmall,
+    marginBottom: spacing[2],
+    textAlign: 'center',
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
-    gap: 8,
+    marginTop: spacing[3],
+    gap: spacing[2],
   },
   button: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: spacing[1],
   },
 });

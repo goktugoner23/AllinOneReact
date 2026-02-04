@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, Chip } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors, spacing, textStyles } from '@shared/theme';
+import { Chip } from '@shared/components/ui';
 
 interface InstagramHeaderProps {
   title: string;
@@ -31,11 +31,10 @@ const InstagramHeader: React.FC<InstagramHeaderProps> = ({
 
       {showHealthStatus && (
         <Chip
-          mode="outlined"
-          compact
-          icon={isHealthy ? 'check-circle' : 'alert-circle'}
-          style={[styles.healthChip, { borderColor: isHealthy ? colors.success : colors.destructive }]}
-          textStyle={[styles.healthText, { color: isHealthy ? colors.success : colors.destructive }]}
+          variant="outlined"
+          size="sm"
+          color={isHealthy ? 'success' : 'error'}
+          leftIcon={<Ionicons name={isHealthy ? 'checkmark-circle' : 'alert-circle'} size={14} color={isHealthy ? colors.success : colors.destructive} />}
         >
           {isHealthy ? 'Online' : 'Offline'}
         </Chip>
@@ -69,12 +68,6 @@ const styles = StyleSheet.create({
   subtitle: {
     ...textStyles.bodySmall,
     marginTop: spacing[0.5],
-  },
-  healthChip: {
-    height: 28,
-  },
-  healthText: {
-    ...textStyles.labelSmall,
   },
 });
 

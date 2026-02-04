@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, ScrollView } from 'react-native';
-import { Text, TextInput } from 'react-native-paper';
+import { View, ScrollView, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
 import { startWorkout, deleteWorkout } from '@features/workout/store/workoutSlice';
@@ -16,6 +15,7 @@ import {
   SimpleSelect,
   Dialog,
   AlertDialog,
+  Input,
 } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { Program } from '@features/workout/types/Workout';
@@ -145,12 +145,11 @@ export default function WorkoutExercise() {
           <Text style={[textStyles.h4, { color: colors.foreground }]}>Filter Workouts</Text>
         </CardHeader>
         <CardContent style={{ gap: spacing[3] }}>
-          <TextInput
-            mode="outlined"
+          <Input
             placeholder="Search by program name"
             value={search}
             onChangeText={setSearch}
-            style={{ backgroundColor: colors.surface }}
+            containerStyle={{ marginBottom: 0 }}
           />
           <SimpleSelect
             label="Time Period"

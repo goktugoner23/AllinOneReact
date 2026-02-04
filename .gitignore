@@ -207,5 +207,12 @@ firebase_rules/
 
 android/google-services.json
 
-.claude
+# Claude Code
+.claude/
+.claudeignore
+*.claude-session
+
+# Documentation
 documentation
+CLAUDE.md
+ui-tasks.md

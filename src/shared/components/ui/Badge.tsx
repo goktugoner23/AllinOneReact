@@ -15,7 +15,7 @@ export function Badge({ children, variant = 'default', size = 'md', style }: Bad
   const getColors = (): { bg: string; text: string; border?: string } => {
     switch (variant) {
       case 'default':
-        return { bg: colors.primary, text: colors.primaryForeground };
+        return { bg: colors.primaryMuted, text: colors.primary };
       case 'secondary':
         return { bg: colors.secondary, text: colors.secondaryForeground };
       case 'success':
@@ -61,7 +61,7 @@ export function Badge({ children, variant = 'default', size = 'md', style }: Bad
   const badgeTextStyle: TextStyle = {
     color: badgeColors.text,
     fontSize: sizing.fontSize,
-    fontWeight: '600',
+    fontWeight: '500',
     lineHeight: sizing.fontSize * 1.2,
   };
 

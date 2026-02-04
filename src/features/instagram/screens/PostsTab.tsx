@@ -1,7 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, RefreshControl, StyleSheet } from 'react-native';
+import { View, RefreshControl, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Text, Card, ActivityIndicator, Chip, IconButton } from 'react-native-paper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
@@ -17,6 +16,7 @@ import {
 } from '@features/instagram/utils/instagramHelpers';
 import InstagramImage from '@features/instagram/components/InstagramImage';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { Card, CardContent, Chip, IconButton } from '@shared/components/ui';
 
 const PostsTab: React.FC = () => {
   const colors = useColors();
@@ -72,11 +72,11 @@ const PostsTab: React.FC = () => {
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
         <IconButton
-          icon="refresh"
-          size={24}
+          icon="refresh-outline"
+          size="md"
           onPress={handleRetry}
           style={styles.retryButton}
-          iconColor={colors.primary}
+          color={colors.primary}
         />
         <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
       </View>
@@ -100,10 +100,9 @@ const PostsTab: React.FC = () => {
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>{posts.count} Posts</Text>
           <Chip
-            mode="outlined"
-            compact
-            style={[styles.sourceChip, { borderColor: colors.border }]}
-            textStyle={[textStyles.caption, { color: colors.foregroundMuted }]}
+            variant="outlined"
+            size="sm"
+            style={styles.sourceChip}
           >
             {posts.source}
           </Chip>
@@ -135,8 +134,8 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
   const colors = useColors();
 
   return (
-    <Card style={[styles.postCard, { backgroundColor: colors.surface }, shadow.md]} onPress={onPress}>
-      <Card.Content>
+    <Card style={[styles.postCard, shadow.md]} onPress={onPress}>
+      <CardContent>
         {/* Post header */}
         <View style={styles.postHeader}>
           <View style={styles.postInfo}>
@@ -144,11 +143,10 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
               {post.formattedDate || formatRelativeTime(post.timestamp)}
             </Text>
             <Chip
-              mode="outlined"
-              compact
-              icon={getMediaTypeIcon(post.mediaType)}
-              style={[styles.mediaTypeChip, { borderColor: colors.border }]}
-              textStyle={[textStyles.caption, { color: colors.foregroundMuted }]}
+              variant="outlined"
+              size="sm"
+              style={styles.mediaTypeChip}
+              leftIcon={<Ionicons name={getMediaTypeIcon(post.mediaType)} size={12} color={colors.mutedForeground} />}
             >
               {post.mediaType}
             </Chip>
@@ -207,10 +205,9 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
             {post.hashtags.slice(0, 3).map((hashtag, index) => (
               <Chip
                 key={index}
-                mode="outlined"
-                compact
-                style={[styles.hashtagChip, { borderColor: colors.border }]}
-                textStyle={[styles.hashtagText, { color: colors.foregroundMuted }]}
+                variant="outlined"
+                size="sm"
+                style={styles.hashtagChip}
               >
                 {formatHashtagForDisplay(hashtag)}
               </Chip>
@@ -222,7 +219,7 @@ const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.
             ) : null}
           </View>
         ) : null}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 });
