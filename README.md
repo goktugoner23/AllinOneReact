@@ -28,6 +28,15 @@ A comprehensive personal finance and life management mobile application built wi
 - **Save to Gallery**: Camera roll integration for saving media
 - **Avatar Caching**: Efficient avatar storage for tracked profiles
 
+### GPT AI Assistant
+- **AI-Powered Chat**: Full conversational AI assistant powered by OpenAI GPT-5.2
+- **App Control**: AI can read, create, update, and delete data across all features
+- **Multi-Conversation**: Persistent chat history with conversation management (like ChatGPT)
+- **Smart Navigation**: Ask the AI to take you to any screen in the app
+- **Interactive Prompts**: AI can present choices and confirmations for ambiguous requests
+- **Business Logic**: Enforces app rules (e.g., paid registration auto-creates income transaction)
+- **Bilingual**: Responds in Turkish or English, matching the user's language
+
 ### Workout Module
 - **Workout Tracking**: Track exercises and workout sessions
 - **Stopwatch**: Built-in timer for workout duration
@@ -104,6 +113,12 @@ src/
 │   │   └── types/
 │   ├── history/                # History feature
 │   │   ├── screens/
+│   │   └── types/
+│   ├── gpt/                   # GPT AI Assistant
+│   │   ├── screens/
+│   │   ├── components/
+│   │   ├── services/
+│   │   ├── store/
 │   │   └── types/
 │   ├── instagram/              # Instagram profiler module
 │   │   ├── screens/
@@ -264,6 +279,8 @@ import { useAppTheme } from '@App';
 - `tasks` - Task items
 - `taskGroups` - Task group definitions
 - `workouts` - Workout session data
+- `ai_conversations` - GPT AI chat conversations
+- `ai_conversations/{id}/messages` - Chat message history (subcollection)
 
 ### External API Integration
 
@@ -381,19 +398,14 @@ npx react-native link react-native-vector-icons
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Current Version: v2.1.0 (Unreleased)
+### Current Version: v2.2.0 (Unreleased)
+- **GPT AI Assistant**: AI-powered chat with full app control via OpenAI GPT-5.2
+- Multi-conversation persistence, 9 tool handlers, navigation and interaction tools
+- Shared Firebase Admin init (backend), Firestore composite indexes
 - **Soft Minimal UI Design**: Complete visual refresh with indigo primary color
 - **React Native Paper Removal**: Migrated to custom shadcn-style components
 - 5 new UI components: Appbar, Searchbar, Snackbar, Checkbox, Divider
 - Unified theme system with improved dark/light mode support
-- TanStack Query integration
-- NativeWind/Tailwind CSS styling
-- Feature-first architecture
-- Instagram profiler module
-- Workout tracking module
-- COIN-M futures support
-- Enhanced TypeScript strict mode
-- Fixed all npm audit vulnerabilities
 
 ### Previous Versions
 - **v2.0.0**: TanStack Query, NativeWind, feature-first architecture
@@ -418,4 +430,4 @@ For support and questions:
 
 ---
 
-**Built with React Native, Firebase, TanStack Query, NativeWind, and Skia**
+**Built with React Native, Firebase, TanStack Query, NativeWind, Skia, and OpenAI**
