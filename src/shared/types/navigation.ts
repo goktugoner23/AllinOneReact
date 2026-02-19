@@ -20,6 +20,7 @@ export type MainDrawerParamList = {
   Notes: undefined;
   Tasks: undefined;
   Instagram: undefined;
+  GPT: undefined;
 };
 
 // Transactions Tab Parameter List

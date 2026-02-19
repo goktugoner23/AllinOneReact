@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GPT AI Assistant**: Full-featured AI chat drawer screen powered by OpenAI GPT-5.2
+  - Multi-conversation support with Firestore persistence (like ChatGPT web app)
+  - 9 AI tools for full CRUD on all Firestore collections (transactions, tasks, notes, calendar, WT registry, workout)
+  - Navigation tool: AI can direct users to any app screen
+  - User interaction tools: AI can present choice prompts and confirmation dialogs
+  - General info tool: data summary, app info, current time
+  - Auto-generated conversation titles after first exchange
+  - Business logic enforcement (paid registration → auto-create transaction, group completion tracking)
+  - OpenAI function calling tool loop with up to 50 iterations per request
+  - Backend: new `ai-chat` Fastify module at `/api/ai-chat/*` with 6 REST endpoints
+  - Frontend: GPTScreen with ChatBubble, ChatInput, TypingIndicator, UserChoiceCard, ConfirmationCard, ConversationList components
+  - Redux slice for conversation state management
+  - 120s API timeout for long-running AI calls
+  - AI chat endpoints exempt from rate limiting
+- **Shared Firebase Admin Init**: Extracted Firebase Admin SDK initialization into `src/common/firebase/` shared utility (backend)
+- **Firestore Composite Indexes**: Added indexes for `transactions(category+date)` and `tasks(groupId+date)`
 - **Soft Minimal UI Design System**: Complete UI overhaul with new aesthetic
   - New color palette: Indigo primary (#6366F1 light, #818CF8 dark)
   - Softer backgrounds (#FAFBFC light, #0C0D10 dark)
