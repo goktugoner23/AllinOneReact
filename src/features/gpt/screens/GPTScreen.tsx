@@ -62,8 +62,8 @@ export default function GPTScreen() {
   }, [lastActions, navigation, queryClient]);
 
   const handleSend = useCallback(
-    (text: string) => {
-      dispatch(sendMessage({ message: text, conversationId: activeConversationId || undefined }));
+    (text: string, imageUrls?: string[]) => {
+      dispatch(sendMessage({ message: text, conversationId: activeConversationId || undefined, imageUrls }));
     },
     [dispatch, activeConversationId],
   );

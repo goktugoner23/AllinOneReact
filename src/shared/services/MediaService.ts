@@ -28,6 +28,7 @@ export class MediaService {
     type: MediaType,
     originalName?: string,
     onProgress?: (progress: number) => void,
+    folder: string = 'notes-media',
   ): Promise<MediaUploadResult> {
     try {
       // Convert URI to blob
@@ -36,7 +37,7 @@ export class MediaService {
 
       // Generate file name
       const fileName = this.generateFileName(type, originalName);
-      const storageRef = ref(getStorageInstance(), `notes-media/${fileName}`);
+      const storageRef = ref(getStorageInstance(), `${folder}/${fileName}`);
 
       // Create upload task
       const uploadTask = uploadBytesResumable(storageRef, blob);

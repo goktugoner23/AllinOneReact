@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { useColors } from '@shared/theme';
 import { ChatMessage } from '../types/GPT';
 
@@ -22,6 +22,13 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
           },
         ]}
       >
+        {message.imageUrls && message.imageUrls.length > 0 && (
+          <View style={styles.imageContainer}>
+            {message.imageUrls.map((uri, idx) => (
+              <Image key={idx} source={{ uri }} style={styles.messageImage} resizeMode="cover" />
+            ))}
+          </View>
+        )}
         <Text
           style={[
             styles.text,
@@ -57,5 +64,16 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 15,
     lineHeight: 21,
+  },
+  imageContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  messageImage: {
+    width: 180,
+    height: 140,
+    borderRadius: 8,
   },
 });
