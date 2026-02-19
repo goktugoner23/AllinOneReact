@@ -5,6 +5,7 @@ export interface AIChatAction {
   choiceId?: string;
   question?: string;
   options?: string[];
+  allowFreeText?: boolean;
   collection?: string;
 }
 
@@ -19,6 +20,7 @@ export interface AIChatResponse {
 export interface AIChatMessageRequest {
   message: string;
   conversationId?: string;
+  imageUrls?: string[];
 }
 
 export interface AIChatChoiceResponseRequest {
@@ -55,6 +57,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  imageUrls?: string[];
   createdAt: string;
 }
 
@@ -62,6 +65,7 @@ export interface PendingChoice {
   choiceId: string;
   question: string;
   options: string[];
+  allowFreeText?: boolean;
 }
 
 export interface PendingConfirmation {

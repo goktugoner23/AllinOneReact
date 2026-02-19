@@ -66,9 +66,9 @@ export const loadConversation = createAsyncThunk(
 
 export const sendMessage = createAsyncThunk(
   'gpt/sendMessage',
-  async ({ message, conversationId }: { message: string; conversationId?: string }, { rejectWithValue }) => {
+  async ({ message, conversationId, imageUrls }: { message: string; conversationId?: string; imageUrls?: string[] }, { rejectWithValue }) => {
     try {
-      const response = await gptApiService.sendMessage({ message, conversationId });
+      const response = await gptApiService.sendMessage({ message, conversationId, imageUrls });
       return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to send message');
@@ -165,6 +165,7 @@ const gptSlice = createSlice({
           id: `temp-${Date.now()}`,
           role: 'user',
           content: action.meta.arg.message,
+          imageUrls: action.meta.arg.imageUrls,
           createdAt: new Date().toISOString(),
         };
         state.messages.push(userMsg);
@@ -189,6 +190,7 @@ const gptSlice = createSlice({
               choiceId: act.choiceId,
               question: act.question || '',
               options: act.options || [],
+              allowFreeText: act.allowFreeText,
             };
           }
           if (act.type === 'confirmation' && act.choiceId) {
