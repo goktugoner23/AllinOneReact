@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle, LayoutAnimation, Platform, UIManager } from 'react-native';
+import Animated, { useAnimatedStyle, withSpring, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useColors, radius, spacing, textStyles, shadow } from '@shared/theme';
 
 // Enable LayoutAnimation on Android
@@ -11,6 +12,7 @@ export interface SegmentedControlOption<T> {
   value: T;
   label: string;
   icon?: React.ReactNode;
+  activeColor?: string;
 }
 
 export interface SegmentedControlProps<T> {
@@ -42,9 +44,9 @@ export function SegmentedControl<T extends string | number>({
   };
 
   const sizeStyles = {
-    sm: { height: 32, paddingH: spacing[3], fontSize: textStyles.buttonSmall.fontSize },
-    md: { height: 40, paddingH: spacing[4], fontSize: textStyles.button.fontSize },
-    lg: { height: 48, paddingH: spacing[5], fontSize: textStyles.buttonLarge.fontSize },
+    sm: { height: 36, paddingH: spacing[3], fontSize: textStyles.buttonSmall.fontSize },
+    md: { height: 44, paddingH: spacing[4], fontSize: textStyles.button.fontSize },
+    lg: { height: 52, paddingH: spacing[5], fontSize: textStyles.buttonLarge.fontSize },
   };
 
   const currentSize = sizeStyles[size];
@@ -52,7 +54,7 @@ export function SegmentedControl<T extends string | number>({
   const containerStyle: ViewStyle = {
     flexDirection: 'row',
     backgroundColor: colors.muted,
-    borderRadius: variant === 'pills' ? radius.full : radius.lg,
+    borderRadius: variant === 'pills' ? radius.full : radius.xl,
     padding: spacing[1],
     ...(fullWidth && { alignSelf: 'stretch' }),
   };
@@ -61,6 +63,7 @@ export function SegmentedControl<T extends string | number>({
     <View style={[containerStyle, style]}>
       {options.map((option, index) => {
         const isSelected = option.value === value;
+        const activeColor = option.activeColor;
 
         const segmentStyle: ViewStyle = {
           flex: fullWidth ? 1 : undefined,
@@ -69,16 +72,21 @@ export function SegmentedControl<T extends string | number>({
           justifyContent: 'center',
           height: currentSize.height - spacing[2],
           paddingHorizontal: currentSize.paddingH,
-          borderRadius: variant === 'pills' ? radius.full : radius.md,
-          backgroundColor: isSelected ? colors.background : 'transparent',
+          borderRadius: variant === 'pills' ? radius.full : radius.lg,
+          backgroundColor: isSelected
+            ? (activeColor ? `${activeColor}15` : colors.background)
+            : 'transparent',
+          borderWidth: isSelected ? 1.5 : 0,
+          borderColor: isSelected ? (activeColor || colors.primary) : 'transparent',
           gap: spacing[2],
-          ...(isSelected && shadow.sm),
         };
 
         const textStyle = {
           fontSize: currentSize.fontSize,
-          fontWeight: isSelected ? ('600' as const) : ('500' as const),
-          color: isSelected ? colors.foreground : colors.mutedForeground,
+          fontWeight: isSelected ? ('600' as const) : ('400' as const),
+          color: isSelected
+            ? (activeColor || colors.foreground)
+            : colors.mutedForeground,
         };
 
         return (

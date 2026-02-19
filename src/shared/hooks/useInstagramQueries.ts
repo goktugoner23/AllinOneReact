@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@shared/lib';
 import { instagramApiService } from '@features/instagram/services/InstagramApiService';
 import {
@@ -8,8 +8,6 @@ import {
   InstagramUserPostsResponse,
   InstagramPostsApiResponse,
   InstagramAnalytics,
-  RAGQueryRequest,
-  RAGQueryResponse,
   HealthStatus,
 } from '@features/instagram/types/Instagram';
 
@@ -79,43 +77,6 @@ export function useInstagramHealth() {
     queryFn: () => instagramApiService.checkInstagramHealth(),
     staleTime: 1000 * 60 * 2, // 2 minutes
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
-  });
-}
-
-// Mutation for RAG query
-export function useRAGQuery() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: RAGQueryRequest) => instagramApiService.queryRAG(request),
-    onSuccess: () => {
-      // Optionally invalidate related queries
-    },
-  });
-}
-
-// Mutation for file upload analysis
-export function useFileAnalysis() {
-  return useMutation({
-    mutationFn: ({
-      fileUri,
-      fileName,
-      mimeType,
-      analysisQuery,
-    }: {
-      fileUri: string;
-      fileName: string;
-      mimeType: string;
-      analysisQuery: string;
-    }) => instagramApiService.uploadFileForAnalysis(fileUri, fileName, mimeType, analysisQuery),
-  });
-}
-
-// Mutation for Instagram URL analysis
-export function useInstagramURLAnalysis() {
-  return useMutation({
-    mutationFn: ({ url, customQuery }: { url: string; customQuery?: string }) =>
-      instagramApiService.analyzeInstagramURL(url, customQuery),
   });
 }
 

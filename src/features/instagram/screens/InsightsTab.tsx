@@ -1,70 +1,66 @@
 import React, { useEffect, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, Text, ActivityIndicator } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramAnalytics, clearError } from '@features/instagram/store/instagramSlice';
 import { formatNumber, getErrorMessage } from '@features/instagram/utils/instagramHelpers';
-import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
-import { Card, CardContent, IconButton } from '@shared/components/ui';
+import { useAppTheme, textStyles, spacing, radius } from '@shared/theme';
+import { Button } from '@shared/components/ui';
 
 const InsightsTab: React.FC = () => {
-  const colors = useColors();
+  const { colors } = useAppTheme();
   const dispatch = useDispatch<AppDispatch>();
 
   const { data: analytics, loading } = useSelector((state: RootState) => state.instagram.analytics);
 
-  // Load analytics on mount
   useEffect(() => {
     if (!analytics) {
       dispatch(fetchInstagramAnalytics());
     }
   }, [dispatch, analytics]);
 
-  // Handle refresh
   const handleRefresh = useCallback(() => {
     dispatch(fetchInstagramAnalytics());
   }, [dispatch]);
 
-  // Handle retry
   const handleRetry = useCallback(() => {
     dispatch(clearError('analytics'));
     dispatch(fetchInstagramAnalytics());
   }, [dispatch]);
 
-  // Render loading state
   if (loading.isLoading && !analytics) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.foreground }]}>Loading Instagram analytics...</Text>
+        <Text style={[textStyles.body, { color: colors.foregroundMuted, marginTop: spacing[3] }]}>
+          Loading insights...
+        </Text>
       </View>
     );
   }
 
-  // Render error state
   if (loading.error && !analytics) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
-        <IconButton
-          icon="refresh-outline"
-          size="md"
-          onPress={handleRetry}
-          style={styles.retryButton}
-          color={colors.primary}
-        />
-        <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
+        <View style={[styles.errorBox, { backgroundColor: colors.destructiveMuted, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.body, { color: colors.destructive, textAlign: 'center' }]}>
+            {getErrorMessage(loading.error)}
+          </Text>
+          <Button variant="outline" onPress={handleRetry} style={{ marginTop: spacing[4] }}>
+            Try Again
+          </Button>
+        </View>
       </View>
     );
   }
 
-  // Render empty state
   if (!analytics) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.emptyText, { color: colors.foreground }]}>No analytics data available</Text>
-        <Text style={[styles.emptySubtext, { color: colors.foregroundMuted }]}>Pull down to refresh</Text>
+        <Text style={[textStyles.h4, { color: colors.foreground }]}>No Data</Text>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
+          Pull to refresh
+        </Text>
       </View>
     );
   }
@@ -76,221 +72,177 @@ const InsightsTab: React.FC = () => {
         <RefreshControl
           refreshing={loading.isLoading}
           onRefresh={handleRefresh}
-          colors={[colors.primary]}
           tintColor={colors.primary}
+          colors={[colors.primary]}
         />
       }
       showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.contentContainer}
     >
-      {/* Account Overview */}
-      <Card style={[styles.card, shadow.md]}>
-        <CardContent>
-          <View style={styles.cardHeader}>
-            <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
-            <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Account Overview</Text>
-          </View>
-          <View style={styles.accountInfo}>
-            <Text style={[styles.username, { color: colors.primary }]}>@{analytics.account.username}</Text>
-            {analytics.account.name && (
-              <Text style={[styles.accountName, { color: colors.foreground }]}>{analytics.account.name}</Text>
-            )}
-          </View>
+      {/* Account Section */}
+      <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+        <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+          Account
+        </Text>
+        <Text style={[textStyles.h3, { color: colors.primary }]}>@{analytics.account.username}</Text>
+        {analytics.account.name && (
+          <Text style={[textStyles.body, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
+            {analytics.account.name}
+          </Text>
+        )}
 
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: colors.foreground }]}>
-                {formatNumber(analytics.account.followersCount)}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.foregroundMuted }]}>Followers</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: colors.foreground }]}>
-                {formatNumber(analytics.account.followsCount)}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.foregroundMuted }]}>Following</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: colors.foreground }]}>
-                {formatNumber(analytics.account.mediaCount)}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.foregroundMuted }]}>Posts</Text>
-            </View>
-          </View>
-        </CardContent>
-      </Card>
+        <View style={[styles.statsRow, { marginTop: spacing[4] }]}>
+          <StatItem label="Followers" value={formatNumber(analytics.account.followersCount)} colors={colors} />
+          <StatItem label="Following" value={formatNumber(analytics.account.followsCount)} colors={colors} />
+          <StatItem label="Posts" value={formatNumber(analytics.account.mediaCount)} colors={colors} />
+        </View>
+      </View>
 
-      {/* Summary Stats */}
-      <Card style={[styles.card, shadow.md]}>
-        <CardContent>
-          <View style={styles.cardHeader}>
-            <Ionicons name="analytics-outline" size={24} color={colors.primary} />
-            <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Performance Summary</Text>
-          </View>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNumber, { color: colors.primary }]}>{analytics.summary.totalPosts}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.foregroundMuted }]}>Total Posts</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNumber, { color: colors.primary }]}>
-                {formatNumber(analytics.summary.totalEngagement)}
-              </Text>
-              <Text style={[styles.summaryLabel, { color: colors.foregroundMuted }]}>Total Engagement</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNumber, { color: colors.primary }]}>
-                {analytics.summary.avgEngagementRate.toFixed(1)}%
-              </Text>
-              <Text style={[styles.summaryLabel, { color: colors.foregroundMuted }]}>Avg Engagement Rate</Text>
-            </View>
-          </View>
-        </CardContent>
-      </Card>
+      {/* Performance Section */}
+      <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+        <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+          Performance
+        </Text>
+        <View style={styles.statsRow}>
+          <StatItem label="Total Posts" value={analytics.summary.totalPosts.toString()} colors={colors} />
+          <StatItem
+            label="Engagement"
+            value={formatNumber(analytics.summary.totalEngagement)}
+            colors={colors}
+          />
+          <StatItem
+            label="Avg Rate"
+            value={`${analytics.summary.avgEngagementRate.toFixed(1)}%`}
+            colors={colors}
+            highlight
+          />
+        </View>
+      </View>
 
-      {/* Top Performing Post */}
+      {/* Top Post */}
       {analytics.summary.topPerformingPost && (
-        <Card style={[styles.card, shadow.md]}>
-          <CardContent>
-            <View style={styles.cardHeader}>
-              <Ionicons name="trophy-outline" size={24} color={colors.warning} />
-              <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Top Performing Post</Text>
-            </View>
-            <Text style={[styles.topPostCaption, { color: colors.foreground }]} numberOfLines={3}>
-              {analytics.summary.topPerformingPost.caption}
-            </Text>
-            <View style={styles.topPostMetrics}>
-              <View style={styles.topPostMetric}>
-                <Text style={[styles.topPostNumber, { color: colors.primary }]}>
-                  {analytics.summary.topPerformingPost.metrics.engagementRate.toFixed(1)}%
-                </Text>
-                <Text style={[styles.topPostLabel, { color: colors.foregroundMuted }]}>Engagement Rate</Text>
-              </View>
-              <View style={styles.topPostMetric}>
-                <Text style={[styles.topPostNumber, { color: colors.primary }]}>
-                  {formatNumber(analytics.summary.topPerformingPost.metrics.totalInteractions)}
-                </Text>
-                <Text style={[styles.topPostLabel, { color: colors.foregroundMuted }]}>Total Interactions</Text>
-              </View>
-            </View>
-          </CardContent>
-        </Card>
+        <View style={[styles.card, { backgroundColor: colors.primaryMuted, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.label, { color: colors.primary, marginBottom: spacing[2] }]}>Top Post</Text>
+          <Text style={[textStyles.body, { color: colors.foreground }]} numberOfLines={2}>
+            {analytics.summary.topPerformingPost.caption}
+          </Text>
+          <View style={[styles.statsRow, { marginTop: spacing[3] }]}>
+            <StatItem
+              label="Engagement"
+              value={`${analytics.summary.topPerformingPost.metrics.engagementRate.toFixed(1)}%`}
+              colors={colors}
+              highlight
+            />
+            <StatItem
+              label="Interactions"
+              value={formatNumber(analytics.summary.topPerformingPost.metrics.totalInteractions)}
+              colors={colors}
+            />
+          </View>
+        </View>
       )}
 
       {/* Detailed Metrics */}
       {analytics.summary.detailedMetrics && (
         <>
           {/* Totals */}
-          <Card style={[styles.card, shadow.md]}>
-            <CardContent>
-              <View style={styles.cardHeader}>
-                <Ionicons name="stats-chart-outline" size={24} color={colors.primary} />
-                <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Total Metrics</Text>
-              </View>
-              <View style={styles.metricsGrid}>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.totals.totalLikes)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Likes</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.totals.totalComments)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Comments</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.totals.totalShares)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Shares</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.totals.totalReach)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Reach</Text>
-                </View>
-              </View>
-            </CardContent>
-          </Card>
+          <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+            <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+              Totals
+            </Text>
+            <MetricRow label="Likes" value={formatNumber(analytics.summary.detailedMetrics.totals.totalLikes)} colors={colors} />
+            <MetricRow label="Comments" value={formatNumber(analytics.summary.detailedMetrics.totals.totalComments)} colors={colors} />
+            <MetricRow label="Shares" value={formatNumber(analytics.summary.detailedMetrics.totals.totalShares)} colors={colors} />
+            <MetricRow label="Reach" value={formatNumber(analytics.summary.detailedMetrics.totals.totalReach)} colors={colors} isLast />
+          </View>
 
           {/* Averages */}
-          <Card style={[styles.card, shadow.md]}>
-            <CardContent>
-              <View style={styles.cardHeader}>
-                <Ionicons name="calculator-outline" size={24} color={colors.primary} />
-                <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Average Metrics</Text>
-              </View>
-              <View style={styles.metricsGrid}>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.averages.avgLikes)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Avg Likes</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.averages.avgComments)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Avg Comments</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {analytics.summary.detailedMetrics.averages.avgEngagementRate.toFixed(1)}%
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Avg Engagement</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={[styles.metricNumber, { color: colors.foreground }]}>
-                    {formatNumber(analytics.summary.detailedMetrics.averages.avgReach)}
-                  </Text>
-                  <Text style={[styles.metricLabel, { color: colors.foregroundMuted }]}>Avg Reach</Text>
-                </View>
-              </View>
-            </CardContent>
-          </Card>
+          <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+            <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+              Averages
+            </Text>
+            <MetricRow label="Likes" value={formatNumber(analytics.summary.detailedMetrics.averages.avgLikes)} colors={colors} />
+            <MetricRow label="Comments" value={formatNumber(analytics.summary.detailedMetrics.averages.avgComments)} colors={colors} />
+            <MetricRow label="Engagement" value={`${analytics.summary.detailedMetrics.averages.avgEngagementRate.toFixed(1)}%`} colors={colors} />
+            <MetricRow label="Reach" value={formatNumber(analytics.summary.detailedMetrics.averages.avgReach)} colors={colors} isLast />
+          </View>
         </>
       )}
 
-      {/* Recent Growth */}
+      {/* Growth */}
       {analytics.summary.recentGrowth && (
-        <Card style={[styles.card, shadow.md]}>
-          <CardContent>
-            <View style={styles.cardHeader}>
-              <Ionicons name="trending-up-outline" size={24} color={colors.success} />
-              <Text style={[textStyles.h4, { color: colors.foreground, marginLeft: spacing[3] }]}>Recent Growth</Text>
-            </View>
-            <View style={styles.growthRow}>
-              <View style={styles.growthItem}>
-                <Text
-                  style={[
-                    styles.growthNumber,
-                    { color: analytics.summary.recentGrowth.engagement >= 0 ? colors.success : colors.destructive },
-                  ]}
-                >
-                  {analytics.summary.recentGrowth.engagement >= 0 ? '+' : ''}
-                  {analytics.summary.recentGrowth.engagement.toFixed(1)}%
-                </Text>
-                <Text style={[styles.growthLabel, { color: colors.foregroundMuted }]}>Engagement Growth</Text>
-              </View>
-              <View style={styles.growthItem}>
-                <Text
-                  style={[
-                    styles.growthNumber,
-                    { color: analytics.summary.recentGrowth.reach >= 0 ? colors.success : colors.destructive },
-                  ]}
-                >
-                  {analytics.summary.recentGrowth.reach >= 0 ? '+' : ''}
-                  {analytics.summary.recentGrowth.reach.toFixed(1)}%
-                </Text>
-                <Text style={[styles.growthLabel, { color: colors.foregroundMuted }]}>Reach Growth</Text>
-              </View>
-            </View>
-          </CardContent>
-        </Card>
+        <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+            Growth
+          </Text>
+          <View style={styles.growthRow}>
+            <GrowthItem
+              label="Engagement"
+              value={analytics.summary.recentGrowth.engagement}
+              colors={colors}
+            />
+            <GrowthItem label="Reach" value={analytics.summary.recentGrowth.reach} colors={colors} />
+          </View>
+        </View>
       )}
     </ScrollView>
+  );
+};
+
+const StatItem: React.FC<{ label: string; value: string; colors: any; highlight?: boolean }> = ({
+  label,
+  value,
+  colors,
+  highlight,
+}) => (
+  <View style={styles.statItem}>
+    <Text
+      style={[
+        textStyles.h4,
+        { color: highlight ? colors.primary : colors.foreground, textAlign: 'center' },
+      ]}
+    >
+      {value}
+    </Text>
+    <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>{label}</Text>
+  </View>
+);
+
+const MetricRow: React.FC<{ label: string; value: string; colors: any; isLast?: boolean }> = ({
+  label,
+  value,
+  colors,
+  isLast,
+}) => (
+  <View
+    style={[
+      styles.metricRow,
+      {
+        borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border,
+      },
+    ]}
+  >
+    <Text style={[textStyles.body, { color: colors.foregroundMuted }]}>{label}</Text>
+    <Text style={[textStyles.body, { color: colors.foreground, fontWeight: '600' }]}>{value}</Text>
+  </View>
+);
+
+const GrowthItem: React.FC<{ label: string; value: number; colors: any }> = ({ label, value, colors }) => {
+  const isPositive = value >= 0;
+  return (
+    <View style={styles.growthItem}>
+      <Text
+        style={[
+          textStyles.h3,
+          { color: isPositive ? colors.success : colors.destructive, textAlign: 'center' },
+        ]}
+      >
+        {isPositive ? '+' : ''}
+        {value.toFixed(1)}%
+      </Text>
+      <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>{label}</Text>
+    </View>
   );
 };
 
@@ -298,53 +250,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  contentContainer: {
+    padding: spacing[4],
+    paddingBottom: spacing[20],
+  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: spacing[6],
+  },
+  errorBox: {
+    padding: spacing[6],
+    alignItems: 'center',
   },
   card: {
-    margin: spacing[4],
-    marginBottom: spacing[2],
-    borderRadius: radius.lg,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: spacing[4],
     marginBottom: spacing[4],
-  },
-  loadingText: {
-    marginTop: spacing[4],
-    ...textStyles.body,
-  },
-  errorText: {
-    ...textStyles.body,
-    textAlign: 'center',
-    marginBottom: spacing[4],
-  },
-  retryButton: {
-    marginVertical: spacing[2],
-  },
-  retryText: {
-    ...textStyles.bodySmall,
-  },
-  emptyText: {
-    ...textStyles.h4,
-    marginBottom: spacing[2],
-  },
-  emptySubtext: {
-    ...textStyles.bodySmall,
-  },
-  accountInfo: {
-    marginBottom: spacing[4],
-  },
-  username: {
-    ...textStyles.h4,
-    marginBottom: spacing[1],
-  },
-  accountName: {
-    ...textStyles.body,
   },
   statsRow: {
     flexDirection: 'row',
@@ -352,66 +274,12 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
   },
-  statNumber: {
-    ...textStyles.h4,
-    marginBottom: spacing[1],
-  },
-  statLabel: {
-    ...textStyles.caption,
-  },
-  summaryGrid: {
+  metricRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  summaryItem: {
-    alignItems: 'center',
-  },
-  summaryNumber: {
-    ...textStyles.h4,
-    marginBottom: spacing[1],
-  },
-  summaryLabel: {
-    ...textStyles.caption,
-    textAlign: 'center',
-  },
-  topPostCaption: {
-    ...textStyles.bodySmall,
-    marginBottom: spacing[3],
-  },
-  topPostMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  topPostMetric: {
-    alignItems: 'center',
-  },
-  topPostNumber: {
-    ...textStyles.label,
-    fontWeight: '700',
-    marginBottom: spacing[1],
-  },
-  topPostLabel: {
-    ...textStyles.caption,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  metricItem: {
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: spacing[4],
-  },
-  metricNumber: {
-    ...textStyles.label,
-    fontWeight: '700',
-    marginBottom: spacing[1],
-  },
-  metricLabel: {
-    ...textStyles.caption,
-    textAlign: 'center',
+    paddingVertical: spacing[3],
   },
   growthRow: {
     flexDirection: 'row',
@@ -419,13 +287,7 @@ const styles = StyleSheet.create({
   },
   growthItem: {
     alignItems: 'center',
-  },
-  growthNumber: {
-    ...textStyles.h4,
-    marginBottom: spacing[1],
-  },
-  growthLabel: {
-    ...textStyles.caption,
+    flex: 1,
   },
 });
 

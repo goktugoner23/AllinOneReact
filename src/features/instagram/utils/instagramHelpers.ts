@@ -104,24 +104,6 @@ export const getErrorMessage = (error: string): string => {
 };
 
 /**
- * Check if Instagram URL is valid
- */
-export const isValidInstagramURL = (url: string): boolean => {
-  const instagramUrlPattern = /^https?:\/\/(www\.)?instagram\.com\/.+/i;
-  return instagramUrlPattern.test(url);
-};
-
-/**
- * Extract Instagram URL type (post, reel, profile)
- */
-export const getInstagramURLType = (url: string): 'post' | 'reel' | 'profile' | 'unknown' => {
-  if (url.includes('/p/')) return 'post';
-  if (url.includes('/reel/')) return 'reel';
-  if (url.match(/instagram\.com\/[a-zA-Z0-9._]+\/?$/)) return 'profile';
-  return 'unknown';
-};
-
-/**
  * Truncate text with ellipsis
  */
 export const truncateText = (text: string, maxLength: number): string => {
@@ -148,68 +130,3 @@ export const formatHashtagForDisplay = (tag: string): string => {
   return `#${withoutHashes}`;
 };
 
-/**
- * Format processing time for display
- */
-export const formatProcessingTime = (timeMs: number): string => {
-  if (timeMs < 1000) {
-    return `${timeMs}ms`;
-  } else {
-    return `${(timeMs / 1000).toFixed(1)}s`;
-  }
-};
-
-/**
- * Get confidence level description
- */
-export const getConfidenceLevel = (confidence: number): string => {
-  if (confidence >= 0.9) return 'Very High';
-  if (confidence >= 0.8) return 'High';
-  if (confidence >= 0.7) return 'Good';
-  if (confidence >= 0.6) return 'Moderate';
-  if (confidence >= 0.5) return 'Low';
-  return 'Very Low';
-};
-
-/**
- * Validate file type for multimodal upload
- */
-export const isValidFileType = (mimeType: string, acceptedTypes: string[]): boolean => {
-  if (acceptedTypes.length === 0) return true; // No restrictions
-  return acceptedTypes.some((type) => mimeType.startsWith(type.split('/')[0]));
-};
-
-/**
- * Get file size in human readable format
- */
-export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-/**
- * Generate unique ID for attachments
- */
-export const generateAttachmentId = (): string => {
-  return `attachment_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-};
-
-/**
- * Debounce function for search/input
- */
-export const debounce = <T extends (...args: any[]) => any>(
-  func: T,
-  wait: number,
-): ((...args: Parameters<T>) => void) => {
-  let timeout: ReturnType<typeof setTimeout>;
-
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};

@@ -1,49 +1,38 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, RefreshControl, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { View, RefreshControl, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@shared/store';
 import { fetchInstagramPosts, clearError } from '@features/instagram/store/instagramSlice';
 import { InstagramPost } from '@features/instagram/types/Instagram';
 import { useNavigation } from '@react-navigation/native';
-import {
-  formatNumber,
-  getMediaTypeIcon,
-  formatRelativeTime,
-  getErrorMessage,
-  formatHashtagForDisplay,
-} from '@features/instagram/utils/instagramHelpers';
+import { formatNumber, formatRelativeTime, getErrorMessage, formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
 import InstagramImage from '@features/instagram/components/InstagramImage';
-import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
-import { Card, CardContent, Chip, IconButton } from '@shared/components/ui';
+import { useAppTheme, textStyles, spacing, radius, shadow } from '@shared/theme';
+import { Button } from '@shared/components/ui';
 
 const PostsTab: React.FC = () => {
-  const colors = useColors();
+  const { colors } = useAppTheme();
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
 
   const { data: posts, loading } = useSelector((state: RootState) => state.instagram.posts);
 
-  // Load posts on mount
   useEffect(() => {
     if (!posts) {
       dispatch(fetchInstagramPosts(false));
     }
   }, [dispatch, posts]);
 
-  // Handle refresh
   const handleRefresh = useCallback(() => {
     dispatch(fetchInstagramPosts(true));
   }, [dispatch]);
 
-  // Handle retry
   const handleRetry = useCallback(() => {
     dispatch(clearError('posts'));
     dispatch(fetchInstagramPosts(false));
   }, [dispatch]);
 
-  // Render post item
   const handleOpenDetails = useCallback(
     (post: InstagramPost) => {
       navigation.navigate('PostDetail', { post });
@@ -52,60 +41,65 @@ const PostsTab: React.FC = () => {
   );
 
   const renderPostItem = useCallback(
-    ({ item }: { item: InstagramPost }) => <PostCard post={item} onPress={() => handleOpenDetails(item)} />,
-    [handleOpenDetails],
+    ({ item, index }: { item: InstagramPost; index: number }) => {
+      const isFirst = index === 0;
+      const isLast = posts ? index === posts.posts.length - 1 : false;
+      return <PostCard post={item} onPress={() => handleOpenDetails(item)} colors={colors} isFirst={isFirst} isLast={isLast} />;
+    },
+    [handleOpenDetails, colors, posts],
   );
 
-  // Render loading state
   if (loading.isLoading && !posts) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.foreground }]}>Loading Instagram posts...</Text>
+        <Text style={[textStyles.body, { color: colors.foregroundMuted, marginTop: spacing[3] }]}>
+          Loading posts...
+        </Text>
       </View>
     );
   }
 
-  // Render error state
   if (loading.error && !posts) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.destructive }]}>{getErrorMessage(loading.error)}</Text>
-        <IconButton
-          icon="refresh-outline"
-          size="md"
-          onPress={handleRetry}
-          style={styles.retryButton}
-          color={colors.primary}
-        />
-        <Text style={[styles.retryText, { color: colors.foreground }]}>Tap to retry</Text>
+        <View style={[styles.errorBox, { backgroundColor: colors.destructiveMuted, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.body, { color: colors.destructive, textAlign: 'center' }]}>
+            {getErrorMessage(loading.error)}
+          </Text>
+          <Button variant="outline" onPress={handleRetry} style={{ marginTop: spacing[4] }}>
+            Try Again
+          </Button>
+        </View>
       </View>
     );
   }
 
-  // Render empty state
   if (posts && posts.posts.length === 0) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.emptyText, { color: colors.foreground }]}>No Instagram posts found</Text>
-        <Text style={[styles.emptySubtext, { color: colors.foregroundMuted }]}>Pull down to refresh</Text>
+        <Text style={[textStyles.h4, { color: colors.foreground }]}>No Posts</Text>
+        <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: spacing[2] }]}>
+          Pull to refresh
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header with sync info */}
       {posts && (
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>{posts.count} Posts</Text>
-          <Chip
-            variant="outlined"
-            size="sm"
-            style={styles.sourceChip}
-          >
-            {posts.source}
-          </Chip>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[textStyles.h2, { color: colors.foreground }]}>{posts.count}</Text>
+          <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginLeft: spacing[2] }]}>
+            Posts
+          </Text>
+          <View style={styles.headerSpacer} />
+          <View style={[styles.sourceTag, { backgroundColor: colors.primaryMuted, borderRadius: radius.full }]}>
+            <Text style={[textStyles.caption, { color: colors.primary, fontWeight: '500' }]}>
+              {posts.source}
+            </Text>
+          </View>
         </View>
       )}
 
@@ -118,111 +112,121 @@ const PostsTab: React.FC = () => {
           <RefreshControl
             refreshing={loading.isRefreshing}
             onRefresh={handleRefresh}
-            colors={[colors.primary]}
             tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={231}
+        estimatedItemSize={320}
       />
     </View>
   );
 };
 
-// Post Card Component
-const PostCard: React.FC<{ post: InstagramPost; onPress?: () => void }> = React.memo(({ post, onPress }) => {
-  const colors = useColors();
+interface PostCardProps {
+  post: InstagramPost;
+  onPress?: () => void;
+  colors: any;
+  isFirst: boolean;
+  isLast: boolean;
+}
 
+const PostCard: React.FC<PostCardProps> = React.memo(({ post, onPress, colors, isFirst, isLast }) => {
   return (
-    <Card style={[styles.postCard, shadow.md]} onPress={onPress}>
-      <CardContent>
-        {/* Post header */}
-        <View style={styles.postHeader}>
-          <View style={styles.postInfo}>
-            <Text style={[styles.postDate, { color: colors.foregroundMuted }]}>
-              {post.formattedDate || formatRelativeTime(post.timestamp)}
-            </Text>
-            <Chip
-              variant="outlined"
-              size="sm"
-              style={styles.mediaTypeChip}
-              leftIcon={<Ionicons name={getMediaTypeIcon(post.mediaType)} size={12} color={colors.mutedForeground} />}
-            >
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[
+        styles.postCard,
+        {
+          backgroundColor: colors.card,
+          marginHorizontal: spacing[4],
+          borderTopLeftRadius: isFirst ? radius.lg : 0,
+          borderTopRightRadius: isFirst ? radius.lg : 0,
+          borderBottomLeftRadius: isLast ? radius.lg : 0,
+          borderBottomRightRadius: isLast ? radius.lg : 0,
+          borderBottomWidth: !isLast ? StyleSheet.hairlineWidth : 0,
+          borderBottomColor: colors.border,
+        },
+      ]}
+    >
+      {/* Header row */}
+      <View style={styles.postHeader}>
+        <View style={styles.postHeaderLeft}>
+          <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>
+            {post.formattedDate || formatRelativeTime(post.timestamp)}
+          </Text>
+          <View style={[styles.mediaTypeBadge, { backgroundColor: colors.muted, borderRadius: radius.sm }]}>
+            <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>
               {post.mediaType}
-            </Chip>
+            </Text>
           </View>
-          <Text style={[styles.engagementRate, { color: colors.primary }]}>
+        </View>
+        <View style={[styles.engagementBadge, { backgroundColor: colors.primaryMuted, borderRadius: radius.full }]}>
+          <Text style={[textStyles.caption, { color: colors.primary, fontWeight: '600' }]}>
             {post.metrics.engagementRate.toFixed(1)}%
           </Text>
         </View>
+      </View>
 
-        {post.thumbnailUrl ? (
+      {/* Thumbnail */}
+      {post.thumbnailUrl && (
+        <View style={[styles.thumbnailContainer, { borderRadius: radius.md, overflow: 'hidden' }]}>
           <InstagramImage
             instagramUrl={post.thumbnailUrl}
             style={styles.thumbnail}
             resizeMode="cover"
-            onError={(url) => console.warn('Failed to load post thumbnail:', url)}
+            onError={(url) => console.warn('Failed to load:', url)}
           />
-        ) : null}
-
-        <Text style={[styles.postCaption, { color: colors.foreground }]} numberOfLines={3}>
-          {post.caption}
-        </Text>
-
-        <View style={styles.metricsContainer}>
-          <View style={styles.metricItem}>
-            <Ionicons name="heart-outline" size={16} color={colors.foregroundMuted} />
-            <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
-              {formatNumber(post.metrics.likesCount)}
-            </Text>
-          </View>
-          <View style={styles.metricItem}>
-            <Ionicons name="chatbubble-outline" size={16} color={colors.foregroundMuted} />
-            <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
-              {formatNumber(post.metrics.commentsCount)}
-            </Text>
-          </View>
-          {post.metrics.sharesCount && post.metrics.sharesCount > 0 ? (
-            <View style={styles.metricItem}>
-              <Ionicons name="share-outline" size={16} color={colors.foregroundMuted} />
-              <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
-                {formatNumber(post.metrics.sharesCount)}
-              </Text>
-            </View>
-          ) : null}
-          {post.metrics.reachCount && post.metrics.reachCount > 0 ? (
-            <View style={styles.metricItem}>
-              <Ionicons name="eye-outline" size={16} color={colors.foregroundMuted} />
-              <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>
-                {formatNumber(post.metrics.reachCount)}
-              </Text>
-            </View>
-          ) : null}
         </View>
+      )}
 
-        {post.hashtags.length > 0 ? (
-          <View style={styles.hashtagsContainer}>
-            {post.hashtags.slice(0, 3).map((hashtag, index) => (
-              <Chip
-                key={index}
-                variant="outlined"
-                size="sm"
-                style={styles.hashtagChip}
-              >
-                {formatHashtagForDisplay(hashtag)}
-              </Chip>
-            ))}
-            {post.hashtags.length > 3 ? (
-              <Text style={[styles.moreHashtags, { color: colors.foregroundSubtle }]}>
-                +{post.hashtags.length - 3} more
+      {/* Caption */}
+      <Text style={[textStyles.body, { color: colors.foreground }]} numberOfLines={2}>
+        {post.caption || '—'}
+      </Text>
+
+      {/* Metrics row */}
+      <View style={styles.metricsRow}>
+        <MetricItem icon="♥" value={post.metrics.likesCount} colors={colors} />
+        <MetricItem icon="💬" value={post.metrics.commentsCount} colors={colors} />
+        {post.metrics.sharesCount != null && post.metrics.sharesCount > 0 && (
+          <MetricItem icon="↗" value={post.metrics.sharesCount} colors={colors} />
+        )}
+        {post.metrics.reachCount != null && post.metrics.reachCount > 0 && (
+          <MetricItem icon="👁" value={post.metrics.reachCount} colors={colors} />
+        )}
+      </View>
+
+      {/* Hashtags */}
+      {post.hashtags.length > 0 && (
+        <View style={styles.hashtagRow}>
+          {post.hashtags.slice(0, 4).map((tag, i) => (
+            <View key={i} style={[styles.hashtagChip, { backgroundColor: colors.muted, borderRadius: radius.full }]}>
+              <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>
+                {formatHashtagForDisplay(tag)}
               </Text>
-            ) : null}
-          </View>
-        ) : null}
-      </CardContent>
-    </Card>
+            </View>
+          ))}
+          {post.hashtags.length > 4 && (
+            <Text style={[textStyles.caption, { color: colors.foregroundSubtle }]}>
+              +{post.hashtags.length - 4}
+            </Text>
+          )}
+        </View>
+      )}
+    </TouchableOpacity>
   );
 });
+
+const MetricItem: React.FC<{ icon: string; value: number; colors: any }> = ({ icon, value, colors }) => (
+  <View style={styles.metricItem}>
+    <Text style={{ fontSize: 14 }}>{icon}</Text>
+    <Text style={[textStyles.bodySmall, { color: colors.foreground, fontWeight: '600', marginLeft: 4 }]}>
+      {formatNumber(value)}
+    </Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -232,49 +236,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: spacing[6],
+  },
+  errorBox: {
+    padding: spacing[6],
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[4],
-    borderBottomWidth: 1,
+    alignItems: 'baseline',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: {
-    ...textStyles.h4,
+  headerSpacer: {
+    flex: 1,
   },
-  sourceChip: {
-    height: 28,
+  sourceTag: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
   },
   listContainer: {
-    padding: spacing[4],
-  },
-  loadingText: {
-    marginTop: spacing[4],
-    ...textStyles.body,
-  },
-  errorText: {
-    ...textStyles.body,
-    textAlign: 'center',
-    marginBottom: spacing[4],
-  },
-  retryButton: {
-    marginVertical: spacing[2],
-  },
-  retryText: {
-    ...textStyles.bodySmall,
-  },
-  emptyText: {
-    ...textStyles.h4,
-    marginBottom: spacing[2],
-  },
-  emptySubtext: {
-    ...textStyles.bodySmall,
+    paddingVertical: spacing[4],
+    paddingBottom: spacing[20],
   },
   postCard: {
-    marginBottom: spacing[4],
-    borderRadius: radius.lg,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[4],
   },
   postHeader: {
     flexDirection: 'row',
@@ -282,68 +270,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing[3],
   },
-  postInfo: {
+  postHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: spacing[2],
   },
-  postDate: {
-    ...textStyles.caption,
-    marginRight: spacing[2],
+  mediaTypeBadge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
   },
-  mediaTypeChip: {
-    height: 24,
+  engagementBadge: {
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
   },
-  engagementRate: {
-    ...textStyles.label,
-    fontWeight: '700',
-  },
-  postCaption: {
-    ...textStyles.bodySmall,
+  thumbnailContainer: {
     marginBottom: spacing[3],
   },
   thumbnail: {
     width: '100%',
     height: 200,
-    borderRadius: radius.md,
-    marginBottom: spacing[3],
   },
-  metricsContainer: {
+  metricsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: spacing[3],
+    gap: spacing[4],
+    marginTop: spacing[3],
   },
   metricItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: spacing[4],
-    marginBottom: spacing[1],
   },
-  metricText: {
-    ...textStyles.caption,
-    marginLeft: spacing[1],
-  },
-  hashtagsContainer: {
+  hashtagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: spacing[3],
+    gap: spacing[2],
     alignItems: 'center',
   },
   hashtagChip: {
-    borderRadius: radius.full,
-    marginRight: spacing[1.5],
-    marginBottom: spacing[1.5],
-    paddingVertical: spacing[0.5],
     paddingHorizontal: spacing[2],
-  },
-  hashtagText: {
-    fontSize: 11,
-    lineHeight: 14,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
-  moreHashtags: {
-    ...textStyles.caption,
-    fontStyle: 'italic',
+    paddingVertical: spacing[1],
   },
 });
 

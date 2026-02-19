@@ -24,17 +24,27 @@ export function useTransactions() {
   });
 }
 
-// Hook for fetching balance
+// Hook for fetching balance (current month only)
 export function useBalance() {
   const { data: transactions = [] } = useTransactions();
 
-  const income = transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  // Filter transactions for current month
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
 
-  const expense = transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const monthlyTransactions = transactions.filter((t) => {
+    const txDate = new Date(t.date);
+    return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+  });
+
+  const income = monthlyTransactions.filter((t) => t.isIncome).reduce((sum, t) => sum + t.amount, 0);
+
+  const expense = monthlyTransactions.filter((t) => !t.isIncome).reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const balance = income - expense;
 
-  return { income, expense, balance, transactions };
+  return { income, expense, balance, transactions: monthlyTransactions };
 }
 
 // Mutation for adding a transaction
