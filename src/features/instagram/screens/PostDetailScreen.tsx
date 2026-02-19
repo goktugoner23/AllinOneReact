@@ -1,19 +1,18 @@
 import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Linking, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, Linking, Text, TouchableOpacity } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { InstagramPost } from '@features/instagram/types/Instagram';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { formatHashtagForDisplay } from '@features/instagram/utils/instagramHelpers';
+import { formatHashtagForDisplay, formatNumber } from '@features/instagram/utils/instagramHelpers';
 import InstagramImage from '@features/instagram/components/InstagramImage';
-import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
-import { Card, CardContent, IconButton, Chip, Button } from '@shared/components/ui';
+import { useAppTheme, textStyles, spacing, radius } from '@shared/theme';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Params = {
   PostDetail: { post: InstagramPost };
 };
 
 const PostDetailScreen: React.FC = () => {
-  const colors = useColors();
+  const { colors } = useAppTheme();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<Params, 'PostDetail'>>();
   const post = route.params?.post;
@@ -29,129 +28,223 @@ const PostDetailScreen: React.FC = () => {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
     >
-      <Card style={[styles.card, shadow.md]}>
-        <CardContent>
-          {/* Header */}
-          <View style={styles.cardHeader}>
-            <View style={styles.headerLeft}>
-              <Ionicons name="logo-instagram" size={24} color={colors.primary} />
-              <View style={styles.headerTitles}>
-                <Text style={[textStyles.h4, { color: colors.foreground }]}>{post.username || 'Instagram Post'}</Text>
-                <Text style={[textStyles.caption, { color: colors.foregroundMuted }]}>{formattedDate}</Text>
-              </View>
-            </View>
-            <IconButton
-              icon="open-outline"
-              size="md"
-              variant="ghost"
-              color={colors.foregroundMuted}
-              onPress={() => Linking.openURL(post.permalink)}
-            />
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.goBack()}
+          style={[styles.backButton, { backgroundColor: colors.muted, borderRadius: radius.md }]}
+        >
+          <Icon name="arrow-left" size={20} color={colors.foreground} />
+        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => Linking.openURL(post.permalink)}
+          style={[styles.openButton, { backgroundColor: colors.primary, borderRadius: radius.md }]}
+        >
+          <Icon name="open-in-new" size={18} color={colors.primaryForeground} />
+          <Text style={[textStyles.button, { color: colors.primaryForeground, marginLeft: spacing[1] }]}>
+            Open
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Post Info Card */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+            Post Info
+          </Text>
+
+          <InfoRow label="User" value={post.username || '—'} colors={colors} highlight />
+          <InfoRow label="Date" value={formattedDate} colors={colors} />
+          <InfoRow label="Type" value={post.mediaType} colors={colors} />
+          <InfoRow
+            label="Engagement"
+            value={`${post.metrics.engagementRate.toFixed(2)}%`}
+            colors={colors}
+            highlight
+            isLast
+          />
+        </View>
+
+        {/* Media */}
+        {(post.mediaUrl || post.thumbnailUrl) && (
+          <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg, padding: 0 }]}>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => post.permalink && Linking.openURL(post.permalink)}>
+              <InstagramImage
+                instagramUrl={post.mediaUrl || post.thumbnailUrl!}
+                style={styles.media}
+                resizeMode="cover"
+                onError={(url) => console.warn('Failed to load:', url)}
+              />
+            </TouchableOpacity>
           </View>
+        )}
 
-          {post.mediaUrl || post.thumbnailUrl ? (
-            <InstagramImage
-              instagramUrl={post.mediaUrl || post.thumbnailUrl!}
-              style={styles.media}
-              resizeMode="cover"
-              onError={(url) => console.warn('Failed to load post media:', url)}
-              onPress={() => post.permalink && Linking.openURL(post.permalink)}
-            />
-          ) : null}
+        {/* Caption */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+            Caption
+          </Text>
+          <Text style={[textStyles.body, { color: colors.foreground, lineHeight: 24 }]}>
+            {post.caption || '—'}
+          </Text>
+        </View>
 
-          <View style={styles.rowBetween}>
-            <Chip
-              variant="outlined"
-              size="sm"
-              leftIcon={<Ionicons name="pricetag-outline" size={12} color={colors.mutedForeground} />}
-              style={styles.typeChip}
-            >
-              {post.mediaType}
-            </Chip>
-            <Text style={[styles.engagement, { color: colors.primary }]}>
-              {post.metrics.engagementRate.toFixed(1)}%
-            </Text>
-          </View>
-
-          <Text style={[styles.caption, { color: colors.foreground }]}>{post.caption}</Text>
-
-          <View style={styles.metricsRow}>
-            <Metric icon="heart-outline" label="Likes" value={post.metrics.likesCount} />
-            <Metric icon="chatbubble-outline" label="Comments" value={post.metrics.commentsCount} />
+        {/* Metrics */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
+          <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+            Metrics
+          </Text>
+          <View style={styles.metricsGrid}>
+            <MetricCell label="Likes" value={post.metrics.likesCount} colors={colors} />
+            <MetricCell label="Comments" value={post.metrics.commentsCount} colors={colors} />
             {post.metrics.savesCount != null && (
-              <Metric icon="bookmark-outline" label="Saves" value={post.metrics.savesCount} />
+              <MetricCell label="Saves" value={post.metrics.savesCount} colors={colors} />
             )}
             {post.metrics.sharesCount != null && (
-              <Metric icon="share-outline" label="Shares" value={post.metrics.sharesCount} />
+              <MetricCell label="Shares" value={post.metrics.sharesCount} colors={colors} />
+            )}
+            {post.metrics.reachCount != null && (
+              <MetricCell label="Reach" value={post.metrics.reachCount} colors={colors} />
+            )}
+            {post.metrics.impressionsCount != null && (
+              <MetricCell label="Impressions" value={post.metrics.impressionsCount} colors={colors} />
             )}
           </View>
+        </View>
 
-          {(post.hashtags?.length ?? 0) > 0 && (
-            <View style={styles.hashtags}>
-              {post.hashtags.slice(0, 10).map((h, i) => (
-                <Chip
+        {/* Hashtags */}
+        {(post.hashtags?.length ?? 0) > 0 && (
+          <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg, marginBottom: spacing[8] }]}>
+            <Text style={[textStyles.label, { color: colors.foregroundMuted, marginBottom: spacing[3] }]}>
+              Hashtags ({post.hashtags.length})
+            </Text>
+            <View style={styles.hashtagsGrid}>
+              {post.hashtags.map((h, i) => (
+                <View
                   key={i}
-                  variant="outlined"
-                  size="sm"
-                  style={styles.hashtag}
+                  style={[styles.hashtagChip, { backgroundColor: colors.muted, borderRadius: radius.full }]}
                 >
-                  {formatHashtagForDisplay(h)}
-                </Chip>
+                  <Text style={[textStyles.bodySmall, { color: colors.foreground }]}>
+                    {formatHashtagForDisplay(h)}
+                  </Text>
+                </View>
               ))}
             </View>
-          )}
-
-          <Button
-            variant="primary"
-            style={styles.backBtn}
-            leftIcon={<Ionicons name="arrow-back" size={18} color={colors.primaryForeground} />}
-            onPress={() => navigation.goBack()}
-          >
-            Back
-          </Button>
-        </CardContent>
-      </Card>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 };
 
-const Metric: React.FC<{ icon: string; label: string; value?: number }> = ({ icon, label, value }) => {
-  const colors = useColors();
+const InfoRow: React.FC<{
+  label: string;
+  value: string;
+  colors: any;
+  highlight?: boolean;
+  isLast?: boolean;
+}> = ({ label, value, colors, highlight, isLast }) => (
+  <View
+    style={[
+      styles.infoRow,
+      {
+        borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border,
+      },
+    ]}
+  >
+    <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted }]}>{label}</Text>
+    <Text
+      style={[
+        textStyles.body,
+        { color: highlight ? colors.primary : colors.foreground, fontWeight: '600' },
+      ]}
+    >
+      {value}
+    </Text>
+  </View>
+);
+
+const MetricCell: React.FC<{ label: string; value?: number; colors: any }> = ({ label, value, colors }) => {
   if (value == null) return null;
   return (
-    <View style={styles.metricItem}>
-      <Ionicons name={icon} size={18} color={colors.foregroundMuted} />
-      <Text style={[styles.metricText, { color: colors.foregroundMuted }]}>{value}</Text>
-      <Text style={[styles.metricLabel, { color: colors.foregroundSubtle }]}>{label}</Text>
+    <View style={styles.metricCell}>
+      <Text style={[textStyles.h4, { color: colors.foreground }]}>{formatNumber(value)}</Text>
+      <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginTop: spacing[1] }]}>
+        {label}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: spacing[4] },
-  card: { marginBottom: spacing[4], borderRadius: radius.lg },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[3] },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], flex: 1 },
-  headerTitles: { flex: 1 },
-  media: { width: '100%', height: 260, borderRadius: radius.md, marginBottom: spacing[3] },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[2] },
-  typeChip: {},
-  engagement: { ...textStyles.h4 },
-  caption: { ...textStyles.bodySmall, marginTop: spacing[2] },
-  metricsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing[3] },
-  metricItem: { flexDirection: 'row', alignItems: 'center', marginRight: spacing[4], marginBottom: spacing[1.5] },
-  metricText: { marginLeft: spacing[1.5], marginRight: spacing[1], ...textStyles.bodySmall },
-  metricLabel: { ...textStyles.caption },
-  hashtags: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing[2], gap: spacing[1.5] },
-  hashtag: {},
-  hashtagText: {
-    fontSize: 11,
-    lineHeight: 14,
+  container: {
+    flex: 1,
   },
-  backBtn: { marginTop: spacing[4], borderRadius: radius.md },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[4],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerSpacer: {
+    flex: 1,
+  },
+  openButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  content: {
+    padding: spacing[4],
+  },
+  card: {
+    padding: spacing[4],
+    marginBottom: spacing[4],
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+  },
+  media: {
+    width: '100%',
+    height: 300,
+    borderRadius: radius.lg,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  metricCell: {
+    width: '50%',
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+  },
+  hashtagsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  hashtagChip: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+  },
 });
 
 export default PostDetailScreen;

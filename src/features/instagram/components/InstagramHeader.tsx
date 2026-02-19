@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useColors, spacing, textStyles } from '@shared/theme';
-import { Chip } from '@shared/components/ui';
+import { useAppTheme, textStyles, spacing, radius } from '@shared/theme';
 
 interface InstagramHeaderProps {
   title: string;
@@ -17,27 +15,39 @@ const InstagramHeader: React.FC<InstagramHeaderProps> = ({
   showHealthStatus = false,
   isHealthy = true,
 }) => {
-  const colors = useColors();
+  const { colors } = useAppTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-      <View style={styles.titleContainer}>
-        <Ionicons name="logo-instagram" size={24} color={colors.primary} style={styles.icon} />
-        <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-          {subtitle && <Text style={[styles.subtitle, { color: colors.foregroundMuted }]}>{subtitle}</Text>}
-        </View>
+    <View style={[styles.container, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      <View style={styles.titleBlock}>
+        <Text style={[textStyles.h3, { color: colors.foreground }]}>{title}</Text>
+        {subtitle && (
+          <Text style={[textStyles.bodySmall, { color: colors.foregroundMuted, marginTop: 2 }]}>{subtitle}</Text>
+        )}
       </View>
 
       {showHealthStatus && (
-        <Chip
-          variant="outlined"
-          size="sm"
-          color={isHealthy ? 'success' : 'error'}
-          leftIcon={<Ionicons name={isHealthy ? 'checkmark-circle' : 'alert-circle'} size={14} color={isHealthy ? colors.success : colors.destructive} />}
+        <View
+          style={[
+            styles.statusBox,
+            {
+              backgroundColor: isHealthy ? colors.successMuted : colors.destructiveMuted,
+              borderRadius: radius.full,
+            },
+          ]}
         >
-          {isHealthy ? 'Online' : 'Offline'}
-        </Chip>
+          <View
+            style={[styles.statusDot, { backgroundColor: isHealthy ? colors.success : colors.destructive }]}
+          />
+          <Text
+            style={[
+              textStyles.caption,
+              { color: isHealthy ? colors.success : colors.destructive, fontWeight: '500' },
+            ]}
+          >
+            {isHealthy ? 'Online' : 'Offline'}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -48,26 +58,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[4],
-    borderBottomWidth: 1,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  titleContainer: {
+  titleBlock: {
+    flex: 1,
+  },
+  statusBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    gap: spacing[1.5],
   },
-  icon: {
-    marginRight: spacing[3],
-  },
-  textContainer: {
-    flex: 1,
-  },
-  title: {
-    ...textStyles.h4,
-  },
-  subtitle: {
-    ...textStyles.bodySmall,
-    marginTop: spacing[0.5],
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
 

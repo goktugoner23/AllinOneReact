@@ -90,9 +90,10 @@ export function FAB({
     gap: isExtended ? 8 : 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 10,
+    zIndex: 999,
     opacity: disabled ? 0.5 : 1,
   };
 

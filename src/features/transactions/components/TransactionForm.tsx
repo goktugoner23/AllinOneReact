@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, Alert, ScrollView, Modal, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Card, CardHeader, CardContent, Input, Button, SegmentedControl } from '@shared/components/ui';
+import { Card, CardHeader, CardContent, Input } from '@shared/components/ui';
 import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import { TransactionCategories } from '@features/transactions/config/TransactionCategories';
 import { useAddTransaction, useInvestments, useUpdateInvestment } from '@shared/hooks/useTransactionsQueries';
@@ -19,9 +19,9 @@ export const TransactionForm: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedInvestmentType, setSelectedInvestmentType] = useState('');
   const [showInvestmentPicker, setShowInvestmentPicker] = useState(false);
-  const [transactionType, setTransactionType] = useState<TransactionType>('expense');
   const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [pendingDescription, setPendingDescription] = useState<string>('');
+  const [pendingType, setPendingType] = useState<TransactionType>('expense');
 
   // TanStack Query mutations and queries
   const addTransactionMutation = useAddTransaction();
@@ -58,8 +58,8 @@ export const TransactionForm: React.FC = () => {
 
   const isSubmitting = addTransactionMutation.isPending || updateInvestmentMutation.isPending;
 
-  const handleAddTransaction = async () => {
-    const isIncome = transactionType === 'income';
+  const handleSubmit = async (type: TransactionType) => {
+    const isIncome = type === 'income';
 
     // Validation
     if (!amount.trim() || !selectedCategory.trim()) {
@@ -77,6 +77,7 @@ export const TransactionForm: React.FC = () => {
     if (selectedCategory === 'Investment') {
       setPendingAmount(amountValue);
       setPendingDescription(description.trim() || '');
+      setPendingType(type);
       setShowInvestmentPicker(true);
       return;
     }
@@ -99,7 +100,7 @@ export const TransactionForm: React.FC = () => {
   };
 
   const handleSelectInvestment = async (investment: Investment) => {
-    const isIncome = transactionType === 'income';
+    const isIncome = pendingType === 'income';
 
     try {
       const txDescription = isIncome
@@ -153,9 +154,6 @@ export const TransactionForm: React.FC = () => {
     return numericValue;
   };
 
-  // Quick amount buttons
-  const quickAmounts = [50, 100, 250, 500, 1000];
-
   return (
     <Card variant="elevated" style={styles.card}>
       <CardHeader style={styles.header}>
@@ -163,67 +161,54 @@ export const TransactionForm: React.FC = () => {
       </CardHeader>
 
       <CardContent style={styles.formContainer}>
-        {/* Transaction Type Segmented Control */}
-        <SegmentedControl
-          options={[
-            {
-              value: 'expense' as TransactionType,
-              label: 'Expense',
-              icon: (
-                <Ionicons
-                  name="arrow-up-circle"
-                  size={16}
-                  color={transactionType === 'expense' ? colors.expense : colors.mutedForeground}
-                />
-              ),
-            },
-            {
-              value: 'income' as TransactionType,
-              label: 'Income',
-              icon: (
-                <Ionicons
-                  name="arrow-down-circle"
-                  size={16}
-                  color={transactionType === 'income' ? colors.income : colors.mutedForeground}
-                />
-              ),
-            },
-          ]}
-          value={transactionType}
-          onChange={setTransactionType}
-          fullWidth
-          style={styles.segmentedControl}
+        {/* Amount Input */}
+        <Input
+          label="Amount"
+          placeholder="0"
+          value={amount}
+          onChangeText={(text) => setAmount(formatCurrency(text))}
+          keyboardType="numeric"
+          editable={!isSubmitting}
+          leftIcon={<Text style={[styles.currencySymbol, { color: colors.mutedForeground }]}>₺</Text>}
         />
 
-        {/* Amount Input */}
-        <View style={styles.amountSection}>
-          <Input
-            label="Amount"
-            placeholder=""
-            value={amount}
-            onChangeText={(text) => setAmount(formatCurrency(text))}
-            keyboardType="numeric"
-            editable={!isSubmitting}
-            containerStyle={styles.amountInput}
-            leftIcon={<Text style={[styles.currencySymbol, { color: colors.mutedForeground }]}>₺</Text>}
-          />
+        {/* Submit Buttons - Expense (Red) / Income (Green) */}
+        <View style={styles.typeButtonsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.typeButton,
+              {
+                backgroundColor: colors.expense,
+                borderColor: colors.expense,
+              },
+            ]}
+            onPress={() => handleSubmit('expense')}
+            activeOpacity={0.7}
+            disabled={isSubmitting}
+          >
+            <Ionicons name="arrow-up-circle" size={20} color="#FFFFFF" />
+            <Text style={[styles.typeButtonText, { color: '#FFFFFF' }]}>
+              Expense
+            </Text>
+          </TouchableOpacity>
 
-          {/* Quick Amount Buttons */}
-          <View style={styles.quickAmounts}>
-            {quickAmounts.map((quickAmount) => (
-              <Pressable
-                key={quickAmount}
-                onPress={() => setAmount(quickAmount.toString())}
-                style={({ pressed }) => [
-                  styles.quickAmountBtn,
-                  { backgroundColor: colors.muted },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={[styles.quickAmountText, { color: colors.foreground }]}>₺{quickAmount}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.typeButton,
+              {
+                backgroundColor: colors.income,
+                borderColor: colors.income,
+              },
+            ]}
+            onPress={() => handleSubmit('income')}
+            activeOpacity={0.7}
+            disabled={isSubmitting}
+          >
+            <Ionicons name="arrow-down-circle" size={20} color="#FFFFFF" />
+            <Text style={[styles.typeButtonText, { color: '#FFFFFF' }]}>
+              Income
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Category Dropdown */}
@@ -263,18 +248,6 @@ export const TransactionForm: React.FC = () => {
           editable={!isSubmitting}
           containerStyle={styles.descriptionInput}
         />
-
-        {/* Submit Button */}
-        <Button
-          variant={transactionType === 'income' ? 'success' : 'destructive'}
-          onPress={handleAddTransaction}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          fullWidth
-          size="lg"
-        >
-          {transactionType === 'income' ? 'Add Income' : 'Add Expense'}
-        </Button>
       </CardContent>
 
       {/* Investment Picker Modal */}
@@ -330,31 +303,26 @@ const styles = StyleSheet.create({
   formContainer: {
     gap: spacing[3],
   },
-  segmentedControl: {
-    marginBottom: spacing[2],
+  typeButtonsContainer: {
+    flexDirection: 'row',
+    gap: spacing[3],
   },
-  amountSection: {
+  typeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing[2],
+    paddingVertical: spacing[3],
+    borderRadius: radius.lg,
+    borderWidth: 2,
   },
-  amountInput: {
-    marginBottom: 0,
-  },
-  currencySymbol: {
+  typeButtonText: {
     ...textStyles.body,
     fontWeight: '600',
   },
-  quickAmounts: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  quickAmountBtn: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: radius.md,
-  },
-  quickAmountText: {
-    ...textStyles.caption,
+  currencySymbol: {
+    ...textStyles.body,
     fontWeight: '600',
   },
   inputLabel: {
