@@ -57,23 +57,24 @@ export function Snackbar({
   }, [translateY, opacity, handleDismiss]);
 
   useEffect(() => {
-    if (visible) {
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 300,
-        mass: 0.8,
-      });
-      opacity.value = withTiming(1, { duration: 200 });
-
-      const timer = setTimeout(() => {
-        hideSnackbar();
-      }, duration);
-
-      return () => clearTimeout(timer);
-    } else {
+    if (!visible) {
       translateY.value = 100;
       opacity.value = 0;
+      return;
     }
+
+    translateY.value = withSpring(0, {
+      damping: 20,
+      stiffness: 300,
+      mass: 0.8,
+    });
+    opacity.value = withTiming(1, { duration: 200 });
+
+    const timer = setTimeout(() => {
+      hideSnackbar();
+    }, duration);
+
+    return () => clearTimeout(timer);
   }, [visible, duration, translateY, opacity, hideSnackbar]);
 
   const animatedStyle = useAnimatedStyle(() => ({

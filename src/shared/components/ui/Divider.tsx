@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { View, StyleProp, ViewStyle } from 'react-native';
 import { useColors } from '@shared/theme';
 
 export interface DividerProps {
   orientation?: 'horizontal' | 'vertical';
   inset?: boolean | number;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 const DEFAULT_INSET = 16;

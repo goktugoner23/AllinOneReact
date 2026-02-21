@@ -1,5 +1,5 @@
 import React, { useState, forwardRef } from 'react';
-import { View, TextInput, Pressable, ViewStyle, TextStyle } from 'react-native';
+import { View, TextInput, Pressable, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors, radius, spacing, textStyles } from '@shared/theme';
 
@@ -12,7 +12,7 @@ export interface SearchbarProps {
   onBlur?: () => void;
   onSubmit?: () => void;
   autoFocus?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Searchbar = forwardRef<TextInput, SearchbarProps>(
