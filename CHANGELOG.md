@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GPT Attachment Bottom Sheet**: Replaced native `Alert.alert` picker with a themed bottom sheet modal
+  - Horizontal icon grid (Photo, File, Voice) with distinct accent colors
+  - Dismisses on backdrop tap, Android back button, and option selection
+  - Consistent with app's modal design language
 - **Note Linking (`[[Note Title]]`)**: Obsidian-style internal note linking in the rich text editor
   - Type `[[` to trigger autocomplete dropdown with filtered note suggestions
   - Selecting a note replaces `[[query` with a styled clickable link (`note://` scheme)
@@ -35,7 +39,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workout Program Edit (Backend)**: `update_program` action added to GPT workout tool
   - Supports updating program name and exercises via AI function calling
 
+### Changed
+- **WTRegistryScreen Split**: Decomposed 2062-line monolith into 8 focused files
+  - Extracted `FullscreenImage` to shared UI (reusable pinch-to-zoom viewer)
+  - Extracted 4 dialog components: AddStudentDialog, EditStudentDialog, AddRegistrationDialog, EditRegistrationDialog
+  - Extracted StudentsTab and RegisterTab as standalone screens
+  - WTRegistryScreen reduced to ~50 lines (tab navigator only)
+  - Removed 7 dead CSS styles
+- **Consolidated Currency Formatting**: Replaced 5 local `formatCurrency` functions and 3 inline `Intl.NumberFormat` calls with `useCurrency().format`
+- **Consolidated Date Formatting**: Replaced 3 local `formatDate` functions with shared `formatDate` utility
+- **Currency Precision**: Updated `useCurrency` to always use 2 decimal places (kuruş precision for TRY)
+
 ### Fixed
+- **Firebase Storage Upload Failures**: Fixed `storage/unknown` error on voice recording, image, and file uploads
+  - Replaced `fetch(uri).blob()` with `ReactNativeBlobUtil.fs.readFile()` for reliable Android URI handling (content://, file://, raw paths)
+  - Added content type metadata to all 3 upload services (MediaService, firebaseStorage, wtRegistry)
+  - Replaced hanging `uploadBytesResumable` event listeners with direct `uploadBytes` Promise
+- **Image Upload Hanging**: Fixed image uploads spinning forever in GPT chat
+  - Root cause: `uploadBytesResumable` completion callback never firing in React Native with Uint8Array
+  - Switched to `uploadBytes` (direct Promise) matching the working pattern in firebaseStorage.ts
+- **TypeScript Errors (25 → 0)**: Fixed all compilation errors
+  - Chip, Divider, Searchbar: `style?: ViewStyle` → `style?: StyleProp<ViewStyle>` for style array support
+  - Added 4 missing Instagram API response types
+  - Removed invalid barrel export from `src/index.ts`
+  - Fixed Snackbar useEffect return path consistency
 - **Turkish Character Encoding**: Fixed ü→fc, ç→e7 rendering in Notes editor
   - Added `<meta charset="UTF-8">` to react-native-pell-rich-editor WebView HTML template (via patch-package)
   - Added numeric HTML entity decoding (decimal + hex) to `stripHtmlTags` utility
