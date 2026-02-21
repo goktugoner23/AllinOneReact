@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
 
@@ -12,7 +12,7 @@ export interface ChipProps {
   onPress?: () => void;
   onClose?: () => void;
   leftIcon?: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Chip({
@@ -105,7 +105,7 @@ export function Chip({
 
 export interface ChipGroupProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ChipGroup({ children, style }: ChipGroupProps) {

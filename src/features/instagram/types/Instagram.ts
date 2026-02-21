@@ -224,6 +224,51 @@ export interface ApiResponse<T> {
   processingTime?: string;
 }
 
+// Public API response types (from external scraping endpoints)
+export interface InstagramProfilePictureResponse {
+  success: boolean;
+  data?: {
+    username: string;
+    imageUrl: string;
+  };
+  error?: string;
+}
+
+export interface InstagramStoriesResponse {
+  success: boolean;
+  data?: {
+    username: string;
+    stories: Array<{
+      id: string;
+      mediaUrl: string;
+      mediaType: string;
+      timestamp: string;
+    }>;
+  };
+  error?: string;
+}
+
+export interface InstagramUserPostsResponse {
+  success: boolean;
+  data?: {
+    username: string;
+    posts: InstagramPost[];
+    count: number;
+  };
+  error?: string;
+}
+
+export interface InstagramAllDataResponse {
+  success: boolean;
+  data?: {
+    username: string;
+    profilePicture?: string;
+    stories?: InstagramStoriesResponse['data'];
+    posts?: InstagramUserPostsResponse['data'];
+  };
+  error?: string;
+}
+
 // Result handling
 export type InstagramResult<T> =
   | { type: 'success'; data: T }
