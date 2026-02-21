@@ -43,8 +43,9 @@ export const uploadFile = async (
     // Create reference to the file location
     const fileRef = ref(storage, `${folderName}/${id}/${finalFileName}`);
 
-    // Upload file
-    await uploadBytes(fileRef, bytes);
+    // Upload file with content type metadata
+    const contentType = getMimeType(finalFileName);
+    await uploadBytes(fileRef, bytes, { contentType });
 
     // Get download URL
     const downloadURL = await getDownloadURL(fileRef);

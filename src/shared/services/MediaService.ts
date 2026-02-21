@@ -1,6 +1,7 @@
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getStorageInstance } from '@shared/services/firebase/firebase';
 import { MediaType, MediaUploadResult } from '@shared/types/MediaAttachment';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 export class MediaService {
   private static generateFileName(type: MediaType, originalName?: string): string {
@@ -25,6 +26,56 @@ export class MediaService {
     }
   }
 
+  private static getMimeType(type: MediaType, originalName?: string): string {
+    if (originalName) {
+      const ext = originalName.split('.').pop()?.toLowerCase();
+      const mimeMap: Record<string, string> = {
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+        mp4: 'video/mp4', mov: 'video/quicktime',
+        m4a: 'audio/mp4', mp3: 'audio/mpeg', wav: 'audio/wav', aac: 'audio/aac',
+        pdf: 'application/pdf', csv: 'text/csv', txt: 'text/plain',
+      };
+      if (ext && mimeMap[ext]) return mimeMap[ext];
+    }
+    switch (type) {
+      case MediaType.IMAGE: return 'image/jpeg';
+      case MediaType.VIDEO: return 'video/mp4';
+      case MediaType.AUDIO: return 'audio/mp4';
+      case MediaType.DOCUMENT: return 'application/pdf';
+      default: return 'application/octet-stream';
+    }
+  }
+
+  /**
+   * Normalize a local file URI so fetch() / blob reads work reliably on both platforms.
+   * Android audio recorder returns raw paths like /data/user/0/.../file.mp4 without file:// prefix.
+   */
+  private static normalizeUri(uri: string): string {
+    if (uri.startsWith('file://') || uri.startsWith('content://') || uri.startsWith('http')) {
+      return uri;
+    }
+    // Raw filesystem path — prefix with file://
+    return `file://${uri}`;
+  }
+
+  /**
+   * Read a local file into a Uint8Array, using ReactNativeBlobUtil for reliable
+   * Android content:// and raw-path support.
+   */
+  private static async readFileAsBytes(uri: string): Promise<Uint8Array> {
+    // ReactNativeBlobUtil handles content://, file://, and raw paths on Android
+    const base64 = await ReactNativeBlobUtil.fs.readFile(
+      uri.startsWith('file://') ? uri.replace('file://', '') : uri,
+      'base64',
+    );
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
   static async uploadMedia(
     uri: string,
     type: MediaType,
@@ -33,16 +84,17 @@ export class MediaService {
     folder: string = 'notes-media',
   ): Promise<MediaUploadResult> {
     try {
-      // Convert URI to blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      // Generate file name
+      // Generate file name and determine content type
       const fileName = this.generateFileName(type, originalName);
+      const contentType = this.getMimeType(type, originalName || fileName);
       const storageRef = ref(getStorageInstance(), `${folder}/${fileName}`);
 
-      // Create upload task
-      const uploadTask = uploadBytesResumable(storageRef, blob);
+      // Read file bytes — use ReactNativeBlobUtil for reliable Android support
+      const bytes = await this.readFileAsBytes(uri);
+
+      // Create upload task with proper content type metadata
+      const metadata = { contentType };
+      const uploadTask = uploadBytesResumable(storageRef, bytes, metadata);
 
       return new Promise((resolve, reject) => {
         uploadTask.on(
