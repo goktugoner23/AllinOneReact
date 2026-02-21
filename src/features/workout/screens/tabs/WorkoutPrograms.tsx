@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, ScrollView, Text } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, FlatList, ScrollView, Text, RefreshControl } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import {
   Card,
   CardHeader,
@@ -21,7 +22,9 @@ import { useColors, spacing, textStyles } from '@shared/theme';
 
 export default function WorkoutPrograms() {
   const colors = useColors();
+  const isFocused = useIsFocused();
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState<Program | null>(null);
   const [newName, setNewName] = useState('');
@@ -30,8 +33,22 @@ export default function WorkoutPrograms() {
   const [optionsOpen, setOptionsOpen] = useState<Program | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState<Program | null>(null);
 
-  useEffect(() => {
+  const fetchPrograms = useCallback(() => {
     workoutService.getPrograms().then(setPrograms);
+  }, []);
+
+  useEffect(() => {
+    if (isFocused) fetchPrograms();
+  }, [isFocused, fetchPrograms]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const fresh = await workoutService.getPrograms();
+      setPrograms(fresh);
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
   const handleCloseForm = () => {
@@ -92,6 +109,9 @@ export default function WorkoutPrograms() {
             actionLabel="Create Program"
             onAction={() => setAddOpen(true)}
           />
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         contentContainerStyle={{ flexGrow: 1 }}
       />

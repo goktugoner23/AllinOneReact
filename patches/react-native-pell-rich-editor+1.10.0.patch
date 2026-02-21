@@ -1,0 +1,12 @@
+diff --git a/node_modules/react-native-pell-rich-editor/src/editor.js b/node_modules/react-native-pell-rich-editor/src/editor.js
+index 6559109..97a3fc2 100644
+--- a/node_modules/react-native-pell-rich-editor/src/editor.js
++++ b/node_modules/react-native-pell-rich-editor/src/editor.js
+@@ -50,6 +50,7 @@ function createHTML(options = {}) {
+ <!DOCTYPE html>
+ <html>
+ <head>
++    <meta charset="UTF-8">
+     <title>RN Rich Text Editor</title>
+     <meta name="viewport" content="user-scalable=1.0,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0">
+     <style>

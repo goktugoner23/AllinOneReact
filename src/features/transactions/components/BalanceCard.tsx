@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Card, CardHeader, CardContent } from '@shared/components/ui';
 import { useBalance } from '@shared/hooks/useTransactionsQueries';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useCurrency, CurrencyCode } from '@shared/hooks/useCurrency';
 
 interface BalanceCardProps {
   showLoading?: boolean;
@@ -12,25 +13,25 @@ interface BalanceCardProps {
 export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading = false }) => {
   const colors = useColors();
   const { income, expense, balance } = useBalance();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const { selectedCurrency, setSelectedCurrency, format } = useCurrency();
 
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const toggleCurrency = () => {
+    setSelectedCurrency(selectedCurrency === 'TRY' ? 'AED' : 'TRY');
+  };
 
   return (
     <Card variant="elevated" style={styles.card}>
       <CardHeader style={styles.header}>
         <Text style={[styles.title, { color: colors.foreground }]}>{currentMonthName}</Text>
-        <View style={[styles.badge, { backgroundColor: colors.primaryMuted }]}>
-          <Text style={[styles.badgeText, { color: colors.primary }]}>Monthly</Text>
-        </View>
+        <TouchableOpacity
+          onPress={toggleCurrency}
+          style={[styles.currencyToggle, { backgroundColor: colors.primaryMuted }]}
+        >
+          <Text style={[styles.badgeText, { color: colors.primary }]}>{selectedCurrency}</Text>
+          <Ionicons name="swap-horizontal" size={12} color={colors.primary} style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
       </CardHeader>
 
       <CardContent>
@@ -72,15 +73,7 @@ interface BalanceItemProps {
 
 const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant, isBalance }) => {
   const colors = useColors();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(amount));
-  };
+  const { format } = useCurrency();
 
   const getColors = () => {
     if (variant === 'income') {
@@ -111,7 +104,7 @@ const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant,
         adjustsFontSizeToFit
       >
         {isBalance && amount < 0 ? '-' : ''}
-        {formatCurrency(amount)}
+        {format(Math.abs(amount))}
       </Text>
     </View>
   );
@@ -133,6 +126,13 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
+    borderRadius: radius.full,
+  },
+  currencyToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
     borderRadius: radius.full,
   },
   badgeText: {

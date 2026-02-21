@@ -34,6 +34,7 @@ import { enableFreeze } from 'react-native-screens';
 import { Switch, Divider } from '@shared/components/ui';
 import StopwatchScreen from '@features/workout/screens/StopwatchScreen';
 import { ThemeProvider, useAppTheme, useColors } from '@shared/theme';
+import { CurrencyContext, useCurrencyProvider } from '@shared/hooks/useCurrency';
 
 // Initialize Firebase
 import '@shared/services/firebase/firebase';
@@ -261,6 +262,15 @@ function AppContent() {
   );
 }
 
+function CurrencyWrapper() {
+  const currencyState = useCurrencyProvider();
+  return (
+    <CurrencyContext.Provider value={currencyState}>
+      <AppContent />
+    </CurrencyContext.Provider>
+  );
+}
+
 export default function App() {
   // Setup global error handler to suppress Firestore assertion errors
   useEffect(() => {
@@ -278,7 +288,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <ThemeProvider>
-          <AppContent />
+          <CurrencyWrapper />
         </ThemeProvider>
       </Provider>
     </QueryClientProvider>

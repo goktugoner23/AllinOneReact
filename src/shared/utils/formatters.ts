@@ -120,7 +120,10 @@ export const stripHtmlTags = (html: string): string => {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    // Decode numeric HTML entities (decimal &#123; and hex &#xFC;)
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)));
 
   // Remove extra whitespace
   return decoded.replace(/\s+/g, ' ').trim();
