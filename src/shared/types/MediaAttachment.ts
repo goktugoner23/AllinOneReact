@@ -13,6 +13,7 @@ export enum MediaType {
   VIDEO = 'VIDEO',
   AUDIO = 'AUDIO',
   DRAWING = 'DRAWING',
+  DOCUMENT = 'DOCUMENT',
 }
 
 export interface MediaAttachmentsState {

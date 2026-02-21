@@ -18,6 +18,8 @@ export class MediaService {
         return 'mp4';
       case MediaType.AUDIO:
         return 'm4a';
+      case MediaType.DOCUMENT:
+        return 'pdf';
       default:
         return 'jpg';
     }

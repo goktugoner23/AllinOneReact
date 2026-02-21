@@ -17,10 +17,18 @@ export interface AIChatResponse {
   model: string;
 }
 
+export interface FileAttachment {
+  url: string;
+  name: string;
+  mimeType: string;
+}
+
 export interface AIChatMessageRequest {
   message: string;
   conversationId?: string;
   imageUrls?: string[];
+  fileAttachments?: FileAttachment[];
+  audioUrl?: string;
 }
 
 export interface AIChatChoiceResponseRequest {
@@ -46,6 +54,9 @@ export interface ConversationMessage {
   toolCalls?: any[];
   toolCallId?: string;
   name?: string;
+  imageUrls?: string[];
+  fileAttachments?: FileAttachment[];
+  audioUrl?: string;
   createdAt: string;
 }
 
@@ -58,6 +69,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   imageUrls?: string[];
+  fileAttachments?: FileAttachment[];
+  audioUrl?: string;
   createdAt: string;
 }
 

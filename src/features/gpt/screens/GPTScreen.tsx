@@ -14,7 +14,7 @@ import {
   deleteConversation,
   startNewConversation,
 } from '../store/gptSlice';
-import { ChatMessage } from '../types/GPT';
+import { ChatMessage, FileAttachment } from '../types/GPT';
 import {
   ChatBubble,
   ChatInput,
@@ -62,8 +62,14 @@ export default function GPTScreen() {
   }, [lastActions, navigation, queryClient]);
 
   const handleSend = useCallback(
-    (text: string, imageUrls?: string[]) => {
-      dispatch(sendMessage({ message: text, conversationId: activeConversationId || undefined, imageUrls }));
+    (text: string, imageUrls?: string[], fileAttachments?: FileAttachment[], audioUrl?: string) => {
+      dispatch(sendMessage({
+        message: text,
+        conversationId: activeConversationId || undefined,
+        imageUrls,
+        fileAttachments,
+        audioUrl,
+      }));
     },
     [dispatch, activeConversationId],
   );

@@ -1,102 +1,291 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Platform,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
+import DocumentPicker from 'react-native-document-picker';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { useColors } from '@shared/theme';
 import { MediaService } from '@shared/services/MediaService';
 import { MediaType } from '@shared/types/MediaAttachment';
+import { FileAttachment } from '../types/GPT';
 
-interface PendingImage {
+interface PendingAttachment {
+  id: string;
   localUri: string;
   uploadedUrl?: string;
   uploading: boolean;
+  type: 'image' | 'file' | 'audio';
+  name?: string;
+  mimeType?: string;
+  duration?: number;
 }
 
 interface ChatInputProps {
-  onSend: (message: string, imageUrls?: string[]) => void;
+  onSend: (message: string, imageUrls?: string[], fileAttachments?: FileAttachment[], audioUrl?: string) => void;
   disabled?: boolean;
 }
+
+const audioRecorderPlayer = new AudioRecorderPlayer();
 
 export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const colors = useColors();
   const [text, setText] = useState('');
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
-  const hasImages = pendingImages.length > 0;
-  const allUploaded = pendingImages.every(img => !!img.uploadedUrl);
-  const canSend = (!disabled) && (text.trim() || hasImages) && (!hasImages || allUploaded);
+  const hasAttachments = pendingAttachments.length > 0;
+  const allUploaded = pendingAttachments.every(a => !!a.uploadedUrl);
+  const canSend = !disabled && (text.trim() || hasAttachments) && (!hasAttachments || allUploaded);
 
   const handleSend = () => {
     if (!canSend) return;
-    const imageUrls = pendingImages.map(img => img.uploadedUrl!).filter(Boolean);
-    onSend(text.trim(), imageUrls.length > 0 ? imageUrls : undefined);
+
+    const imageUrls = pendingAttachments
+      .filter(a => a.type === 'image' && a.uploadedUrl)
+      .map(a => a.uploadedUrl!);
+
+    const fileAttachments: FileAttachment[] = pendingAttachments
+      .filter(a => a.type === 'file' && a.uploadedUrl)
+      .map(a => ({ url: a.uploadedUrl!, name: a.name || 'file', mimeType: a.mimeType || 'application/octet-stream' }));
+
+    const audioAttachment = pendingAttachments.find(a => a.type === 'audio' && a.uploadedUrl);
+
+    onSend(
+      text.trim(),
+      imageUrls.length > 0 ? imageUrls : undefined,
+      fileAttachments.length > 0 ? fileAttachments : undefined,
+      audioAttachment?.uploadedUrl,
+    );
     setText('');
-    setPendingImages([]);
+    setPendingAttachments([]);
   };
 
   const handlePickImage = async () => {
-    if (disabled || pendingImages.length >= 3) return;
+    const imageCount = pendingAttachments.filter(a => a.type === 'image').length;
+    if (disabled || imageCount >= 3) return;
 
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      selectionLimit: 3 - pendingImages.length,
+      selectionLimit: 3 - imageCount,
       quality: 0.7,
     });
 
     if (result.didCancel || !result.assets?.length) return;
 
-    const newImages: PendingImage[] = result.assets.map(asset => ({
+    const newAttachments: PendingAttachment[] = result.assets.map(asset => ({
+      id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       localUri: asset.uri!,
       uploading: true,
+      type: 'image' as const,
+      name: asset.fileName,
+      mimeType: asset.type,
     }));
 
-    setPendingImages(prev => [...prev, ...newImages]);
+    setPendingAttachments(prev => [...prev, ...newAttachments]);
 
-    // Upload each image
-    for (const img of newImages) {
+    for (const att of newAttachments) {
       try {
         const uploadResult = await MediaService.uploadMedia(
-          img.localUri,
+          att.localUri,
           MediaType.IMAGE,
           undefined,
           undefined,
           'chat-media',
         );
         if (uploadResult.success && uploadResult.uri) {
-          setPendingImages(prev =>
-            prev.map(p =>
-              p.localUri === img.localUri ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p,
-            ),
+          setPendingAttachments(prev =>
+            prev.map(p => (p.id === att.id ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p)),
           );
         } else {
-          // Remove failed image
-          setPendingImages(prev => prev.filter(p => p.localUri !== img.localUri));
+          Alert.alert('Upload Failed', uploadResult.error || 'Could not upload image.');
+          setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
         }
       } catch {
-        setPendingImages(prev => prev.filter(p => p.localUri !== img.localUri));
+        Alert.alert('Upload Failed', 'An error occurred while uploading the image.');
+        setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
       }
     }
   };
 
-  const removeImage = (localUri: string) => {
-    setPendingImages(prev => prev.filter(p => p.localUri !== localUri));
+  const handlePickFile = async () => {
+    if (disabled) return;
+
+    try {
+      const result = await DocumentPicker.pick({
+        type: [DocumentPicker.types.pdf, DocumentPicker.types.plainText, DocumentPicker.types.csv, DocumentPicker.types.allFiles],
+        allowMultiSelection: false,
+      });
+
+      const file = result[0];
+      if (!file?.uri) return;
+
+      const att: PendingAttachment = {
+        id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        localUri: file.uri,
+        uploading: true,
+        type: 'file',
+        name: file.name || 'document',
+        mimeType: file.type || 'application/octet-stream',
+      };
+
+      setPendingAttachments(prev => [...prev, att]);
+
+      try {
+        const uploadResult = await MediaService.uploadMedia(
+          att.localUri,
+          MediaType.DOCUMENT,
+          att.name,
+          undefined,
+          'chat-media',
+        );
+        if (uploadResult.success && uploadResult.uri) {
+          setPendingAttachments(prev =>
+            prev.map(p => (p.id === att.id ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p)),
+          );
+        } else {
+          Alert.alert('Upload Failed', uploadResult.error || 'Could not upload file.');
+          setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
+        }
+      } catch {
+        Alert.alert('Upload Failed', 'An error occurred while uploading the file.');
+        setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
+      }
+    } catch (err: any) {
+      if (!DocumentPicker.isCancel(err)) {
+        Alert.alert('Error', 'Could not open file picker.');
+      }
+    }
+  };
+
+  const handleStartRecording = async () => {
+    if (disabled || isRecording) return;
+
+    try {
+      await audioRecorderPlayer.startRecorder();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      audioRecorderPlayer.addRecordBackListener(e => {
+        setRecordingDuration(Math.floor(e.currentPosition / 1000));
+      });
+    } catch {
+      Alert.alert('Error', 'Could not start recording. Check microphone permissions.');
+    }
+  };
+
+  const handleStopRecording = async () => {
+    if (!isRecording) return;
+
+    try {
+      const uri = await audioRecorderPlayer.stopRecorder();
+      audioRecorderPlayer.removeRecordBackListener();
+      setIsRecording(false);
+      const duration = recordingDuration;
+      setRecordingDuration(0);
+
+      const att: PendingAttachment = {
+        id: `audio-${Date.now()}`,
+        localUri: uri,
+        uploading: true,
+        type: 'audio',
+        name: 'Voice message',
+        mimeType: 'audio/m4a',
+        duration,
+      };
+
+      setPendingAttachments(prev => [...prev, att]);
+
+      try {
+        const uploadResult = await MediaService.uploadMedia(
+          uri,
+          MediaType.AUDIO,
+          undefined,
+          undefined,
+          'chat-media',
+        );
+        if (uploadResult.success && uploadResult.uri) {
+          setPendingAttachments(prev =>
+            prev.map(p => (p.id === att.id ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p)),
+          );
+        } else {
+          Alert.alert('Upload Failed', uploadResult.error || 'Could not upload voice message.');
+          setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
+        }
+      } catch {
+        Alert.alert('Upload Failed', 'An error occurred while uploading the voice message.');
+        setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
+      }
+    } catch {
+      setIsRecording(false);
+      Alert.alert('Error', 'Could not stop recording.');
+    }
+  };
+
+  const handleAttachPress = () => {
+    Alert.alert('Attach', 'Choose attachment type', [
+      { text: 'Photo', onPress: handlePickImage },
+      { text: 'File', onPress: handlePickFile },
+      { text: 'Voice', onPress: handleStartRecording },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const removeAttachment = (id: string) => {
+    setPendingAttachments(prev => prev.filter(p => p.id !== id));
+  };
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
     <View style={[styles.outerContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-      {hasImages && (
-        <View style={styles.imagePreviewRow}>
-          {pendingImages.map(img => (
-            <View key={img.localUri} style={styles.imagePreviewContainer}>
-              <Image source={{ uri: img.localUri }} style={styles.imagePreview} />
-              {img.uploading && (
-                <View style={styles.imageUploadOverlay}>
-                  <ActivityIndicator size="small" color="#fff" />
+      {hasAttachments && (
+        <View style={styles.previewRow}>
+          {pendingAttachments.map(att => (
+            <View key={att.id} style={styles.previewItem}>
+              {att.type === 'image' ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: att.localUri }} style={styles.imagePreview} />
+                  {att.uploading && (
+                    <View style={styles.uploadOverlay}>
+                      <ActivityIndicator size="small" color="#fff" />
+                    </View>
+                  )}
+                </View>
+              ) : att.type === 'file' ? (
+                <View style={[styles.fileChip, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Ionicons name="document-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.fileChipText, { color: colors.foreground }]} numberOfLines={1}>
+                    {att.name}
+                  </Text>
+                  {att.uploading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
+                </View>
+              ) : (
+                <View style={[styles.fileChip, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Ionicons name="mic-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.fileChipText, { color: colors.foreground }]}>
+                    {att.duration ? formatDuration(att.duration) : 'Voice'}
+                  </Text>
+                  {att.uploading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
                 </View>
               )}
               <TouchableOpacity
-                style={[styles.removeImageBtn, { backgroundColor: colors.destructive }]}
-                onPress={() => removeImage(img.localUri)}
+                style={[styles.removeBtn, { backgroundColor: colors.destructive }]}
+                onPress={() => removeAttachment(att.id)}
               >
                 <Ionicons name="close" size={12} color="#fff" />
               </TouchableOpacity>
@@ -104,18 +293,28 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           ))}
         </View>
       )}
+
+      {isRecording && (
+        <View style={[styles.recordingBar, { backgroundColor: colors.destructive + '15' }]}>
+          <View style={[styles.recordingDot, { backgroundColor: colors.destructive }]} />
+          <Text style={[styles.recordingText, { color: colors.destructive }]}>
+            Recording {formatDuration(recordingDuration)}
+          </Text>
+          <TouchableOpacity onPress={handleStopRecording} style={[styles.stopRecordBtn, { backgroundColor: colors.destructive }]}>
+            <Ionicons name="stop" size={14} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.inputRow}>
-        <TouchableOpacity
-          style={styles.attachBtn}
-          onPress={handlePickImage}
-          disabled={disabled || pendingImages.length >= 3}
-        >
+        <TouchableOpacity style={styles.attachBtn} onPress={handleAttachPress} disabled={disabled}>
           <Ionicons
-            name="image-outline"
+            name="attach-outline"
             size={24}
-            color={disabled || pendingImages.length >= 3 ? colors.foregroundSubtle : colors.primary}
+            color={disabled ? colors.foregroundSubtle : colors.primary}
           />
         </TouchableOpacity>
+
         <TextInput
           style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.foreground }]}
           placeholder="Type a message..."
@@ -124,17 +323,28 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           onChangeText={setText}
           multiline
           maxLength={4000}
-          editable={!disabled}
+          editable={!disabled && !isRecording}
           onSubmitEditing={handleSend}
           blurOnSubmit={false}
         />
-        <TouchableOpacity
-          style={[styles.sendBtn, { backgroundColor: canSend ? colors.primary : colors.border }]}
-          onPress={handleSend}
-          disabled={!canSend}
-        >
-          <Ionicons name="send" size={18} color={canSend ? colors.primaryForeground : colors.foregroundSubtle} />
-        </TouchableOpacity>
+
+        {!isRecording && !text.trim() && !hasAttachments ? (
+          <TouchableOpacity
+            style={[styles.micBtn, { backgroundColor: colors.primary }]}
+            onPress={handleStartRecording}
+            disabled={disabled}
+          >
+            <Ionicons name="mic" size={18} color={colors.primaryForeground} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.sendBtn, { backgroundColor: canSend ? colors.primary : colors.border }]}
+            onPress={handleSend}
+            disabled={!canSend}
+          >
+            <Ionicons name="send" size={18} color={canSend ? colors.primaryForeground : colors.foregroundSubtle} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -173,11 +383,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imagePreviewRow: {
+  micBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
     paddingTop: 8,
     gap: 8,
+  },
+  previewItem: {
+    position: 'relative',
   },
   imagePreviewContainer: {
     position: 'relative',
@@ -187,20 +408,57 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 8,
   },
-  imageUploadOverlay: {
+  uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  removeImageBtn: {
+  fileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    maxWidth: 180,
+  },
+  fileChipText: {
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  removeBtn: {
     position: 'absolute',
     top: -6,
     right: -6,
     width: 20,
     height: 20,
     borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  recordingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  stopRecordBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },

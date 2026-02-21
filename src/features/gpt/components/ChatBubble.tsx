@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Linking, StyleSheet } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
 import { ChatMessage } from '../types/GPT';
 
@@ -29,6 +30,47 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
             ))}
           </View>
         )}
+
+        {message.fileAttachments && message.fileAttachments.length > 0 && (
+          <View style={styles.attachmentsContainer}>
+            {message.fileAttachments.map((file, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.fileRow, { backgroundColor: isUser ? 'rgba(255,255,255,0.15)' : colors.backgroundSecondary }]}
+                onPress={() => Linking.openURL(file.url)}
+              >
+                <Ionicons
+                  name="document-outline"
+                  size={18}
+                  color={isUser ? colors.primaryForeground : colors.primary}
+                />
+                <Text
+                  style={[styles.fileName, { color: isUser ? colors.primaryForeground : colors.foreground }]}
+                  numberOfLines={1}
+                >
+                  {file.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {message.audioUrl && (
+          <TouchableOpacity
+            style={[styles.audioRow, { backgroundColor: isUser ? 'rgba(255,255,255,0.15)' : colors.backgroundSecondary }]}
+            onPress={() => Linking.openURL(message.audioUrl!)}
+          >
+            <Ionicons
+              name="mic-outline"
+              size={18}
+              color={isUser ? colors.primaryForeground : colors.primary}
+            />
+            <Text style={[styles.audioLabel, { color: isUser ? colors.primaryForeground : colors.foreground }]}>
+              Voice message
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <Text
           style={[
             styles.text,
@@ -75,5 +117,35 @@ const styles = StyleSheet.create({
     width: 180,
     height: 140,
     borderRadius: 8,
+  },
+  attachmentsContainer: {
+    gap: 6,
+    marginBottom: 8,
+  },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 8,
+  },
+  fileName: {
+    fontSize: 13,
+    fontWeight: '500',
+    flexShrink: 1,
+  },
+  audioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 8,
+    marginBottom: 8,
+  },
+  audioLabel: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

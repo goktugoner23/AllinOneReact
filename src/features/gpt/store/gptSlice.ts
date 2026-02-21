@@ -6,6 +6,7 @@ import {
   PendingChoice,
   PendingConfirmation,
   AIChatAction,
+  FileAttachment,
 } from '../types/GPT';
 
 interface GPTState {
@@ -55,6 +56,9 @@ export const loadConversation = createAsyncThunk(
           id: `${conversation.id}-${idx}`,
           role: m.role as 'user' | 'assistant',
           content: m.content!,
+          imageUrls: m.imageUrls,
+          fileAttachments: m.fileAttachments,
+          audioUrl: m.audioUrl,
           createdAt: m.createdAt,
         }));
       return { id: conversation.id, title: conversation.title, messages: chatMessages };
@@ -66,9 +70,18 @@ export const loadConversation = createAsyncThunk(
 
 export const sendMessage = createAsyncThunk(
   'gpt/sendMessage',
-  async ({ message, conversationId, imageUrls }: { message: string; conversationId?: string; imageUrls?: string[] }, { rejectWithValue }) => {
+  async (
+    { message, conversationId, imageUrls, fileAttachments, audioUrl }: {
+      message: string;
+      conversationId?: string;
+      imageUrls?: string[];
+      fileAttachments?: FileAttachment[];
+      audioUrl?: string;
+    },
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await gptApiService.sendMessage({ message, conversationId, imageUrls });
+      const response = await gptApiService.sendMessage({ message, conversationId, imageUrls, fileAttachments, audioUrl });
       return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to send message');
@@ -166,6 +179,8 @@ const gptSlice = createSlice({
           role: 'user',
           content: action.meta.arg.message,
           imageUrls: action.meta.arg.imageUrls,
+          fileAttachments: action.meta.arg.fileAttachments,
+          audioUrl: action.meta.arg.audioUrl,
           createdAt: new Date().toISOString(),
         };
         state.messages.push(userMsg);
