@@ -1,7 +1,6 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getStorageInstance } from '@shared/services/firebase/firebase';
 import { MediaType, MediaUploadResult } from '@shared/types/MediaAttachment';
-import ReactNativeBlobUtil from 'react-native-blob-util';
 
 export class MediaService {
   private static generateFileName(type: MediaType, originalName?: string): string {
@@ -47,20 +46,11 @@ export class MediaService {
   }
 
   /**
-   * Read a local file as a Blob via data URI fetch.
-   * Hermes can't create Blob from ArrayBuffer/Uint8Array, but fetch()
-   * with a data: URI returns a proper native Blob that Firebase accepts.
+   * Read a local file as a Blob using RN's native fetch(),
+   * which handles file://, content://, and other local URIs.
    */
-  private static async readFileAsBlob(uri: string, contentType: string): Promise<Blob> {
-    // content:// URIs (Android document picker) can't be read by ReactNativeBlobUtil,
-    // but RN's fetch() handles them natively
-    if (uri.startsWith('content://')) {
-      const response = await fetch(uri);
-      return response.blob();
-    }
-    const path = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
-    const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
-    const response = await fetch(`data:${contentType};base64,${base64}`);
+  private static async readFileAsBlob(uri: string): Promise<Blob> {
+    const response = await fetch(uri);
     return response.blob();
   }
 
@@ -77,8 +67,7 @@ export class MediaService {
       const contentType = this.getMimeType(type, originalName || fileName);
       const storageRef = ref(getStorageInstance(), `${folder}/${fileName}`);
 
-      // Read file as native Blob via data URI (Hermes can't create Blob from Uint8Array)
-      const blob = await this.readFileAsBlob(uri, contentType);
+      const blob = await this.readFileAsBlob(uri);
       const snapshot = await uploadBytes(storageRef, blob, { contentType });
       onProgress?.(100);
 
