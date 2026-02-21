@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Card, CardHeader, CardContent } from '@shared/components/ui';
 import { Transaction } from '../types/Transaction';
 import { useColors, spacing, textStyles, radius, categoryColors } from '@shared/theme';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 interface SpendingPieChartProps {
   transactions: Transaction[];
@@ -17,6 +18,7 @@ interface CategoryData {
 
 export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions }) => {
   const colors = useColors();
+  const { format: formatCurrency } = useCurrency();
 
   // Get current month boundaries
   const now = new Date();
@@ -85,15 +87,6 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
       color: colors.mutedForeground,
     });
   }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   return (
     <Card variant="elevated" style={styles.card}>

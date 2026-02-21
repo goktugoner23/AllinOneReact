@@ -10,6 +10,7 @@ import { TransactionService } from '@features/transactions/services/transactionS
 import { useColors, useIsDark, spacing, textStyles, radius, shadow } from '@shared/theme';
 import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 const dateRanges = [
   { label: 'Last 7', value: '7d' },
@@ -18,9 +19,6 @@ const dateRanges = [
   { label: 'This Year', value: 'year' },
   { label: 'All Time', value: 'all' },
 ];
-
-const formatCurrencyTRY = (amount: number) =>
-  new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
 
 // Get the start date for a given range (computed once, not per-transaction)
 function getStartDateForRange(range: string): number | null {
@@ -38,6 +36,7 @@ function getStartDateForRange(range: string): number | null {
 export const ReportsTab: React.FC = () => {
   const colors = useColors();
   const isDark = useIsDark();
+  const { format: formatCurrency } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dateRange, setDateRange] = useState('30d');
   const [category, setCategory] = useState('All');
@@ -279,18 +278,18 @@ export const ReportsTab: React.FC = () => {
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Income</Text>
-              <Text style={[styles.summaryValue, { color: colors.income }]}>{formatCurrencyTRY(totalIncome)}</Text>
+              <Text style={[styles.summaryValue, { color: colors.income }]}>{formatCurrency(totalIncome)}</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Expense</Text>
-              <Text style={[styles.summaryValue, { color: colors.expense }]}>{formatCurrencyTRY(totalExpense)}</Text>
+              <Text style={[styles.summaryValue, { color: colors.expense }]}>{formatCurrency(totalExpense)}</Text>
             </View>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Balance</Text>
               <Text style={[styles.summaryValue, { color: balance >= 0 ? colors.income : colors.expense }]}>
-                {formatCurrencyTRY(balance)}
+                {formatCurrency(balance)}
               </Text>
             </View>
             <View style={styles.summaryItem}>
@@ -333,7 +332,7 @@ export const ReportsTab: React.FC = () => {
               <View key={cat}>
                 <View style={styles.categoryRow}>
                   <Text style={[styles.categoryText, { color: colors.foreground }]}>{cat}</Text>
-                  <Text style={[styles.categoryAmount, { color: colors.expense }]}>{formatCurrencyTRY(amt)}</Text>
+                  <Text style={[styles.categoryAmount, { color: colors.expense }]}>{formatCurrency(amt)}</Text>
                 </View>
                 {i < categorySpending.length - 1 && (
                   <Divider style={[styles.categoryDivider, { backgroundColor: colors.border }]} />
@@ -354,7 +353,7 @@ export const ReportsTab: React.FC = () => {
         <CardContent style={styles.insightsContent}>
           <View style={styles.insightRow}>
             <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Average Transaction</Text>
-            <Text style={[styles.insightValue, { color: colors.foreground }]}>{formatCurrencyTRY(avgTransaction)}</Text>
+            <Text style={[styles.insightValue, { color: colors.foreground }]}>{formatCurrency(avgTransaction)}</Text>
           </View>
           <View style={styles.insightRow}>
             <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Most Frequent Category</Text>

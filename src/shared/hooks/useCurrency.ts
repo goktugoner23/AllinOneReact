@@ -25,7 +25,7 @@ export const CurrencyContext = createContext<CurrencyState>({
   exchangeRate: null,
   isLoading: false,
   convert: (a) => a,
-  format: (a) => `₺${a.toFixed(0)}`,
+  format: (a) => `₺${a.toFixed(2)}`,
 });
 
 export function useCurrencyProvider(): CurrencyState {
@@ -95,8 +95,8 @@ export function useCurrencyProvider(): CurrencyState {
       return new Intl.NumberFormat(selectedCurrency === 'TRY' ? 'tr-TR' : 'en-AE', {
         style: 'currency',
         currency: selectedCurrency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: selectedCurrency === 'AED' ? 2 : 0,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       }).format(converted);
     },
     [selectedCurrency, exchangeRate],
