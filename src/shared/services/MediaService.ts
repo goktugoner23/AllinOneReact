@@ -47,33 +47,15 @@ export class MediaService {
   }
 
   /**
-   * Normalize a local file URI so fetch() / blob reads work reliably on both platforms.
-   * Android audio recorder returns raw paths like /data/user/0/.../file.mp4 without file:// prefix.
+   * Read a local file as a Blob via data URI fetch.
+   * Hermes can't create Blob from ArrayBuffer/Uint8Array, but fetch()
+   * with a data: URI returns a proper native Blob that Firebase accepts.
    */
-  private static normalizeUri(uri: string): string {
-    if (uri.startsWith('file://') || uri.startsWith('content://') || uri.startsWith('http')) {
-      return uri;
-    }
-    // Raw filesystem path — prefix with file://
-    return `file://${uri}`;
-  }
-
-  /**
-   * Read a local file into a Uint8Array, using ReactNativeBlobUtil for reliable
-   * Android content:// and raw-path support.
-   */
-  private static async readFileAsBytes(uri: string): Promise<Uint8Array> {
-    // ReactNativeBlobUtil handles content://, file://, and raw paths on Android
-    const base64 = await ReactNativeBlobUtil.fs.readFile(
-      uri.startsWith('file://') ? uri.replace('file://', '') : uri,
-      'base64',
-    );
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
+  private static async readFileAsBlob(uri: string, contentType: string): Promise<Blob> {
+    const path = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+    const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
+    const response = await fetch(`data:${contentType};base64,${base64}`);
+    return response.blob();
   }
 
   static async uploadMedia(
@@ -89,11 +71,9 @@ export class MediaService {
       const contentType = this.getMimeType(type, originalName || fileName);
       const storageRef = ref(getStorageInstance(), `${folder}/${fileName}`);
 
-      // Read file bytes — use ReactNativeBlobUtil for reliable Android support
-      const bytes = await this.readFileAsBytes(uri);
-
-      // Upload with content type metadata
-      const snapshot = await uploadBytes(storageRef, bytes, { contentType });
+      // Read file as native Blob via data URI (Hermes can't create Blob from Uint8Array)
+      const blob = await this.readFileAsBlob(uri, contentType);
+      const snapshot = await uploadBytes(storageRef, blob, { contentType });
       onProgress?.(100);
 
       const downloadURL = await getDownloadURL(snapshot.ref);

@@ -27,25 +27,20 @@ export const uploadFile = async (
   try {
     console.log(`📤 Uploading file to Firebase Storage: ${folderName}/${id}`);
 
-    // Read file using ReactNativeBlobUtil for proper content:// URI support on Android
-    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
-
-    // Convert base64 to Uint8Array for uploadBytes
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
     // Generate filename if not provided
     const finalFileName = fileName || `file_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
     // Create reference to the file location
     const fileRef = ref(storage, `${folderName}/${id}/${finalFileName}`);
 
-    // Upload file with content type metadata
+    // Read file as native Blob via data URI (Hermes can't create Blob from Uint8Array)
     const contentType = getMimeType(finalFileName);
-    await uploadBytes(fileRef, bytes, { contentType });
+    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
+    const response = await fetch(`data:${contentType};base64,${base64Data}`);
+    const blob = await response.blob();
+
+    // Upload blob with content type metadata
+    await uploadBytes(fileRef, blob, { contentType });
 
     // Get download URL
     const downloadURL = await getDownloadURL(fileRef);

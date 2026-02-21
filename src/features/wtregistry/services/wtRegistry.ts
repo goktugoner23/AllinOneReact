@@ -149,16 +149,6 @@ export async function uploadFileToStorage(
     const storage = getStorage();
     const storageRef = ref(storage, `${folderName}/${fileName}`);
 
-    // Read file using ReactNativeBlobUtil for proper content:// URI support on Android
-    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
-
-    // Convert base64 to Uint8Array for uploadBytes
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
     // Determine content type from file extension
     const ext = fileName.toLowerCase().split('.').pop() || '';
     const mimeTypes: Record<string, string> = {
@@ -168,8 +158,13 @@ export async function uploadFileToStorage(
     };
     const contentType = mimeTypes[ext] || 'application/octet-stream';
 
-    // Upload to Firebase Storage with content type metadata
-    const snapshot = await uploadBytes(storageRef, bytes, { contentType });
+    // Read file as native Blob via data URI (Hermes can't create Blob from Uint8Array)
+    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
+    const response = await fetch(`data:${contentType};base64,${base64Data}`);
+    const blob = await response.blob();
+
+    // Upload blob with content type metadata
+    const snapshot = await uploadBytes(storageRef, blob, { contentType });
 
     // Get download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
