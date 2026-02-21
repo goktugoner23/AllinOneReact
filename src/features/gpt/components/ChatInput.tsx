@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   TextInput,
@@ -8,13 +8,15 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Platform,
+  Pressable,
+  Modal,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { pick, types as docTypes } from '@react-native-documents/picker';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
-import { useColors } from '@shared/theme';
+import { useColors, radius, shadow, spacing } from '@shared/theme';
 import { MediaService } from '@shared/services/MediaService';
 import { MediaType } from '@shared/types/MediaAttachment';
 import { FileAttachment } from '../types/GPT';
@@ -39,10 +41,12 @@ const audioRecorderPlayer = new AudioRecorderPlayer();
 
 export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [showAttachModal, setShowAttachModal] = useState(false);
 
   const hasAttachments = pendingAttachments.length > 0;
   const allUploaded = pendingAttachments.every(a => !!a.uploadedUrl);
@@ -232,12 +236,13 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   };
 
   const handleAttachPress = () => {
-    Alert.alert('Attach', 'Choose attachment type', [
-      { text: 'Photo', onPress: handlePickImage },
-      { text: 'File', onPress: handlePickFile },
-      { text: 'Voice', onPress: handleStartRecording },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setShowAttachModal(true);
+  };
+
+  const handleAttachOption = (action: () => void) => {
+    setShowAttachModal(false);
+    // Small delay so modal closes before picker opens
+    setTimeout(action, 150);
   };
 
   const removeAttachment = (id: string) => {
@@ -345,6 +350,44 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           </TouchableOpacity>
         )}
       </View>
+
+      <Modal
+        visible={showAttachModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAttachModal(false)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowAttachModal(false)}>
+          <Pressable
+            style={[
+              styles.attachSheet,
+              { backgroundColor: colors.card, paddingBottom: insets.bottom + spacing[4] },
+            ]}
+            onPress={() => {}}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <View style={styles.attachGrid}>
+              {[
+                { icon: 'image', color: '#7C4DFF', bg: '#7C4DFF18', label: 'Photo', action: handlePickImage },
+                { icon: 'document-text', color: '#2979FF', bg: '#2979FF18', label: 'File', action: handlePickFile },
+                { icon: 'mic', color: '#FF5252', bg: '#FF525218', label: 'Voice', action: handleStartRecording },
+              ].map((item) => (
+                <Pressable
+                  key={item.label}
+                  style={({ pressed }) => [styles.attachGridItem, pressed && { opacity: 0.6 }]}
+                  onPress={() => handleAttachOption(item.action)}
+                >
+                  <View style={[styles.attachGridIcon, { backgroundColor: item.bg }]}>
+                    <Ionicons name={item.icon} size={26} color={item.color} />
+                  </View>
+                  <Text style={[styles.attachGridLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -460,5 +503,45 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  attachSheet: {
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    paddingTop: spacing[2],
+    paddingHorizontal: spacing[6],
+    ...shadow.xl,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: spacing[5],
+  },
+  attachGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingBottom: spacing[2],
+  },
+  attachGridItem: {
+    alignItems: 'center',
+    gap: spacing[2],
+    minWidth: 72,
+  },
+  attachGridIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachGridLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

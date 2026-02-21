@@ -1,4 +1,4 @@
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getStorageInstance } from '@shared/services/firebase/firebase';
 import { MediaType, MediaUploadResult } from '@shared/types/MediaAttachment';
 import ReactNativeBlobUtil from 'react-native-blob-util';
@@ -92,41 +92,12 @@ export class MediaService {
       // Read file bytes — use ReactNativeBlobUtil for reliable Android support
       const bytes = await this.readFileAsBytes(uri);
 
-      // Create upload task with proper content type metadata
-      const metadata = { contentType };
-      const uploadTask = uploadBytesResumable(storageRef, bytes, metadata);
+      // Upload with content type metadata
+      const snapshot = await uploadBytes(storageRef, bytes, { contentType });
+      onProgress?.(100);
 
-      return new Promise((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            onProgress?.(progress);
-          },
-          (error) => {
-            console.error('Upload error:', error);
-            resolve({
-              success: false,
-              error: error.message,
-            });
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve({
-                success: true,
-                uri: downloadURL,
-              });
-            } catch (error) {
-              console.error('Get download URL error:', error);
-              resolve({
-                success: false,
-                error: 'Failed to get download URL',
-              });
-            }
-          },
-        );
-      });
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return { success: true, uri: downloadURL };
     } catch (error) {
       console.error('Media upload error:', error);
       return {
