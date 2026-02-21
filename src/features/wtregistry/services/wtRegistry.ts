@@ -159,8 +159,17 @@ export async function uploadFileToStorage(
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Upload to Firebase Storage
-    const snapshot = await uploadBytes(storageRef, bytes);
+    // Determine content type from file extension
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    const mimeTypes: Record<string, string> = {
+      pdf: 'application/pdf',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+      gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp',
+    };
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+    // Upload to Firebase Storage with content type metadata
+    const snapshot = await uploadBytes(storageRef, bytes, { contentType });
 
     // Get download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
