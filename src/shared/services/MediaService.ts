@@ -52,6 +52,12 @@ export class MediaService {
    * with a data: URI returns a proper native Blob that Firebase accepts.
    */
   private static async readFileAsBlob(uri: string, contentType: string): Promise<Blob> {
+    // content:// URIs (Android document picker) can't be read by ReactNativeBlobUtil,
+    // but RN's fetch() handles them natively
+    if (uri.startsWith('content://')) {
+      const response = await fetch(uri);
+      return response.blob();
+    }
     const path = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
     const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
     const response = await fetch(`data:${contentType};base64,${base64}`);
