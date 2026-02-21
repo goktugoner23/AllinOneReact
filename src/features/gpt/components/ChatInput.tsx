@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
-import DocumentPicker from 'react-native-document-picker';
+import { pick, types as docTypes } from '@react-native-documents/picker';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { useColors } from '@shared/theme';
 import { MediaService } from '@shared/services/MediaService';
@@ -122,12 +122,11 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
     if (disabled) return;
 
     try {
-      const result = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf, DocumentPicker.types.plainText, DocumentPicker.types.csv, DocumentPicker.types.allFiles],
+      const [file] = await pick({
+        type: [docTypes.pdf, docTypes.plainText, docTypes.csv, docTypes.docx],
         allowMultiSelection: false,
       });
 
-      const file = result[0];
       if (!file?.uri) return;
 
       const att: PendingAttachment = {
@@ -162,9 +161,9 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         setPendingAttachments(prev => prev.filter(p => p.id !== att.id));
       }
     } catch (err: any) {
-      if (!DocumentPicker.isCancel(err)) {
-        Alert.alert('Error', 'Could not open file picker.');
-      }
+      // User cancelled — do nothing
+      if (err?.message?.includes('cancel') || err?.code === 'DOCUMENT_PICKER_CANCELED') return;
+      Alert.alert('Error', 'Could not open file picker.');
     }
   };
 
