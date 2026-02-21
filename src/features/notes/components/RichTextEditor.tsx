@@ -387,60 +387,100 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
         >
           {/* Text Formatting */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="text" size="sm" variant="ghost" onPress={handleBold} />
-            <IconButton icon="text-outline" size="sm" variant="ghost" onPress={handleItalic} />
-            <IconButton icon="remove-outline" size="sm" variant="ghost" onPress={handleUnderline} />
-            <IconButton icon="cut-outline" size="sm" variant="ghost" onPress={handleStrikethrough} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleBold}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, fontWeight: '800' }]}>B</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleItalic}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, fontStyle: 'italic' }]}>I</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleUnderline}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, textDecorationLine: 'underline' }]}>U</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleStrikethrough}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, textDecorationLine: 'line-through' }]}>S</Text>
+            </Pressable>
           </View>
 
           <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Headings */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="heading" size="sm" variant="ghost" onPress={handleHeading1} />
-            <IconButton icon="text" size="sm" variant="ghost" onPress={handleHeading2} />
-            <IconButton icon="text-outline" size="sm" variant="ghost" onPress={handleHeading3} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleHeading1}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, fontWeight: '800', fontSize: 16 }]}>H1</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleHeading2}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, fontWeight: '700', fontSize: 14 }]}>H2</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleHeading3}>
+              <Text style={[styles.toolbarLabel, { color: colors.foreground, fontWeight: '600', fontSize: 13 }]}>H3</Text>
+            </Pressable>
           </View>
 
           <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Lists */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="list-outline" size="sm" variant="ghost" onPress={handleBullets} />
-            <IconButton icon="list" size="sm" variant="ghost" onPress={handleNumbers} />
-            <IconButton icon="checkbox-outline" size="sm" variant="ghost" onPress={onPressChecklist} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleBullets}>
+              <Ionicons name="list-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleNumbers}>
+              <Ionicons name="list" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={onPressChecklist}>
+              <Ionicons name="checkbox-outline" size={22} color={colors.foreground} />
+            </Pressable>
           </View>
 
           <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Alignment */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="reorder-three-outline" size="sm" variant="ghost" onPress={handleAlignLeft} />
-            <IconButton icon="reorder-four-outline" size="sm" variant="ghost" onPress={handleAlignCenter} />
-            <IconButton icon="reorder-two-outline" size="sm" variant="ghost" onPress={handleAlignRight} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleAlignLeft}>
+              <Ionicons name="reorder-three-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleAlignCenter}>
+              <Ionicons name="reorder-four-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleAlignRight}>
+              <Ionicons name="reorder-two-outline" size={22} color={colors.foreground} />
+            </Pressable>
           </View>
 
           <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* Special Formatting */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="chatbox-outline" size="sm" variant="ghost" onPress={handleBlockquote} />
-            <IconButton icon="code-slash-outline" size="sm" variant="ghost" onPress={handleCode} />
-            <IconButton icon="link-outline" size="sm" variant="ghost" onPress={onPressLink} />
-            <IconButton icon="grid-outline" size="sm" variant="ghost" onPress={onPressTable} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleBlockquote}>
+              <Ionicons name="chatbox-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleCode}>
+              <Ionicons name="code-slash-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={onPressLink}>
+              <Ionicons name="link-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={onPressTable}>
+              <Ionicons name="grid-outline" size={22} color={colors.foreground} />
+            </Pressable>
           </View>
 
           <Divider orientation="vertical" style={styles.toolbarDivider} />
 
           {/* History */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="arrow-undo-outline" size="sm" variant="ghost" onPress={handleUndo} />
-            <IconButton icon="arrow-redo-outline" size="sm" variant="ghost" onPress={handleRedo} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleUndo}>
+              <Ionicons name="arrow-undo-outline" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={handleRedo}>
+              <Ionicons name="arrow-redo-outline" size={22} color={colors.foreground} />
+            </Pressable>
           </View>
 
           {/* Advanced Toolbar Toggle */}
           <View style={styles.toolbarSection}>
-            <IconButton icon="ellipsis-horizontal" size="sm" variant="ghost" onPress={() => setShowAdvancedToolbar(true)} />
+            <Pressable style={({ pressed }) => [styles.toolbarBtn, pressed && { backgroundColor: colors.border }]} onPress={() => setShowAdvancedToolbar(true)}>
+              <Ionicons name="ellipsis-horizontal" size={22} color={colors.foreground} />
+            </Pressable>
           </View>
         </ScrollView>
 
@@ -700,19 +740,31 @@ const styles = StyleSheet.create({
   },
   toolbarContainer: {
     borderBottomWidth: 1,
-    maxHeight: 60,
   },
   toolbarContent: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     alignItems: 'center',
   },
   toolbarSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 2,
   },
   toolbarDivider: {
-    height: 30,
-    marginHorizontal: 4,
+    height: 24,
+    marginHorizontal: 8,
+  },
+  toolbarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  toolbarLabel: {
+    fontSize: 15,
+    fontWeight: '700' as const,
   },
   editor: {
     flex: 1,

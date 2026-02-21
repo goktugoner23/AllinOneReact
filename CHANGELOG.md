@@ -51,13 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Currency Precision**: Updated `useCurrency` to always use 2 decimal places (kuruş precision for TRY)
 
 ### Fixed
-- **Firebase Storage Upload Failures**: Fixed `storage/unknown` error on voice recording, image, and file uploads
-  - Replaced `fetch(uri).blob()` with `ReactNativeBlobUtil.fs.readFile()` for reliable Android URI handling (content://, file://, raw paths)
-  - Added content type metadata to all 3 upload services (MediaService, firebaseStorage, wtRegistry)
-  - Replaced hanging `uploadBytesResumable` event listeners with direct `uploadBytes` Promise
-- **Image Upload Hanging**: Fixed image uploads spinning forever in GPT chat
-  - Root cause: `uploadBytesResumable` completion callback never firing in React Native with Uint8Array
-  - Switched to `uploadBytes` (direct Promise) matching the working pattern in firebaseStorage.ts
+- **Firebase Storage Uploads (Hermes compatibility)**: Fixed all file uploads across the app
+  - Root cause: Hermes runtime can't create Blob from `Uint8Array`/`ArrayBuffer` — Firebase JS SDK's `uploadBytes` crashes
+  - Fix: Read files as base64 via ReactNativeBlobUtil, convert to native Blob via `fetch(data:URI).blob()`, then `uploadBytes` with native Blob
+  - All 3 upload services fixed: MediaService, firebaseStorage, wtRegistry
+  - Added content type metadata to all upload paths
+- **Notes Editor Toolbar**: Fixed broken icons and poor usability
+  - Replaced missing/ambiguous Ionicons (`"heading"` → `?`) with styled text labels (B, I, U, S, H1, H2, H3)
+  - Increased button size from 32x32 to 38x38 and icon size from 18px to 22px
+  - Increased divider spacing from 4px to 8px for better visual grouping
 - **TypeScript Errors (25 → 0)**: Fixed all compilation errors
   - Chip, Divider, Searchbar: `style?: ViewStyle` → `style?: StyleProp<ViewStyle>` for style array support
   - Added 4 missing Instagram API response types
