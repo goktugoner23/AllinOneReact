@@ -193,57 +193,24 @@ export const HistoryScreen: React.FC = () => {
     ]);
   };
 
-  const getItemColor = (itemType: HistoryItemType) => {
-    switch (itemType) {
-      case 'TRANSACTION_INCOME':
-        return colors.income;
-      case 'TRANSACTION_EXPENSE':
-        return colors.expense;
-      case 'INVESTMENT':
-        return colors.investment;
-      case 'REGISTRATION':
-        return colors.info;
-      default:
-        return colors.foreground;
-    }
+  const ITEM_TYPE_CONFIG: Record<HistoryItemType, { color: string; mutedColor: string; icon: string }> = {
+    TRANSACTION_INCOME: { color: colors.income, mutedColor: colors.incomeMuted, icon: 'arrow-down' },
+    TRANSACTION_EXPENSE: { color: colors.expense, mutedColor: colors.expenseMuted, icon: 'arrow-up' },
+    INVESTMENT: { color: colors.investment, mutedColor: colors.investmentMuted, icon: 'trending-up' },
+    REGISTRATION: { color: colors.info, mutedColor: colors.infoMuted, icon: 'school' },
   };
 
-  const getItemMutedColor = (itemType: HistoryItemType) => {
-    switch (itemType) {
-      case 'TRANSACTION_INCOME':
-        return colors.incomeMuted;
-      case 'TRANSACTION_EXPENSE':
-        return colors.expenseMuted;
-      case 'INVESTMENT':
-        return colors.investmentMuted;
-      case 'REGISTRATION':
-        return colors.infoMuted;
-      default:
-        return colors.muted;
-    }
-  };
+  const getItemConfig = (itemType: HistoryItemType) =>
+    ITEM_TYPE_CONFIG[itemType] || { color: colors.foreground, mutedColor: colors.muted, icon: 'document' };
 
-  const getItemIcon = (itemType: HistoryItemType) => {
-    switch (itemType) {
-      case 'TRANSACTION_INCOME':
-        return 'arrow-down';
-      case 'TRANSACTION_EXPENSE':
-        return 'arrow-up';
-      case 'INVESTMENT':
-        return 'trending-up';
-      case 'REGISTRATION':
-        return 'school';
-      default:
-        return 'document';
-    }
-  };
-
-  const renderItem = ({ item }: { item: HistoryItem }) => (
+  const renderItem = ({ item }: { item: HistoryItem }) => {
+    const config = getItemConfig(item.itemType);
+    return (
     <View style={styles.cardWrapper}>
       <Card variant="elevated" onLongPress={() => handleDelete(item)}>
         <View style={styles.cardHeader}>
-          <View style={[styles.iconCircle, { backgroundColor: getItemMutedColor(item.itemType) }]}>
-            <Ionicons name={getItemIcon(item.itemType)} size={20} color={getItemColor(item.itemType)} />
+          <View style={[styles.iconCircle, { backgroundColor: config.mutedColor }]}>
+            <Ionicons name={config.icon} size={20} color={config.color} />
           </View>
           <View style={styles.contentContainer}>
             <Text style={[textStyles.label, { color: colors.foreground }]} numberOfLines={1}>
@@ -254,7 +221,7 @@ export const HistoryScreen: React.FC = () => {
             </Text>
           </View>
           {item.amount !== undefined && (
-            <Text style={[textStyles.amountSmall, { color: getItemColor(item.itemType) }]}>
+            <Text style={[textStyles.amountSmall, { color: config.color }]}>
               {formatCurrency(item.amount)}
             </Text>
           )}
@@ -264,7 +231,8 @@ export const HistoryScreen: React.FC = () => {
         </Text>
       </Card>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

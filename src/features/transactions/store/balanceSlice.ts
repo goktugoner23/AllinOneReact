@@ -8,7 +8,7 @@ import {
 import { fetchInvestments } from '@features/transactions/services/investments';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { Investment } from '@features/transactions/types/Investment';
-import PerformanceMonitor from '@shared/utils/performanceMonitor';
+import performanceMonitor from '@shared/utils/performanceMonitor';
 
 interface BalanceState {
   totalIncome: number;
@@ -42,7 +42,6 @@ const BALANCE_LAST_UPDATED_KEY = 'balance_last_updated';
 
 // Load cached balance from AsyncStorage
 export const loadCachedBalance = createAsyncThunk('balance/loadCached', async () => {
-  const performanceMonitor = PerformanceMonitor.getInstance();
   performanceMonitor.startTimer('loadCachedBalance');
 
   try {
@@ -81,7 +80,6 @@ export const loadCachedBalance = createAsyncThunk('balance/loadCached', async ()
 
 // Calculate balance from transactions and investments
 export const calculateBalance = createAsyncThunk('balance/calculate', async (_, { getState }) => {
-  const performanceMonitor = PerformanceMonitor.getInstance();
   performanceMonitor.startTimer('calculateBalance');
 
   try {
@@ -192,7 +190,6 @@ export const updateBalanceIncrementally = createAsyncThunk(
 
 // Invalidate cache and force fresh calculation
 export const invalidateBalanceCache = createAsyncThunk('balance/invalidateCache', async () => {
-  const performanceMonitor = PerformanceMonitor.getInstance();
   performanceMonitor.startTimer('invalidateBalanceCache');
 
   try {
