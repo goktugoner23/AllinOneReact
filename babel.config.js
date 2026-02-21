@@ -19,11 +19,7 @@ module.exports = function (api) {
           alias: {
             '@features': './src/features',
             '@shared': './src/shared',
-            '@features/transactions/config': './src/features/transactions/config',
             '@theme': './src/theme',
-            '@lib': './src/shared/lib',
-            '@components': './src/shared/components',
-            '@App': './App',
           },
         },
       ],

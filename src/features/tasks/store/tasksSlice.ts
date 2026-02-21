@@ -82,6 +82,18 @@ export const removeTaskGroup = createAsyncThunk('tasks/removeTaskGroup', async (
   return groupId;
 });
 
+// Helper to group tasks by groupId
+const buildGroupedTasks = (tasks: Task[]): Record<string, Task[]> =>
+  tasks.reduce(
+    (acc, task) => {
+      const key = task.groupId || 'ungrouped';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(task);
+      return acc;
+    },
+    {} as Record<string, Task[]>,
+  );
+
 // State interface
 interface TasksState {
   tasks: Task[];
@@ -105,19 +117,7 @@ const tasksSlice = createSlice({
   reducers: {
     setTasks: (state, action: PayloadAction<Task[]>) => {
       state.tasks = action.payload;
-      // Update grouped tasks
-      const grouped = action.payload.reduce(
-        (acc, task) => {
-          const groupKey = task.groupId || 'ungrouped';
-          if (!acc[groupKey]) {
-            acc[groupKey] = [];
-          }
-          acc[groupKey].push(task);
-          return acc;
-        },
-        {} as Record<string, Task[]>,
-      );
-      state.groupedTasks = grouped;
+      state.groupedTasks = buildGroupedTasks(action.payload);
     },
     setTaskGroups: (state, action: PayloadAction<TaskGroup[]>) => {
       state.taskGroups = action.payload;
@@ -139,19 +139,7 @@ const tasksSlice = createSlice({
       .addCase(fetchTasks.fulfilled, (state, action) => {
         state.tasks = action.payload;
         state.loading = false;
-        // Update grouped tasks
-        const grouped = action.payload.reduce(
-          (acc, task) => {
-            const groupKey = task.groupId || 'ungrouped';
-            if (!acc[groupKey]) {
-              acc[groupKey] = [];
-            }
-            acc[groupKey].push(task);
-            return acc;
-          },
-          {} as Record<string, Task[]>,
-        );
-        state.groupedTasks = grouped;
+        state.groupedTasks = buildGroupedTasks(action.payload);
       })
       .addCase(fetchTasks.rejected, (state, action) => {
         state.loading = false;
@@ -162,12 +150,7 @@ const tasksSlice = createSlice({
     builder
       .addCase(addTask.fulfilled, (state, action) => {
         state.tasks.push(action.payload);
-        // Update grouped tasks
-        const groupKey = action.payload.groupId || 'ungrouped';
-        if (!state.groupedTasks[groupKey]) {
-          state.groupedTasks[groupKey] = [];
-        }
-        state.groupedTasks[groupKey].push(action.payload);
+        state.groupedTasks = buildGroupedTasks(state.tasks);
       })
       .addCase(addTask.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to add task';
@@ -179,19 +162,7 @@ const tasksSlice = createSlice({
         const index = state.tasks.findIndex((task) => task.id === action.payload.id);
         if (index !== -1) {
           state.tasks[index] = action.payload;
-          // Update grouped tasks
-          const grouped = state.tasks.reduce(
-            (acc, task) => {
-              const groupKey = task.groupId || 'ungrouped';
-              if (!acc[groupKey]) {
-                acc[groupKey] = [];
-              }
-              acc[groupKey].push(task);
-              return acc;
-            },
-            {} as Record<string, Task[]>,
-          );
-          state.groupedTasks = grouped;
+          state.groupedTasks = buildGroupedTasks(state.tasks);
         }
       })
       .addCase(updateTask.rejected, (state, action) => {
@@ -202,19 +173,7 @@ const tasksSlice = createSlice({
     builder
       .addCase(removeTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((task) => task.id !== action.payload);
-        // Update grouped tasks
-        const grouped = state.tasks.reduce(
-          (acc, task) => {
-            const groupKey = task.groupId || 'ungrouped';
-            if (!acc[groupKey]) {
-              acc[groupKey] = [];
-            }
-            acc[groupKey].push(task);
-            return acc;
-          },
-          {} as Record<string, Task[]>,
-        );
-        state.groupedTasks = grouped;
+        state.groupedTasks = buildGroupedTasks(state.tasks);
       })
       .addCase(removeTask.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to remove task';
@@ -226,19 +185,7 @@ const tasksSlice = createSlice({
         const index = state.tasks.findIndex((task) => task.id === action.payload.id);
         if (index !== -1) {
           state.tasks[index] = action.payload;
-          // Update grouped tasks
-          const grouped = state.tasks.reduce(
-            (acc, task) => {
-              const groupKey = task.groupId || 'ungrouped';
-              if (!acc[groupKey]) {
-                acc[groupKey] = [];
-              }
-              acc[groupKey].push(task);
-              return acc;
-            },
-            {} as Record<string, Task[]>,
-          );
-          state.groupedTasks = grouped;
+          state.groupedTasks = buildGroupedTasks(state.tasks);
         }
       })
       .addCase(toggleTaskCompleted.rejected, (state, action) => {
@@ -285,23 +232,10 @@ const tasksSlice = createSlice({
     builder
       .addCase(removeTaskGroup.fulfilled, (state, action) => {
         state.taskGroups = state.taskGroups.filter((group) => group.id !== action.payload);
-        // Remove tasks from this group (set groupId to null)
         state.tasks = state.tasks.map((task) =>
           task.groupId === action.payload ? { ...task, groupId: undefined } : task,
         );
-        // Update grouped tasks
-        const grouped = state.tasks.reduce(
-          (acc, task) => {
-            const groupKey = task.groupId || 'ungrouped';
-            if (!acc[groupKey]) {
-              acc[groupKey] = [];
-            }
-            acc[groupKey].push(task);
-            return acc;
-          },
-          {} as Record<string, Task[]>,
-        );
-        state.groupedTasks = grouped;
+        state.groupedTasks = buildGroupedTasks(state.tasks);
       })
       .addCase(removeTaskGroup.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to remove task group';

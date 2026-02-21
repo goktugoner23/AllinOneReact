@@ -46,11 +46,8 @@ const TasksScreen: React.FC = () => {
   // Local state
   const [isGroupedView, setIsGroupedView] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
-  const [showAddGroupDialog, setShowAddGroupDialog] = useState(false);
-  const [showEditTaskDialog, setShowEditTaskDialog] = useState(false);
-  const [showDeleteTaskDialog, setShowDeleteTaskDialog] = useState(false);
-  const [showDeleteGroupDialog, setShowDeleteGroupDialog] = useState(false);
+  type DialogType = 'none' | 'addTask' | 'addGroup' | 'editTask' | 'deleteTask' | 'deleteGroup';
+  const [activeDialog, setActiveDialog] = useState<DialogType>('none');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<TaskGroup | null>(null);
 
@@ -71,7 +68,7 @@ const TasksScreen: React.FC = () => {
 
   const handleEditTask = useCallback((task: Task) => {
     setSelectedTask(task);
-    setShowEditTaskDialog(true);
+    setActiveDialog('editTask');
   }, []);
 
   const handleUpdateTask = useCallback(
@@ -86,7 +83,7 @@ const TasksScreen: React.FC = () => {
         };
         updateTaskMutation.mutate(updatedTask);
       }
-      setShowEditTaskDialog(false);
+      setActiveDialog('none');
       setSelectedTask(null);
     },
     [selectedTask, updateTaskMutation],
@@ -96,14 +93,14 @@ const TasksScreen: React.FC = () => {
     if (selectedTask) {
       deleteTaskMutation.mutate(selectedTask.id);
     }
-    setShowDeleteTaskDialog(false);
+    setActiveDialog('none');
     setSelectedTask(null);
   }, [selectedTask, deleteTaskMutation]);
 
   const handleAddTask = useCallback(
     (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
       addTaskMutation.mutate(taskData);
-      setShowAddTaskDialog(false);
+      setActiveDialog('none');
     },
     [addTaskMutation],
   );
@@ -111,22 +108,21 @@ const TasksScreen: React.FC = () => {
   // Group actions
   const handleEditGroup = useCallback((group: TaskGroup) => {
     setSelectedGroup(group);
-    // For now, we'll just show delete dialog
-    setShowDeleteGroupDialog(true);
+    setActiveDialog('deleteGroup');
   }, []);
 
   const handleDeleteGroup = useCallback(() => {
     if (selectedGroup) {
       deleteTaskGroupMutation.mutate(selectedGroup.id);
     }
-    setShowDeleteGroupDialog(false);
+    setActiveDialog('none');
     setSelectedGroup(null);
   }, [selectedGroup, deleteTaskGroupMutation]);
 
   const handleAddGroup = useCallback(
     (groupData: { title: string; description?: string; color: string }) => {
       addTaskGroupMutation.mutate(groupData);
-      setShowAddGroupDialog(false);
+      setActiveDialog('none');
     },
     [addTaskGroupMutation],
   );
@@ -254,7 +250,7 @@ const TasksScreen: React.FC = () => {
             {isGroupedView && (
               <AppbarAction
                 icon="folder-open-outline"
-                onPress={() => setShowAddGroupDialog(true)}
+                onPress={() => setActiveDialog('addGroup')}
                 color={colors.foregroundMuted}
               />
             )}
@@ -263,59 +259,53 @@ const TasksScreen: React.FC = () => {
       />
 
       {tasks.length === 0 ? (
-        <EmptyTasksState onCreateTask={() => setShowAddTaskDialog(true)} />
+        <EmptyTasksState onCreateTask={() => setActiveDialog('addTask')} />
       ) : isGroupedView ? (
         renderGroupedTasks()
       ) : (
         renderSimpleTasks()
       )}
 
-      <AddFab style={styles.fab} onPress={() => setShowAddTaskDialog(true)} />
+      <AddFab style={styles.fab} onPress={() => setActiveDialog('addTask')} />
 
       {/* Dialogs */}
       <AddTaskDialog
-        visible={showAddTaskDialog}
+        visible={activeDialog === 'addTask'}
         taskGroups={taskGroups}
-        onDismiss={() => setShowAddTaskDialog(false)}
+        onDismiss={() => setActiveDialog('none')}
         onConfirm={handleAddTask}
         onCreateGroup={handleAddGroup}
       />
 
       <EditTaskDialog
-        visible={showEditTaskDialog}
+        visible={activeDialog === 'editTask'}
         task={selectedTask}
         taskGroups={taskGroups}
-        onDismiss={() => {
-          setShowEditTaskDialog(false);
-          setSelectedTask(null);
-        }}
+        onDismiss={() => { setActiveDialog('none'); setSelectedTask(null); }}
         onConfirm={handleUpdateTask}
-        onDelete={() => {
-          setShowEditTaskDialog(false);
-          setShowDeleteTaskDialog(true);
-        }}
+        onDelete={() => setActiveDialog('deleteTask')}
         onCreateGroup={handleAddGroup}
       />
 
       <AddTaskGroupDialog
-        visible={showAddGroupDialog}
-        onDismiss={() => setShowAddGroupDialog(false)}
+        visible={activeDialog === 'addGroup'}
+        onDismiss={() => setActiveDialog('none')}
         onConfirm={handleAddGroup}
       />
 
       <DeleteConfirmationDialog
-        visible={showDeleteTaskDialog}
+        visible={activeDialog === 'deleteTask'}
         title="Delete Task"
         message={`Are you sure you want to delete "${selectedTask?.name}"? This action cannot be undone.`}
-        onDismiss={() => setShowDeleteTaskDialog(false)}
+        onDismiss={() => setActiveDialog('none')}
         onConfirm={handleDeleteTask}
       />
 
       <DeleteConfirmationDialog
-        visible={showDeleteGroupDialog}
+        visible={activeDialog === 'deleteGroup'}
         title="Delete Task Group"
         message={`Are you sure you want to delete "${selectedGroup?.title}"? All tasks in this group will become ungrouped.`}
-        onDismiss={() => setShowDeleteGroupDialog(false)}
+        onDismiss={() => setActiveDialog('none')}
         onConfirm={handleDeleteGroup}
       />
     </View>

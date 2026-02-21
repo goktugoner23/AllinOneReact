@@ -133,6 +133,18 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   );
 }
 
+const DRAWER_SCREENS = [
+  { name: 'Transactions', component: TransactionsDashboard, icon: 'card-outline' },
+  { name: 'WT Registry', component: WTRegistryScreen, icon: 'school-outline' },
+  { name: 'Calendar', component: CalendarScreen, icon: 'calendar-outline' },
+  { name: 'Notes', component: NotesStack, icon: 'document-text-outline' },
+  { name: 'Tasks', component: TasksScreen, icon: 'checkbox-outline' },
+  { name: 'Instagram', component: InstagramScreen, icon: 'logo-instagram' },
+  { name: 'GPT', component: GPTScreen, icon: 'chatbubble-ellipses-outline' },
+  { name: 'Workout', component: WorkoutNavigator, icon: 'barbell-outline' },
+  { name: 'History', component: HistoryScreen, icon: 'time-outline' },
+] as const;
+
 function AppContent() {
   const { colors, isDark } = useAppTheme();
 
@@ -150,22 +162,10 @@ function AppContent() {
           notification: colors.accent,
         },
         fonts: {
-          regular: {
-            fontFamily: 'System',
-            fontWeight: '400',
-          },
-          medium: {
-            fontFamily: 'System',
-            fontWeight: '500',
-          },
-          bold: {
-            fontFamily: 'System',
-            fontWeight: '700',
-          },
-          heavy: {
-            fontFamily: 'System',
-            fontWeight: '900',
-          },
+          regular: { fontFamily: 'System', fontWeight: '400' },
+          medium: { fontFamily: 'System', fontWeight: '500' },
+          bold: { fontFamily: 'System', fontWeight: '700' },
+          heavy: { fontFamily: 'System', fontWeight: '900' },
         },
       }}
     >
@@ -185,78 +185,17 @@ function AppContent() {
           drawerInactiveTintColor: colors.foreground,
         }}
       >
-        <Drawer.Screen
-          name="Transactions"
-          component={TransactionsDashboard}
-          options={{
-            title: 'Transactions',
-            drawerIcon: ({ color, size }) => <Ionicons name="card-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="WT Registry"
-          component={WTRegistryScreen}
-          options={{
-            title: 'WT Registry',
-            drawerIcon: ({ color, size }) => <Ionicons name="school-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="Calendar"
-          component={CalendarScreen}
-          options={{
-            title: 'Calendar',
-            drawerIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="Notes"
-          component={NotesStack}
-          options={{
-            title: 'Notes',
-            drawerIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="Tasks"
-          component={TasksScreen}
-          options={{
-            title: 'Tasks',
-            drawerIcon: ({ color, size }) => <Ionicons name="checkbox-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="Instagram"
-          component={InstagramScreen}
-          options={{
-            title: 'Instagram',
-            drawerIcon: ({ color, size }) => <Ionicons name="logo-instagram" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="GPT"
-          component={GPTScreen}
-          options={{
-            title: 'GPT',
-            drawerIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="Workout"
-          component={WorkoutNavigator}
-          options={{
-            title: 'Workout',
-            drawerIcon: ({ color, size }) => <Ionicons name="barbell-outline" size={size} color={color} />,
-          }}
-        />
-        <Drawer.Screen
-          name="History"
-          component={HistoryScreen}
-          options={{
-            title: 'History',
-            drawerIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
-          }}
-        />
+        {DRAWER_SCREENS.map(({ name, component, icon }) => (
+          <Drawer.Screen
+            key={name}
+            name={name}
+            component={component}
+            options={{
+              title: name,
+              drawerIcon: ({ color, size }) => <Ionicons name={icon} size={size} color={color} />,
+            }}
+          />
+        ))}
       </Drawer.Navigator>
     </NavigationContainer>
   );
@@ -272,16 +211,9 @@ function CurrencyWrapper() {
 }
 
 export default function App() {
-  // Setup global error handler to suppress Firestore assertion errors
   useEffect(() => {
     setupGlobalErrorHandler();
-  }, []);
-
-  // Enable freezing offscreen screens to reduce JS work during navigation
-  useEffect(() => {
-    try {
-      enableFreeze(true);
-    } catch (_) {}
+    try { enableFreeze(true); } catch (_) {}
   }, []);
 
   return (

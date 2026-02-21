@@ -303,47 +303,17 @@ export function CalendarScreen() {
 
   const selectedDateEvents = allEvents.filter((event) => event.date.toISOString().split('T')[0] === selectedDate);
 
-  const getEventTypeColor = (type: string) => {
-    if (type === 'Registration Start') {
-      return colors.success;
-    } else if (type === 'Registration End') {
-      return colors.destructive;
-    } else if (type === 'lesson') {
-      return colors.info;
-    } else if (type === 'seminar') {
-      return colors.warning;
-    } else {
-      return colors.primary;
-    }
+  const EVENT_TYPE_CONFIG: Record<string, { color: string; chip: 'success' | 'error' | 'primary' | 'warning' | 'default'; label: string }> = {
+    'Registration Start': { color: colors.success, chip: 'success', label: 'Start' },
+    'registration_start': { color: colors.success, chip: 'success', label: 'Start' },
+    'Registration End': { color: colors.destructive, chip: 'error', label: 'End' },
+    'registration_end': { color: colors.destructive, chip: 'error', label: 'End' },
+    'lesson': { color: colors.info, chip: 'primary', label: 'Lesson' },
+    'seminar': { color: colors.warning, chip: 'warning', label: 'Seminar' },
   };
+  const DEFAULT_EVENT_CONFIG = { color: colors.primary, chip: 'default' as const, label: '' };
 
-  const getChipColor = (type: string): 'success' | 'error' | 'primary' | 'warning' | 'default' => {
-    if (type === 'Registration Start' || type === 'registration_start') {
-      return 'success';
-    } else if (type === 'Registration End' || type === 'registration_end') {
-      return 'error';
-    } else if (type === 'lesson') {
-      return 'primary';
-    } else if (type === 'seminar') {
-      return 'warning';
-    }
-    return 'default';
-  };
-
-  const getEventTypeIcon = (type: CalendarEvent['type']) => {
-    switch (type) {
-      case 'registration_start':
-        return 'O';
-      case 'registration_end':
-        return 'X';
-      case 'lesson':
-        return 'L';
-      case 'seminar':
-        return 'S';
-      default:
-        return 'E';
-    }
-  };
+  const getEventConfig = (type: string) => EVENT_TYPE_CONFIG[type] || DEFAULT_EVENT_CONFIG;
 
   // Memoize calendar theme to prevent unnecessary re-renders
   const calendarTheme = useMemo(
@@ -410,7 +380,7 @@ export function CalendarScreen() {
                 <CardContent style={styles.eventContent}>
                   <View style={styles.eventRow}>
                     {/* Left indicator bar */}
-                    <View style={[styles.eventIndicator, { backgroundColor: getEventTypeColor(event.type) }]} />
+                    <View style={[styles.eventIndicator, { backgroundColor: getEventConfig(event.type).color }]} />
 
                     {/* Event content */}
                     <View style={styles.eventInfo}>
@@ -419,14 +389,8 @@ export function CalendarScreen() {
                         <Text style={[textStyles.label, { color: colors.foreground, flex: 1 }]} numberOfLines={2}>
                           {event.title}
                         </Text>
-                        <Chip color={getChipColor(event.type)} size="sm" variant="filled">
-                          {event.type === 'lesson'
-                            ? 'Lesson'
-                            : event.type.includes('Registration Start')
-                              ? 'Start'
-                              : event.type.includes('Registration End')
-                                ? 'End'
-                                : event.type.replace('_', ' ')}
+                        <Chip color={getEventConfig(event.type).chip} size="sm" variant="filled">
+                          {getEventConfig(event.type).label || event.type.replace('_', ' ')}
                         </Chip>
                       </View>
 
@@ -464,63 +428,38 @@ export function CalendarScreen() {
 
       {/* Event Details Modal */}
       <Dialog visible={showEventModal} onClose={() => setShowEventModal(false)} title="Event Details">
-        {selectedEvent && (
-          <View>
-            <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[3] }]}>
-              {selectedEvent.title}
-            </Text>
-            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-              Date: {selectedEvent.date.toLocaleString()}
-            </Text>
-            {selectedEvent.endDate && selectedEvent.endDate.getTime() !== selectedEvent.date.getTime() && (
+        {(() => {
+          const event = selectedFirebaseEvent || selectedEvent;
+          if (!event) return null;
+          return (
+            <View>
+              <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[3] }]}>
+                {event.title}
+              </Text>
               <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                Until {selectedEvent.endDate.toLocaleString()}
+                Date: {event.date.toLocaleString()}
               </Text>
-            )}
-            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-              Type: {selectedEvent.type.replace('_', ' ')}
-            </Text>
-            {selectedEvent.description && (
-              <Text
-                style={[
-                  textStyles.bodySmall,
-                  { color: colors.foregroundSubtle, marginTop: spacing[2], fontStyle: 'italic' },
-                ]}
-              >
-                {selectedEvent.description}
-              </Text>
-            )}
-          </View>
-        )}
-        {selectedFirebaseEvent && (
-          <View>
-            <Text style={[textStyles.h4, { color: colors.foreground, marginBottom: spacing[3] }]}>
-              {selectedFirebaseEvent.title}
-            </Text>
-            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-              Date: {selectedFirebaseEvent.date.toLocaleString()}
-            </Text>
-            {selectedFirebaseEvent.endDate &&
-              selectedFirebaseEvent.endDate.getTime() !== selectedFirebaseEvent.date.getTime() && (
+              {event.endDate && event.endDate.getTime() !== event.date.getTime() && (
                 <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                  Until {selectedFirebaseEvent.endDate.toLocaleString()}
+                  Until {event.endDate.toLocaleString()}
                 </Text>
               )}
-            <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-              Type: {selectedFirebaseEvent.type}
-            </Text>
-            {selectedFirebaseEvent.description && (
-              <Text
-                style={[
-                  textStyles.bodySmall,
-                  { color: colors.foregroundSubtle, marginTop: spacing[2], fontStyle: 'italic' },
-                ]}
-              >
-                {selectedFirebaseEvent.description}
+              <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
+                Type: {event.type.replace('_', ' ')}
               </Text>
-            )}
-          </View>
-        )}
+              {event.description && (
+                <Text
+                  style={[
+                    textStyles.bodySmall,
+                    { color: colors.foregroundSubtle, marginTop: spacing[2], fontStyle: 'italic' },
+                  ]}
+                >
+                  {event.description}
+                </Text>
+              )}
+            </View>
+          );
+        })()}
         <View style={styles.dialogActions}>
           {selectedFirebaseEvent && (
             <>
@@ -545,113 +484,69 @@ export function CalendarScreen() {
         </View>
       </Dialog>
 
-      {/* Add Event Modal */}
-      <Dialog visible={showAddDialog} onClose={() => setShowAddDialog(false)} title="Add Event">
-        <View style={styles.formGroup}>
-          <Input
-            label="Title *"
-            value={formData.title}
-            onChangeText={(text) => setFormData({ ...formData, title: text })}
-            placeholder="Enter event title"
-          />
-        </View>
+      {/* Add/Edit Event Modal */}
+      {(showAddDialog || showEditDialog) && (
+        <Dialog
+          visible={true}
+          onClose={() => { setShowAddDialog(false); setShowEditDialog(false); }}
+          title={showEditDialog ? 'Edit Event' : 'Add Event'}
+        >
+          <View style={styles.formGroup}>
+            <Input
+              label="Title *"
+              value={formData.title}
+              onChangeText={(text) => setFormData({ ...formData, title: text })}
+              placeholder="Enter event title"
+            />
+          </View>
 
-        <View style={styles.formGroup}>
-          <Input
-            label="Type"
-            value={formData.type}
-            onChangeText={(text) => setFormData({ ...formData, type: text })}
-            placeholder="Event type"
-          />
-        </View>
+          <View style={styles.formGroup}>
+            <Input
+              label="Type"
+              value={formData.type}
+              onChangeText={(text) => setFormData({ ...formData, type: text })}
+              placeholder="Event type"
+            />
+          </View>
 
-        <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
-          Date: {formData.date.toLocaleDateString()}
-        </Button>
-
-        <View style={styles.timeContainer}>
-          <Button variant="outline" onPress={() => setShowTimePicker('start')} style={styles.timeButton}>
-            Start: {formData.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
+            Date: {formData.date.toLocaleDateString()}
           </Button>
-          <Button variant="outline" onPress={() => setShowTimePicker('end')} style={styles.timeButton}>
-            End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
-          </Button>
-        </View>
 
-        <View style={styles.formGroup}>
-          <Input
-            label="Description"
-            value={formData.description || ''}
-            onChangeText={(text) => setFormData({ ...formData, description: text })}
-            placeholder="Enter description"
-            multiline
-            numberOfLines={3}
-          />
-        </View>
+          <View style={styles.timeContainer}>
+            <Button variant="outline" onPress={() => setShowTimePicker('start')} style={styles.timeButton}>
+              Start: {formData.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Button>
+            <Button variant="outline" onPress={() => setShowTimePicker('end')} style={styles.timeButton}>
+              End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
+            </Button>
+          </View>
 
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" onPress={() => setShowAddDialog(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onPress={handleSaveEvent} loading={addEventMutation.isPending}>
-            Add Event
-          </Button>
-        </View>
-      </Dialog>
+          <View style={styles.formGroup}>
+            <Input
+              label="Description"
+              value={formData.description || ''}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              placeholder="Enter description"
+              multiline
+              numberOfLines={3}
+            />
+          </View>
 
-      {/* Edit Event Modal */}
-      <Dialog visible={showEditDialog} onClose={() => setShowEditDialog(false)} title="Edit Event">
-        <View style={styles.formGroup}>
-          <Input
-            label="Title *"
-            value={formData.title}
-            onChangeText={(text) => setFormData({ ...formData, title: text })}
-            placeholder="Enter event title"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Input
-            label="Type"
-            value={formData.type}
-            onChangeText={(text) => setFormData({ ...formData, type: text })}
-            placeholder="Event type"
-          />
-        </View>
-
-        <Button variant="outline" onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
-          Date: {formData.date.toLocaleDateString()}
-        </Button>
-
-        <View style={styles.timeContainer}>
-          <Button variant="outline" onPress={() => setShowTimePicker('start')} style={styles.timeButton}>
-            Start: {formData.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Button>
-          <Button variant="outline" onPress={() => setShowTimePicker('end')} style={styles.timeButton}>
-            End: {formData.endDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Not set'}
-          </Button>
-        </View>
-
-        <View style={styles.formGroup}>
-          <Input
-            label="Description"
-            value={formData.description || ''}
-            onChangeText={(text) => setFormData({ ...formData, description: text })}
-            placeholder="Enter description"
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" onPress={() => setShowEditDialog(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onPress={handleUpdateEvent} loading={updateEventMutation.isPending}>
-            Update Event
-          </Button>
-        </View>
-      </Dialog>
+          <View style={styles.dialogActions}>
+            <Button variant="ghost" onPress={() => { setShowAddDialog(false); setShowEditDialog(false); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onPress={showEditDialog ? handleUpdateEvent : handleSaveEvent}
+              loading={showEditDialog ? updateEventMutation.isPending : addEventMutation.isPending}
+            >
+              {showEditDialog ? 'Update Event' : 'Add Event'}
+            </Button>
+          </View>
+        </Dialog>
+      )}
 
       {showDatePicker && (
         <DateTimePicker value={formData.date} mode="date" display="default" onChange={handleDateChange} />
