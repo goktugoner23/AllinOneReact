@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Card, CardContent, CardHeader, CardTitle, Button, IconButton } from '@shared/components/ui';
 import { Investment } from '../types/Investment';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 interface InvestmentCardProps {
   investment: Investment;
@@ -20,8 +21,7 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
   onLiquidateClick,
 }) => {
   const colors = useColors();
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+  const { format: formatCurrency } = useCurrency();
 
   return (
     <Card

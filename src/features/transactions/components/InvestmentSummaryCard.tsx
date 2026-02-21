@@ -3,6 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import { Card, CardHeader, CardTitle, CardContent } from '@shared/components/ui';
 import { Investment } from '../types/Investment';
 import { useColors, textStyles, spacing } from '@shared/theme';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 interface InvestmentSummaryCardProps {
   investments: Investment[];
@@ -10,11 +11,10 @@ interface InvestmentSummaryCardProps {
 
 export const InvestmentSummaryCard: React.FC<InvestmentSummaryCardProps> = ({ investments }) => {
   const colors = useColors();
+  const { format: formatCurrency } = useCurrency();
   const total = investments.reduce((sum, i) => sum + i.amount, 0);
   const profitLoss = investments.reduce((sum, i) => sum + (i.profitLoss || 0), 0);
   const currentValue = investments.reduce((sum, i) => sum + (i.currentValue || 0), 0);
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
 
   return (
     <Card variant="elevated" style={styles.card}>

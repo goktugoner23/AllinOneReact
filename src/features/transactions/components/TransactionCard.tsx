@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Transaction } from '../types/Transaction';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useCurrency } from '@shared/hooks/useCurrency';
+import { formatDate } from '@shared/utils/formatters';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -11,21 +13,7 @@ interface TransactionCardProps {
 
 export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({ transaction, onLongPress }) => {
   const colors = useColors();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const { format: formatCurrency } = useCurrency();
 
   const amountColor = transaction.isIncome ? colors.income : colors.expense;
   const iconName = transaction.isIncome ? 'arrow-down-circle' : 'arrow-up-circle';
@@ -56,7 +44,9 @@ export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({ tra
               {transaction.description}
             </Text>
           )}
-          <Text style={[styles.dateText, { color: colors.foregroundSubtle }]}>{formatDate(transaction.date)}</Text>
+          <Text style={[styles.dateText, { color: colors.foregroundSubtle }]}>
+            {formatDate(transaction.date, { day: '2-digit', month: 'short', year: 'numeric' })}
+          </Text>
         </View>
 
         <View style={styles.rightColumn}>

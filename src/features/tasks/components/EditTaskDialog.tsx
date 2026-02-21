@@ -5,6 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dialog, Input, Button, Chip } from '@shared/components/ui';
 import { Task, TaskGroup, TASK_GROUP_COLORS } from '@features/tasks/types/Task';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
+import { formatDate } from '@shared/utils/formatters';
 
 interface EditTaskDialogProps {
   visible: boolean;
@@ -48,15 +49,8 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
     }
   }, [task]);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDateTime = (date: Date) =>
+    formatDate(date, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   const handleConfirm = () => {
     if (!name.trim()) return;
@@ -164,7 +158,7 @@ const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                   onPress={() => setShowDatePicker(true)}
                 >
                   <Text style={[textStyles.body, { color: dueDate ? colors.foreground : colors.foregroundSubtle }]}>
-                    {dueDate ? formatDate(dueDate) : 'Select due date'}
+                    {dueDate ? formatDateTime(dueDate) : 'Select due date'}
                   </Text>
                   <Ionicons name="calendar-outline" size={20} color={colors.foregroundMuted} />
                 </TouchableOpacity>
