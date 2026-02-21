@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useQueryClient } from '@tanstack/react-query';
@@ -119,11 +119,25 @@ export default function GPTScreen() {
     setShowConversations(true);
   }, [dispatch]);
 
+  const handleExportConversation = useCallback(async () => {
+    if (messages.length === 0) return;
+    const text = messages
+      .map((m) => `${m.role === 'user' ? 'You' : 'Assistant'}:\n${m.content}`)
+      .join('\n\n---\n\n');
+    const title = conversations.find((c) => c.id === activeConversationId)?.title || 'Conversation';
+    await Share.share({ message: text, title });
+  }, [messages, conversations, activeConversationId]);
+
   // Set header buttons
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerRight}>
+          {messages.length > 0 && (
+            <TouchableOpacity onPress={handleExportConversation} style={styles.headerBtn}>
+              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={handleNewChat} style={styles.headerBtn}>
             <Ionicons name="add-outline" size={22} color="#FFFFFF" />
           </TouchableOpacity>
@@ -133,7 +147,7 @@ export default function GPTScreen() {
         </View>
       ),
     });
-  }, [navigation, handleNewChat, openConversations]);
+  }, [navigation, handleNewChat, openConversations, handleExportConversation, messages.length]);
 
   const renderItem = useCallback(
     ({ item }: { item: ChatMessage }) => <ChatBubble message={item} />,
@@ -159,7 +173,6 @@ export default function GPTScreen() {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.messageList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
       />
 
       {isSending && <TypingIndicator />}

@@ -1,17 +1,27 @@
-import React, { useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { View, StyleSheet, Alert, ScrollView, Dimensions, Linking, Modal, Text, Pressable } from 'react-native';
+import React, { useRef, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { View, StyleSheet, Alert, ScrollView, Dimensions, Linking, Modal, Text, Pressable, FlatList, TouchableOpacity } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import { IconButton, Button, Chip, Divider } from '@shared/components/ui';
 import TableInsertionModal from '@features/notes/components/TableInsertionModal';
 import ChecklistModal from '@features/tasks/components/ChecklistModal';
 import LinkInsertionModal from '@features/notes/components/LinkInsertionModal';
 import { useAppTheme } from '@shared/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
+interface NoteRef {
+  id: number;
+  title: string;
+}
 
 export interface RichTextEditorProps {
   value: string;
   onChange: (text: string) => void;
   placeholder?: string;
   style?: any;
+  /** Available notes for [[ ]] linking */
+  availableNotes?: NoteRef[];
+  /** Called when a note:// link is tapped */
+  onNoteLinkPress?: (noteId: number) => void;
 }
 
 export interface RichTextEditorHandle {
@@ -25,13 +35,23 @@ export interface RichTextEditorHandle {
 const { width: screenWidth } = Dimensions.get('window');
 
 const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-  ({ value, onChange, placeholder = 'Start writing your note...', style }, ref) => {
+  ({ value, onChange, placeholder = 'Start writing your note...', style, availableNotes, onNoteLinkPress }, ref) => {
     const richText = useRef<RichEditor>(null);
     const [showAdvancedToolbar, setShowAdvancedToolbar] = useState(false);
     const [showTableModal, setShowTableModal] = useState(false);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
+    const [noteLinkQuery, setNoteLinkQuery] = useState('');
+    const [showNoteSuggestions, setShowNoteSuggestions] = useState(false);
     const { colors, spacing, radius, textStyles, isDark } = useAppTheme();
+
+    // Filter available notes based on [[ query
+    const filteredNotes = useMemo(() => {
+      if (!availableNotes) return [];
+      if (!noteLinkQuery) return availableNotes.slice(0, 5);
+      const q = noteLinkQuery.toLowerCase();
+      return availableNotes.filter(n => n.title.toLowerCase().includes(q)).slice(0, 5);
+    }, [availableNotes, noteLinkQuery]);
 
     // Expose imperative API to parents
     useImperativeHandle(
@@ -63,9 +83,55 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
       }),
       [],
     );
-    const handleChange = (text: string) => {
+    const handleChange = useCallback((text: string) => {
       onChange(text);
-    };
+      // Detect [[ pattern for note linking
+      if (availableNotes && availableNotes.length > 0) {
+        const stripped = text.replace(/<[^>]*>/g, '');
+        const match = stripped.match(/\[\[([^\]\n]*?)$/);
+        if (match) {
+          setNoteLinkQuery(match[1]);
+          setShowNoteSuggestions(true);
+        } else if (showNoteSuggestions) {
+          setShowNoteSuggestions(false);
+          setNoteLinkQuery('');
+        }
+      }
+    }, [onChange, availableNotes, showNoteSuggestions]);
+
+    const handleSelectNoteLink = useCallback((note: NoteRef) => {
+      setShowNoteSuggestions(false);
+      setNoteLinkQuery('');
+      const safeTitle = note.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      richText.current?.commandDOM(`
+        (function() {
+          var walker = document.createTreeWalker(
+            document.querySelector('[contenteditable]') || document.body,
+            NodeFilter.SHOW_TEXT
+          );
+          var node;
+          while (node = walker.nextNode()) {
+            var text = node.textContent;
+            var idx = text.lastIndexOf('[[');
+            if (idx !== -1) {
+              var before = text.substring(0, idx);
+              var beforeNode = document.createTextNode(before);
+              var link = document.createElement('a');
+              link.href = 'note://${note.id}';
+              link.setAttribute('data-note-link', 'true');
+              link.textContent = '${safeTitle}';
+              var space = document.createTextNode('\\u00A0');
+              var parent = node.parentNode;
+              parent.insertBefore(beforeNode, node);
+              parent.insertBefore(link, node);
+              parent.insertBefore(space, node);
+              parent.removeChild(node);
+              return;
+            }
+          }
+        })();
+      `);
+    }, []);
 
     // Basic formatting actions
     const handleBold = useCallback(() => {
@@ -378,6 +444,33 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           </View>
         </ScrollView>
 
+        {/* Note Link Suggestions */}
+        {showNoteSuggestions && filteredNotes.length > 0 && (
+          <View style={[styles.noteSuggestions, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.noteSuggestionsHeader, { borderBottomColor: colors.border }]}>
+              <Ionicons name="link-outline" size={14} color={colors.primary} />
+              <Text style={[textStyles.caption, { color: colors.foregroundMuted, marginLeft: 4 }]}>
+                Link to note
+              </Text>
+            </View>
+            {filteredNotes.map((note) => (
+              <TouchableOpacity
+                key={note.id}
+                style={[styles.noteSuggestionItem, { borderBottomColor: colors.border }]}
+                onPress={() => handleSelectNoteLink(note)}
+              >
+                <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                <Text
+                  style={[textStyles.bodySmall, { color: colors.foreground, marginLeft: 8, flex: 1 }]}
+                  numberOfLines={1}
+                >
+                  {note.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Rich Text Editor */}
         <RichEditor
           ref={richText}
@@ -389,7 +482,15 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           initialHeight={250}
           disabled={false}
           onLink={(url) => {
-            // Handle link clicks - open in browser or show options
+            // Handle note:// links for internal note linking
+            if (url.startsWith('note://')) {
+              const noteId = parseInt(url.replace('note://', ''), 10);
+              if (onNoteLinkPress && !isNaN(noteId)) {
+                onNoteLinkPress(noteId);
+              }
+              return;
+            }
+            // Handle regular links - open in browser or show options
             Alert.alert('Open Link', `Do you want to open: ${url}`, [
               { text: 'Cancel', style: 'cancel' },
               {
@@ -459,6 +560,12 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
             }
             a:hover {
               background-color: ${colors.primaryMuted};
+            }
+            a[data-note-link] {
+              text-decoration: none;
+              font-weight: 500;
+              padding: 1px 6px;
+              border-radius: 4px;
             }
 
             table {
@@ -633,6 +740,25 @@ const styles = StyleSheet.create({
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  noteSuggestions: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    maxHeight: 200,
+  },
+  noteSuggestionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+  },
+  noteSuggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
 });
 

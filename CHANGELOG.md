@@ -8,6 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Note Linking (`[[Note Title]]`)**: Obsidian-style internal note linking in the rich text editor
+  - Type `[[` to trigger autocomplete dropdown with filtered note suggestions
+  - Selecting a note replaces `[[query` with a styled clickable link (`note://` scheme)
+  - Tapping a note link navigates to the linked note via stack push (preserves current editor state)
+  - Custom CSS styling for note links in the WebView editor
+- **AED Currency Support**: TRY/AED currency switching across the app
+  - New `useCurrency` hook with React Context provider
+  - Exchange rate fetched from fawazahmed0/exchange-api (jsdelivr CDN + fallback URL)
+  - 6-hour rate caching in AsyncStorage
+  - Currency toggle button in BalanceCard header
+  - `Intl.NumberFormat` for locale-aware currency formatting
+  - HistoryScreen updated to use currency context
+- **History Date Search**: Search by date across all history item types
+  - Supports YYYY-MM-DD, DD.MM.YYYY, and DD/MM/YYYY formats
+  - Filters transactions, investments, and registrations by exact date match
+- **Instagram Search & Filtering**: Global search with metrics filtering in PostsTab
+  - Text search across captions, hashtags, and mentions
+  - Media type filter chips (ALL / IMAGE / VIDEO / REELS / CAROUSEL)
+  - Sort options (newest / engagement / likes / comments)
+  - Engagement rate minimum presets
+- **GPT Conversation Export**: Share/export conversations from GPT screen
+  - Formats messages as readable text with role labels and separators
+  - Uses React Native `Share.share()` API for cross-app sharing
+  - Share button in GPT header (visible when messages exist)
+- **Workout Program Edit (Backend)**: `update_program` action added to GPT workout tool
+  - Supports updating program name and exercises via AI function calling
+
+### Fixed
+- **Turkish Character Encoding**: Fixed ü→fc, ç→e7 rendering in Notes editor
+  - Added `<meta charset="UTF-8">` to react-native-pell-rich-editor WebView HTML template (via patch-package)
+  - Added numeric HTML entity decoding (decimal + hex) to `stripHtmlTags` utility
+- **GPT Conversation Scroll**: Fixed chat snapping back to end when scrolling up
+  - Removed `onContentSizeChange` that called `scrollToEnd` on every content resize
+  - Existing `useEffect` on `messages.length` already handles auto-scroll on new messages
+- **GPT Topic Sticking**: Fixed AI getting stuck on previous conversation topics
+  - Added "Conversation Focus" section to system prompt with 6 rules
+  - AI now responds only to the current message topic, drops unanswered questions when user moves on
+- **Workout Programs List Refresh**: Programs list now refreshes on screen focus and supports pull-to-refresh
+  - Added `useIsFocused` hook for automatic refetch when navigating back
+  - Added `RefreshControl` for manual pull-to-refresh
+
 - **GPT AI Assistant**: Full-featured AI chat drawer screen powered by OpenAI GPT-5.2
   - Multi-conversation support with Firestore persistence (like ChatGPT web app)
   - 9 AI tools for full CRUD on all Firestore collections (transactions, tasks, notes, calendar, WT registry, workout)

@@ -15,6 +15,7 @@ import { WTRegistration } from '@features/wtregistry/types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors, spacing, radius, shadow, textStyles } from '@shared/theme';
 import { Card } from '@shared/components/ui';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 const FILTERS: { label: string; type: HistoryItemType }[] = [
   { label: 'Income', type: 'TRANSACTION_INCOME' },
@@ -70,6 +71,7 @@ function investmentToHistoryItem(inv: any): HistoryItem {
 
 export const HistoryScreen: React.FC = () => {
   const colors = useColors();
+  const { format: formatCurrency } = useCurrency();
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<HistoryItemType[]>([]);
@@ -109,16 +111,45 @@ export const HistoryScreen: React.FC = () => {
   }, [loadHistory]);
 
   const filteredItems = useMemo(() => {
+    // Detect if search is a date query (YYYY-MM-DD, DD.MM.YYYY, DD/MM/YYYY)
+    const parseDateQuery = (q: string): string | null => {
+      const trimmed = q.trim();
+      // YYYY-MM-DD
+      const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (isoMatch) {
+        const [, y, m, d] = isoMatch;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      // DD.MM.YYYY or DD/MM/YYYY
+      const euMatch = trimmed.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+      if (euMatch) {
+        const [, d, m, y] = euMatch;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      return null;
+    };
+
+    const dateQuery = search ? parseDateQuery(search) : null;
+
     return historyItems.filter((item) => {
-      // Search filter
+      // Type filter
+      const matchesType = selectedFilters.length === 0 || selectedFilters.includes(item.itemType);
+      if (!matchesType) return false;
+
+      if (!search) return true;
+
+      // Date-based search
+      if (dateQuery) {
+        const itemDate = item.date ? item.date.substring(0, 10) : '';
+        return itemDate === dateQuery;
+      }
+
+      // Text search
       const matchesSearch =
-        !search ||
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         item.description.toLowerCase().includes(search.toLowerCase()) ||
         (item.amount !== undefined && item.amount.toString().includes(search));
-      // Type filter
-      const matchesType = selectedFilters.length === 0 || selectedFilters.includes(item.itemType);
-      return matchesSearch && matchesType;
+      return matchesSearch;
     });
   }, [historyItems, search, selectedFilters]);
 
@@ -224,11 +255,7 @@ export const HistoryScreen: React.FC = () => {
           </View>
           {item.amount !== undefined && (
             <Text style={[textStyles.amountSmall, { color: getItemColor(item.itemType) }]}>
-              {new Intl.NumberFormat('tr-TR', {
-                style: 'currency',
-                currency: 'TRY',
-                minimumFractionDigits: 2,
-              }).format(item.amount)}
+              {formatCurrency(item.amount)}
             </Text>
           )}
         </View>

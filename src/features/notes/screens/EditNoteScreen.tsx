@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -70,6 +70,17 @@ const EditNoteScreen: React.FC = () => {
 
   // Find existing note if editing
   const existingNote = notes.find((note: any) => note.id === noteId);
+
+  // Build available notes for [[ linking (exclude current note)
+  const availableNotes = useMemo(() => {
+    return notes
+      .filter((note: any) => note.id !== noteId)
+      .map((note: any) => ({ id: note.id, title: note.title }));
+  }, [notes, noteId]);
+
+  const handleNoteLinkPress = useCallback((linkedNoteId: number) => {
+    (navigation as any).push('EditNote', { noteId: linkedNoteId });
+  }, [navigation]);
 
   useEffect(() => {
     if (existingNote) {
@@ -695,6 +706,8 @@ const EditNoteScreen: React.FC = () => {
           onChange={setContent}
           placeholder="Start writing your note..."
           style={{ marginBottom: spacing[6] }}
+          availableNotes={availableNotes}
+          onNoteLinkPress={handleNoteLinkPress}
         />
 
         {/* Attachment Previews */}
