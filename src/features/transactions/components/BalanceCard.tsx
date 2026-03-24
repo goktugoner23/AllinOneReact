@@ -1,7 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Card, CardHeader, CardContent } from '@shared/components/ui';
+import { SegmentedControl } from '@shared/components/ui/SegmentedControl';
 import { useBalance } from '@shared/hooks/useTransactionsQueries';
+import { useCurrencyRates } from '@shared/hooks/useCurrencyRates';
+import { useCurrency } from '@features/transactions/context/CurrencyContext';
+import { convertAmount, formatCurrencyAmount, Currency } from '@features/transactions/services/currencyService';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -9,18 +13,23 @@ interface BalanceCardProps {
   showLoading?: boolean;
 }
 
+const CURRENCY_OPTIONS: { value: Currency; label: string }[] = [
+  { value: 'TRY', label: 'TRY' },
+  { value: 'USD', label: 'USD' },
+  { value: 'AED', label: 'AED' },
+];
+
 export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading = false }) => {
   const colors = useColors();
   const { income, expense, balance } = useBalance();
+  const { selectedCurrency, setSelectedCurrency } = useCurrency();
+  const { data: ratesData } = useCurrencyRates('TRY');
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const rates = ratesData?.rates ?? {};
+
+  const displayIncome = convertAmount(income, selectedCurrency, rates);
+  const displayExpense = convertAmount(expense, selectedCurrency, rates);
+  const displayBalance = convertAmount(balance, selectedCurrency, rates);
 
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -34,6 +43,15 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading
       </CardHeader>
 
       <CardContent>
+        <SegmentedControl
+          options={CURRENCY_OPTIONS}
+          value={selectedCurrency}
+          onChange={setSelectedCurrency}
+          size="sm"
+          fullWidth
+          style={styles.currencySelector}
+        />
+
         {showLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -41,17 +59,29 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading
           </View>
         ) : (
           <View style={styles.content}>
-            {/* Balance Items Row */}
             <View style={styles.balanceRow}>
-              <BalanceItem label="Income" amount={income} icon="arrow-down-circle" variant="income" />
+              <BalanceItem
+                label="Income"
+                amount={displayIncome}
+                currency={selectedCurrency}
+                icon="arrow-down-circle"
+                variant="income"
+              />
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <BalanceItem label="Expense" amount={expense} icon="arrow-up-circle" variant="expense" />
+              <BalanceItem
+                label="Expense"
+                amount={displayExpense}
+                currency={selectedCurrency}
+                icon="arrow-up-circle"
+                variant="expense"
+              />
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
               <BalanceItem
                 label="Balance"
-                amount={balance}
+                amount={displayBalance}
+                currency={selectedCurrency}
                 icon="wallet"
-                variant={balance >= 0 ? 'income' : 'expense'}
+                variant={displayBalance >= 0 ? 'income' : 'expense'}
                 isBalance
               />
             </View>
@@ -65,36 +95,20 @@ export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading
 interface BalanceItemProps {
   label: string;
   amount: number;
+  currency: Currency;
   icon: string;
   variant: 'income' | 'expense';
   isBalance?: boolean;
 }
 
-const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant, isBalance }) => {
+const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, currency, icon, variant, isBalance }) => {
   const colors = useColors();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(amount));
-  };
 
   const getColors = () => {
     if (variant === 'income') {
-      return {
-        iconBg: colors.incomeMuted,
-        iconColor: colors.income,
-        amountColor: colors.income,
-      };
+      return { iconBg: colors.incomeMuted, iconColor: colors.income, amountColor: colors.income };
     }
-    return {
-      iconBg: colors.expenseMuted,
-      iconColor: colors.expense,
-      amountColor: colors.expense,
-    };
+    return { iconBg: colors.expenseMuted, iconColor: colors.expense, amountColor: colors.expense };
   };
 
   const itemColors = getColors();
@@ -111,7 +125,7 @@ const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant,
         adjustsFontSizeToFit
       >
         {isBalance && amount < 0 ? '-' : ''}
-        {formatCurrency(amount)}
+        {formatCurrencyAmount(Math.abs(amount), currency)}
       </Text>
     </View>
   );
@@ -138,6 +152,9 @@ const styles = StyleSheet.create({
   badgeText: {
     ...textStyles.caption,
     fontWeight: '600',
+  },
+  currencySelector: {
+    marginBottom: spacing[3],
   },
   loadingContainer: {
     alignItems: 'center',

@@ -6,6 +6,7 @@ import { Transaction } from '@features/transactions/types/Transaction';
 import { BalanceCard } from '@features/transactions/components/BalanceCard';
 import { TransactionForm } from '@features/transactions/components/TransactionForm';
 import { SpendingPieChart } from '@features/transactions/components/SpendingPieChart';
+import { CurrencyProvider } from '@features/transactions/context/CurrencyContext';
 import { useTransactions } from '@shared/hooks/useTransactionsQueries';
 import { useColors, spacing } from '@shared/theme';
 
@@ -39,6 +40,7 @@ export const TransactionHomeScreen: React.FC = () => {
   ];
 
   return (
+    <CurrencyProvider>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlashList
         data={listData}
@@ -67,6 +69,7 @@ export const TransactionHomeScreen: React.FC = () => {
         contentContainerStyle={styles.contentContainer}
       />
     </View>
+    </CurrencyProvider>
   );
 };
 

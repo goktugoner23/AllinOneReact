@@ -78,4 +78,10 @@ export const queryKeys = {
     sessions: () => [...queryKeys.workout.all, 'sessions'] as const,
     detail: (id: string) => [...queryKeys.workout.all, 'detail', id] as const,
   },
+
+  // Currency
+  currency: {
+    all: ['currency'] as const,
+    rates: (base: string) => [...queryKeys.currency.all, 'rates', base] as const,
+  },
 };
