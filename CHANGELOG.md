@@ -1,11 +1,22 @@
 # Changelog
 
-All notable changes to the AllInOne React Native project are documented in this file.
+All notable changes to the Huginn React Native project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2026-04-04
+
+### Changed
+- **App Icon**: Updated to Huginn raven logo
+- **Project Rename**: Renamed from "allinone" to "Huginn" across the project
+
+### Removed
+- **Instagram Module**: Removed Instagram profiler references from documentation
+
+---
+
+## [2.3.0] - Unreleased
 
 ### Added
 - **GPT Attachment Bottom Sheet**: Replaced native `Alert.alert` picker with a themed bottom sheet modal
@@ -27,11 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **History Date Search**: Search by date across all history item types
   - Supports YYYY-MM-DD, DD.MM.YYYY, and DD/MM/YYYY formats
   - Filters transactions, investments, and registrations by exact date match
-- **Instagram Search & Filtering**: Global search with metrics filtering in PostsTab
-  - Text search across captions, hashtags, and mentions
-  - Media type filter chips (ALL / IMAGE / VIDEO / REELS / CAROUSEL)
-  - Sort options (newest / engagement / likes / comments)
-  - Engagement rate minimum presets
 - **GPT Conversation Export**: Share/export conversations from GPT screen
   - Formats messages as readable text with role labels and separators
   - Uses React Native `Share.share()` API for cross-app sharing
@@ -62,7 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Increased divider spacing from 4px to 8px for better visual grouping
 - **TypeScript Errors (25 → 0)**: Fixed all compilation errors
   - Chip, Divider, Searchbar: `style?: ViewStyle` → `style?: StyleProp<ViewStyle>` for style array support
-  - Added 4 missing Instagram API response types
   - Removed invalid barrel export from `src/index.ts`
   - Fixed Snackbar useEffect return path consistency
 - **Turkish Character Encoding**: Fixed ü→fc, ç→e7 rendering in Notes editor

@@ -19,7 +19,6 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
   const [name, setName] = useState(student.name);
   const [phoneNumber, setPhoneNumber] = useState(student.phoneNumber || '');
   const [email, setEmail] = useState(student.email || '');
-  const [instagram, setInstagram] = useState(student.instagram || '');
   const [notes, setNotes] = useState(student.notes || '');
   const [photoUri, setPhotoUri] = useState<string | null>(student.photoUri || null);
   const [isActive, setIsActive] = useState(student.isActive);
@@ -31,7 +30,6 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
     setName(student.name);
     setPhoneNumber(student.phoneNumber || '');
     setEmail(student.email || '');
-    setInstagram(student.instagram || '');
     setNotes(student.notes || '');
     setPhotoUri(student.photoUri || null);
     setIsActive(student.isActive);
@@ -70,31 +68,6 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
     setPhotoUri(null);
   };
 
-  const handleEditDownloadFromInstagram = async () => {
-    setShowEditPhotoOptions(false);
-
-    if (!instagram.trim()) {
-      Alert.alert('Error', 'Please enter an Instagram handle first');
-      return;
-    }
-
-    try {
-      Alert.alert('Downloading...', 'Fetching profile picture from Instagram');
-
-      const { instagramApiService } = await import('@features/instagram/services/InstagramApiService');
-      const response = await instagramApiService.getProfilePicture(instagram.trim());
-
-      if (response.success && response.data?.imageUrl) {
-        setPhotoUri(response.data.imageUrl);
-        Alert.alert('Success', 'Instagram profile picture downloaded successfully!');
-      } else {
-        Alert.alert('Error', 'Instagram profile not found or not accessible');
-      }
-    } catch (error) {
-      console.error('Error downloading Instagram profile picture:', error);
-      Alert.alert('Error', 'Failed to download Instagram profile picture. Please check the username and try again.');
-    }
-  };
 
   const handleSave = () => {
     if (!name.trim() || !phoneNumber.trim()) {
@@ -107,7 +80,6 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
       name: name.trim(),
       phoneNumber: phoneNumber.trim(),
       email: email.trim() || undefined,
-      instagram: instagram.trim() || undefined,
       notes: notes.trim() || undefined,
       photoUri: photoUri || undefined,
       isActive,
@@ -166,12 +138,6 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
             keyboardType="email-address"
           />
           <Input
-            label="Instagram"
-            placeholder="Enter Instagram handle (optional)"
-            value={instagram}
-            onChangeText={setInstagram}
-          />
-          <Input
             label="Notes"
             placeholder="Enter notes (optional)"
             value={notes}
@@ -205,11 +171,6 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
           <Button variant="destructive" fullWidth onPress={handleEditRemovePhoto}>
             Remove Photo
           </Button>
-          {instagram.trim() && (
-            <Button variant="secondary" fullWidth onPress={handleEditDownloadFromInstagram}>
-              Download from Instagram
-            </Button>
-          )}
         </View>
       </Dialog>
 

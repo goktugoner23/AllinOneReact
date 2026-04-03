@@ -14,17 +14,6 @@ export {
   useGroupedTasks,
 } from './useTasksQueries';
 
-// Instagram TanStack Query hooks
-export {
-  useInstagramAllData,
-  useInstagramProfilePicture,
-  useInstagramStories,
-  useInstagramPosts,
-  useInstagramFirestorePosts,
-  useInstagramAnalytics,
-  useInstagramHealth,
-  usePrefetchInstagramData,
-} from './useInstagramQueries';
 
 // Notes TanStack Query hooks
 export { useNotes, useNote, useAddNote, useUpdateNote, useDeleteNote, useSearchNotes } from './useNotesQueries';

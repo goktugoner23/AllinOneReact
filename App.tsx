@@ -25,7 +25,6 @@ import { CalendarScreen } from '@features/calendar/screens';
 import { HistoryScreen } from '@features/history/screens';
 import { NotesScreen, EditNoteScreen } from '@features/notes/screens';
 import { TasksScreen } from '@features/tasks/screens';
-import { InstagramScreen } from '@features/instagram/screens';
 import { GPTScreen } from '@features/gpt/screens';
 import { WorkoutTabs } from '@features/workout';
 import { View, Text, StyleSheet } from 'react-native';
@@ -119,7 +118,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   return (
     <DrawerContentScrollView {...props} style={styles.drawerContent}>
       <View style={styles.drawerHeader}>
-        <Text style={[styles.drawerTitle, { color: colors.foreground }]}>AllInOne App</Text>
+        <Text style={[styles.drawerTitle, { color: colors.foreground }]}>Huginn</Text>
       </View>
       <Divider />
       <DrawerItemList {...props} />
@@ -139,7 +138,6 @@ const DRAWER_SCREENS = [
   { name: 'Calendar', component: CalendarScreen, icon: 'calendar-outline' },
   { name: 'Notes', component: NotesStack, icon: 'document-text-outline' },
   { name: 'Tasks', component: TasksScreen, icon: 'checkbox-outline' },
-  { name: 'Instagram', component: InstagramScreen, icon: 'logo-instagram' },
   { name: 'GPT', component: GPTScreen, icon: 'chatbubble-ellipses-outline' },
   { name: 'Workout', component: WorkoutNavigator, icon: 'barbell-outline' },
   { name: 'History', component: HistoryScreen, icon: 'time-outline' },

@@ -44,6 +44,6 @@
     "node_modules",
     "android",
     "ios",
-    "allinone-kotlin"
+    "huginn-kotlin"
   ]
 }

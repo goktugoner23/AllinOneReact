@@ -54,14 +54,6 @@ export const queryKeys = {
     events: (month?: string) => [...queryKeys.calendar.all, 'events', month] as const,
   },
 
-  // Instagram
-  instagram: {
-    all: ['instagram'] as const,
-    profile: (username: string) => [...queryKeys.instagram.all, 'profile', username] as const,
-    stories: (username: string) => [...queryKeys.instagram.all, 'stories', username] as const,
-    posts: (username: string) => [...queryKeys.instagram.all, 'posts', username] as const,
-    allData: (username: string) => [...queryKeys.instagram.all, 'allData', username] as const,
-  },
 
   // WT Registry
   wtRegistry: {

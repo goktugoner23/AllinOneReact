@@ -1,6 +1,6 @@
-# AllInOneReact - Complete Frontend Documentation
+# HuginnReact - Complete Frontend Documentation
 
-This document provides comprehensive documentation of every feature, screen, button, and interaction in the AllInOneReact mobile application.
+This document provides comprehensive documentation of every feature, screen, button, and interaction in the HuginnReact mobile application.
 
 ---
 
@@ -10,12 +10,11 @@ This document provides comprehensive documentation of every feature, screen, but
 2. [Navigation Structure](#2-navigation-structure)
 3. [Theme System](#3-theme-system)
 4. [Transactions Feature](#4-transactions-feature)
-5. [Instagram Feature](#5-instagram-feature)
-6. [Wing Tzun Registry Feature](#6-wing-tzun-registry-feature)
-7. [Notes Feature](#7-notes-feature)
-8. [Tasks Feature](#8-tasks-feature)
-9. [Shared UI Components](#9-shared-ui-components)
-10. [Data Management](#10-data-management)
+5. [Wing Tzun Registry Feature](#5-wing-tzun-registry-feature)
+6. [Notes Feature](#6-notes-feature)
+7. [Tasks Feature](#7-tasks-feature)
+8. [Shared UI Components](#8-shared-ui-components)
+9. [Data Management](#9-data-management)
 
 ---
 
@@ -35,7 +34,6 @@ This document provides comprehensive documentation of every feature, screen, but
 src/
 ├── features/           # Feature modules
 │   ├── transactions/   # Financial tracking
-│   ├── instagram/      # Instagram analytics
 │   ├── wtregistry/     # Wing Tzun registry
 │   ├── notes/          # Note-taking
 │   ├── tasks/          # Task management
@@ -64,7 +62,6 @@ The primary navigation uses a side drawer with 8 main sections:
 | Calendar | calendar | Event scheduling |
 | Notes | document-text | Rich text notes |
 | Tasks | checkmark-circle | Task management |
-| Instagram | logo-instagram | Analytics & AI |
 | Workout | barbell | Fitness tracking |
 | History | time | Historical data |
 
@@ -74,12 +71,6 @@ The primary navigation uses a side drawer with 8 main sections:
 - Home → Balance, charts, transaction form
 - Investments → Portfolio management
 - Reports → Analytics and filtering
-
-**Instagram** (Bottom Tabs + Stack):
-- Posts → Grid of Instagram posts
-- Insights → Analytics dashboard
-- Ask AI → AI-powered chat
-- PostDetail → Full post view (stack)
 
 **Notes** (Stack Navigator):
 - NotesList → All notes with search
@@ -226,91 +217,9 @@ useIsDark()     // Boolean dark mode check
 
 ---
 
-## 5. Instagram Feature
+## 5. Wing Tzun Registry Feature
 
-### 5.1 Posts Tab
-
-**Header**:
-- Post count display
-- Data source tag (Firestore/Cache)
-
-**Post Cards**:
-- Timestamp (relative: "2h ago")
-- Media type badge (IMAGE, VIDEO, CAROUSEL, REELS)
-- Engagement rate badge
-- Thumbnail image
-- Caption preview (2 lines)
-- Metrics: ♥ Likes, 💬 Comments, ↗ Shares, 👁 Reach
-- Hashtags (first 4 + overflow count)
-
-**Actions**:
-- Tap card → PostDetailScreen
-- Pull-to-refresh → Force sync
-
-### 5.2 Post Detail Screen
-
-**Header**:
-- Back button (arrow left)
-- Open in Instagram button
-
-**Sections**:
-1. **Post Info**: User, Date, Type, Engagement %
-2. **Media**: Full-size image (300px height)
-3. **Caption**: Complete text
-4. **Metrics Grid**: All available metrics
-5. **Hashtags**: All tags as chips
-
-### 5.3 Insights Tab
-
-**Account Card**:
-- @username (primary color)
-- Account name
-- Stats: Followers, Following, Posts
-
-**Performance Card**:
-- Total Posts, Total Engagement, Avg Rate
-
-**Top Post Card** (if available):
-- Caption preview
-- Engagement %, Interactions
-
-**Detailed Metrics** (if available):
-- Totals: Likes, Comments, Shares, Reach
-- Averages: Per-post metrics
-- Growth: Engagement and Reach trends (green/red)
-
-### 5.4 Ask AI Tab
-
-**Empty State**:
-- Robot icon
-- "AI Assistant" title
-- 6 suggested questions as chips
-
-**Chat Interface**:
-- User messages (right, primary color)
-- AI messages (left, card background)
-- Metadata: Confidence %, Processing time
-- Sources: Related post IDs
-
-**Input Bar**:
-- Clear chat button (trash icon, left)
-- Text input (multiline, 500 char max)
-- Send button (primary when active)
-
-**AI Capabilities**:
-- Standard text queries
-- Instagram URL analysis (auto-detected)
-- Post/Reel/Profile analysis
-
-**URL Detection**:
-- Pattern: `instagram.com/p/`, `/reel/`, `/@username`
-- Auto-generates appropriate analysis query
-
----
-
-## 6. Wing Tzun Registry Feature
-
-### 6.1 Students Tab
+### 5.1 Students Tab
 
 **Student List**:
 - Profile photo (circular avatar)
@@ -319,7 +228,7 @@ useIsDark()     // Boolean dark mode check
 - Chevron for expansion
 
 **Search & Filter**:
-- Search bar: name, phone, email, Instagram
+- Search bar: name, phone, email
 - "Show active only" toggle
 
 **Add Student Button** (FAB)
@@ -329,22 +238,21 @@ useIsDark()     // Boolean dark mode check
 - Name (required)
 - Phone (required)
 - Email (optional)
-- Instagram handle (optional)
 - Notes (optional)
 - Active toggle
 
 **Student Detail Modal**:
 - Large profile photo (tap for fullscreen)
-- Contact buttons: Call (green), WhatsApp (green), Instagram (pink)
+- Contact buttons: Call (green), WhatsApp (green)
 - Registration status
 
 **Photo Options** (Long-press in edit):
 - View Photo
 - Change Photo
 - Remove Photo
-- Download from Instagram
+- Download from URL
 
-### 6.2 Register Tab (Registrations)
+### 5.2 Register Tab (Registrations)
 
 **Month Filter** (Header):
 - Dropdown: All Months or specific month
@@ -383,7 +291,7 @@ useIsDark()     // Boolean dark mode check
 - Tap badge to toggle Paid/Unpaid
 - Auto-creates/deletes linked transaction
 
-### 6.3 Lessons Tab
+### 5.3 Lessons Tab
 
 **Weekly Schedule Display**:
 - Day of week name
@@ -399,7 +307,7 @@ useIsDark()     // Boolean dark mode check
 - End time picker
 - Duration (auto-calculated, read-only)
 
-### 6.4 Seminars Tab
+### 5.4 Seminars Tab
 
 **Seminar Cards**:
 - Seminar name
@@ -421,9 +329,9 @@ useIsDark()     // Boolean dark mode check
 
 ---
 
-## 7. Notes Feature
+## 6. Notes Feature
 
-### 7.1 Notes Screen
+### 6.1 Notes Screen
 
 **Note Cards**:
 - Title (2 lines max)
@@ -448,7 +356,7 @@ useIsDark()     // Boolean dark mode check
 - Filters by title and content
 - Real-time results
 
-### 7.2 Edit Note Screen
+### 6.2 Edit Note Screen
 
 **Header**:
 - Back button (with unsaved changes prompt)
@@ -481,7 +389,7 @@ useIsDark()     // Boolean dark mode check
 - Remove button (X)
 - Tap to view in gallery
 
-### 7.3 Drawing Screen
+### 6.3 Drawing Screen
 
 **Canvas**:
 - White background
@@ -499,7 +407,7 @@ useIsDark()     // Boolean dark mode check
 - Save to Note (SVG format)
 - Save to Note & Gallery
 
-### 7.4 Attachment Gallery
+### 6.4 Attachment Gallery
 
 **Navigation**:
 - Close button (X)
@@ -514,9 +422,9 @@ useIsDark()     // Boolean dark mode check
 
 ---
 
-## 8. Tasks Feature
+## 7. Tasks Feature
 
-### 8.1 Tasks Screen
+### 7.1 Tasks Screen
 
 **View Modes** (Toggle in appbar):
 - **Simple List**: Tasks sorted by due date
@@ -546,7 +454,7 @@ useIsDark()     // Boolean dark mode check
 
 **Add Task Button** (FAB)
 
-### 8.2 Add/Edit Task Dialog
+### 7.2 Add/Edit Task Dialog
 
 **Fields**:
 - Task Name (required)
@@ -568,7 +476,7 @@ useIsDark()     // Boolean dark mode check
 - Add Task / Update Task
 - Delete (edit mode only, destructive)
 
-### 8.3 Task Groups
+### 7.3 Task Groups
 
 **Group Colors** (8 options):
 - Dark Blue (#1E40AF)
@@ -585,7 +493,7 @@ useIsDark()     // Boolean dark mode check
 
 ---
 
-## 9. Shared UI Components
+## 8. Shared UI Components
 
 ### Button Variants
 | Variant | Usage |
@@ -631,7 +539,7 @@ useIsDark()     // Boolean dark mode check
 
 ---
 
-## 10. Data Management
+## 9. Data Management
 
 ### Firebase Collections
 | Collection | Feature |
@@ -652,9 +560,6 @@ useIsDark()     // Boolean dark mode check
 // Transactions
 useTransactions(), useBalance(), useAddTransaction()
 useInvestments(), useAddInvestment()
-
-// Instagram
-useInstagramPosts(), useInstagramAnalytics(), useRAGQuery()
 
 // Notes
 useNotes(), useNote(), useAddNote(), useUpdateNote()
@@ -694,23 +599,12 @@ useCalendarEvents(), useAddCalendarEvent()
 | TP/SL Button | Futures position | Open take profit/stop loss modal |
 | Refresh FAB | Futures tab | Reload positions |
 
-### Instagram
-| Button | Location | Action |
-|--------|----------|--------|
-| Post Card | Posts tab | Open post detail |
-| Back Button | Post detail | Return to list |
-| Open Button | Post detail | Open in Instagram app |
-| Send Button | Ask AI | Submit AI query |
-| Clear Chat | Ask AI | Delete all messages |
-| Suggested Chips | Ask AI | Pre-fill question |
-
 ### WT Registry
 | Button | Location | Action |
 |--------|----------|--------|
 | Add FAB | All tabs | Add student/registration/lesson/seminar |
 | Call Button | Student detail | Open phone dialer |
 | WhatsApp Button | Student detail | Open WhatsApp |
-| Instagram Button | Student detail | Open Instagram profile |
 | Payment Toggle | Registration card | Toggle paid status |
 | View Receipt | Registration | Open attachment |
 

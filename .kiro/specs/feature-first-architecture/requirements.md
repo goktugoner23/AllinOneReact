@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This specification outlines the migration from the current feature-type organization to a feature-first architecture for the AllInOne React Native application. The goal is to improve code organization, maintainability, and scalability by grouping related functionality together rather than separating by technical concerns.
+This specification outlines the migration from the current feature-type organization to a feature-first architecture for the Huginn React Native application. The goal is to improve code organization, maintainability, and scalability by grouping related functionality together rather than separating by technical concerns.
 
 ## Requirements
 

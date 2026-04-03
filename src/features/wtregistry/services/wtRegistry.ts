@@ -30,11 +30,10 @@ export async function fetchStudents(): Promise<WTStudent[]> {
     const students = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: data.id || parseInt(doc.id),
+        id: data.id || parseInt(doc.id, 10),
         name: data.name || '',
         phoneNumber: data.phoneNumber || '',
         email: data.email || undefined,
-        instagram: data.instagram || undefined,
         isActive: data.isActive !== false,
         notes: data.notes || undefined,
         photoUri: data.photoUri || undefined,
@@ -59,7 +58,6 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<WTStud
       name: student.name,
       phoneNumber: student.phoneNumber || undefined,
       email: student.email || undefined,
-      instagram: student.instagram || undefined,
       isActive: student.isActive !== false,
       notes: student.notes || undefined,
       photoUri: student.photoUri || undefined,
@@ -82,7 +80,6 @@ export async function updateStudent(student: WTStudent): Promise<void> {
       name: student.name,
       phoneNumber: student.phoneNumber || null,
       email: student.email || null,
-      instagram: student.instagram || null,
       isActive: student.isActive !== false,
       notes: student.notes || null,
       photoUri: student.photoUri || null,
@@ -118,7 +115,7 @@ export async function fetchRegistrations(): Promise<WTRegistration[]> {
     const registrations = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: data.id || parseInt(doc.id),
+        id: data.id || parseInt(doc.id, 10),
         studentId: data.studentId || 0,
         amount: data.amount || 0,
         attachmentUri: data.attachmentUri || undefined,
@@ -617,7 +614,7 @@ export async function fetchLessons(): Promise<WTLesson[]> {
     const lessons = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: data.id || parseInt(doc.id),
+        id: data.id || parseInt(doc.id, 10),
         dayOfWeek: data.dayOfWeek || 0,
         startHour: data.startHour || 0,
         startMinute: data.startMinute || 0,
@@ -704,7 +701,7 @@ export async function fetchSeminars(): Promise<WTSeminar[]> {
     const seminars = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: data.id || parseInt(doc.id),
+        id: data.id || parseInt(doc.id, 10),
         name: data.name || '',
         date: data.date ? data.date.toDate() : new Date(),
         startHour: data.startHour || 0,

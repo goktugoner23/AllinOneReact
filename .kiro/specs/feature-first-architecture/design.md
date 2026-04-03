@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the technical design for migrating the AllInOne React Native application from a feature-type organization to a feature-first architecture. The migration will improve code organization, maintainability, and scalability while preserving all existing functionality.
+This document outlines the technical design for migrating the Huginn React Native application from a feature-type organization to a feature-first architecture. The migration will improve code organization, maintainability, and scalability while preserving all existing functionality.
 
 ## Architecture
 
