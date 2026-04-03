@@ -25,7 +25,6 @@ export const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onD
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [instagram, setInstagram] = useState('');
   const [notes, setNotes] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
@@ -51,7 +50,6 @@ export const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onD
       name: name.trim(),
       phoneNumber: phoneNumber.trim(),
       email: email.trim() || undefined,
-      instagram: instagram.trim() || undefined,
       notes: notes.trim() || undefined,
       photoUri: photoUri || undefined,
       isActive,
@@ -61,7 +59,6 @@ export const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onD
     setName('');
     setPhoneNumber('');
     setEmail('');
-    setInstagram('');
     setNotes('');
     setPhotoUri(null);
     setIsActive(true);
@@ -100,12 +97,6 @@ export const AddStudentDialog: React.FC<AddStudentDialogProps> = ({ visible, onD
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
-        />
-        <Input
-          label="Instagram"
-          placeholder="Enter Instagram handle (optional)"
-          value={instagram}
-          onChangeText={setInstagram}
         />
         <Input
           label="Notes"

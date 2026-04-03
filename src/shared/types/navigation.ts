@@ -19,7 +19,6 @@ export type MainDrawerParamList = {
   History: undefined;
   Notes: undefined;
   Tasks: undefined;
-  Instagram: undefined;
   GPT: undefined;
 };
 
@@ -36,12 +35,6 @@ export type NotesStackParamList = {
   EditNote: { noteId?: string };
 };
 
-// Instagram Tab Parameter List
-export type InstagramTabParamList = {
-  Posts: undefined;
-  Insights: undefined;
-  'Ask AI': undefined;
-};
 
 // Generic navigation prop type
 export type NavigationProps<T extends Record<string, object | undefined>> = NavigationProp<T>;

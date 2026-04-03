@@ -4,7 +4,6 @@ import calendarReducer from '@features/calendar/store/calendarSlice';
 import balanceReducer from '@features/transactions/store/balanceSlice';
 import notesReducer from '@features/notes/store/notesSlice';
 import tasksReducer from '@features/tasks/store/tasksSlice';
-import instagramReducer from '@features/instagram/store/instagramSlice';
 import workoutReducer from '@features/workout/store/workoutSlice';
 import gptReducer from '@features/gpt/store/gptSlice';
 
@@ -15,7 +14,6 @@ const store = configureStore({
     balance: balanceReducer,
     notes: notesReducer,
     tasks: tasksReducer,
-    instagram: instagramReducer,
     workout: workoutReducer,
     gpt: gptReducer,
   },

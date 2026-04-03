@@ -3,7 +3,6 @@ export interface WTStudent {
   name: string;
   phoneNumber?: string;
   email?: string;
-  instagram?: string;
   isActive: boolean;
   notes?: string;
   photoUri?: string;

@@ -4,7 +4,7 @@
 
 // App Configuration
 export const APP_CONFIG = {
-  NAME: 'AllInOne',
+  NAME: 'Huginn',
   VERSION: '1.0.0',
   BUNDLE_ID: 'com.allinone.app',
 } as const;

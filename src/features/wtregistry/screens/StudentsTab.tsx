@@ -96,9 +96,6 @@ export const StudentsTab: React.FC = () => {
     Linking.openURL(`https://wa.me/${cleanPhone}`);
   };
 
-  const handleInstagram = (instagram: string) => {
-    Linking.openURL(`https://www.instagram.com/${instagram}`);
-  };
 
   // Photo handling
   const handlePhotoOptions = () => {
@@ -286,11 +283,6 @@ export const StudentsTab: React.FC = () => {
                   Phone: {selectedStudent.phoneNumber}
                 </Text>
               )}
-              {selectedStudent.instagram && (
-                <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
-                  Instagram: @{selectedStudent.instagram}
-                </Text>
-              )}
               <Text style={[textStyles.body, { color: colors.foregroundMuted, marginBottom: spacing[2] }]}>
                 Status: {selectedStudent.isActive ? 'Active' : 'Passive'}
               </Text>
@@ -331,22 +323,6 @@ export const StudentsTab: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="logo-whatsapp" size={26} color="#fff" />
-                </TouchableOpacity>
-              )}
-              {selectedStudent.instagram && (
-                <TouchableOpacity
-                  onPress={() => handleInstagram(selectedStudent.instagram!)}
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    backgroundColor: '#E4405F',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="logo-instagram" size={26} color="#fff" />
                 </TouchableOpacity>
               )}
             </View>

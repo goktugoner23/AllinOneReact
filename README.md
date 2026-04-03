@@ -1,6 +1,6 @@
-# AllInOne React Native
+# Huginn React Native
 
-A comprehensive personal finance and life management mobile application built with React Native, featuring transaction tracking, investment management, Wing Tsun registry, Instagram profiler, workout tracking, calendar events, real-time cryptocurrency futures data, and professional drawing capabilities.
+A comprehensive personal finance and life management mobile application built with React Native, featuring transaction tracking, investment management, Wing Tsun registry, workout tracking, calendar events, real-time cryptocurrency futures data, and professional drawing capabilities.
 
 ## Features
 
@@ -19,14 +19,6 @@ A comprehensive personal finance and life management mobile application built wi
 - **Balance Monitoring**: Track account balances and positions
 - **P&L Analysis**: Profit and loss calculations with liquidation distance
 - **Media Attachments**: Support for images, videos, and audio notes on investments
-
-### Instagram Profiler
-- **Profile Viewing**: Track and view Instagram profiles
-- **Story Viewer**: View stories with full-screen modal and swipe navigation
-- **Posts Tab**: Browse user posts with detailed view
-- **Bulk Download**: Download all stories with progress indicator
-- **Save to Gallery**: Camera roll integration for saving media
-- **Avatar Caching**: Efficient avatar storage for tracked profiles
 
 ### GPT AI Assistant
 - **AI-Powered Chat**: Full conversational AI assistant powered by OpenAI GPT-5.2
@@ -120,17 +112,6 @@ src/
 │   │   ├── services/
 │   │   ├── store/
 │   │   └── types/
-│   ├── instagram/              # Instagram profiler module
-│   │   ├── screens/
-│   │   │   ├── InstagramScreen.tsx
-│   │   │   ├── ProfilerTab.tsx
-│   │   │   ├── ProfileDetailScreen.tsx
-│   │   │   ├── PostsTab.tsx
-│   │   │   ├── PostDetailScreen.tsx
-│   │   │   └── AskAITab.tsx
-│   │   ├── components/
-│   │   ├── services/
-│   │   └── types/
 │   ├── notes/                  # Notes feature
 │   │   ├── screens/
 │   │   ├── components/
@@ -208,7 +189,7 @@ import { useAppTheme } from '@App';
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd AllInOneReact
+   cd HuginnReact
    ```
 
 2. **Install dependencies**
@@ -241,7 +222,7 @@ import { useAppTheme } from '@App';
    - Enable Firestore Database
    - Enable Firebase Storage
    - Download `google-services.json` and place it in `android/app/`
-   - Download `GoogleService-Info.plist` and place it in `ios/AllInOneReactNative/`
+   - Download `GoogleService-Info.plist` and place it in `ios/HuginnReactNative/`
 
 5. **Install iOS dependencies** (iOS only)
    ```bash
@@ -289,12 +270,6 @@ import { useAppTheme } from '@App';
 - USD-M Futures: Account info, positions, balance
 - COIN-M Futures: Coin balances, positions
 - WebSocket: Real-time price updates
-
-**Instagram API** (via external service):
-- Profile pictures
-- Stories
-- Posts
-- Combined all-data endpoint
 
 ## Transaction Categories
 
@@ -355,7 +330,7 @@ npx tsc --noEmit
 cd android && ./gradlew assembleRelease
 
 # iOS Release
-cd ios && xcodebuild -workspace AllInOneReactNative.xcworkspace -scheme AllInOneReactNative archive
+cd ios && xcodebuild -workspace HuginnReactNative.xcworkspace -scheme HuginnReactNative archive
 
 # Bundle (for testing)
 npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle
@@ -398,7 +373,12 @@ npx react-native link react-native-vector-icons
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Current Version: v2.3.0 (Unreleased)
+### Current Version: Unreleased (2026-04-04)
+- **App Icon**: Updated to Huginn raven logo
+- **Project Rename**: Renamed from "allinone" to "Huginn"
+- **Instagram Module**: Removed references
+
+### v2.3.0
 - **Firebase Storage Reliability**: Fixed upload failures across voice, image, and file uploads
 - **WTRegistryScreen Refactor**: Split 2062-line monolith into 8 focused files
 - **GPT Attachment Sheet**: Bottom sheet modal replacing native Alert picker
@@ -414,8 +394,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ### Previous Versions
 - **v2.0.0**: TanStack Query, NativeWind, feature-first architecture
-- **v1.6.0**: Instagram all-in-one API, Posts tab
-- **v1.5.0**: Instagram profiler with stories and downloads
+- **v1.6.0**: All-in-one API, Posts tab
+- **v1.5.0**: Profiler with stories and downloads
 - **v1.4.0**: COIN-M futures, WebSocket live data
 - **v1.3.0**: Workout module, FlashList integration
 - **v1.2.0**: Professional drawing system with Skia
