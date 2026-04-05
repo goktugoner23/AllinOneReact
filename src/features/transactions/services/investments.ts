@@ -1,33 +1,42 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
-import { getDb } from '@shared/services/firebase/firebase';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
+/**
+ * Investments service — talks to huginn-external REST.
+ *
+ * Replaces the former Firestore implementation. Screens import these
+ * functions by name; signatures are preserved. Backend uses numeric ids;
+ * mobile uses string ids, so we coerce at the boundary.
+ */
+
+import { api } from '@shared/services/api/httpClient';
 import { Investment } from '../types/Investment';
 import { MediaAttachment } from '@shared/types/MediaAttachment';
 import { uploadInvestmentAttachments } from './investmentAttachments';
 
-let nextInvestmentId = 1;
+// ──────────────────────────────────────────────────────────────────────────
+// Backend DTOs (mirror of huginn-external investments/types.ts)
+// ──────────────────────────────────────────────────────────────────────────
 
-// Get next sequential ID for investments
-async function getNextInvestmentId(): Promise<number> {
-  const db = getDb();
-
-  try {
-    const q = query(collection(db, 'investments'), orderBy('id', 'desc'));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      const lastDoc = snapshot.docs[0];
-      const lastId = lastDoc.data().id || 0;
-      nextInvestmentId = lastId + 1;
-    }
-  } catch (error) {
-    console.warn('Failed to get last investment ID, using fallback:', error);
-  }
-
-  return nextInvestmentId++;
+interface BackendInvestmentEntry {
+  id: number;
+  name: string;
+  type: string;
+  amount: number;
+  currency: 'TRY' | 'AED' | 'USD';
+  description: string;
+  date: string;
+  isPast: boolean;
+  profitLoss: number | null;
+  currentValue: number | null;
+  createdAt: string;
+  imageUri: string;
+  imageUris: string;
+  videoUris: string;
+  voiceNoteUris: string;
 }
 
-// Cache for investment counts
+// ──────────────────────────────────────────────────────────────────────────
+// Cache (preserved so count helpers stay cheap)
+// ──────────────────────────────────────────────────────────────────────────
+
 let investmentCache: {
   count: number;
   investments: Investment[];
@@ -35,76 +44,93 @@ let investmentCache: {
 } | null = null;
 const INVESTMENT_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+function invalidateCache() {
+  investmentCache = null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Mapping
+// ──────────────────────────────────────────────────────────────────────────
+
+function mapBackendToMobile(entry: BackendInvestmentEntry): Investment {
+  return {
+    id: String(entry.id),
+    name: entry.name ?? '',
+    amount: entry.amount ?? 0,
+    type: entry.type ?? '',
+    description: entry.description ?? '',
+    // Backend now persists attachment keys on investments (see
+    // huginn-external investments migration). CSV strings of R2 object keys;
+    // empty string when absent. Render via getDisplayUrl(key).
+    imageUri: entry.imageUri ?? '',
+    imageUris: entry.imageUris ?? '',
+    videoUris: entry.videoUris ?? '',
+    voiceNoteUris: entry.voiceNoteUris ?? '',
+    date: entry.date,
+    isPast: entry.isPast ?? false,
+    profitLoss: entry.profitLoss ?? 0,
+    currentValue: entry.currentValue ?? entry.amount ?? 0,
+  };
+}
+
+function buildInvestmentBody(
+  investment: Omit<Investment, 'id'> | Investment,
+  overrides?: Partial<{
+    imageUris: string;
+    videoUris: string;
+    voiceNoteUris: string;
+    imageUri: string;
+  }>,
+) {
+  return {
+    name: investment.name,
+    type: investment.type,
+    amount: investment.amount,
+    // Mobile's Investment type doesn't carry currency; the backend requires
+    // one of TRY/AED/USD and validates it. Default to TRY.
+    currency: 'TRY',
+    description: investment.description || '',
+    date: investment.date,
+    isPast: investment.isPast ?? false,
+    currentValue: investment.currentValue ?? null,
+    profitLoss: investment.profitLoss ?? null,
+    // Extra fields the backend currently ignores but are sent so a future
+    // backend upgrade can persist R2 keys without a mobile change.
+    imageUri: overrides?.imageUri ?? investment.imageUri ?? '',
+    imageUris: overrides?.imageUris ?? investment.imageUris ?? '',
+    videoUris: overrides?.videoUris ?? investment.videoUris ?? '',
+    voiceNoteUris: overrides?.voiceNoteUris ?? investment.voiceNoteUris ?? '',
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Public API (signatures preserved)
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function fetchInvestments(limit: number = 100): Promise<Investment[]> {
   try {
     const now = Date.now();
 
-    // Check if we have a valid cache
     if (investmentCache && now - investmentCache.timestamp < INVESTMENT_CACHE_DURATION) {
-      // Return limited results from cache
       return investmentCache.investments.slice(0, limit);
     }
 
-    const db = getDb();
+    const entries = await api.get<BackendInvestmentEntry[]>('/api/investments');
+    const investments = (entries ?? []).map(mapBackendToMobile);
 
-    // Get all investments (not filtered by deviceId like in Kotlin app)
-    // Simple query without ordering to avoid index requirements
-    const q = query(collection(db, 'investments'));
+    // Backend already sorts by date DESC, but be defensive.
+    const sorted = investments.sort(
+      (a: Investment, b: Investment) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
-    const snapshot = await getDocs(q);
-
-    // Sort in memory instead of in the query
-    const investments = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      
-      // Handle date - can be Timestamp, Date, string (ISO), or number (epoch)
-      let dateString: string;
-      if (data.date instanceof Timestamp) {
-        dateString = data.date.toDate().toISOString();
-      } else if (data.date?.toDate) {
-        // Firestore Timestamp-like object
-        dateString = data.date.toDate().toISOString();
-      } else if (typeof data.date === 'string') {
-        // Already an ISO string or date string - validate and use as-is
-        const parsed = new Date(data.date);
-        dateString = isNaN(parsed.getTime()) ? new Date().toISOString() : data.date;
-      } else if (typeof data.date === 'number') {
-        // Epoch timestamp in milliseconds
-        dateString = new Date(data.date).toISOString();
-      } else {
-        // Fallback to current date
-        dateString = new Date().toISOString();
-      }
-      
-      return {
-        id: data.id?.toString() ?? doc.id,
-        name: data.name ?? '',
-        amount: data.amount ?? 0,
-        type: data.type ?? '',
-        description: data.description ?? '',
-        imageUri: data.imageUri ?? '',
-        imageUris: data.imageUris ?? '',
-        videoUris: data.videoUris ?? '',
-        voiceNoteUris: data.voiceNoteUris ?? '',
-        date: dateString,
-        isPast: data.isPast ?? false,
-        profitLoss: data.profitLoss ?? 0,
-        currentValue: data.currentValue ?? data.amount ?? 0,
-      };
-    });
-
-    // Sort by date descending in memory
-    const sortedInvestments = investments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    // Update cache
     investmentCache = {
-      count: sortedInvestments.length,
-      investments: sortedInvestments,
+      count: sorted.length,
+      investments: sorted,
       timestamp: now,
     };
 
-    // Return limited results
-    return sortedInvestments.slice(0, limit);
+    return sorted.slice(0, limit);
   } catch (error) {
     console.error('Error fetching investments:', error);
     return [];
@@ -114,17 +140,11 @@ export async function fetchInvestments(limit: number = 100): Promise<Investment[
 export async function getInvestmentCount(): Promise<number> {
   try {
     const now = Date.now();
-
-    // Check if we have a valid cache
     if (investmentCache && now - investmentCache.timestamp < INVESTMENT_CACHE_DURATION) {
       return investmentCache.count;
     }
-
-    // If no cache, fetch investments to get count
-    const investments = await fetchInvestments(1000); // Fetch more to ensure we get all
-
-    // Cache should be updated by fetchInvestments
-    return investmentCache?.count || investments.length;
+    const investments = await fetchInvestments(1000);
+    return investmentCache?.count ?? investments.length;
   } catch (error) {
     console.error('Error getting investment count:', error);
     return 0;
@@ -133,29 +153,8 @@ export async function getInvestmentCount(): Promise<number> {
 
 export async function addInvestment(investment: Omit<Investment, 'id'>): Promise<void> {
   try {
-    const db = getDb();
-    const investmentId = await firebaseIdManager.getNextId('investments');
-
-    const investmentData = {
-      id: investmentId,
-      name: investment.name,
-      amount: investment.amount,
-      type: investment.type,
-      description: investment.description || '',
-      imageUri: investment.imageUri || '',
-      imageUris: investment.imageUris || '',
-      videoUris: investment.videoUris || '',
-      voiceNoteUris: investment.voiceNoteUris || '',
-      date: investment.date,
-      isPast: investment.isPast,
-      profitLoss: investment.profitLoss,
-      currentValue: investment.currentValue,
-    };
-
-    await setDoc(doc(db, 'investments', investmentId.toString()), investmentData);
-
-    // Clear investment cache
-    investmentCache = null;
+    await api.post<BackendInvestmentEntry>('/api/investments', buildInvestmentBody(investment));
+    invalidateCache();
   } catch (error) {
     console.error('Error adding investment:', error);
     throw error;
@@ -163,39 +162,32 @@ export async function addInvestment(investment: Omit<Investment, 'id'>): Promise
 }
 
 /**
- * Create a new investment with attachments uploaded under investments/{id}/...
+ * Create a new investment with attachments. Attachments are uploaded to R2
+ * first; the returned object keys are then sent as part of the investment
+ * body. Because the backend does not yet allocate the investment id ahead of
+ * time, attachments are uploaded under a temporary client-generated entity id
+ * and the R2 keys are stored alongside the investment.
  */
 export async function addInvestmentWithAttachments(
   investment: Omit<Investment, 'id' | 'imageUris' | 'videoUris' | 'voiceNoteUris'>,
   attachments: MediaAttachment[],
 ): Promise<void> {
   try {
-    const db = getDb();
-    const investmentId = await firebaseIdManager.getNextId('investments');
+    // Use a client-side temporary id for the R2 folder partition. The actual
+    // investment row id is assigned server-side; we can't round-trip it here
+    // without an extra GET, and R2 keys are opaque anyway.
+    const tempEntityId = `new-${Date.now()}`;
+    const uploaded = await uploadInvestmentAttachments(tempEntityId, attachments);
 
-    // Upload attachments under investments/{investmentId}
-    const uploaded = await uploadInvestmentAttachments(investmentId.toString(), attachments);
-
-    const investmentData = {
-      id: investmentId,
-      name: investment.name,
-      amount: investment.amount,
-      type: investment.type,
-      description: investment.description || '',
+    const body = buildInvestmentBody(investment, {
       imageUri: uploaded.imageUris[0] || investment.imageUri || '',
       imageUris: uploaded.imageUris.join(','),
       videoUris: uploaded.videoUris.join(','),
       voiceNoteUris: uploaded.voiceNoteUris.join(','),
-      date: investment.date,
-      isPast: investment.isPast,
-      profitLoss: investment.profitLoss,
-      currentValue: investment.currentValue,
-    };
+    });
 
-    await setDoc(doc(db, 'investments', investmentId.toString()), investmentData);
-
-    // Clear cache
-    investmentCache = null;
+    await api.post<BackendInvestmentEntry>('/api/investments', body);
+    invalidateCache();
   } catch (error) {
     console.error('Error adding investment with attachments:', error);
     throw error;
@@ -204,28 +196,12 @@ export async function addInvestmentWithAttachments(
 
 export async function updateInvestment(investment: Investment): Promise<void> {
   try {
-    const db = getDb();
-
-    const investmentData = {
-      id: parseInt(investment.id),
-      name: investment.name,
-      type: investment.type,
-      amount: investment.amount,
-      description: investment.description || '',
-      date: new Date(investment.date),
-      imageUri: investment.imageUri || '',
-      imageUris: investment.imageUris || '',
-      videoUris: investment.videoUris || '',
-      voiceNoteUris: investment.voiceNoteUris || '',
-      isPast: investment.isPast || false,
-      profitLoss: investment.profitLoss || 0,
-      currentValue: investment.currentValue || investment.amount,
-    };
-
-    await setDoc(doc(db, 'investments', investment.id), investmentData);
-
-    // Clear investment cache
-    investmentCache = null;
+    const id = Number(investment.id);
+    if (!Number.isFinite(id)) {
+      throw new Error(`Invalid investment id: ${investment.id}`);
+    }
+    await api.put<BackendInvestmentEntry>(`/api/investments/${id}`, buildInvestmentBody(investment));
+    invalidateCache();
   } catch (error) {
     console.error('Error updating investment:', error);
     throw error;
@@ -234,12 +210,12 @@ export async function updateInvestment(investment: Investment): Promise<void> {
 
 export async function deleteInvestment(id: string): Promise<void> {
   try {
-    const db = getDb();
-    const ref = doc(db, 'investments', id);
-    await deleteDoc(ref);
-
-    // Clear investment cache
-    investmentCache = null;
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) {
+      throw new Error(`Invalid investment id: ${id}`);
+    }
+    await api.delete<{ id: number; mode: string }>(`/api/investments/${numericId}`);
+    invalidateCache();
   } catch (error) {
     console.error('Error deleting investment:', error);
     throw error;

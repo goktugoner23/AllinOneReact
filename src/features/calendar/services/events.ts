@@ -1,45 +1,73 @@
-import { getDb } from '@shared/services/firebase/firebase';
-import {
-  collection,
-  doc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-} from 'firebase/firestore';
+/**
+ * Calendar events service — REST client against huginn-external `/api/calendar`.
+ *
+ * Mobile `Event` uses `Date` objects and string ids; backend returns ISO strings
+ * and numeric ids. We coerce at the boundary. Exported names and signatures are
+ * preserved so screens/stores don't need changes.
+ */
+
+import { api } from '@shared/services/api/httpClient';
 import { Event, EventFormData } from '@features/calendar/types/Event';
-import { dateToTimestamp, timestampToDate, getDocData } from '@shared/services/firebase/firebase';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { logger } from '@shared/utils/logger';
 
-const EVENTS_COLLECTION = 'events';
+// ── Backend DTO (snake_case, ISO strings, numeric id) ──────────────
 
-// Get all events from Firebase
+interface BackendEvent {
+  id: number;
+  title: string;
+  description: string | null;
+  date: string;
+  end_date: string | null;
+  type: string;
+}
+
+interface EventPayload {
+  title: string;
+  description: string | null;
+  date: string;
+  end_date: string | null;
+  type: string;
+}
+
+// ── Mappers ─────────────────────────────────────────────────────────
+
+const fromBackendEvent = (row: BackendEvent): Event => ({
+  id: String(row.id),
+  title: row.title ?? '',
+  description: row.description ?? undefined,
+  date: new Date(row.date),
+  endDate: row.end_date ? new Date(row.end_date) : undefined,
+  type: row.type || 'Event',
+});
+
+const toEventPayload = (data: EventFormData): EventPayload => ({
+  title: data.title,
+  description: data.description ?? null,
+  date: data.date.toISOString(),
+  end_date: data.endDate ? data.endDate.toISOString() : null,
+  type: data.type || 'Event',
+});
+
+const toPartialPayload = (
+  data: Partial<EventFormData>
+): Partial<EventPayload> => {
+  const out: Partial<EventPayload> = {};
+  if (data.title !== undefined) out.title = data.title;
+  if (data.description !== undefined) out.description = data.description ?? null;
+  if (data.date !== undefined) out.date = data.date.toISOString();
+  if (data.endDate !== undefined)
+    out.end_date = data.endDate ? data.endDate.toISOString() : null;
+  if (data.type !== undefined) out.type = data.type;
+  return out;
+};
+
+// ── Queries ─────────────────────────────────────────────────────────
+
 export const getEvents = async (): Promise<Event[]> => {
   try {
-    const eventsQuery = query(collection(getDb(), EVENTS_COLLECTION), orderBy('date', 'desc'));
-
-    const querySnapshot = await getDocs(eventsQuery);
-    const events: Event[] = [];
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const event: Event = {
-        id: data.id || doc.id,
-        title: data.title || '',
-        description: data.description,
-        date: timestampToDate(data.date),
-        endDate: data.endDate ? timestampToDate(data.endDate) : undefined,
-        type: data.type || 'Event',
-      };
-      events.push(event);
-    });
-
-    logger.info(`Fetched ${events.length} events from Firebase`);
+    const rows = await api.get<BackendEvent[]>('/api/calendar');
+    const events = (rows ?? []).map(fromBackendEvent);
+    logger.info(`Fetched ${events.length} events from huginn-external`);
     return events;
   } catch (error) {
     logger.error('Error fetching events:', error);
@@ -47,60 +75,28 @@ export const getEvents = async (): Promise<Event[]> => {
   }
 };
 
-// Add a new event to Firebase
+// ── Mutations ───────────────────────────────────────────────────────
+
 export const addEvent = async (eventData: EventFormData): Promise<Event> => {
   try {
-    const eventId = await firebaseIdManager.getNextId('events');
-
-    const eventDoc = {
-      id: eventId,
-      title: eventData.title,
-      description: eventData.description,
-      date: dateToTimestamp(eventData.date),
-      endDate: eventData.endDate ? dateToTimestamp(eventData.endDate) : null,
-      type: eventData.type || 'Event',
-    };
-
-    await addDoc(collection(getDb(), EVENTS_COLLECTION), eventDoc);
-
-    const newEvent: Event = {
-      id: eventId.toString(),
-      title: eventData.title,
-      description: eventData.description,
-      date: eventData.date,
-      endDate: eventData.endDate,
-      type: eventData.type || 'Event',
-    };
-
+    const row = await api.post<BackendEvent>('/api/calendar', toEventPayload(eventData));
     logger.info(`Added new event: ${eventData.title}`);
-    return newEvent;
+    return fromBackendEvent(row);
   } catch (error) {
     logger.error('Error adding event:', error);
     throw error;
   }
 };
 
-// Update an existing event
-export const updateEvent = async (eventId: string, eventData: Partial<EventFormData>): Promise<void> => {
+export const updateEvent = async (
+  eventId: string,
+  eventData: Partial<EventFormData>
+): Promise<void> => {
   try {
-    const eventsQuery = query(collection(getDb(), EVENTS_COLLECTION), where('id', '==', eventId));
-
-    const querySnapshot = await getDocs(eventsQuery);
-    if (querySnapshot.empty) {
-      throw new Error('Event not found');
-    }
-
-    const docRef = doc(getDb(), EVENTS_COLLECTION, querySnapshot.docs[0].id);
-    const updateData: any = {};
-
-    if (eventData.title !== undefined) updateData.title = eventData.title;
-    if (eventData.description !== undefined) updateData.description = eventData.description;
-    if (eventData.date !== undefined) updateData.date = dateToTimestamp(eventData.date);
-    if (eventData.endDate !== undefined)
-      updateData.endDate = eventData.endDate ? dateToTimestamp(eventData.endDate) : null;
-    if (eventData.type !== undefined) updateData.type = eventData.type;
-
-    await updateDoc(docRef, updateData);
+    await api.put<BackendEvent>(
+      `/api/calendar/${Number(eventId)}`,
+      toPartialPayload(eventData)
+    );
     logger.info(`Updated event: ${eventId}`);
   } catch (error) {
     logger.error('Error updating event:', error);
@@ -108,18 +104,9 @@ export const updateEvent = async (eventId: string, eventData: Partial<EventFormD
   }
 };
 
-// Delete an event
 export const deleteEvent = async (eventId: string): Promise<void> => {
   try {
-    const eventsQuery = query(collection(getDb(), EVENTS_COLLECTION), where('id', '==', eventId));
-
-    const querySnapshot = await getDocs(eventsQuery);
-    if (querySnapshot.empty) {
-      throw new Error('Event not found');
-    }
-
-    const docRef = doc(getDb(), EVENTS_COLLECTION, querySnapshot.docs[0].id);
-    await deleteDoc(docRef);
+    await api.delete<{ id: number }>(`/api/calendar/${Number(eventId)}`);
     logger.info(`Deleted event: ${eventId}`);
   } catch (error) {
     logger.error('Error deleting event:', error);
@@ -127,34 +114,25 @@ export const deleteEvent = async (eventId: string): Promise<void> => {
   }
 };
 
-// Get events for a specific date range
-export const getEventsForDateRange = async (startDate: Date, endDate: Date): Promise<Event[]> => {
+// Get events for a specific date range. The backend only exposes a month
+// filter, so for arbitrary ranges we fetch all events and filter client-side.
+// This matches the previous Firestore behavior and keeps the signature stable.
+export const getEventsForDateRange = async (
+  startDate: Date,
+  endDate: Date
+): Promise<Event[]> => {
   try {
-    const eventsQuery = query(
-      collection(getDb(), EVENTS_COLLECTION),
-      where('date', '>=', dateToTimestamp(startDate)),
-      where('date', '<=', dateToTimestamp(endDate)),
-      orderBy('date', 'asc'),
-    );
-
-    const querySnapshot = await getDocs(eventsQuery);
-    const events: Event[] = [];
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const event: Event = {
-        id: data.id || doc.id,
-        title: data.title || '',
-        description: data.description,
-        date: timestampToDate(data.date),
-        endDate: data.endDate ? timestampToDate(data.endDate) : undefined,
-        type: data.type || 'Event',
-      };
-      events.push(event);
-    });
-
-    logger.info(`Fetched ${events.length} events for date range`);
-    return events;
+    const all = await getEvents();
+    const startMs = startDate.getTime();
+    const endMs = endDate.getTime();
+    const filtered = all
+      .filter((e) => {
+        const t = e.date.getTime();
+        return t >= startMs && t <= endMs;
+      })
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+    logger.info(`Filtered ${filtered.length} events for date range`);
+    return filtered;
   } catch (error) {
     logger.error('Error fetching events for date range:', error);
     throw error;

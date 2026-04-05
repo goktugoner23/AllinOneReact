@@ -1,23 +1,41 @@
 /**
- * Typography system inspired by shadcn/ui
- * Clear hierarchy with defined scales
+ * Typography system — IBM Plex Sans, mirroring huginn-webapp's --font-sans.
+ *
+ * React Native does not auto-map fontWeight to custom font files. Each weight
+ * must be referenced by its PostScript-ish family name (matches the TTF
+ * filename minus extension after `npx react-native-asset` links the fonts).
+ *
+ * Use `getFontFamily(weight)` instead of raw `fontWeight` for any style that
+ * should render in Plex Sans. textStyles below already do this for you.
  */
 
-import { TextStyle, Platform } from 'react-native';
+import { TextStyle } from 'react-native';
 
-// Font families
+type FontWeightValue = '400' | '500' | '600' | '700';
+
+// Raw family names (match src/assets/fonts/*.ttf).
 export const fontFamily = {
-  sans: Platform.select({
-    ios: 'System',
-    android: 'Roboto',
-    default: 'System',
-  }),
-  mono: Platform.select({
-    ios: 'Menlo',
-    android: 'monospace',
-    default: 'monospace',
-  }),
+  regular: 'IBMPlexSans-Regular',
+  medium: 'IBMPlexSans-Medium',
+  semibold: 'IBMPlexSans-SemiBold',
+  bold: 'IBMPlexSans-Bold',
+  // Mono sticks with system defaults — no Plex Mono bundled yet.
+  mono: 'Menlo',
 } as const;
+
+export function getFontFamily(weight: FontWeightValue = '400'): string {
+  switch (weight) {
+    case '700':
+      return fontFamily.bold;
+    case '600':
+      return fontFamily.semibold;
+    case '500':
+      return fontFamily.medium;
+    case '400':
+    default:
+      return fontFamily.regular;
+  }
+}
 
 // Font sizes with corresponding line heights
 export const fontSize = {
@@ -31,7 +49,6 @@ export const fontSize = {
   '4xl': { size: 36, lineHeight: 40 },
 } as const;
 
-// Font weights as strings for React Native
 export const fontWeight = {
   normal: '400' as const,
   medium: '500' as const,
@@ -39,7 +56,6 @@ export const fontWeight = {
   bold: '700' as const,
 } as const;
 
-// Letter spacing
 export const letterSpacing = {
   tighter: -0.8,
   tight: -0.4,
@@ -48,93 +64,44 @@ export const letterSpacing = {
   wider: 0.8,
 } as const;
 
-// Pre-composed text styles for common use cases (Soft Minimal - refined, lighter)
+// Helper to build a text style with both fontWeight (for a11y / fallback) and
+// the matching Plex family, so both engines resolve correctly.
+function plex(
+  weight: FontWeightValue,
+  rest: Omit<TextStyle, 'fontFamily' | 'fontWeight'>
+): TextStyle {
+  return {
+    fontFamily: getFontFamily(weight),
+    fontWeight: weight,
+    ...rest,
+  };
+}
+
 export const textStyles = {
-  // Headings - reduced weights for softer feel
-  h1: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '600',
-    letterSpacing: -0.5,
-  } as TextStyle,
-  h2: {
-    fontSize: 26,
-    lineHeight: 34,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-  } as TextStyle,
-  h3: {
-    fontSize: 22,
-    lineHeight: 30,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  } as TextStyle,
-  h4: {
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: '600',
-  } as TextStyle,
+  // Headings
+  h1: plex('600', { fontSize: 32, lineHeight: 40, letterSpacing: -0.5 }),
+  h2: plex('600', { fontSize: 26, lineHeight: 34, letterSpacing: -0.3 }),
+  h3: plex('600', { fontSize: 22, lineHeight: 30, letterSpacing: -0.2 }),
+  h4: plex('600', { fontSize: 18, lineHeight: 26 }),
 
-  // Subtitle - NEW for secondary headings
-  subtitle: {
-    fontSize: 17,
-    lineHeight: 26,
-    fontWeight: '500',
-    letterSpacing: 0.1,
-  } as TextStyle,
+  subtitle: plex('500', { fontSize: 17, lineHeight: 26, letterSpacing: 0.1 }),
 
-  // Body text - slightly refined
-  body: {
-    fontSize: 15,
-    lineHeight: 24,
-    fontWeight: '400',
-  } as TextStyle,
-  bodyLarge: {
-    fontSize: 17,
-    lineHeight: 26,
-    fontWeight: '400',
-  } as TextStyle,
-  bodySmall: {
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '400',
-  } as TextStyle,
+  // Body text
+  body: plex('400', { fontSize: 15, lineHeight: 24 }),
+  bodyLarge: plex('400', { fontSize: 17, lineHeight: 26 }),
+  bodySmall: plex('400', { fontSize: 13, lineHeight: 20 }),
 
   // Caption and labels
-  caption: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '400',
-  } as TextStyle,
-  label: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-  } as TextStyle,
-  labelSmall: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
-  } as TextStyle,
+  caption: plex('400', { fontSize: 12, lineHeight: 16 }),
+  label: plex('500', { fontSize: 14, lineHeight: 20 }),
+  labelSmall: plex('500', { fontSize: 12, lineHeight: 16 }),
 
-  // Button text - lighter weight for soft minimal
-  button: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-  } as TextStyle,
-  buttonSmall: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
-  } as TextStyle,
-  buttonLarge: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '500',
-  } as TextStyle,
+  // Button text
+  button: plex('500', { fontSize: 14, lineHeight: 20 }),
+  buttonSmall: plex('500', { fontSize: 12, lineHeight: 16 }),
+  buttonLarge: plex('500', { fontSize: 16, lineHeight: 24 }),
 
-  // Monospace (for code, numbers)
+  // Monospace (for code, numbers) — system mono; Plex Mono not bundled.
   mono: {
     fontSize: 14,
     lineHeight: 20,
@@ -142,7 +109,7 @@ export const textStyles = {
     fontFamily: fontFamily.mono,
   } as TextStyle,
 
-  // Financial amounts
+  // Financial amounts (system mono)
   amount: {
     fontSize: 24,
     lineHeight: 32,

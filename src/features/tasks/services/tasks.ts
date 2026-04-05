@@ -1,251 +1,195 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  setDoc,
-  Timestamp,
-} from 'firebase/firestore';
-import { getDb } from '@shared/services/firebase/firebase';
+/**
+ * Tasks service — REST client against huginn-external `/api/tasks`.
+ *
+ * Mobile types (../types/Task) use string ids; backend uses numeric ids.
+ * We coerce at the boundary: String(backendId) on read, Number(mobileId) on write.
+ *
+ * Exported names + signatures are preserved so screens/stores don't need changes.
+ */
+
+import { api } from '@shared/services/api/httpClient';
 import { Task, TaskGroup } from '@features/tasks/types/Task';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { logger } from '@shared/utils/logger';
 
-// Ensure a Firestore instance is available for this module
-const db = getDb();
+// ── Backend DTOs (snake_case, numeric ids) ──────────────────────────
 
-// Global error handler to suppress Firestore assertion errors
-const handleFirestoreError = (error: any, operation: string) => {
-  if (error?.message?.includes('INTERNAL ASSERTION FAILED')) {
-    console.warn(`⚠️ Firestore assertion error in ${operation} - suppressing:`, error.message);
-    return true; // Error was handled
-  }
-  return false; // Error was not handled
-};
+interface BackendTask {
+  id: number;
+  name: string;
+  description: string | null;
+  completed: boolean;
+  date: string;
+  due_date: string | null;
+  group_id: number | null;
+  group_title?: string | null;
+  group_color?: string | null;
+}
 
-// Helper function to convert Date to Firestore Timestamp
-const dateToTimestamp = (date: Date): Timestamp => {
-  return Timestamp.fromDate(date);
-};
+interface BackendTaskGroup {
+  id: number;
+  title: string;
+  color: string;
+  description: string | null;
+  created_at: string;
+  is_completed: boolean;
+}
 
-// Helper function to convert Firestore Timestamp to Date
-const timestampToDate = (timestamp: any): Date => {
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
-  } else if (timestamp?.toDate) {
-    return timestamp.toDate();
-  } else if (timestamp instanceof Date) {
-    return timestamp;
-  } else {
-    return new Date(timestamp);
-  }
-};
+interface TaskPayload {
+  name: string;
+  description: string;
+  date: string;
+  due_date: string;
+  group_id: number | null;
+}
 
-// Convert Firestore document to Task object
-const docToTask = (doc: any): Task => {
-  const data = doc.data();
-  return {
-    id: data.id?.toString() || doc.id,
-    name: data.name || '',
-    description: data.description,
-    completed: data.completed || false,
-    date: data.date?.toDate?.()?.toISOString() || new Date().toISOString(),
-    dueDate: data.dueDate?.toDate?.()?.toISOString(),
-    groupId: data.groupId?.toString(),
-  };
-};
+interface TaskGroupPayload {
+  title: string;
+  color: string;
+  description: string;
+}
 
-// Convert Task object to Firestore document
-const taskToDoc = (task: Task) => ({
-  id: parseInt(task.id),
+// ── Mappers ─────────────────────────────────────────────────────────
+
+const fromBackendTask = (row: BackendTask): Task => ({
+  id: String(row.id),
+  name: row.name ?? '',
+  description: row.description ?? undefined,
+  completed: !!row.completed,
+  date: row.date ?? new Date().toISOString(),
+  dueDate: row.due_date ?? undefined,
+  groupId: row.group_id != null ? String(row.group_id) : undefined,
+});
+
+const toTaskPayload = (task: Task): TaskPayload => ({
   name: task.name,
-  description: task.description,
-  completed: task.completed,
-  date: task.date ? dateToTimestamp(new Date(task.date)) : dateToTimestamp(new Date()),
-  dueDate: task.dueDate ? dateToTimestamp(new Date(task.dueDate)) : null,
-  groupId: task.groupId ? parseInt(task.groupId) : null,
+  description: task.description ?? '',
+  date: task.date ?? new Date().toISOString(),
+  due_date: task.dueDate ?? '',
+  group_id:
+    task.groupId !== undefined && task.groupId !== null && task.groupId !== ''
+      ? Number(task.groupId)
+      : null,
 });
 
-// Convert Firestore document to TaskGroup object
-const docToTaskGroup = (doc: any): TaskGroup => {
-  const data = doc.data();
-  return {
-    id: data.id?.toString() || doc.id,
-    title: data.title || '',
-    description: data.description,
-    color: data.color || '#1E40AF',
-    createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    isCompleted: data.isCompleted || false,
-  };
+const fromBackendGroup = (row: BackendTaskGroup): TaskGroup => ({
+  id: String(row.id),
+  title: row.title ?? '',
+  description: row.description ?? undefined,
+  color: row.color ?? '#1E40AF',
+  createdAt: row.created_at ?? new Date().toISOString(),
+  isCompleted: !!row.is_completed,
+});
+
+const toGroupPayload = (group: TaskGroup): TaskGroupPayload => ({
+  title: group.title,
+  color: group.color,
+  description: group.description ?? '',
+});
+
+// A mobile id is "backend-persisted" iff it parses cleanly as a positive integer.
+// Anything else (empty, uuid, Firestore auto-id) is treated as new → POST.
+const isBackendId = (id: string | undefined | null): boolean => {
+  if (id === undefined || id === null || id === '') return false;
+  return /^\d+$/.test(id);
 };
 
-// Convert TaskGroup object to Firestore document
-const taskGroupToDoc = (taskGroup: TaskGroup) => ({
-  id: parseInt(taskGroup.id),
-  title: taskGroup.title,
-  description: taskGroup.description,
-  color: taskGroup.color,
-  createdAt: taskGroup.createdAt ? dateToTimestamp(new Date(taskGroup.createdAt)) : dateToTimestamp(new Date()),
-  isCompleted: taskGroup.isCompleted,
-});
+// ── Task CRUD ───────────────────────────────────────────────────────
 
-// Task CRUD operations
 export const getTasks = async (): Promise<Task[]> => {
   try {
-    console.log('Tasks: Fetching all tasks');
-    const tasksRef = collection(db, 'tasks');
-    const snapshot = await getDocs(tasksRef);
-
-    const tasks = snapshot.docs.map(docToTask);
-
-    console.log('Tasks: Fetched', tasks.length, 'tasks');
-    return tasks;
+    const rows = await api.get<BackendTask[]>('/api/tasks');
+    return (rows ?? []).map(fromBackendTask);
   } catch (error) {
-    if (!handleFirestoreError(error, 'getTasks')) {
-      logger.error('Error fetching tasks:', error);
-      console.error('Tasks: Error fetching tasks:', error);
-    }
+    logger.error('Error fetching tasks:', error);
     return [];
   }
 };
 
 export const saveTask = async (task: Task): Promise<void> => {
   try {
-    console.log('Tasks: Saving task:', { id: task.id, name: task.name });
-    const taskRef = doc(db, 'tasks', task.id);
-    const taskData = taskToDoc(task);
-
-    await setDoc(taskRef, taskData);
-    console.log('Tasks: Task saved successfully:', task.id);
-  } catch (error) {
-    if (!handleFirestoreError(error, 'saveTask')) {
-      logger.error('Error saving task:', error);
-      console.error('Tasks: Error saving task:', error);
-      throw error;
+    const payload = toTaskPayload(task);
+    if (isBackendId(task.id)) {
+      await api.put<BackendTask>(`/api/tasks/${Number(task.id)}`, payload);
+    } else {
+      await api.post<BackendTask>('/api/tasks', payload);
     }
+  } catch (error) {
+    logger.error('Error saving task:', error);
+    throw error;
   }
 };
 
 export const deleteTask = async (taskId: string): Promise<void> => {
   try {
-    console.log('Tasks: Deleting task:', taskId);
-    const taskRef = doc(db, 'tasks', taskId);
-    await deleteDoc(taskRef);
-    console.log('Tasks: Task deleted successfully:', taskId);
+    if (!isBackendId(taskId)) return;
+    await api.delete<{ id: number }>(`/api/tasks/${Number(taskId)}`);
   } catch (error) {
-    if (!handleFirestoreError(error, 'deleteTask')) {
-      logger.error('Error deleting task:', error);
-      console.error('Tasks: Error deleting task:', error);
-      throw error;
-    }
+    logger.error('Error deleting task:', error);
+    throw error;
   }
 };
 
-// Task Group CRUD operations
+// ── Task Group CRUD ────────────────────────────────────────────────
+
 export const getTaskGroups = async (): Promise<TaskGroup[]> => {
   try {
-    console.log('Tasks: Fetching all task groups');
-    const groupsRef = collection(db, 'taskGroups');
-    const snapshot = await getDocs(groupsRef);
-
-    const taskGroups = snapshot.docs.map(docToTaskGroup);
-
-    console.log('Tasks: Fetched', taskGroups.length, 'task groups');
-    return taskGroups;
+    const rows = await api.get<BackendTaskGroup[]>('/api/tasks/groups');
+    return (rows ?? []).map(fromBackendGroup);
   } catch (error) {
-    if (!handleFirestoreError(error, 'getTaskGroups')) {
-      logger.error('Error fetching task groups:', error);
-      console.error('Tasks: Error fetching task groups:', error);
-    }
+    logger.error('Error fetching task groups:', error);
     return [];
   }
 };
 
 export const saveTaskGroup = async (taskGroup: TaskGroup): Promise<void> => {
   try {
-    console.log('Tasks: Saving task group:', { id: taskGroup.id, title: taskGroup.title });
-    const groupRef = doc(db, 'taskGroups', taskGroup.id);
-    const groupData = taskGroupToDoc(taskGroup);
-
-    await setDoc(groupRef, groupData);
-    console.log('Tasks: Task group saved successfully:', taskGroup.id);
-  } catch (error) {
-    if (!handleFirestoreError(error, 'saveTaskGroup')) {
-      logger.error('Error saving task group:', error);
-      console.error('Tasks: Error saving task group:', error);
-      throw error;
+    const payload = toGroupPayload(taskGroup);
+    if (isBackendId(taskGroup.id)) {
+      await api.put<BackendTaskGroup>(`/api/tasks/groups/${Number(taskGroup.id)}`, payload);
+    } else {
+      await api.post<BackendTaskGroup>('/api/tasks/groups', payload);
     }
+  } catch (error) {
+    logger.error('Error saving task group:', error);
+    throw error;
   }
 };
 
 export const deleteTaskGroup = async (groupId: string): Promise<void> => {
   try {
-    console.log('Tasks: Deleting task group:', groupId);
-    const groupRef = doc(db, 'taskGroups', groupId);
-    await deleteDoc(groupRef);
-    console.log('Tasks: Task group deleted successfully:', groupId);
+    if (!isBackendId(groupId)) return;
+    await api.delete<{ id: number }>(`/api/tasks/groups/${Number(groupId)}`);
   } catch (error) {
-    if (!handleFirestoreError(error, 'deleteTaskGroup')) {
-      logger.error('Error deleting task group:', error);
-      console.error('Tasks: Error deleting task group:', error);
-      throw error;
-    }
+    logger.error('Error deleting task group:', error);
+    throw error;
   }
 };
 
-// Real-time listeners
-export const subscribeToTasks = (callback: (tasks: Task[]) => void) => {
-  try {
-    console.log('Tasks: Setting up real-time listener for tasks');
-    const tasksRef = collection(db, 'tasks');
+// ── "Subscriptions" ────────────────────────────────────────────────
+// TODO: replace with real-time updates (SSE/WebSocket) once huginn-external
+// exposes them. For now we do a one-shot fetch and return a cancel function
+// so callers can unmount safely.
 
-    return onSnapshot(
-      tasksRef,
-      (snapshot) => {
-        const tasks = snapshot.docs.map(docToTask);
-        console.log('Tasks: Real-time update -', tasks.length, 'tasks');
-        callback(tasks);
-      },
-      (error) => {
-        if (!handleFirestoreError(error, 'subscribeToTasks')) {
-          console.error('Tasks: Error in real-time listener:', error);
-        }
-      },
-    );
-  } catch (error) {
-    console.error('Tasks: Error setting up real-time listener:', error);
-    // Return a no-op function to prevent crashes
-    return () => {};
-  }
+export const subscribeToTasks = (callback: (tasks: Task[]) => void) => {
+  let cancelled = false;
+  getTasks()
+    .then((rows) => {
+      if (!cancelled) callback(rows);
+    })
+    .catch(() => {});
+  return () => {
+    cancelled = true;
+  };
 };
 
 export const subscribeToTaskGroups = (callback: (taskGroups: TaskGroup[]) => void) => {
-  try {
-    console.log('Tasks: Setting up real-time listener for task groups');
-    const groupsRef = collection(db, 'taskGroups');
-
-    return onSnapshot(
-      groupsRef,
-      (snapshot) => {
-        const taskGroups = snapshot.docs.map(docToTaskGroup);
-        console.log('Tasks: Real-time update -', taskGroups.length, 'task groups');
-        callback(taskGroups);
-      },
-      (error) => {
-        if (!handleFirestoreError(error, 'subscribeToTaskGroups')) {
-          console.error('Tasks: Error in real-time listener:', error);
-        }
-      },
-    );
-  } catch (error) {
-    console.error('Tasks: Error setting up real-time listener:', error);
-    // Return a no-op function to prevent crashes
-    return () => {};
-  }
+  let cancelled = false;
+  getTaskGroups()
+    .then((rows) => {
+      if (!cancelled) callback(rows);
+    })
+    .catch(() => {});
+  return () => {
+    cancelled = true;
+  };
 };
