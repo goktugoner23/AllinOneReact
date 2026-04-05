@@ -19,9 +19,11 @@ export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
 export const addTask = createAsyncThunk(
   'tasks/addTask',
   async (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
-    const id = Date.now();
-    const task: Task = {
-      id: id.toString(),
+    // id is left empty so the service POSTs and returns the persisted row
+    // (with the server-assigned id). We rely on that return value — no
+    // client-side placeholder id.
+    const draft: Task = {
+      id: '',
       name: taskData.name,
       description: taskData.description,
       completed: false,
@@ -29,14 +31,12 @@ export const addTask = createAsyncThunk(
       dueDate: taskData.dueDate?.toISOString(),
       groupId: taskData.groupId,
     };
-    await saveTask(task);
-    return task;
+    return await saveTask(draft);
   },
 );
 
 export const updateTask = createAsyncThunk('tasks/updateTask', async (task: Task) => {
-  await saveTask(task);
-  return task;
+  return await saveTask(task);
 });
 
 export const removeTask = createAsyncThunk('tasks/removeTask', async (taskId: string) => {
@@ -45,9 +45,7 @@ export const removeTask = createAsyncThunk('tasks/removeTask', async (taskId: st
 });
 
 export const toggleTaskCompleted = createAsyncThunk('tasks/toggleTaskCompleted', async (task: Task) => {
-  const updatedTask = { ...task, completed: !task.completed };
-  await saveTask(updatedTask);
-  return updatedTask;
+  return await saveTask({ ...task, completed: !task.completed });
 });
 
 export const fetchTaskGroups = createAsyncThunk('tasks/fetchTaskGroups', async () => {
@@ -57,23 +55,21 @@ export const fetchTaskGroups = createAsyncThunk('tasks/fetchTaskGroups', async (
 export const addTaskGroup = createAsyncThunk(
   'tasks/addTaskGroup',
   async (groupData: { title: string; description?: string; color: string }) => {
-    const id = Date.now();
-    const taskGroup: TaskGroup = {
-      id: id.toString(),
+    // Same pattern as addTask: empty id → POST → server returns persisted row.
+    const draft: TaskGroup = {
+      id: '',
       title: groupData.title,
       description: groupData.description,
       color: groupData.color,
       createdAt: new Date().toISOString(),
       isCompleted: false,
     };
-    await saveTaskGroup(taskGroup);
-    return taskGroup;
+    return await saveTaskGroup(draft);
   },
 );
 
 export const updateTaskGroup = createAsyncThunk('tasks/updateTaskGroup', async (taskGroup: TaskGroup) => {
-  await saveTaskGroup(taskGroup);
-  return taskGroup;
+  return await saveTaskGroup(taskGroup);
 });
 
 export const removeTaskGroup = createAsyncThunk('tasks/removeTaskGroup', async (groupId: string) => {

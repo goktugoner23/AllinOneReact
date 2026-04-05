@@ -34,9 +34,9 @@ export function useAddTask() {
 
   return useMutation({
     mutationFn: async (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
-      const id = Date.now();
-      const task: Task = {
-        id: id.toString(),
+      // Empty id → POST. Service returns the persisted row with server id.
+      const draft: Task = {
+        id: '',
         name: taskData.name,
         description: taskData.description,
         completed: false,
@@ -44,8 +44,7 @@ export function useAddTask() {
         dueDate: taskData.dueDate?.toISOString(),
         groupId: taskData.groupId,
       };
-      await saveTask(task);
-      return task;
+      return await saveTask(draft);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.list() });
@@ -146,17 +145,16 @@ export function useAddTaskGroup() {
 
   return useMutation({
     mutationFn: async (groupData: { title: string; description?: string; color: string }) => {
-      const id = Date.now();
-      const group: TaskGroup = {
-        id: id.toString(),
+      // Empty id → POST. Service returns the persisted row with server id.
+      const draft: TaskGroup = {
+        id: '',
         title: groupData.title,
         description: groupData.description,
         color: groupData.color,
         createdAt: new Date().toISOString(),
         isCompleted: false,
       };
-      await saveTaskGroup(group);
-      return group;
+      return await saveTaskGroup(draft);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.groups() });

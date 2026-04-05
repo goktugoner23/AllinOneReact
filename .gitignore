@@ -72,15 +72,12 @@ ios/AllInOneReactNative.xcworkspace/xcuserdata/
 ios/AllInOneReactNative.xcodeproj/xcuserdata/
 ios/AllInOneReactNative.xcodeproj/project.xcworkspace/xcuserdata/
 
-# Firebase
+# Native config
 google-services.json
 GoogleService-Info.plist
-firebase-debug.log
-firebase-debug.*.log
 serviceAccountKey.json
 
 # API Keys and Secrets
-src/data/firestore.ts
 src/data/binanceApi.ts
 src/data/deviceId.ts
 **/ApiKeyManager.kt
@@ -201,9 +198,6 @@ my-release-key.jks
 # External API configurations
 **/InstagramApiClient.kt
 **/BinanceExternalService.kt
-
-# Firebase rules (if they contain sensitive data)
-firebase_rules/
 
 android/google-services.json
 

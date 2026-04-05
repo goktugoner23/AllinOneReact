@@ -5,6 +5,12 @@ All notable changes to the Huginn React Native project are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - Backend consolidation
+- Removed the legacy data SDK and all related references from the mobile codebase
+- Data layer now talks exclusively to huginn-external REST API
+- Media storage migrated to Cloudflare R2 via huginn-external /api/storage
+- Previous entries in this changelog that reference the old data layer are historical
+
 ## [Unreleased] - 2026-04-04
 
 ### Changed
@@ -57,10 +63,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Currency Precision**: Updated `useCurrency` to always use 2 decimal places (kuruş precision for TRY)
 
 ### Fixed
-- **Firebase Storage Uploads (Hermes compatibility)**: Fixed all file uploads across the app
-  - Root cause: Hermes runtime can't create Blob from `Uint8Array`/`ArrayBuffer` — Firebase JS SDK's `uploadBytes` crashes
-  - Fix: Read files as base64 via ReactNativeBlobUtil, convert to native Blob via `fetch(data:URI).blob()`, then `uploadBytes` with native Blob
-  - All 3 upload services fixed: MediaService, firebaseStorage, wtRegistry
+- **Remote Storage Uploads (Hermes compatibility)**: Fixed all file uploads across the app
+  - Root cause: Hermes runtime can't create Blob from `Uint8Array`/`ArrayBuffer` — the data SDK's upload helper crashes
+  - Fix: Read files as base64 via ReactNativeBlobUtil, convert to native Blob via `fetch(data:URI).blob()`, then upload with native Blob
+  - All 3 upload services fixed: MediaService, remoteStorage, wtRegistry
   - Added content type metadata to all upload paths
 - **Notes Editor Toolbar**: Fixed broken icons and poor usability
   - Replaced missing/ambiguous Ionicons (`"heading"` → `?`) with styled text labels (B, I, U, S, H1, H2, H3)
@@ -84,8 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `RefreshControl` for manual pull-to-refresh
 
 - **GPT AI Assistant**: Full-featured AI chat drawer screen powered by OpenAI GPT-5.2
-  - Multi-conversation support with Firestore persistence (like ChatGPT web app)
-  - 9 AI tools for full CRUD on all Firestore collections (transactions, tasks, notes, calendar, WT registry, workout)
+  - Multi-conversation support with backend persistence (like ChatGPT web app)
+  - 9 AI tools for full CRUD on all backend collections (transactions, tasks, notes, calendar, WT registry, workout)
   - Navigation tool: AI can direct users to any app screen
   - User interaction tools: AI can present choice prompts and confirmation dialogs
   - General info tool: data summary, app info, current time
@@ -97,8 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Redux slice for conversation state management
   - 120s API timeout for long-running AI calls
   - AI chat endpoints exempt from rate limiting
-- **Shared Firebase Admin Init**: Extracted Firebase Admin SDK initialization into `src/common/firebase/` shared utility (backend)
-- **Firestore Composite Indexes**: Added indexes for `transactions(category+date)` and `tasks(groupId+date)`
+- **Shared Backend Admin Init**: Extracted admin SDK initialization into a shared backend utility
+- **Database Composite Indexes**: Added indexes for `transactions(category+date)` and `tasks(groupId+date)`
 - **Soft Minimal UI Design System**: Complete UI overhaul with new aesthetic
   - New color palette: Indigo primary (#6366F1 light, #818CF8 dark)
   - Softer backgrounds (#FAFBFC light, #0C0D10 dark)
@@ -291,7 +297,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Calendar & Events System**: Complete calendar implementation
-  - Event management with Firebase integration
+  - Event management with backend integration
   - Color-coded calendar dots (Red > Green > Yellow > Blue priority)
   - Auto-generated events from WT Registry data
   - Event details modal with rich information display
@@ -312,7 +318,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated month filtering for registrations
 
 ### Fixed
-- Firebase event CRUD operations
+- Remote event CRUD operations
 - Redux state serialization for events
 - Cache invalidation logic
 
@@ -336,8 +342,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Lesson scheduling
   - Seminar organization
 - **Core Infrastructure**:
-  - Firebase Firestore integration
-  - Firebase Storage for media
+  - Backend database integration
+  - Remote storage for media
   - Redux Toolkit state management
   - React Navigation 7 setup
   - React Native Paper UI components
@@ -363,8 +369,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### November 2024
 - `4acce12` - Refactor attachment handling in InvestmentsTab
 - `ec095ac` - Refactor BalanceCard and transaction services
-- `fe53795` - Move web config to env and purge firebase.ts from history
-- `5735e7b` - Update environment variable handling and Firebase configuration
+- `fe53795` - Move web config to env and purge legacy config from history
+- `5735e7b` - Update environment variable handling and backend configuration
 - `b0342e1` - Add Instagram profile picture download functionality
 - `e36049d` - Refactor image handling in Instagram screens
 - `83c6429` - Implement COIN-M Futures Account Card
@@ -417,7 +423,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `123d463` - Add Notes feature with stack navigation
 - `e99576a` - Implement comprehensive calendar and event management
 - `13c9e64` - Refactor Chip components across screens
-- `152b561` - Enhance calendar with Firebase event management
+- `152b561` - Enhance calendar with remote event management
 - `49ebf88` - Enhance balance management
 - `591775e` - Refactor transaction screens
 - `87adeb1` - Add lesson management functionality
@@ -430,7 +436,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Transaction management system
 - Investment portfolio tracking
 - Wing Tsun registry management
-- Firebase integration
+- Backend integration
 - Core UI components
 
 ---

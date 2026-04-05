@@ -47,7 +47,7 @@ A comprehensive personal finance and life management mobile application built wi
 - **Smart Calendar Display**: Visual calendar with colored dots indicating event types
 - **Event Type Prioritization**: Red (Registration End) > Green (Registration Start) > Yellow (Other) > Blue (Lessons)
 - **Auto-Generated Events**: Automatic lesson, registration, and seminar events from WT Registry data
-- **Firebase Integration**: Persistent event storage with sequential ID management
+- **REST API Integration**: Persistent event storage via huginn-external
 
 ### Notes with Media
 - **Rich Text Editor**: Full-featured text editing with formatting
@@ -80,8 +80,8 @@ A comprehensive personal finance and life management mobile application built wi
 | **Data Fetching** | TanStack Query (React Query) |
 | **State Management** | Redux Toolkit |
 | **Styling** | NativeWind (Tailwind CSS) |
-| **Database** | Firebase Firestore |
-| **Storage** | Firebase Storage |
+| **Database** | huginn-external REST API (Postgres-backed) |
+| **Storage** | Cloudflare R2 via huginn-external `/api/storage` |
 | **Navigation** | React Navigation 7 |
 | **UI Components** | Custom shadcn-style components |
 | **Lists** | FlashList (@shopify/flash-list) |
@@ -146,7 +146,7 @@ src/
 │   ├── components/
 │   │   └── ui/                 # Reusable UI components
 │   ├── services/
-│   │   └── firebase/           # Firebase configuration
+│   │   └── api/                # huginn-external REST client
 │   ├── hooks/                  # Shared hooks
 │   ├── utils/                  # Utility functions
 │   │   ├── logger.ts
@@ -182,7 +182,7 @@ import { useAppTheme } from '@App';
 - React Native CLI
 - Android Studio (for Android development)
 - Xcode (for iOS development)
-- Firebase project with Firestore enabled
+- Running huginn-external API instance (with `HUGINN_API_TOKEN`)
 
 ### Installation
 
@@ -200,41 +200,31 @@ import { useAppTheme } from '@App';
 3. **Environment Setup**
    Create a `.env` file in the root directory:
    ```env
-   # Firebase Configuration
-   FIREBASE_API_KEY=your_api_key
-   FIREBASE_AUTH_DOMAIN=your_auth_domain
-   FIREBASE_PROJECT_ID=your_project_id
-   FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   FIREBASE_APP_ID=your_app_id
-
-   # API Configuration (Backend Server)
+   # huginn-external REST API (backend)
    API_BASE_URL_DEV=http://localhost:3000/
    API_BASE_URL_PROD=http://your-server-ip:3000/
 
    # WebSocket Configuration (Real-time Binance Data)
    WS_URL_DEV=ws://localhost:3000/ws
    WS_URL_PROD=ws://your-server-ip:3000/ws
+
+   # Shared bearer token for huginn-external protected data modules
+   HUGINN_API_TOKEN=your_huginn_api_token
    ```
 
-4. **Firebase Setup**
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
-   - Enable Firestore Database
-   - Enable Firebase Storage
-   - Download `google-services.json` and place it in `android/app/`
-   - Download `GoogleService-Info.plist` and place it in `ios/HuginnReactNative/`
+   The mobile app talks exclusively to the huginn-external REST API for persistence, and media attachments are uploaded through `/api/storage` (backed by Cloudflare R2).
 
-5. **Install iOS dependencies** (iOS only)
+4. **Install iOS dependencies** (iOS only)
    ```bash
    cd ios && pod install && cd ..
    ```
 
-6. **Start Metro bundler**
+5. **Start Metro bundler**
    ```bash
    npm start
    ```
 
-7. **Run the application**
+6. **Run the application**
 
    For Android:
    ```bash
@@ -248,7 +238,8 @@ import { useAppTheme } from '@App';
 
 ## Configuration
 
-### Firebase Collections
+### huginn-external REST API resources
+All data is persisted through huginn-external REST endpoints. Primary resources:
 - `events` - Calendar events and custom events
 - `transactions` - Financial transaction records
 - `investments` - Investment portfolio data
@@ -260,8 +251,9 @@ import { useAppTheme } from '@App';
 - `tasks` - Task items
 - `taskGroups` - Task group definitions
 - `workouts` - Workout session data
-- `ai_conversations` - GPT AI chat conversations
-- `ai_conversations/{id}/messages` - Chat message history (subcollection)
+- `ai_conversations` - GPT AI chat conversations (with message subresources)
+
+Media attachments (images, videos, voice notes, drawings) are uploaded via `/api/storage`, which is backed by Cloudflare R2.
 
 ### External API Integration
 
@@ -350,10 +342,10 @@ npx react-native start --reset-cache
 cd android && ./gradlew clean && cd ..
 ```
 
-**Firebase connection issues**
-- Verify `google-services.json` is in the correct location
-- Check Firebase project configuration
-- Ensure Firestore is enabled
+**Backend connection issues**
+- Verify `API_BASE_URL_DEV` / `API_BASE_URL_PROD` point at a running huginn-external instance
+- Verify `HUGINN_API_TOKEN` matches the token configured on the server
+- Check server logs in huginn-external for auth/CORS errors
 
 **Icons not displaying**
 ```bash
@@ -379,7 +371,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 - **Instagram Module**: Removed references
 
 ### v2.3.0
-- **Firebase Storage Reliability**: Fixed upload failures across voice, image, and file uploads
+- **Media Upload Reliability**: Fixed upload failures across voice, image, and file uploads
 - **WTRegistryScreen Refactor**: Split 2062-line monolith into 8 focused files
 - **GPT Attachment Sheet**: Bottom sheet modal replacing native Alert picker
 - **Currency/Date Consolidation**: Unified formatting across all features
@@ -411,8 +403,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For support and questions:
 - Create an issue in the repository
 - Check the troubleshooting section
-- Review Firebase documentation for backend issues
+- Review huginn-external documentation for backend issues
 
 ---
 
-**Built with React Native, Firebase, TanStack Query, NativeWind, Skia, and OpenAI**
+**Built with React Native, huginn-external REST API, Cloudflare R2, TanStack Query, NativeWind, Skia, and OpenAI**

@@ -105,14 +105,15 @@ export const getTasks = async (): Promise<Task[]> => {
   }
 };
 
-export const saveTask = async (task: Task): Promise<void> => {
+export const saveTask = async (task: Task): Promise<Task> => {
   try {
     const payload = toTaskPayload(task);
-    if (isBackendId(task.id)) {
-      await api.put<BackendTask>(`/api/tasks/${Number(task.id)}`, payload);
-    } else {
-      await api.post<BackendTask>('/api/tasks', payload);
-    }
+    const row = isBackendId(task.id)
+      ? await api.put<BackendTask>(`/api/tasks/${Number(task.id)}`, payload)
+      : await api.post<BackendTask>('/api/tasks', payload);
+    // Backend returns the persisted row (with server-assigned id on create).
+    // Fall back to the input task only if the backend unexpectedly omits it.
+    return row ? fromBackendTask(row) : task;
   } catch (error) {
     logger.error('Error saving task:', error);
     throw error;
@@ -141,14 +142,13 @@ export const getTaskGroups = async (): Promise<TaskGroup[]> => {
   }
 };
 
-export const saveTaskGroup = async (taskGroup: TaskGroup): Promise<void> => {
+export const saveTaskGroup = async (taskGroup: TaskGroup): Promise<TaskGroup> => {
   try {
     const payload = toGroupPayload(taskGroup);
-    if (isBackendId(taskGroup.id)) {
-      await api.put<BackendTaskGroup>(`/api/tasks/groups/${Number(taskGroup.id)}`, payload);
-    } else {
-      await api.post<BackendTaskGroup>('/api/tasks/groups', payload);
-    }
+    const row = isBackendId(taskGroup.id)
+      ? await api.put<BackendTaskGroup>(`/api/tasks/groups/${Number(taskGroup.id)}`, payload)
+      : await api.post<BackendTaskGroup>('/api/tasks/groups', payload);
+    return row ? fromBackendGroup(row) : taskGroup;
   } catch (error) {
     logger.error('Error saving task group:', error);
     throw error;

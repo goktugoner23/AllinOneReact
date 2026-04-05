@@ -24,7 +24,7 @@ This document provides comprehensive documentation of every feature, screen, but
 - **Framework**: React Native with TypeScript
 - **Navigation**: React Navigation v7 (Drawer, Tabs, Stack)
 - **State Management**: Redux Toolkit + TanStack Query (React Query)
-- **Backend**: Firebase (Firestore + Storage)
+- **Backend**: huginn-external REST API + Cloudflare R2 storage
 - **UI**: Custom component library inspired by shadcn/ui
 - **Animations**: React Native Reanimated
 - **Lists**: FlashList for optimized rendering
@@ -43,7 +43,7 @@ src/
 │   ├── components/ui/  # Reusable UI components
 │   ├── theme/          # Theme system
 │   ├── hooks/          # Custom hooks
-│   ├── services/       # API & Firebase services
+│   ├── services/       # REST API services (huginn-external)
 │   └── store/          # Redux store
 └── App.tsx             # App entry point
 ```
@@ -541,8 +541,8 @@ useIsDark()     // Boolean dark mode check
 
 ## 9. Data Management
 
-### Firebase Collections
-| Collection | Feature |
+### REST API Resources (huginn-external)
+| Resource | Feature |
 |------------|---------|
 | transactions | Financial records |
 | investments | Investment portfolio |
@@ -573,12 +573,12 @@ useCalendarEvents(), useAddCalendarEvent()
 
 ### Storage
 - **AsyncStorage**: Theme preferences, local caching
-- **Firebase Storage**: Media attachments, receipts
+- **Cloudflare R2** (via huginn-external `/api/storage`): Media attachments, receipts
 - **Media Cache**: Image/video caching for performance
 
 ### Real-time Features
 - **Futures WebSocket**: Live position and balance updates
-- **Firebase Listeners**: Available for tasks and other collections
+- **Polling / TanStack Query refetches**: Used for tasks and other resources
 
 ---
 

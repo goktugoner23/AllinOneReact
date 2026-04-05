@@ -19,6 +19,8 @@ import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import DrawingScreen from '@features/notes/components/DrawingScreen';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { MediaAttachmentsState, MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
+import { MediaService } from '@shared/services/MediaService';
+import { getDisplayUrl, buildLegacyRedirectUrl } from '@shared/services/storage/r2Storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { Button, Skeleton, SkeletonCard, ProgressBar, Appbar, AppbarAction, Snackbar, Dialog, Input } from '@shared/components/ui';
@@ -83,77 +85,75 @@ const EditNoteScreen: React.FC = () => {
   }, [navigation]);
 
   useEffect(() => {
-    if (existingNote) {
-      setTitle(existingNote.title);
-      setContent(existingNote.content);
+    if (!existingNote) return;
 
-      // Load existing media attachments
-      const existingAttachments: MediaAttachment[] = [];
+    setTitle(existingNote.title);
+    setContent(existingNote.content);
 
-      // Process images
-      if (existingNote.imageUris) {
-        existingNote.imageUris
-          .split(',')
-          .filter(Boolean)
-          .forEach((uri: string) => {
-            existingAttachments.push({
-              id: `image_${Date.now()}_${Math.random()}`,
-              uri: uri.trim(),
-              type: MediaType.IMAGE,
-              name: 'Image',
-            });
-          });
-      }
-
-      // Process videos
-      if (existingNote.videoUris) {
-        existingNote.videoUris
-          .split(',')
-          .filter(Boolean)
-          .forEach((uri: string) => {
-            existingAttachments.push({
-              id: `video_${Date.now()}_${Math.random()}`,
-              uri: uri.trim(),
-              type: MediaType.VIDEO,
-              name: 'Video',
-            });
-          });
-      }
-
-      // Process voice notes
-      if (existingNote.voiceNoteUris) {
-        existingNote.voiceNoteUris
-          .split(',')
-          .filter(Boolean)
-          .forEach((uri: string) => {
-            existingAttachments.push({
-              id: `audio_${Date.now()}_${Math.random()}`,
-              uri: uri.trim(),
-              type: MediaType.AUDIO,
-              name: 'Voice Note',
-              duration: 30000, // Default duration, will be updated when played
-            });
-          });
-      }
-
-      // Process drawings
-      if (existingNote.drawingUris) {
-        existingNote.drawingUris.split(',').filter(Boolean).forEach((uri: string) => {
-          existingAttachments.push({
-            id: `drawing_${Date.now()}_${Math.random()}`,
-            uri: uri.trim(),
-            type: MediaType.DRAWING,
-            name: 'Drawing'
-          });
-        });
-      }
-
-      setMediaAttachments({
-        attachments: existingAttachments,
-        isUploading: false,
-        uploadProgress: 0,
+    // CSV values stored on the note are R2 object keys (or legacy URLs for
+    // old data). Treat each value as a `key` and resolve a signed display
+    // URL asynchronously. On first render we pass the raw csvValue through
+    // as `uri` so there's a fallback source while `getDisplayUrl` resolves.
+    const buildInitial = (
+      csv: string | undefined,
+      type: MediaType,
+      name: string,
+      extra?: Partial<MediaAttachment>,
+    ): MediaAttachment[] =>
+      (csv?.split(',').filter(Boolean) ?? []).map((rawValue) => {
+        const value = rawValue.trim();
+        return {
+          id: `${type.toLowerCase()}_${Date.now()}_${Math.random()}`,
+          key: value,
+          uri: value, // placeholder until getDisplayUrl resolves
+          type,
+          name,
+          ...extra,
+        };
       });
-    }
+
+    const initial: MediaAttachment[] = [
+      ...buildInitial(existingNote.imageUris, MediaType.IMAGE, 'Image'),
+      ...buildInitial(existingNote.videoUris, MediaType.VIDEO, 'Video'),
+      ...buildInitial(existingNote.voiceNoteUris, MediaType.AUDIO, 'Voice Note', {
+        duration: 30000,
+      }),
+      ...buildInitial(existingNote.drawingUris, MediaType.DRAWING, 'Drawing'),
+    ];
+
+    setMediaAttachments({
+      attachments: initial,
+      isUploading: false,
+      uploadProgress: 0,
+    });
+
+    // Resolve signed display URLs in the background. If a value is a legacy
+    // URL that /sign can't resolve, fall back to the legacy redirect.
+    let cancelled = false;
+    (async () => {
+      const resolved = await Promise.all(
+        initial.map(async (att) => {
+          if (!att.key) return att;
+          try {
+            const displayUrl = await getDisplayUrl(att.key);
+            return { ...att, uri: displayUrl };
+          } catch {
+            // Legacy URL or /sign failure — use legacy redirect fallback.
+            try {
+              return { ...att, uri: buildLegacyRedirectUrl(att.key) };
+            } catch {
+              return att; // keep raw value as a last resort
+            }
+          }
+        }),
+      );
+      if (cancelled) return;
+      setMediaAttachments((prev) => ({ ...prev, attachments: resolved }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [existingNote]);
 
   useEffect(() => {
@@ -185,25 +185,28 @@ const EditNoteScreen: React.FC = () => {
       return mediaAttachments.attachments.length > 0;
     }
 
-    // For existing notes, compare current attachments with original ones
+    // For existing notes, compare current attachments with original ones.
+    // Serialize R2 keys (not display URLs) to match what's stored on the note.
+    const serializeKey = (att: MediaAttachment) => att.key ?? att.uri;
+
     const currentImageUris = mediaAttachments.attachments
       .filter((att) => att.type === MediaType.IMAGE)
-      .map((att) => att.uri)
+      .map(serializeKey)
       .join(',');
 
     const currentVideoUris = mediaAttachments.attachments
       .filter((att) => att.type === MediaType.VIDEO)
-      .map((att) => att.uri)
+      .map(serializeKey)
       .join(',');
 
     const currentVoiceUris = mediaAttachments.attachments
       .filter((att) => att.type === MediaType.AUDIO)
-      .map((att) => att.uri)
+      .map(serializeKey)
       .join(',');
 
     const currentDrawingUris = mediaAttachments.attachments
       .filter((att) => att.type === MediaType.DRAWING)
-      .map((att) => att.uri)
+      .map(serializeKey)
       .join(',');
 
     return (
@@ -224,24 +227,29 @@ const EditNoteScreen: React.FC = () => {
     setUploadProgress(0);
 
     try {
+      // Persist the opaque R2 key (source of truth), not the ephemeral
+      // signed display URL. Legacy attachments without a key fall back to
+      // their stored URL so old notes keep rendering.
+      const serializeKey = (att: MediaAttachment) => att.key ?? att.uri;
+
       const noteData: NoteFormData = {
         title: title.trim(),
         content: content.trim(),
         imageUris: mediaAttachments.attachments
           .filter((att) => att.type === MediaType.IMAGE)
-          .map((att) => att.uri)
+          .map(serializeKey)
           .join(','),
         videoUris: mediaAttachments.attachments
           .filter((att) => att.type === MediaType.VIDEO)
-          .map((att) => att.uri)
+          .map(serializeKey)
           .join(','),
         voiceNoteUris: mediaAttachments.attachments
           .filter((att) => att.type === MediaType.AUDIO)
-          .map((att) => att.uri)
+          .map(serializeKey)
           .join(','),
         drawingUris: mediaAttachments.attachments
           .filter((att) => att.type === MediaType.DRAWING)
-          .map((att) => att.uri)
+          .map(serializeKey)
           .join(','),
       };
 
@@ -377,6 +385,53 @@ const EditNoteScreen: React.FC = () => {
     return true; // iOS handles permissions differently
   };
 
+  /**
+   * Upload a local file://... URI to R2 via MediaService and append the
+   * resulting attachment (with `key` + signed `uri`) to local state. Shows
+   * upload progress on the EditNoteScreen's existing progress bar.
+   */
+  const uploadAndAppendAttachment = useCallback(
+    async (
+      localUri: string,
+      type: MediaType,
+      meta: { name?: string; size?: number; duration?: number } = {},
+    ) => {
+      setUploadProgress(1);
+      try {
+        const result = await MediaService.uploadMedia(
+          localUri,
+          type,
+          meta.name,
+          (progress) => setUploadProgress(Math.max(1, Math.round(progress))),
+          'notes',
+        );
+        if (!result.success || !result.uri) {
+          Alert.alert('Upload Failed', result.error ?? 'Could not upload attachment');
+          return;
+        }
+        const newAttachment: MediaAttachment = {
+          id: `${type.toLowerCase()}_${Date.now()}_${Math.random()}`,
+          key: result.key,
+          uri: result.uri,
+          type,
+          name: meta.name ?? type.charAt(0) + type.slice(1).toLowerCase(),
+          size: meta.size,
+          duration: meta.duration,
+        };
+        setMediaAttachments((prev) => ({
+          ...prev,
+          attachments: [...prev.attachments, newAttachment],
+        }));
+      } catch (err) {
+        console.error('Attachment upload error:', err);
+        Alert.alert('Upload Failed', 'Could not upload attachment');
+      } finally {
+        setUploadProgress(0);
+      }
+    },
+    [],
+  );
+
   const handleAddImage = async () => {
     Alert.alert('Add Image', 'Choose image source', [
       { text: 'Cancel', style: 'cancel' },
@@ -396,7 +451,7 @@ const EditNoteScreen: React.FC = () => {
               includeBase64: false,
               saveToPhotos: true,
             },
-            (response) => {
+            async (response) => {
               if (response.didCancel) {
                 console.log('User cancelled camera');
               } else if (response.errorCode) {
@@ -404,17 +459,10 @@ const EditNoteScreen: React.FC = () => {
               } else if (response.assets && response.assets[0]) {
                 const asset = response.assets[0];
                 if (asset.uri) {
-                  const newAttachment: MediaAttachment = {
-                    id: `image_${Date.now()}_${Math.random()}`,
-                    uri: asset.uri,
-                    type: MediaType.IMAGE,
+                  await uploadAndAppendAttachment(asset.uri, MediaType.IMAGE, {
                     name: asset.fileName || 'Image',
                     size: asset.fileSize,
-                  };
-                  setMediaAttachments((prev) => ({
-                    ...prev,
-                    attachments: [...prev.attachments, newAttachment],
-                  }));
+                  });
                 }
               }
             },
@@ -431,19 +479,15 @@ const EditNoteScreen: React.FC = () => {
               includeBase64: false,
               selectionLimit: 10,
             },
-            (response) => {
+            async (response) => {
               if (response.assets) {
-                const newAttachments: MediaAttachment[] = response.assets.map((asset) => ({
-                  id: `image_${Date.now()}_${Math.random()}`,
-                  uri: asset.uri!,
-                  type: MediaType.IMAGE,
-                  name: asset.fileName || 'Image',
-                  size: asset.fileSize,
-                }));
-                setMediaAttachments((prev) => ({
-                  ...prev,
-                  attachments: [...prev.attachments, ...newAttachments],
-                }));
+                for (const asset of response.assets) {
+                  if (!asset.uri) continue;
+                  await uploadAndAppendAttachment(asset.uri, MediaType.IMAGE, {
+                    name: asset.fileName || 'Image',
+                    size: asset.fileSize,
+                  });
+                }
               }
             },
           ),
@@ -478,7 +522,7 @@ const EditNoteScreen: React.FC = () => {
               videoQuality: 'medium',
               saveToPhotos: true,
             },
-            (response) => {
+            async (response) => {
               if (response.didCancel) {
                 console.log('User cancelled camera');
               } else if (response.errorCode) {
@@ -486,18 +530,11 @@ const EditNoteScreen: React.FC = () => {
               } else if (response.assets && response.assets[0]) {
                 const asset = response.assets[0];
                 if (asset.uri) {
-                  const newAttachment: MediaAttachment = {
-                    id: `video_${Date.now()}_${Math.random()}`,
-                    uri: asset.uri,
-                    type: MediaType.VIDEO,
+                  await uploadAndAppendAttachment(asset.uri, MediaType.VIDEO, {
                     name: asset.fileName || 'Video',
                     size: asset.fileSize,
                     duration: asset.duration,
-                  };
-                  setMediaAttachments((prev) => ({
-                    ...prev,
-                    attachments: [...prev.attachments, newAttachment],
-                  }));
+                  });
                 }
               }
             },
@@ -514,20 +551,16 @@ const EditNoteScreen: React.FC = () => {
               includeBase64: false,
               selectionLimit: 5,
             },
-            (response) => {
+            async (response) => {
               if (response.assets) {
-                const newAttachments: MediaAttachment[] = response.assets.map((asset) => ({
-                  id: `video_${Date.now()}_${Math.random()}`,
-                  uri: asset.uri!,
-                  type: MediaType.VIDEO,
-                  name: asset.fileName || 'Video',
-                  size: asset.fileSize,
-                  duration: asset.duration,
-                }));
-                setMediaAttachments((prev) => ({
-                  ...prev,
-                  attachments: [...prev.attachments, ...newAttachments],
-                }));
+                for (const asset of response.assets) {
+                  if (!asset.uri) continue;
+                  await uploadAndAppendAttachment(asset.uri, MediaType.VIDEO, {
+                    name: asset.fileName || 'Video',
+                    size: asset.fileSize,
+                    duration: asset.duration,
+                  });
+                }
               }
             },
           ),
@@ -567,18 +600,11 @@ const EditNoteScreen: React.FC = () => {
       const sourcePath = filePath.replace('file://', '');
       await RNFS.copyFile(sourcePath, destPath);
 
-      const newAttachment: MediaAttachment = {
-        id: `audio_${uuid}`,
-        uri: `file://${destPath}`,
-        type: MediaType.AUDIO,
+      // Upload the locally-saved recording to R2 so persistence stores a key.
+      await uploadAndAppendAttachment(`file://${destPath}`, MediaType.AUDIO, {
         name: `Voice Recording ${new Date().toLocaleTimeString()}`,
-        duration: duration,
-      };
-
-      setMediaAttachments((prev) => ({
-        ...prev,
-        attachments: [...prev.attachments, newAttachment],
-      }));
+        duration,
+      });
 
       setShowVoiceRecorder(false);
     } catch (error) {
@@ -612,18 +638,10 @@ const EditNoteScreen: React.FC = () => {
       // Save SVG content to file
       await RNFS.writeFile(filePath, svgContent, 'utf8');
 
-      // Create attachment
-      const newAttachment: MediaAttachment = {
-        id: `drawing_${uuid}`,
-        uri: `file://${filePath}`,
-        type: MediaType.DRAWING,
+      // Upload the drawing SVG to R2 so persistence stores a key.
+      await uploadAndAppendAttachment(`file://${filePath}`, MediaType.DRAWING, {
         name: `Drawing ${new Date().toLocaleTimeString()}`,
-      };
-
-      setMediaAttachments((prev) => ({
-        ...prev,
-        attachments: [...prev.attachments, newAttachment],
-      }));
+      });
 
       // Save to gallery if requested
       if (saveToGallery && svgViewRef.current) {

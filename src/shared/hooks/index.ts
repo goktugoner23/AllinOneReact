@@ -18,6 +18,9 @@ export {
 // Notes TanStack Query hooks
 export { useNotes, useNote, useAddNote, useUpdateNote, useDeleteNote, useSearchNotes } from './useNotesQueries';
 
+// R2 display URL resolver
+export { useResolvedUri } from './useResolvedUri';
+
 // Calendar TanStack Query hooks
 export {
   useCalendarEvents,
