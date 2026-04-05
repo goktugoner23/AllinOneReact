@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
-import { ConversationMeta } from '../types/GPT';
+import { ConversationMeta } from '../types/Muninn';
 
 interface ConversationListProps {
   visible: boolean;

@@ -19,7 +19,7 @@ import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { useColors, radius, shadow, spacing } from '@shared/theme';
 import { MediaService } from '@shared/services/MediaService';
 import { MediaType } from '@shared/types/MediaAttachment';
-import { FileAttachment } from '../types/GPT';
+import { FileAttachment } from '../types/Muninn';
 
 interface PendingAttachment {
   id: string;

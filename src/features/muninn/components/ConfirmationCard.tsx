@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors } from '@shared/theme';
-import { PendingConfirmation } from '../types/GPT';
+import { PendingConfirmation } from '../types/Muninn';
 
 interface ConfirmationCardProps {
   confirmation: PendingConfirmation;

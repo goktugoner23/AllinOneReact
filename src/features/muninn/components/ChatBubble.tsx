@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, Linking, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
-import { ChatMessage } from '../types/GPT';
+import { ChatMessage } from '../types/Muninn';
 
 interface ChatBubbleProps {
   message: ChatMessage;
