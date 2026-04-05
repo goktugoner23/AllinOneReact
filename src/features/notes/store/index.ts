@@ -1,4 +1,4 @@
 // Notes Store - Barrel Export
-export { default as notesSlice } from './notesSlice';
-export * from './notesSlice';
-export * from './notesHooks';
+// The legacy Redux slice and hooks were removed. Notes state is now managed
+// via TanStack Query hooks in `@shared/hooks` (useNotes, useAddNote, etc.).
+export {};

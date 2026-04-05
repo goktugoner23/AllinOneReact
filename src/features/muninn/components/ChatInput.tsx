@@ -25,6 +25,13 @@ interface PendingAttachment {
   id: string;
   localUri: string;
   uploadedUrl?: string;
+  /**
+   * R2 object key returned by MediaService.uploadMedia. Captured so the client
+   * can re-sign via useResolvedUri if needed, and so we have the opaque
+   * identifier ready for a future backend schema that accepts keys instead of
+   * URLs. Currently unused at send time — see handleSend comment.
+   */
+  uploadedKey?: string;
   uploading: boolean;
   type: 'image' | 'file' | 'audio';
   name?: string;
@@ -55,6 +62,13 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const handleSend = () => {
     if (!canSend) return;
 
+    // NOTE: we send signed URLs rather than R2 keys because the backend
+    // (huginn-external muninn.service) fetches these URLs externally for
+    // vision + audio transcription. Signed URLs expire ~10 min after upload,
+    // which means historical messages persisted server-side will have dead
+    // URLs — that's a backend schema issue (it should store keys and re-sign
+    // on read). The client captures `uploadedKey` on each upload so it's
+    // ready to switch once the backend accepts keys.
     const imageUrls = pendingAttachments
       .filter(a => a.type === 'image' && a.uploadedUrl)
       .map(a => a.uploadedUrl!);
@@ -109,7 +123,11 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         );
         if (uploadResult.success && uploadResult.uri) {
           setPendingAttachments(prev =>
-            prev.map(p => (p.id === att.id ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p)),
+            prev.map(p =>
+              p.id === att.id
+                ? { ...p, uploadedUrl: uploadResult.uri, uploadedKey: uploadResult.key, uploading: false }
+                : p,
+            ),
           );
         } else {
           Alert.alert('Upload Failed', uploadResult.error || 'Could not upload image.');
@@ -154,7 +172,11 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         );
         if (uploadResult.success && uploadResult.uri) {
           setPendingAttachments(prev =>
-            prev.map(p => (p.id === att.id ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p)),
+            prev.map(p =>
+              p.id === att.id
+                ? { ...p, uploadedUrl: uploadResult.uri, uploadedKey: uploadResult.key, uploading: false }
+                : p,
+            ),
           );
         } else {
           Alert.alert('Upload Failed', uploadResult.error || 'Could not upload file.');
@@ -219,7 +241,11 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         );
         if (uploadResult.success && uploadResult.uri) {
           setPendingAttachments(prev =>
-            prev.map(p => (p.id === att.id ? { ...p, uploadedUrl: uploadResult.uri, uploading: false } : p)),
+            prev.map(p =>
+              p.id === att.id
+                ? { ...p, uploadedUrl: uploadResult.uri, uploadedKey: uploadResult.key, uploading: false }
+                : p,
+            ),
           );
         } else {
           Alert.alert('Upload Failed', uploadResult.error || 'Could not upload voice message.');
@@ -369,9 +395,9 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             <View style={styles.attachGrid}>
               {[
-                { icon: 'image', color: '#7C4DFF', bg: '#7C4DFF18', label: 'Photo', action: handlePickImage },
-                { icon: 'document-text', color: '#2979FF', bg: '#2979FF18', label: 'File', action: handlePickFile },
-                { icon: 'mic', color: '#FF5252', bg: '#FF525218', label: 'Voice', action: handleStartRecording },
+                { icon: 'image', color: colors.primary, bg: colors.primaryMuted, label: 'Photo', action: handlePickImage },
+                { icon: 'document-text', color: colors.info, bg: colors.infoMuted, label: 'File', action: handlePickFile },
+                { icon: 'mic', color: colors.destructive, bg: colors.destructiveMuted, label: 'Voice', action: handleStartRecording },
               ].map((item) => (
                 <Pressable
                   key={item.label}

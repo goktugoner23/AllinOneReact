@@ -1,63 +1,29 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { CalendarEvent } from '@features/wtregistry/types/WTRegistry';
-import {
-  Event,
-  EventFormData,
-  SerializableEvent,
-  eventToSerializable,
-  serializableToEvent,
-} from '@features/calendar/types/Event';
-import { getEvents, addEvent, updateEvent, deleteEvent } from '@features/calendar/services/events';
+import { SerializableEvent } from '@features/calendar/types/Event';
 import { RootState } from '@shared/store/rootStore';
 
+// NOTE: `events` in this slice holds WTRegistry-synthetic events only
+// (lessons, seminars, registration start/end). Remote persisted calendar
+// events go through React Query (@shared/hooks/useCalendarQueries). Kept the
+// field name `events` for minimum downstream churn.
 interface CalendarState {
   events: SerializableEvent[];
-  remoteEvents: SerializableEvent[];
   selectedDate: string; // YYYY-MM-DD format
   showEventModal: boolean;
   selectedEvent: SerializableEvent | null;
-  selectedRemoteEvent: SerializableEvent | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: CalendarState = {
   events: [],
-  remoteEvents: [],
   selectedDate: new Date().toISOString().split('T')[0],
   showEventModal: false,
   selectedEvent: null,
-  selectedRemoteEvent: null,
   loading: false,
   error: null,
 };
-
-// Fetch events from remote REST API
-export const fetchRemoteEvents = createAsyncThunk('calendar/fetchRemoteEvents', async () => {
-  const events = await getEvents();
-  return events.map(eventToSerializable);
-});
-
-// Add new event via remote REST API
-export const addRemoteEvent = createAsyncThunk('calendar/addRemoteEvent', async (eventData: EventFormData) => {
-  const newEvent = await addEvent(eventData);
-  return eventToSerializable(newEvent);
-});
-
-// Update existing event via remote REST API
-export const updateRemoteEvent = createAsyncThunk(
-  'calendar/updateRemoteEvent',
-  async ({ eventId, eventData }: { eventId: string; eventData: Partial<EventFormData> }) => {
-    await updateEvent(eventId, eventData);
-    return { eventId, eventData };
-  },
-);
-
-// Delete event via remote REST API
-export const deleteRemoteEvent = createAsyncThunk('calendar/deleteRemoteEvent', async (eventId: string) => {
-  await deleteEvent(eventId);
-  return eventId;
-});
 
 // Generate calendar events from WTRegistry data
 export const generateCalendarEvents = createAsyncThunk('calendar/generateEvents', async (_, { getState }) => {
@@ -154,7 +120,7 @@ export const generateCalendarEvents = createAsyncThunk('calendar/generateEvents'
   return events;
 });
 
-// Add custom calendar event (legacy - now use addRemoteEvent)
+// Add custom calendar event (legacy - prefer useAddCalendarEvent from @shared/hooks)
 export const addCalendarEvent = createAsyncThunk('calendar/addEvent', async (event: Omit<CalendarEvent, 'id'>) => {
   // For now, just create a local event. Could be extended to persist remotely
   const newEvent: SerializableEvent = {
@@ -179,9 +145,6 @@ const calendarSlice = createSlice({
     setSelectedEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
       state.selectedEvent = action.payload;
     },
-    setSelectedRemoteEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
-      state.selectedRemoteEvent = action.payload;
-    },
     addEventLocal: (state, action: PayloadAction<SerializableEvent>) => {
       state.events.push(action.payload);
     },
@@ -203,41 +166,6 @@ const calendarSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Remote events
-      .addCase(fetchRemoteEvents.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchRemoteEvents.fulfilled, (state, action) => {
-        state.loading = false;
-        state.remoteEvents = action.payload;
-      })
-      .addCase(fetchRemoteEvents.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to fetch events';
-      })
-      .addCase(addRemoteEvent.fulfilled, (state, action) => {
-        state.remoteEvents.push(action.payload);
-      })
-      .addCase(updateRemoteEvent.fulfilled, (state, action) => {
-        const index = state.remoteEvents.findIndex((e) => e.id === action.payload.eventId);
-        if (index !== -1) {
-          // Update the serializable event with new data
-          const updatedEvent = { ...state.remoteEvents[index] };
-          if (action.payload.eventData.title !== undefined) updatedEvent.title = action.payload.eventData.title;
-          if (action.payload.eventData.description !== undefined)
-            updatedEvent.description = action.payload.eventData.description;
-          if (action.payload.eventData.date !== undefined)
-            updatedEvent.date = action.payload.eventData.date.toISOString();
-          if (action.payload.eventData.endDate !== undefined)
-            updatedEvent.endDate = action.payload.eventData.endDate?.toISOString();
-          if (action.payload.eventData.type !== undefined) updatedEvent.type = action.payload.eventData.type;
-          state.remoteEvents[index] = updatedEvent;
-        }
-      })
-      .addCase(deleteRemoteEvent.fulfilled, (state, action) => {
-        state.remoteEvents = state.remoteEvents.filter((e) => e.id !== action.payload);
-      })
       // WTRegistry events
       .addCase(generateCalendarEvents.pending, (state) => {
         state.loading = true;
@@ -261,7 +189,6 @@ export const {
   setSelectedDate,
   setShowEventModal,
   setSelectedEvent,
-  setSelectedRemoteEvent,
   addEventLocal,
   updateEventLocal,
   deleteEventLocal,

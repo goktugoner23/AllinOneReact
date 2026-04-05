@@ -5,12 +5,39 @@ import { AddFab } from '@shared/components';
 import { Avatar, Button, EmptyState, Dialog } from '@shared/components/ui';
 import { FullscreenImage } from '@shared/components/ui/FullscreenImage';
 import { useAppTheme, spacing, textStyles } from '@shared/theme';
-import { fetchStudents, addStudent, updateStudent, deleteStudent } from '@features/wtregistry/services/wtRegistry';
+import { useResolvedUri } from '@shared/hooks/useResolvedUri';
+import {
+  fetchStudents,
+  addStudent,
+  updateStudent,
+  deleteStudent,
+  uploadFileToStorage,
+  deleteFileFromStorage,
+} from '@features/wtregistry/services/wtRegistry';
 import { WTStudent } from '@features/wtregistry/types/WTRegistry';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AddStudentDialog } from '@features/wtregistry/components/AddStudentDialog';
 import { EditStudentDialog } from '@features/wtregistry/components/EditStudentDialog';
+
+// Small helpers that resolve an R2 key (or legacy URL) to a displayable URI
+// via the useResolvedUri hook. Extracted so hooks aren't called inside .map().
+const StudentPhotoAvatar: React.FC<{ photoUri?: string; name: string; size?: 'lg' | 'xl' }> = ({
+  photoUri,
+  name,
+  size = 'lg',
+}) => {
+  const resolved = useResolvedUri(photoUri);
+  return <Avatar source={resolved ? { uri: resolved } : undefined} name={name} size={size} />;
+};
+
+const StudentPhotoFullscreen: React.FC<{ photoUri?: string; onClose: () => void }> = ({
+  photoUri,
+  onClose,
+}) => {
+  const resolved = useResolvedUri(photoUri);
+  return <FullscreenImage uri={resolved || ''} onClose={onClose} />;
+};
 
 export const StudentsTab: React.FC = () => {
   const { colors } = useAppTheme();
@@ -123,22 +150,54 @@ export const StudentsTab: React.FC = () => {
         quality: 0.8,
       });
 
-      if (result.assets && result.assets[0]) {
-        if (selectedStudent) {
-          const updatedStudent = { ...selectedStudent, photoUri: result.assets[0].uri || '' };
-          setSelectedStudent(updatedStudent);
+      const asset = result.assets?.[0];
+      if (!asset || !asset.uri || !selectedStudent) return;
+
+      // Upload the picker file to R2 first so we persist a real key — not a
+      // dead `file://` URI — then delete the previous photo if any.
+      const ext = (asset.fileName?.split('.').pop() || asset.uri.split('.').pop() || 'jpg').toLowerCase();
+      const fileName = `${selectedStudent.id}.${ext}`;
+      const uploadedKey = await uploadFileToStorage(asset.uri, 'students', fileName);
+      if (!uploadedKey) {
+        Alert.alert('Error', 'Failed to upload photo');
+        return;
+      }
+
+      const previousPhoto = selectedStudent.photoUri;
+      const updatedStudent = { ...selectedStudent, photoUri: uploadedKey };
+      try {
+        await updateStudent(updatedStudent);
+        if (previousPhoto) {
+          await deleteFileFromStorage(previousPhoto);
         }
+        setSelectedStudent(updatedStudent);
+        loadStudents();
+      } catch (err) {
+        console.error('Error saving updated photo:', err);
+        Alert.alert('Error', 'Failed to save photo');
+        // Clean up the orphaned upload so R2 doesn't accumulate garbage.
+        await deleteFileFromStorage(uploadedKey);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick image');
     }
   };
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = async () => {
     setShowPhotoOptions(false);
-    if (selectedStudent) {
-      const updatedStudent = { ...selectedStudent, photoUri: '' };
+    if (!selectedStudent) return;
+    const previousPhoto = selectedStudent.photoUri;
+    const updatedStudent = { ...selectedStudent, photoUri: undefined };
+    try {
+      await updateStudent(updatedStudent);
+      if (previousPhoto) {
+        await deleteFileFromStorage(previousPhoto);
+      }
       setSelectedStudent(updatedStudent);
+      loadStudents();
+    } catch (err) {
+      console.error('Error removing photo:', err);
+      Alert.alert('Error', 'Failed to remove photo');
     }
   };
 
@@ -183,7 +242,7 @@ export const StudentsTab: React.FC = () => {
           activeOpacity={item.photoUri ? 0.7 : 1}
           style={{ marginRight: 14 }}
         >
-          <Avatar source={item.photoUri ? { uri: item.photoUri } : undefined} name={item.name} size="lg" />
+          <StudentPhotoAvatar photoUri={item.photoUri} name={item.name} size="lg" />
         </TouchableOpacity>
 
         {/* Info */}
@@ -262,8 +321,8 @@ export const StudentsTab: React.FC = () => {
               }}
               style={{ marginBottom: spacing[4] }}
             >
-              <Avatar
-                source={selectedStudent.photoUri ? { uri: selectedStudent.photoUri } : undefined}
+              <StudentPhotoAvatar
+                photoUri={selectedStudent.photoUri}
                 name={selectedStudent.name}
                 size="xl"
               />
@@ -300,19 +359,20 @@ export const StudentsTab: React.FC = () => {
                     width: 56,
                     height: 56,
                     borderRadius: 28,
-                    backgroundColor: '#22C55E',
+                    backgroundColor: colors.success,
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="call" size={26} color="#fff" />
+                  <Ionicons name="call" size={26} color={colors.successForeground} />
                 </TouchableOpacity>
               )}
               {selectedStudent.phoneNumber && (
                 <TouchableOpacity
                   onPress={() => handleWhatsApp(selectedStudent.phoneNumber!)}
                   style={{
+                    // WhatsApp brand color — intentionally hardcoded (not themed).
                     width: 56,
                     height: 56,
                     borderRadius: 28,
@@ -322,7 +382,8 @@ export const StudentsTab: React.FC = () => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="logo-whatsapp" size={26} color="#fff" />
+                  {/* White foreground on the WhatsApp brand green, matches brand guidelines. */}
+                  <Ionicons name="logo-whatsapp" size={26} color="#FFFFFF" />
                 </TouchableOpacity>
               )}
             </View>
@@ -361,7 +422,10 @@ export const StudentsTab: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setShowFullscreenPhoto(false)}
       >
-        <FullscreenImage uri={selectedStudent?.photoUri || ''} onClose={() => setShowFullscreenPhoto(false)} />
+        <StudentPhotoFullscreen
+          photoUri={selectedStudent?.photoUri}
+          onClose={() => setShowFullscreenPhoto(false)}
+        />
       </Modal>
 
       {/* Student Options Modal */}

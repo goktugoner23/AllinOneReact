@@ -70,6 +70,17 @@ const EditNoteScreen: React.FC = () => {
   const [showDrawingScreen, setShowDrawingScreen] = useState(false);
   const svgViewRef = useRef<ViewShot>(null);
 
+  // Snapshot of the note's originally-persisted attachment CSVs, taken once
+  // when the note loads. `hasAttachmentChanges` compares against this
+  // snapshot so the background signed-URL resolver doesn't spuriously mark
+  // the note as dirty when it rewrites `uri` on legacy attachments.
+  const originalAttachmentsRef = useRef<{
+    imageUris: string;
+    videoUris: string;
+    voiceNoteUris: string;
+    drawingUris: string;
+  }>({ imageUris: '', videoUris: '', voiceNoteUris: '', drawingUris: '' });
+
   // Find existing note if editing
   const existingNote = notes.find((note: any) => note.id === noteId);
 
@@ -89,6 +100,16 @@ const EditNoteScreen: React.FC = () => {
 
     setTitle(existingNote.title);
     setContent(existingNote.content);
+
+    // Capture the original attachment CSVs so dirty-checking compares against
+    // the raw stored values (R2 keys), not the dynamically-rewritten `uri`s
+    // produced by the signed-URL resolver below.
+    originalAttachmentsRef.current = {
+      imageUris: existingNote.imageUris || '',
+      videoUris: existingNote.videoUris || '',
+      voiceNoteUris: existingNote.voiceNoteUris || '',
+      drawingUris: existingNote.drawingUris || '',
+    };
 
     // CSV values stored on the note are R2 object keys (or legacy URLs for
     // old data). Treat each value as a `key` and resolve a signed display
@@ -185,8 +206,11 @@ const EditNoteScreen: React.FC = () => {
       return mediaAttachments.attachments.length > 0;
     }
 
-    // For existing notes, compare current attachments with original ones.
-    // Serialize R2 keys (not display URLs) to match what's stored on the note.
+    // For existing notes, compare current attachments against the ORIGINAL
+    // CSV snapshot captured on load. The background signed-URL resolver
+    // rewrites `uri` on legacy attachments, so comparing `att.key ?? att.uri`
+    // against `existingNote.imageUris` (which also gets rewritten on resolve)
+    // produced spurious "unsaved changes" flags.
     const serializeKey = (att: MediaAttachment) => att.key ?? att.uri;
 
     const currentImageUris = mediaAttachments.attachments
@@ -209,11 +233,12 @@ const EditNoteScreen: React.FC = () => {
       .map(serializeKey)
       .join(',');
 
+    const original = originalAttachmentsRef.current;
     return (
-      currentImageUris !== (existingNote.imageUris || '') ||
-      currentVideoUris !== (existingNote.videoUris || '') ||
-      currentVoiceUris !== (existingNote.voiceNoteUris || '') ||
-      currentDrawingUris !== (existingNote.drawingUris || '')
+      currentImageUris !== original.imageUris ||
+      currentVideoUris !== original.videoUris ||
+      currentVoiceUris !== original.voiceNoteUris ||
+      currentDrawingUris !== original.drawingUris
     );
   };
 
@@ -839,7 +864,7 @@ const EditNoteScreen: React.FC = () => {
                             paused={true}
                             muted={true}
                           />
-                          <View style={styles.playOverlay}>
+                          <View style={[styles.playOverlay, { backgroundColor: colors.overlay }]}>
                             <Icon name="play-arrow" size={20} color="white" />
                           </View>
                         </View>
@@ -908,7 +933,7 @@ const EditNoteScreen: React.FC = () => {
           transparent
           animationType="fade"
         >
-          <View style={styles.voiceRecorderOverlay}>
+          <View style={[styles.voiceRecorderOverlay, { backgroundColor: colors.overlay }]}>
             <View style={[styles.voiceRecorderModal, { backgroundColor: colors.surface }]}>
               <VoiceRecorder onRecordingComplete={handleVoiceRecordingComplete} onCancel={handleVoiceRecordingCancel} />
             </View>
@@ -1013,7 +1038,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 8,
   },
   uploadProgressContainer: {},
@@ -1028,7 +1052,6 @@ const styles = StyleSheet.create({
   },
   voiceRecorderOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },

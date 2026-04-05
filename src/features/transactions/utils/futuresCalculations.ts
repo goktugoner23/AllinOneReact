@@ -211,19 +211,34 @@ export function formatPercentage(value: number, decimals: number = 2): string {
 }
 
 /**
- * Get color based on value (positive/negative)
+ * Semantic color tone for a signed value. Callers map this to a concrete
+ * theme token (e.g. colors.income / colors.expense) via useColors().
  */
-export function getValueColor(value: number): string {
-  return value >= 0 ? '#4CAF50' : '#F44336';
+export type ValueTone = 'positive' | 'negative';
+
+export function getValueTone(value: number): ValueTone {
+  return value >= 0 ? 'positive' : 'negative';
 }
 
 /**
- * Get risk level based on margin ratio
+ * Risk level label + semantic tone. Callers map the tone to a theme token.
+ * Tones:
+ *   - 'critical' → destructive
+ *   - 'high'     → warning (strong)
+ *   - 'medium'   → warning
+ *   - 'low'      → success
+ *   - 'safe'     → info / primary
  */
-export function getRiskLevel(marginRatio: number): { level: string; color: string } {
-  if (marginRatio >= 80) return { level: 'CRITICAL', color: '#F44336' };
-  if (marginRatio >= 60) return { level: 'HIGH', color: '#FF9800' };
-  if (marginRatio >= 40) return { level: 'MEDIUM', color: '#FFC107' };
-  if (marginRatio >= 20) return { level: 'LOW', color: '#4CAF50' };
-  return { level: 'SAFE', color: '#2196F3' };
+export type RiskTone = 'critical' | 'high' | 'medium' | 'low' | 'safe';
+export interface RiskLevel {
+  level: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'SAFE';
+  tone: RiskTone;
+}
+
+export function getRiskLevel(marginRatio: number): RiskLevel {
+  if (marginRatio >= 80) return { level: 'CRITICAL', tone: 'critical' };
+  if (marginRatio >= 60) return { level: 'HIGH', tone: 'high' };
+  if (marginRatio >= 40) return { level: 'MEDIUM', tone: 'medium' };
+  if (marginRatio >= 20) return { level: 'LOW', tone: 'low' };
+  return { level: 'SAFE', tone: 'safe' };
 }

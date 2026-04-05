@@ -85,6 +85,9 @@ export const colors = {
     chart3: '#5F8967',
     chart4: '#BC9C67',
     chart5: '#B06A65',
+
+    // Modal scrim / backdrop (used behind fullscreen overlays)
+    overlay: 'rgba(0, 0, 0, 0.5)',
   },
 
   dark: {
@@ -160,6 +163,9 @@ export const colors = {
     chart3: '#5F8967',
     chart4: '#BC9C67',
     chart5: '#B06A65',
+
+    // Modal scrim / backdrop (used behind fullscreen overlays)
+    overlay: 'rgba(0, 0, 0, 0.6)',
   },
 } as const;
 
@@ -231,6 +237,7 @@ export interface ColorScheme {
   chart3: string;
   chart4: string;
   chart5: string;
+  overlay: string;
 }
 
 export type ColorKey = keyof ColorScheme;

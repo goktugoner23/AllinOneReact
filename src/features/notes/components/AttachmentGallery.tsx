@@ -21,7 +21,9 @@ import { useAppTheme } from '@shared/theme';
 import { IconButton, ProgressBar } from '@shared/components/ui';
 
 import RNFS from 'react-native-fs';
-import { getCachedUriIfExists, warmCache } from '@shared/services/mediaCache';
+import { warmCache } from '@shared/services/mediaCache';
+import { useResolvedUri } from '@shared/hooks/useResolvedUri';
+import { getDisplayUrl, buildLegacyRedirectUrl } from '@shared/services/storage/r2Storage';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -60,36 +62,30 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
 
     const currentAttachment = attachments[currentIndex];
 
-    // Pre-warm cache for current, previous and next attachments
+    // Pre-warm cache for current, previous and next attachments. Uses the
+    // already-resolved signed `uri` on the attachment if present; otherwise
+    // skips (the per-item `useResolvedUri` call will resolve lazily).
     React.useEffect(() => {
       const indicesToWarm = [currentIndex, currentIndex - 1, currentIndex + 1].filter(
         (i) => i >= 0 && i < attachments.length,
       );
       indicesToWarm.forEach((i) => {
         const att = attachments[i];
+        if (!att.uri || att.uri === att.key) return;
         const fallbackExt = att.type === MediaType.IMAGE ? 'jpg' : att.type === MediaType.VIDEO ? 'mp4' : 'm4a';
         warmCache(att.uri, fallbackExt);
       });
     }, [currentIndex, attachments]);
 
     const GalleryItem: React.FC<{ item: MediaAttachment }> = React.memo(({ item }) => {
-      const [cachedUri, setCachedUri] = React.useState<string>(item.uri);
-
-      React.useEffect(() => {
-        let mounted = true;
-        const fallbackExt = item.type === MediaType.IMAGE ? 'jpg' : item.type === MediaType.VIDEO ? 'mp4' : 'm4a';
-        getCachedUriIfExists(item.uri, fallbackExt).then((uri) => {
-          if (mounted) setCachedUri(uri);
-        });
-        return () => {
-          mounted = false;
-        };
-      }, [item.uri, item.type]);
+      // Resolve the display URL from the R2 key (source of truth). Falls back
+      // to the legacy `uri` for old attachments that never got a key.
+      const resolvedUri = useResolvedUri(item.key ?? item.uri) ?? item.uri;
 
       const renderMediaContent = () => {
         switch (item.type) {
           case MediaType.IMAGE:
-            return <Image source={{ uri: cachedUri }} style={styles.mediaContent} resizeMode="contain" />;
+            return <Image source={{ uri: resolvedUri }} style={styles.mediaContent} resizeMode="contain" />;
 
           case MediaType.VIDEO:
             return (
@@ -113,7 +109,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                     </View>
                   ) : (
                     <Video
-                      source={{ uri: cachedUri }}
+                      source={{ uri: resolvedUri }}
                       style={styles.videoPlayer}
                       resizeMode="contain"
                       paused={false}
@@ -153,7 +149,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                     }}
                   >
                     <Video
-                      source={{ uri: cachedUri }}
+                      source={{ uri: resolvedUri }}
                       style={styles.videoThumbnailPlayer}
                       resizeMode="cover"
                       paused={true}
@@ -165,7 +161,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                         console.error('Video thumbnail error:', error);
                       }}
                     />
-                    <View style={styles.playOverlay}>
+                    <View style={[styles.playOverlay, { backgroundColor: colors.overlay }]}>
                       <Icon name="play-circle-fill" size={60} color="white" />
                     </View>
                   </TouchableOpacity>
@@ -182,7 +178,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                 <Text style={[textStyles.bodyLarge, { color: colors.background, marginTop: spacing[4] }]}>
                   Voice Note
                 </Text>
-                <AudioPlayer attachment={{ ...item, uri: cachedUri }} />
+                <AudioPlayer attachment={{ ...item, uri: resolvedUri }} />
               </View>
             );
 
@@ -210,35 +206,50 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
         setDownloading(true);
         setDownloadProgress(50); // Start at 50% since we're copying
 
-        // Get file extension based on type
-        const getFileExtension = (type: string) => {
+        // Get file extension based on MediaType enum (values are uppercase).
+        const getFileExtension = (type: MediaType): string => {
           switch (type) {
-            case 'image':
+            case MediaType.IMAGE:
               return '.jpg';
-            case 'video':
+            case MediaType.VIDEO:
               return '.mp4';
-            case 'audio':
+            case MediaType.AUDIO:
               return '.m4a';
-
             default:
               return '.file';
           }
         };
 
+        // Resolve a fresh download URL. Prefer re-signing the R2 key so we
+        // don't hit an expired signed URL stored on the attachment. Fall back
+        // to the legacy redirect (for old notes without a key) or the raw uri.
+        let downloadUrl = currentAttachment.uri;
+        if (currentAttachment.key) {
+          try {
+            downloadUrl = await getDisplayUrl(currentAttachment.key);
+          } catch {
+            try {
+              downloadUrl = buildLegacyRedirectUrl(currentAttachment.uri);
+            } catch {
+              downloadUrl = currentAttachment.uri;
+            }
+          }
+        }
+
         const fileName = `attachment_${Date.now()}${getFileExtension(currentAttachment.type)}`;
         const downloadPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
 
         // Handle local files vs remote files
-        if (currentAttachment.uri.startsWith('file://')) {
+        if (downloadUrl.startsWith('file://')) {
           // For local files, copy them
-          const sourcePath = currentAttachment.uri.replace('file://', '');
+          const sourcePath = downloadUrl.replace('file://', '');
           await RNFS.copyFile(sourcePath, downloadPath);
           setDownloadProgress(100);
           Alert.alert('Success', `File copied to Downloads folder as ${fileName}`);
         } else {
           // For remote files, download them
           const result = await RNFS.downloadFile({
-            fromUrl: currentAttachment.uri,
+            fromUrl: downloadUrl,
             toFile: downloadPath,
             background: true,
             discretionary: true,
@@ -328,7 +339,7 @@ const AttachmentGallery = forwardRef<AttachmentGalleryHandle, AttachmentGalleryP
                 disabled={downloading}
               />
               {downloading && (
-                <View style={styles.loadingOverlay}>
+                <View style={[styles.loadingOverlay, { backgroundColor: colors.overlay }]}>
                   <ActivityIndicator size="small" color={colors.primary} />
                 </View>
               )}
@@ -423,7 +434,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 20,
   },
   contentContainer: {
@@ -466,7 +476,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   audioContainer: {
     justifyContent: 'center',

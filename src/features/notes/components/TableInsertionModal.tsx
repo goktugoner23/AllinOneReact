@@ -38,7 +38,7 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
       transparent
       animationType="fade"
     >
-      <Pressable style={styles.modalContainer} onPress={onDismiss}>
+      <Pressable style={[styles.modalContainer, { backgroundColor: colors.overlay }]} onPress={onDismiss}>
         <Pressable style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border, padding: spacing[4] }]}>
             <Text style={[textStyles.h4, { color: colors.foreground }]}>Insert Table</Text>
@@ -127,7 +127,6 @@ const TableInsertionModal: React.FC<TableInsertionModalProps> = ({ visible, onDi
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },

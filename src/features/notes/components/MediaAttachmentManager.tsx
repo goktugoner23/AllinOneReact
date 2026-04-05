@@ -146,18 +146,44 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
   );
 
   const handleRecordingComplete = useCallback(
-    (filePath: string, duration: number) => {
-      const attachment: MediaAttachment = {
-        id: `voice_${Date.now()}`,
-        uri: filePath,
-        type: MediaType.AUDIO,
-        name: `Voice Recording ${new Date().toLocaleTimeString()}`,
-        duration,
-      };
-      updateState({
-        attachments: [...state.attachments, attachment],
-      });
+    async (filePath: string, duration: number) => {
+      // Upload the voice recording to R2 so persistence stores an opaque key,
+      // matching EditNoteScreen.uploadAndAppendAttachment. Previously we
+      // pushed the raw `file://` URI into state which bypassed MediaService
+      // and left notes with unplayable local-only attachments.
       setShowVoiceRecorder(false);
+      updateState({ isUploading: true, uploadProgress: 0, error: undefined });
+      try {
+        const result = await MediaService.uploadMedia(
+          filePath,
+          MediaType.AUDIO,
+          undefined,
+          (progress) => updateState({ uploadProgress: progress }),
+          'notes',
+        );
+        if (!result.success || !result.uri) {
+          updateState({ isUploading: false, uploadProgress: 0, error: result.error ?? 'Upload failed' });
+          Alert.alert('Upload Failed', result.error ?? 'Could not upload voice recording');
+          return;
+        }
+        const attachment: MediaAttachment = {
+          id: `voice_${Date.now()}`,
+          key: result.key,
+          uri: result.uri,
+          type: MediaType.AUDIO,
+          name: `Voice Recording ${new Date().toLocaleTimeString()}`,
+          duration,
+        };
+        updateState({
+          attachments: [...state.attachments, attachment],
+          isUploading: false,
+          uploadProgress: 0,
+        });
+      } catch (error) {
+        console.error('Voice recording upload error:', error);
+        updateState({ isUploading: false, uploadProgress: 0, error: 'Upload failed' });
+        Alert.alert('Upload Failed', 'Could not upload voice recording');
+      }
     },
     [state.attachments, updateState],
   );
@@ -305,7 +331,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
         transparent
         animationType="fade"
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.overlay }]}>
           {selectedAttachment && (
             <MediaViewer attachment={selectedAttachment} onClose={() => setShowMediaViewer(false)} />
           )}
@@ -319,7 +345,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
         transparent
         animationType="fade"
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.overlay }]}>
           <View style={[styles.modalSurface, { backgroundColor: colors.surface }]}>
             <VoiceRecorder onRecordingComplete={handleRecordingComplete} onCancel={() => setShowVoiceRecorder(false)} />
           </View>
@@ -402,7 +428,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
