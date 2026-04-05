@@ -89,39 +89,17 @@ const AddTaskGroupDialog: React.FC<AddTaskGroupDialogProps> = ({ visible, onDism
   );
 };
 
-// Define static color styles
-const colorStyles = StyleSheet.create({
-  darkBlue: { backgroundColor: '#1E40AF' },
-  green: { backgroundColor: '#4CAF50' },
-  red: { backgroundColor: '#F44336' },
-  orange: { backgroundColor: '#FF9800' },
-  blue: { backgroundColor: '#2196F3' },
-  deepPurple: { backgroundColor: '#9C27B0' },
-  blueGrey: { backgroundColor: '#607D8B' },
-  brown: { backgroundColor: '#795548' },
-});
+// Derive static background styles from the canonical TASK_GROUP_COLORS list
+// in Task.ts so the palette lives in one place. Using StyleSheet.create keeps
+// these as stable references (cheaper than inline objects on every render).
+const colorStyles = StyleSheet.create(
+  Object.fromEntries(
+    TASK_GROUP_COLORS.map((c) => [c.value, { backgroundColor: c.value }]),
+  ) as Record<string, { backgroundColor: string }>,
+);
 
 const getColorStyle = (colorValue: string) => {
-  switch (colorValue) {
-    case '#1E40AF':
-      return colorStyles.darkBlue;
-    case '#4CAF50':
-      return colorStyles.green;
-    case '#F44336':
-      return colorStyles.red;
-    case '#FF9800':
-      return colorStyles.orange;
-    case '#2196F3':
-      return colorStyles.blue;
-    case '#9C27B0':
-      return colorStyles.deepPurple;
-    case '#607D8B':
-      return colorStyles.blueGrey;
-    case '#795548':
-      return colorStyles.brown;
-    default:
-      return { backgroundColor: colorValue };
-  }
+  return colorStyles[colorValue] ?? { backgroundColor: colorValue };
 };
 
 const styles = StyleSheet.create({

@@ -224,36 +224,36 @@ export function CalendarScreen() {
         marks[dateKey] = { dots: [], colors: [] };
       }
 
-      let color = '#FFD700'; // yellow for other events (default)
+      let color = colors.warning; // default — seminars / misc
 
       // Handle remote events and WTRegistry events (both use string types)
       if (typeof event.type === 'string') {
         if (event.type.includes('Registration Start')) {
-          color = '#4CAF50'; // green for registration start
+          color = colors.success;
         } else if (event.type.includes('Registration End')) {
-          color = '#F44336'; // red for registration end
+          color = colors.destructive;
         } else if (event.type.includes('lesson')) {
-          color = '#2196F3'; // blue for lessons
+          color = colors.info;
         } else {
-          color = '#FFD700'; // yellow for other events
+          color = colors.warning;
         }
       } else {
         // Legacy WTRegistry events (union types) - fallback
         switch (event.type) {
           case 'registration_start':
-            color = '#4CAF50'; // green for registration start
+            color = colors.success;
             break;
           case 'registration_end':
-            color = '#F44336'; // red for registration end
+            color = colors.destructive;
             break;
           case 'lesson':
-            color = '#2196F3'; // blue for lessons
+            color = colors.info;
             break;
           case 'seminar':
-            color = '#FFD700'; // yellow for seminars
+            color = colors.warning;
             break;
           default:
-            color = '#FFD700'; // yellow for other events
+            color = colors.warning;
         }
       }
 
@@ -270,26 +270,23 @@ export function CalendarScreen() {
     {},
   );
 
-  // Process the colors to show only one dot based on priority
+  // Process the colors to show only one dot based on priority.
+  // Priority: destructive > success > warning > info
   Object.keys(markedDates).forEach((dateKey) => {
-    const colors = markedDates[dateKey].colors || [];
-    let priorityColor = '#FFD700'; // default yellow
+    const dotColors = markedDates[dateKey].colors || [];
+    let priorityColor = colors.warning;
 
-    // Priority: red > green > yellow > blue
-    if (colors.includes('#F44336')) {
-      priorityColor = '#F44336'; // red
-    } else if (colors.includes('#4CAF50')) {
-      priorityColor = '#4CAF50'; // green
-    } else if (colors.includes('#FFD700')) {
-      priorityColor = '#FFD700'; // yellow
-    } else if (colors.includes('#2196F3')) {
-      priorityColor = '#2196F3'; // blue
+    if (dotColors.includes(colors.destructive)) {
+      priorityColor = colors.destructive;
+    } else if (dotColors.includes(colors.success)) {
+      priorityColor = colors.success;
+    } else if (dotColors.includes(colors.warning)) {
+      priorityColor = colors.warning;
+    } else if (dotColors.includes(colors.info)) {
+      priorityColor = colors.info;
     }
 
-    // Set only one dot with the highest priority color
     markedDates[dateKey].dots = [{ color: priorityColor }];
-
-    // Remove the temporary colors array
     delete markedDates[dateKey].colors;
   });
 

@@ -5,6 +5,7 @@ import { AddFab } from '@shared/components';
 import { Card as UICard, Button, EmptyState, AlertDialog, Dialog } from '@shared/components/ui';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 import { useCurrency } from '@shared/hooks/useCurrency';
+import { getDisplayUrl, buildLegacyRedirectUrl } from '@shared/services/storage/r2Storage';
 import {
   fetchStudents,
   fetchRegistrations,
@@ -136,9 +137,19 @@ export const RegisterTab: React.FC = () => {
   };
 
   const handleViewAttachment = async (attachmentUri: string) => {
+    setIsDownloading(true);
     try {
-      setIsDownloading(true);
-      await Linking.openURL(attachmentUri);
+      // attachmentUri is typically an R2 key (e.g. "registrations/123/foo.pdf").
+      // Resolve to a short-lived signed URL before opening; fall back to the
+      // legacy redirect endpoint if signing fails (e.g. legacy absolute URLs).
+      let openableUrl: string;
+      try {
+        openableUrl = await getDisplayUrl(attachmentUri);
+      } catch (signError) {
+        console.warn('getDisplayUrl failed, falling back to legacy redirect:', signError);
+        openableUrl = buildLegacyRedirectUrl(attachmentUri);
+      }
+      await Linking.openURL(openableUrl);
     } catch (error) {
       console.error('Error handling attachment:', error);
       Alert.alert('Error', 'Failed to open file. Please try again.');
@@ -208,7 +219,7 @@ export const RegisterTab: React.FC = () => {
               style={{
                 fontSize: 12,
                 fontWeight: '600',
-                color: item.isPaid ? '#fff' : '#000',
+                color: item.isPaid ? colors.successForeground : colors.foreground,
               }}
             >
               {item.isPaid ? 'Paid' : 'Unpaid'}

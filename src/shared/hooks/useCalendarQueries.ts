@@ -7,6 +7,7 @@ import {
   deleteEvent as deleteEventService,
 } from '@features/calendar/services/events';
 import { Event, EventFormData } from '@features/calendar/types/Event';
+import { useColors } from '@shared/theme';
 
 // Hook for fetching calendar events
 export function useCalendarEvents() {
@@ -102,22 +103,22 @@ export function useDeleteCalendarEvent() {
 
 // Hook for getting marked dates for calendar
 export function useMarkedDates() {
+  const colors = useColors();
   const { data: events = [], isLoading } = useCalendarEvents();
 
   const markedDates: Record<string, { marked: boolean; dotColor: string }> = {};
 
   events.forEach((event) => {
     const dateKey = new Date(event.date).toISOString().split('T')[0];
-    // Determine color based on event type
-    let dotColor = '#1E40AF'; // default dark blue
+    let dotColor: string = colors.primary;
     if (event.type.includes('Registration Start') || event.type === 'registration_start') {
-      dotColor = '#4CAF50'; // green
+      dotColor = colors.success;
     } else if (event.type.includes('Registration End') || event.type === 'registration_end') {
-      dotColor = '#F44336'; // red
+      dotColor = colors.destructive;
     } else if (event.type === 'lesson') {
-      dotColor = '#2196F3'; // blue
+      dotColor = colors.info;
     } else if (event.type === 'seminar') {
-      dotColor = '#FFD700'; // yellow
+      dotColor = colors.warning;
     }
     markedDates[dateKey] = {
       marked: true,

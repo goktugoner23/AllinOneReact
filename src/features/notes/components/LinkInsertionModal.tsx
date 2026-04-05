@@ -76,7 +76,7 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
       transparent
       animationType="fade"
     >
-      <Pressable style={styles.modalContainer} onPress={handleCancel}>
+      <Pressable style={[styles.modalContainer, { backgroundColor: colors.overlay }]} onPress={handleCancel}>
         <Pressable style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
           <View
             style={[
@@ -160,7 +160,6 @@ const LinkInsertionModal: React.FC<LinkInsertionModalProps> = ({ visible, onDism
 
 const styles = StyleSheet.create({
   modalContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

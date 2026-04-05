@@ -33,6 +33,50 @@ import { uploadInvestmentAttachments } from '@features/transactions/services/inv
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
 import { TransactionService } from '@features/transactions/services/transactionService';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { useResolvedUri } from '@shared/hooks/useResolvedUri';
+
+/**
+ * Small subcomponent that resolves an R2 key (or passes a local file:// URI
+ * through unchanged) and renders the correct media thumb. Extracted so we
+ * can call the `useResolvedUri` hook once per attachment without violating
+ * the rules of hooks inside a .map().
+ */
+function InvestmentAttachmentThumb({
+  uri,
+  kind,
+}: {
+  uri: string;
+  kind: 'image' | 'video' | 'audio';
+}) {
+  const colors = useColors();
+  // useResolvedUri seeds with the raw input, so freshly-picked file:// URIs
+  // render immediately; R2 keys upgrade to signed URLs on resolution.
+  const resolved = useResolvedUri(uri) ?? uri;
+  if (kind === 'image') {
+    return <Image source={{ uri: resolved }} style={styles.previewImage} />;
+  }
+  if (kind === 'video') {
+    return (
+      <View style={styles.previewVideo}>
+        <Video
+          source={{ uri: resolved }}
+          style={styles.previewVideoThumbnail}
+          resizeMode="cover"
+          paused
+          muted
+        />
+        <View style={styles.playOverlay}>
+          <Icon name="play-arrow" size={16} color="white" />
+        </View>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
+      <Icon name="music-note" size={20} color={colors.mutedForeground} />
+    </View>
+  );
+}
 
 function InvestmentsContent() {
   const colors = useColors();
@@ -251,26 +295,10 @@ function InvestmentsContent() {
                       style={styles.attachmentPreview}
                       onPress={() => handleAttachmentPress(uri, item)}
                     >
-                      {isImage ? (
-                        <Image source={{ uri }} style={styles.previewImage} />
-                      ) : isVideo ? (
-                        <View style={styles.previewVideo}>
-                          <Video
-                            source={{ uri }}
-                            style={styles.previewVideoThumbnail}
-                            resizeMode="cover"
-                            paused={true}
-                            muted={true}
-                          />
-                          <View style={styles.playOverlay}>
-                            <Icon name="play-arrow" size={16} color="white" />
-                          </View>
-                        </View>
-                      ) : (
-                        <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
-                          <Icon name="music-note" size={20} color={colors.mutedForeground} />
-                        </View>
-                      )}
+                      <InvestmentAttachmentThumb
+                        uri={uri}
+                        kind={isImage ? 'image' : isVideo ? 'video' : 'audio'}
+                      />
                     </TouchableOpacity>
                   );
                 })}
@@ -505,26 +533,16 @@ function InvestmentsContent() {
               <View style={styles.attachmentPreviews}>
                 {addAttachments.map((att) => (
                   <View key={att.id} style={[styles.attachmentPreview, { backgroundColor: colors.muted }]}>
-                    {att.type === MediaType.IMAGE ? (
-                      <Image source={{ uri: att.uri }} style={styles.previewImage} />
-                    ) : att.type === MediaType.VIDEO ? (
-                      <View style={styles.previewVideo}>
-                        <Video
-                          source={{ uri: att.uri }}
-                          style={styles.previewVideoThumbnail}
-                          resizeMode="cover"
-                          paused
-                          muted
-                        />
-                        <View style={styles.playOverlay}>
-                          <Icon name="play-arrow" size={16} color="white" />
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
-                        <Icon name="music-note" size={20} color={colors.mutedForeground} />
-                      </View>
-                    )}
+                    <InvestmentAttachmentThumb
+                      uri={att.uri}
+                      kind={
+                        att.type === MediaType.IMAGE
+                          ? 'image'
+                          : att.type === MediaType.VIDEO
+                            ? 'video'
+                            : 'audio'
+                      }
+                    />
                   </View>
                 ))}
               </View>
@@ -759,26 +777,16 @@ function InvestmentsContent() {
               <View style={styles.attachmentPreviews}>
                 {editAttachments.map((att) => (
                   <View key={att.id} style={[styles.attachmentPreview, { backgroundColor: colors.muted }]}>
-                    {att.type === MediaType.IMAGE ? (
-                      <Image source={{ uri: att.uri }} style={styles.previewImage} />
-                    ) : att.type === MediaType.VIDEO ? (
-                      <View style={styles.previewVideo}>
-                        <Video
-                          source={{ uri: att.uri }}
-                          style={styles.previewVideoThumbnail}
-                          resizeMode="cover"
-                          paused
-                          muted
-                        />
-                        <View style={styles.playOverlay}>
-                          <Icon name="play-arrow" size={16} color="white" />
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={[styles.previewAudio, { backgroundColor: colors.muted }]}>
-                        <Icon name="music-note" size={20} color={colors.mutedForeground} />
-                      </View>
-                    )}
+                    <InvestmentAttachmentThumb
+                      uri={att.uri}
+                      kind={
+                        att.type === MediaType.IMAGE
+                          ? 'image'
+                          : att.type === MediaType.VIDEO
+                            ? 'video'
+                            : 'audio'
+                      }
+                    />
                   </View>
                 ))}
               </View>

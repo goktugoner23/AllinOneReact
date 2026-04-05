@@ -631,7 +631,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
           transparent
           animationType="fade"
         >
-          <Pressable style={styles.modalContainer} onPress={() => setShowAdvancedToolbar(false)}>
+          <Pressable style={[styles.modalContainer, { backgroundColor: colors.overlay }]} onPress={() => setShowAdvancedToolbar(false)}>
             <Pressable style={[styles.modalSurface, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[textStyles.h4, { color: colors.foreground }]}>Advanced Formatting</Text>
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     minHeight: 250,
   },
   modalContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },

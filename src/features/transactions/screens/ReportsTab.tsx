@@ -12,6 +12,29 @@ import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useCurrency } from '@shared/hooks/useCurrency';
 
+/**
+ * Convert a `#RRGGBB` or `#RGB` hex to an `rgba(r,g,b,a)` string. Non-hex
+ * inputs (e.g. `rgba(...)`, `hsl(...)`, theme tokens that happen to resolve
+ * to something non-hex) fall back to a neutral gray so the chart never
+ * crashes on unexpected color formats.
+ */
+function hexToRgba(hex: string, alpha: number): string {
+  if (typeof hex !== 'string') return `rgba(128, 128, 128, ${alpha})`;
+  let h = hex.trim();
+  if (!h.startsWith('#')) return `rgba(128, 128, 128, ${alpha})`;
+  h = h.slice(1);
+  if (h.length === 3) {
+    h = h.split('').map((c) => c + c).join('');
+  }
+  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) {
+    return `rgba(128, 128, 128, ${alpha})`;
+  }
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 const dateRanges = [
   { label: 'Last 7', value: '7d' },
   { label: 'Last 30', value: '30d' },
@@ -216,18 +239,8 @@ export const ReportsTab: React.FC = () => {
     backgroundGradientFrom: colors.card,
     backgroundGradientTo: colors.card,
     decimalPlaces: 0,
-    color: (opacity = 1) => {
-      const r = parseInt(colors.expense.slice(1, 3), 16);
-      const g = parseInt(colors.expense.slice(3, 5), 16);
-      const b = parseInt(colors.expense.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    },
-    labelColor: (opacity = 1) => {
-      const r = parseInt(colors.foreground.slice(1, 3), 16);
-      const g = parseInt(colors.foreground.slice(3, 5), 16);
-      const b = parseInt(colors.foreground.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    },
+    color: (opacity = 1) => hexToRgba(colors.expense, opacity),
+    labelColor: (opacity = 1) => hexToRgba(colors.foreground, opacity),
     style: {
       borderRadius: radius.lg,
     },

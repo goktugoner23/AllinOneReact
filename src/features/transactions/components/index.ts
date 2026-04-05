@@ -2,8 +2,6 @@
 export { TransactionCard } from './TransactionCard';
 export { TransactionForm } from './TransactionForm';
 export { BalanceCard } from './BalanceCard';
-export { InvestmentCard } from './InvestmentCard';
-export { InvestmentForm } from './InvestmentForm';
 export { InvestmentSummaryCard } from './InvestmentSummaryCard';
 export { SpendingPieChart } from './SpendingPieChart';
 export { TPSLModal } from './TPSLModal';

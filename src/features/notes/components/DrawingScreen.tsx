@@ -182,7 +182,12 @@ const DrawingScreen: React.FC<DrawingScreenProps> = ({
         <View style={styles.canvasContainer}>
           <ViewShot ref={viewShotRef} style={styles.viewShot}>
             <GestureDetector gesture={panGesture}>
-              <View style={[styles.canvasWrapper, { backgroundColor: '#FFFFFF', borderRadius: radius.lg }]}>
+              <View
+                style={[
+                  styles.canvasWrapper,
+                  { backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.lg },
+                ]}
+              >
                 <Canvas ref={canvasRef} style={{ width: canvasWidth, height: canvasHeight }}>
                   {/* Draw all completed paths */}
                   {paths.map((drawingPath, index) => (
@@ -270,7 +275,7 @@ const DrawingScreen: React.FC<DrawingScreenProps> = ({
 
         {/* Color Picker Popup */}
         {showColorPicker && (
-          <View style={[styles.pickerPopup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.pickerPopup, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.foreground }]}>
             <Text style={[textStyles.subtitle, { color: colors.foreground, marginBottom: 12 }]}>Select Color</Text>
             <View style={styles.colorGrid}>
               {COLORS.map((color) => (
@@ -294,7 +299,7 @@ const DrawingScreen: React.FC<DrawingScreenProps> = ({
 
         {/* Size Picker Popup */}
         {showSizePicker && (
-          <View style={[styles.pickerPopup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.pickerPopup, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.foreground }]}>
             <Text style={[textStyles.subtitle, { color: colors.foreground, marginBottom: 12 }]}>Brush Size</Text>
             <View style={styles.sizeGrid}>
               {BRUSH_SIZES.map((size) => (
@@ -364,7 +369,6 @@ const styles = StyleSheet.create({
   },
   canvasWrapper: {
     borderWidth: 1,
-    borderColor: '#E5E5E5',
     overflow: 'hidden',
   },
   toolbar: {
@@ -401,7 +405,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

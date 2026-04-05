@@ -5,6 +5,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { Dialog, Input, Button, Switch } from '@shared/components/ui';
 import { FullscreenImage } from '@shared/components/ui/FullscreenImage';
 import { useAppTheme, spacing, textStyles } from '@shared/theme';
+import { useResolvedUri } from '@shared/hooks/useResolvedUri';
 import { WTStudent } from '@features/wtregistry/types/WTRegistry';
 
 interface EditStudentDialogProps {
@@ -21,6 +22,9 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
   const [email, setEmail] = useState(student.email || '');
   const [notes, setNotes] = useState(student.notes || '');
   const [photoUri, setPhotoUri] = useState<string | null>(student.photoUri || null);
+  // Resolve R2 keys to signed URLs for display; passes through local file://
+  // URIs (freshly picked) since getDisplayUrl will fail and fall through.
+  const displayPhotoUri = useResolvedUri(photoUri);
   const [isActive, setIsActive] = useState(student.isActive);
   const [showEditPhotoOptions, setShowEditPhotoOptions] = useState(false);
   const [showEditFullscreenPhoto, setShowEditFullscreenPhoto] = useState(false);
@@ -102,7 +106,7 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
               style={styles.photoButton}
             >
               {photoUri ? (
-                <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                <Image source={{ uri: displayPhotoUri || photoUri }} style={styles.photoPreview} />
               ) : (
                 <View style={[styles.photoPlaceholder, { borderColor: colors.border, backgroundColor: colors.muted }]}>
                   <Ionicons name="camera" size={32} color={colors.foregroundMuted} />
@@ -181,7 +185,7 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
         animationType="fade"
         onRequestClose={() => setShowEditFullscreenPhoto(false)}
       >
-        <FullscreenImage uri={photoUri || ''} onClose={() => setShowEditFullscreenPhoto(false)} />
+        <FullscreenImage uri={displayPhotoUri || photoUri || ''} onClose={() => setShowEditFullscreenPhoto(false)} />
       </Modal>
     </>
   );

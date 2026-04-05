@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import type { ColorScheme } from '@shared/theme/colors';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Card, CardContent, CardHeader, CardTitle, Button, Chip, Divider, IconButton } from '@shared/components/ui';
 import RefreshFab from '@shared/components/ui/RefreshFab';
@@ -20,8 +21,8 @@ import {
   formatNumber,
   formatCurrency,
   formatPercentage,
-  getValueColor,
   getRiskLevel,
+  type RiskTone,
 } from '@features/transactions/utils/futuresCalculations';
 import { TPSLModal } from '@features/transactions/components/TPSLModal';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
@@ -32,6 +33,24 @@ interface EnhancedPositionData extends PositionData {
   calculations?: ReturnType<typeof calculatePositionMetrics>;
 }
 
+// Map semantic risk tone → concrete theme color. Kept here (not in the
+// pure util module) so the util stays theme-free.
+function riskToneToColor(tone: RiskTone, colors: ColorScheme): string {
+  switch (tone) {
+    case 'critical':
+      return colors.destructive;
+    case 'high':
+      return colors.warning;
+    case 'medium':
+      return colors.warning;
+    case 'low':
+      return colors.success;
+    case 'safe':
+    default:
+      return colors.info;
+  }
+}
+
 function FuturesPositionCard({
   position,
   onSetTPSL,
@@ -40,11 +59,13 @@ function FuturesPositionCard({
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
   const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const calculations = position.calculations || calculatePositionMetrics(position);
   const isLong = position.positionAmount > 0;
   // Use theme colors for LONG and SHORT
   const positionSideColor = isLong ? colors.income : colors.expense;
   const riskLevel = getRiskLevel(calculations.marginRatio);
+  const riskColor = riskToneToColor(riskLevel.tone, colors);
 
   // Determine if this is COIN-M futures (check symbol pattern or contract type)
   const isCoinMFutures = position.symbol.includes('USD_PERP') || (position as any).contractType === 'COIN-M';
@@ -172,7 +193,7 @@ function FuturesPositionCard({
 
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Distance to Liquidation:</Text>
-            <Text style={[styles.value, { color: riskLevel.color }]}>
+            <Text style={[styles.value, { color: riskColor }]}>
               {formatPercentage(calculations.distanceToLiquidation)}
             </Text>
           </View>
@@ -180,7 +201,7 @@ function FuturesPositionCard({
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Margin Ratio:</Text>
             <View style={styles.marginRatioContainer}>
-              <Text style={[styles.value, { color: riskLevel.color }]}>
+              <Text style={[styles.value, { color: riskColor }]}>
                 {formatPercentage(calculations.marginRatio)}
               </Text>
             </View>
@@ -230,6 +251,7 @@ function FuturesPositionsList({
   onSetTPSL: (position: EnhancedPositionData) => void;
 }) {
   const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!positions.length)
     return <Text style={[styles.empty, { color: colors.mutedForeground }]}>No open positions.</Text>;
 
@@ -244,6 +266,7 @@ function FuturesPositionsList({
 
 function FuturesAccountCard({ account }: { account: AccountData | null }) {
   const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!account) return null;
 
   const totalBalance = account.totalWalletBalance;
@@ -300,6 +323,7 @@ function CoinMFuturesAccountCard({
   positions: EnhancedPositionData[];
 }) {
   const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!account) return null;
 
   // Calculate total USD value from coin balances
@@ -396,6 +420,7 @@ function getEstimatedCoinPrice(symbol: string): number {
 // USD-M Futures Screen with WebSocket integration for live updates - UNIQUE_IDENTIFIER_USDM_FUNCTION_SPECIFIC
 function UsdMFuturesScreen() {
   const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [positions, setPositions] = useState<EnhancedPositionData[]>([]);
   const [account, setAccount] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -552,6 +577,7 @@ function UsdMFuturesScreen() {
 
 function CoinMFuturesScreen() {
   const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [positions, setPositions] = useState<EnhancedPositionData[]>([]);
   const [account, setAccount] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -711,149 +737,153 @@ export const FuturesTab: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-  },
+// Theme-aware styles factory. Call via `useMemo(() => createStyles(colors), [colors])`
+// in each component that needs styles — we can't put the StyleSheet at module
+// scope because it depends on runtime theme colors.
+const createStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 16,
+    },
 
-  accountCard: {
-    marginBottom: 16,
-  },
-  positionCard: {
-    marginBottom: 16,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  symbolSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  symbol: {
-    fontWeight: 'bold',
-    marginRight: 8,
-    fontSize: 16,
-  },
-  positionSideChip: {
-    borderRadius: 12,
-    minWidth: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-  },
-  futuresTypeChip: {
-    height: 20,
-    marginLeft: 4,
-  },
-  tpslButton: {
-    margin: 0,
-  },
-  divider: {
-    marginVertical: 8,
-  },
-  detailsGrid: {
-    marginBottom: 8,
-  },
-  pnlSection: {
-    marginBottom: 8,
-  },
-  riskSection: {
-    marginBottom: 8,
-  },
-  marginSection: {
-    marginBottom: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 2,
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    flex: 1,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'right',
-    flex: 1,
-  },
-  marginRatioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    flex: 1,
-  },
-  riskChip: {
-    height: 20,
-    marginLeft: 8,
-  },
-  accountGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  accountItem: {
-    width: '48%',
-    marginBottom: 12,
-  },
-  accountLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  accountValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  empty: {
-    textAlign: 'center',
-    color: '#888',
-    marginTop: 32,
-    fontSize: 16,
-  },
-  coinBalanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-  },
-  coinSymbol: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  coinAmount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007bff',
-  },
-  coinValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#28a745',
-  },
-  errorChip: {
-    marginBottom: 8,
-  },
-  statusChip: {
-    marginBottom: 8,
-  },
-  loader: {
-    marginVertical: 16,
-  },
-});
+    accountCard: {
+      marginBottom: 16,
+    },
+    positionCard: {
+      marginBottom: 16,
+      elevation: 2,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    symbolSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    symbol: {
+      fontWeight: 'bold',
+      marginRight: 8,
+      fontSize: 16,
+    },
+    positionSideChip: {
+      borderRadius: 12,
+      minWidth: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+    },
+    futuresTypeChip: {
+      height: 20,
+      marginLeft: 4,
+    },
+    tpslButton: {
+      margin: 0,
+    },
+    divider: {
+      marginVertical: 8,
+    },
+    detailsGrid: {
+      marginBottom: 8,
+    },
+    pnlSection: {
+      marginBottom: 8,
+    },
+    riskSection: {
+      marginBottom: 8,
+    },
+    marginSection: {
+      marginBottom: 8,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginVertical: 2,
+    },
+    label: {
+      fontSize: 14,
+      color: colors.mutedForeground,
+      flex: 1,
+    },
+    value: {
+      fontSize: 14,
+      fontWeight: '600',
+      textAlign: 'right',
+      flex: 1,
+    },
+    marginRatioContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      flex: 1,
+    },
+    riskChip: {
+      height: 20,
+      marginLeft: 8,
+    },
+    accountGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    accountItem: {
+      width: '48%',
+      marginBottom: 12,
+    },
+    accountLabel: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      marginBottom: 4,
+    },
+    accountValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    empty: {
+      textAlign: 'center',
+      color: colors.mutedForeground,
+      marginTop: 32,
+      fontSize: 16,
+    },
+    coinBalanceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 4,
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      backgroundColor: colors.muted,
+      borderRadius: 8,
+    },
+    coinSymbol: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.foreground,
+    },
+    coinAmount: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    coinValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.success,
+    },
+    errorChip: {
+      marginBottom: 8,
+    },
+    statusChip: {
+      marginBottom: 8,
+    },
+    loader: {
+      marginVertical: 16,
+    },
+  });

@@ -2,7 +2,6 @@ import { configureStore } from '@reduxjs/toolkit';
 import wtRegistryReducer from '@features/wtregistry/store/wtRegistrySlice';
 import calendarReducer from '@features/calendar/store/calendarSlice';
 import balanceReducer from '@features/transactions/store/balanceSlice';
-import notesReducer from '@features/notes/store/notesSlice';
 import tasksReducer from '@features/tasks/store/tasksSlice';
 import workoutReducer from '@features/workout/store/workoutSlice';
 import muninnReducer from '@features/muninn/store/muninnSlice';
@@ -12,7 +11,6 @@ const store = configureStore({
     wtRegistry: wtRegistryReducer,
     calendar: calendarReducer,
     balance: balanceReducer,
-    notes: notesReducer,
     tasks: tasksReducer,
     workout: workoutReducer,
     muninn: muninnReducer,

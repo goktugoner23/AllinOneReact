@@ -27,9 +27,10 @@ const NoteAttachmentThumb: React.FC<{
   surfaceHover: string;
   primaryMuted: string;
   primary: string;
+  overlay: string;
   radiusMd: number;
   onPress: () => void;
-}> = ({ value, kind, muted, surfaceHover, primaryMuted, primary, radiusMd, onPress }) => {
+}> = ({ value, kind, muted, surfaceHover, primaryMuted, primary, overlay, radiusMd, onPress }) => {
   const resolvedUri = useResolvedUri(value);
   return (
     <TouchableOpacity
@@ -47,7 +48,7 @@ const NoteAttachmentThumb: React.FC<{
             paused={true}
             muted={true}
           />
-          <View style={styles.playOverlay}>
+          <View style={[styles.playOverlay, { backgroundColor: overlay }]}>
             <Icon name="play-arrow" size={16} color="white" />
           </View>
         </View>
@@ -214,6 +215,7 @@ const NotesScreen: React.FC = () => {
                   surfaceHover={colors.surfaceHover}
                   primaryMuted={colors.primaryMuted}
                   primary={colors.primary}
+                  overlay={colors.overlay}
                   radiusMd={radius.md}
                   onPress={() => handleAttachmentPress(uri)}
                 />
@@ -368,7 +370,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 8,
   },
   previewAudio: {

@@ -186,8 +186,8 @@ export const TransactionForm: React.FC = () => {
             activeOpacity={0.7}
             disabled={isSubmitting}
           >
-            <Ionicons name="arrow-up-circle" size={20} color="#FFFFFF" />
-            <Text style={[styles.typeButtonText, { color: '#FFFFFF' }]}>
+            <Ionicons name="arrow-up-circle" size={20} color={colors.expenseForeground} />
+            <Text style={[styles.typeButtonText, { color: colors.expenseForeground }]}>
               Expense
             </Text>
           </TouchableOpacity>
@@ -204,8 +204,8 @@ export const TransactionForm: React.FC = () => {
             activeOpacity={0.7}
             disabled={isSubmitting}
           >
-            <Ionicons name="arrow-down-circle" size={20} color="#FFFFFF" />
-            <Text style={[styles.typeButtonText, { color: '#FFFFFF' }]}>
+            <Ionicons name="arrow-down-circle" size={20} color={colors.incomeForeground} />
+            <Text style={[styles.typeButtonText, { color: colors.incomeForeground }]}>
               Income
             </Text>
           </TouchableOpacity>

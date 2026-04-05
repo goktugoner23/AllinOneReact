@@ -2,21 +2,21 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import {
   fetchStudents,
-  addStudent as addStudentToFirestore,
-  updateStudent as updateStudentInFirestore,
-  deleteStudent as deleteStudentFromFirestore,
+  addStudent as addStudentRemote,
+  updateStudent as updateStudentRemote,
+  deleteStudent as deleteStudentRemote,
   fetchRegistrations,
-  addRegistration as addRegistrationToFirestore,
-  updateRegistration as updateRegistrationInFirestore,
-  deleteRegistration as deleteRegistrationFromFirestore,
+  addRegistration as addRegistrationRemote,
+  updateRegistration as updateRegistrationRemote,
+  deleteRegistration as deleteRegistrationRemote,
   fetchLessons,
-  addLesson as addLessonToFirestore,
-  updateLesson as updateLessonInFirestore,
-  deleteLesson as deleteLessonFromFirestore,
+  addLesson as addLessonRemote,
+  updateLesson as updateLessonRemote,
+  deleteLesson as deleteLessonRemote,
   fetchSeminars,
-  addSeminar as addSeminarToFirestore,
-  updateSeminar as updateSeminarInFirestore,
-  deleteSeminar as deleteSeminarFromFirestore,
+  addSeminar as addSeminarRemote,
+  updateSeminar as updateSeminarRemote,
+  deleteSeminar as deleteSeminarRemote,
 } from '@features/wtregistry/services/wtRegistry';
 
 interface WTRegistryState {
@@ -56,16 +56,16 @@ export const loadStudents = createAsyncThunk('wtRegistry/loadStudents', async ()
 });
 
 export const addStudent = createAsyncThunk('wtRegistry/addStudent', async (student: Omit<WTStudent, 'id'>) => {
-  return await addStudentToFirestore(student);
+  return await addStudentRemote(student);
 });
 
 export const updateStudent = createAsyncThunk('wtRegistry/updateStudent', async (student: WTStudent) => {
-  await updateStudentInFirestore(student);
+  await updateStudentRemote(student);
   return student;
 });
 
 export const deleteStudent = createAsyncThunk('wtRegistry/deleteStudent', async (studentId: number) => {
-  await deleteStudentFromFirestore(studentId);
+  await deleteStudentRemote(studentId);
   return studentId;
 });
 
@@ -84,7 +84,7 @@ export const loadRegistrations = createAsyncThunk('wtRegistry/loadRegistrations'
 export const addRegistration = createAsyncThunk(
   'wtRegistry/addRegistration',
   async (registration: Omit<WTRegistration, 'id' | 'paymentDate'>) => {
-    const newRegistration = await addRegistrationToFirestore({
+    const newRegistration = await addRegistrationRemote({
       ...registration,
       paymentDate: new Date(),
     });
@@ -95,13 +95,13 @@ export const addRegistration = createAsyncThunk(
 export const updateRegistration = createAsyncThunk(
   'wtRegistry/updateRegistration',
   async (registration: WTRegistration) => {
-    await updateRegistrationInFirestore(registration);
+    await updateRegistrationRemote(registration);
     return registration;
   },
 );
 
 export const deleteRegistration = createAsyncThunk('wtRegistry/deleteRegistration', async (registrationId: number) => {
-  await deleteRegistrationFromFirestore(registrationId);
+  await deleteRegistrationRemote(registrationId);
   return registrationId;
 });
 
@@ -111,16 +111,16 @@ export const loadLessons = createAsyncThunk('wtRegistry/loadLessons', async () =
 });
 
 export const addLesson = createAsyncThunk('wtRegistry/addLesson', async (lesson: Omit<WTLesson, 'id'>) => {
-  return await addLessonToFirestore(lesson);
+  return await addLessonRemote(lesson);
 });
 
 export const updateLesson = createAsyncThunk('wtRegistry/updateLesson', async (lesson: WTLesson) => {
-  await updateLessonInFirestore(lesson);
+  await updateLessonRemote(lesson);
   return lesson;
 });
 
 export const deleteLesson = createAsyncThunk('wtRegistry/deleteLesson', async (lessonId: number) => {
-  await deleteLessonFromFirestore(lessonId);
+  await deleteLessonRemote(lessonId);
   return lessonId;
 });
 
@@ -135,7 +135,7 @@ export const loadSeminars = createAsyncThunk('wtRegistry/loadSeminars', async ()
 });
 
 export const addSeminar = createAsyncThunk('wtRegistry/addSeminar', async (seminar: Omit<WTSeminar, 'id'>) => {
-  const result = await addSeminarToFirestore(seminar);
+  const result = await addSeminarRemote(seminar);
   // Convert date to string for Redux serialization
   return {
     ...result,
@@ -144,7 +144,7 @@ export const addSeminar = createAsyncThunk('wtRegistry/addSeminar', async (semin
 });
 
 export const updateSeminar = createAsyncThunk('wtRegistry/updateSeminar', async (seminar: WTSeminar) => {
-  await updateSeminarInFirestore(seminar);
+  await updateSeminarRemote(seminar);
   // Convert date to string for Redux serialization
   return {
     ...seminar,
@@ -153,7 +153,7 @@ export const updateSeminar = createAsyncThunk('wtRegistry/updateSeminar', async 
 });
 
 export const deleteSeminar = createAsyncThunk('wtRegistry/deleteSeminar', async (seminarId: number) => {
-  await deleteSeminarFromFirestore(seminarId);
+  await deleteSeminarRemote(seminarId);
   return seminarId;
 });
 

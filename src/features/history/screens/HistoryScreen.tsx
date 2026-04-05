@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, RefreshControl, Alert, Image } from 'react-native';
+import { useResolvedUri } from '@shared/hooks/useResolvedUri';
 import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
 import { TransactionService } from '@features/transactions/services/transactionService';
 import { updateInvestment, fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
@@ -16,6 +17,21 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors, spacing, radius, shadow, textStyles } from '@shared/theme';
 import { Card } from '@shared/components/ui';
 import { useCurrency } from '@shared/hooks/useCurrency';
+
+/**
+ * Small thumbnail for history rows that have an attached image (investments,
+ * registrations). Resolves R2 keys to signed URLs via useResolvedUri; local
+ * file:// URIs pass through unchanged.
+ */
+function HistoryRowThumb({ uri, size }: { uri: string; size: number }) {
+  const resolved = useResolvedUri(uri) ?? uri;
+  return (
+    <Image
+      source={{ uri: resolved }}
+      style={{ width: size, height: size, borderRadius: size / 2 }}
+    />
+  );
+}
 
 const FILTERS: { label: string; type: HistoryItemType }[] = [
   { label: 'Income', type: 'TRANSACTION_INCOME' },
@@ -164,21 +180,52 @@ export const HistoryScreen: React.FC = () => {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          // Non-atomic two-step for transactions linked to investments:
+          //   step 1: revert the investment amount
+          //   step 2: delete the transaction
+          // If step 2 fails after step 1 succeeded the investment has been
+          // double-reverted — surface a clear error so the user knows to
+          // manually correct it. A true atomic fix requires server support.
           try {
             if (item.itemType === 'TRANSACTION_INCOME' || item.itemType === 'TRANSACTION_EXPENSE') {
-              // Revert transaction effect on investment if linked
               const txs = await fetchTransactions(1000);
               const tx = txs.find((t) => t.id === item.id);
-              if (tx && (tx as any).relatedInvestmentId) {
-                const invs = await fetchInvestments(1000);
-                const inv = invs.find((i) => i.id === (tx as any).relatedInvestmentId);
-                if (inv) {
-                  const amount = tx.amount;
-                  const adjustedAmount = tx.isIncome ? inv.amount + amount : inv.amount - amount;
-                  await updateInvestment({ ...inv, amount: adjustedAmount, currentValue: adjustedAmount });
+              const relatedInvestmentId = tx ? (tx as any).relatedInvestmentId : null;
+              let investmentReverted = false;
+
+              if (tx && relatedInvestmentId) {
+                try {
+                  const invs = await fetchInvestments(1000);
+                  const inv = invs.find((i) => i.id === relatedInvestmentId);
+                  if (inv) {
+                    const amount = tx.amount;
+                    const adjustedAmount = tx.isIncome ? inv.amount + amount : inv.amount - amount;
+                    await updateInvestment({ ...inv, amount: adjustedAmount, currentValue: adjustedAmount });
+                    investmentReverted = true;
+                  }
+                } catch (revertError) {
+                  Alert.alert(
+                    'Error',
+                    'Failed to revert the linked investment balance. Transaction was NOT deleted.',
+                  );
+                  return;
                 }
               }
-              await TransactionService.deleteTransaction(item.id);
+
+              try {
+                await TransactionService.deleteTransaction(item.id);
+              } catch (deleteError) {
+                if (investmentReverted) {
+                  Alert.alert(
+                    'Partial failure',
+                    'Investment balance was reverted but deleting the transaction failed. ' +
+                      'The investment may now be out of sync — please verify and adjust manually.',
+                  );
+                } else {
+                  Alert.alert('Error', 'Failed to delete transaction.');
+                }
+                return;
+              }
             } else if (item.itemType === 'INVESTMENT') {
               await deleteInvestment(item.id);
             } else if (item.itemType === 'REGISTRATION') {
@@ -209,8 +256,12 @@ export const HistoryScreen: React.FC = () => {
     <View style={styles.cardWrapper}>
       <Card variant="elevated" onLongPress={() => handleDelete(item)}>
         <View style={styles.cardHeader}>
-          <View style={[styles.iconCircle, { backgroundColor: config.mutedColor }]}>
-            <Ionicons name={config.icon} size={20} color={config.color} />
+          <View style={[styles.iconCircle, { backgroundColor: config.mutedColor, overflow: 'hidden' }]}>
+            {item.imageUri ? (
+              <HistoryRowThumb uri={item.imageUri} size={spacing[10]} />
+            ) : (
+              <Ionicons name={config.icon} size={20} color={config.color} />
+            )}
           </View>
           <View style={styles.contentContainer}>
             <Text style={[textStyles.label, { color: colors.foreground }]} numberOfLines={1}>

@@ -141,14 +141,14 @@ export default function MuninnScreen() {
         <View style={styles.headerRight}>
           {messages.length > 0 && (
             <TouchableOpacity onPress={handleExportConversation} style={styles.headerBtn}>
-              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+              <Ionicons name="share-outline" size={22} color={colors.primaryForeground} />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={handleNewChat} style={styles.headerBtn}>
-            <Ionicons name="add-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="add-outline" size={22} color={colors.primaryForeground} />
           </TouchableOpacity>
           <TouchableOpacity onPress={openConversations} style={styles.headerBtn}>
-            <Ionicons name="chatbubbles-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="chatbubbles-outline" size={22} color={colors.primaryForeground} />
           </TouchableOpacity>
         </View>
       ),
