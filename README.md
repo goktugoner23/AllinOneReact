@@ -365,7 +365,15 @@ npx react-native link react-native-vector-icons
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Current Version: Unreleased (2026-04-04)
+### Current Version: Unreleased (2026-04-05)
+- **Firebase Eradication**: Full removal of firebase/firestore code, `firebase` npm package, and all related configs/docs. Mobile talks exclusively to huginn-external + Cloudflare R2.
+- **R2 Key-Based Media**: New `useResolvedUri` hook resolves opaque R2 keys to short-lived signed URLs at render time. Notes, investments, history, wtregistry, and muninn chat all consume keys.
+- **Muninn R2 Persistence**: ChatInput sends R2 keys instead of signed URLs; backend re-signs on use, so historical conversations stay valid indefinitely.
+- **Binance API on httpClient**: Rewritten to use shared Bearer auth client.
+- **Theme token expansion**: `colors.overlay` added; futures/calendar/wtregistry migrated off hardcoded hex.
+- **Tasks server-ID consistency**: `saveTask`/`saveTaskGroup` return persisted entities (no more `Date.now()` placeholders).
+
+### Unreleased (2026-04-04)
 - **App Icon**: Updated to Huginn raven logo
 - **Project Rename**: Renamed from "allinone" to "Huginn"
 - **Instagram Module**: Removed references

@@ -5,6 +5,47 @@ All notable changes to the Huginn React Native project are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-04-05
+
+### Added
+- **R2 key-based media architecture** — Introduced `useResolvedUri(keyOrUrl)` hook that resolves opaque R2 keys to short-lived signed URLs on render with caching and legacy URL fallback. All screens that display stored attachments (notes, investments, history, wtregistry students, muninn chat) now resolve keys at display time instead of persisting signed URLs.
+- **Muninn R2 key send** — `ChatInput` captures and sends R2 keys in the chat payload instead of 10-min signed URLs. Paired with huginn-external re-signing at OpenAI dispatch and GET response, historical conversations remain valid indefinitely.
+- **`colors.overlay` theme token** — Single source of truth for modal scrims across light/dark themes.
+- **Student photo lifecycle** — WTRegistry `StudentsTab` uploads new photos via `uploadFileToStorage` + cleans up old keys via `deleteFileFromStorage` on replace/delete.
+
+### Changed
+- **Firebase fully eradicated** — Removed all firebase/firestore code, the `firebase` npm package (67 transitive deps), `serviceAccountKey.json`, `android/google-services.json`, `.kiro/`, firebase cursor rules, and every firebase reference from docs/configs. Mobile now talks exclusively to huginn-external + Cloudflare R2.
+- **Binance API client** — Rewrote `features/transactions/services/binanceApi.ts` on the shared `httpClient` to get Bearer auth compliance. No more raw axios against the external VM.
+- **FuturesTab styles** — Converted to `createStyles(colors: ColorScheme)` factory with `useMemo` for theme-aware static StyleSheets.
+- **`futuresCalculations`** — Semantic tones (`'positive' | 'negative'`, `RiskTone`) replacing hardcoded hex. Consumers resolve tones via `useColors()`.
+- **Calendar marked dates** — `useMarkedDates` consumes `useColors()` internally. Hardcoded dot colors (`#FFD700/#4CAF50/#F44336/#2196F3`) replaced with `colors.warning/success/destructive/info`.
+- **Modal scrims** — All modals in notes + muninn use `colors.overlay` token.
+- **Tasks create flow** — `saveTask`/`saveTaskGroup` return persisted entities from `RETURNING *`, eliminating `Date.now()` placeholder IDs.
+- **EditNoteScreen pickers** — All 6 attachment paths (camera/gallery image, camera/gallery video, voice, drawing) route through `uploadAndAppendAttachment` → `MediaService.uploadMedia`. Dirty-check now uses a stable `originalAttachmentsRef`. Load path resolves display URIs async via `getDisplayUrl` with `buildLegacyRedirectUrl` fallback.
+- **`wtRegistrySlice`** — Renamed 12 stale `*Firestore`/`*Firebase` aliases to `*Remote` pattern.
+
+### Removed
+- `src/shared/services/firebase/` entire directory (6 files)
+- `src/shared/utils/fileUtils.ts` (dead code)
+- `src/features/notes/store/notesSlice.ts` + `notesHooks.ts` (notes use TanStack Query exclusively)
+- `src/features/transactions/components/InvestmentCard.tsx` + `InvestmentForm.tsx` (orphans)
+- `src/features/workout/screens/tabs/WorkoutDashboard.tsx` (dead stub)
+- Empty barrel directories in `features/history/`
+- Orphaned remote thunks/state/reducers in `calendarSlice`
+- Legacy data SDK and all related references
+
+### Fixed
+- Muninn attachment URLs no longer expire in conversation history (backend re-signs keys on GET).
+- Voice recordings in notes now upload via `MediaService` instead of persisting raw `file://` URIs.
+- AttachmentGallery download button re-signs R2 keys via `getDisplayUrl` before invoking the downloader.
+- File extension detection in notes uses the `MediaType` enum.
+
+### Infrastructure
+- Stripped `Co-Authored-By` trailer from all historical commits on `test` branch.
+- Added `CLAUDE.md` + `.claude/` to `.gitignore`; untracked previously-committed `CLAUDE.md`.
+
+---
+
 ## [Unreleased] - Backend consolidation
 - Removed the legacy data SDK and all related references from the mobile codebase
 - Data layer now talks exclusively to huginn-external REST API
