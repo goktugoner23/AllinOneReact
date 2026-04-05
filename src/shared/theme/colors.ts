@@ -1,192 +1,180 @@
 /**
- * Semantic color tokens inspired by shadcn/ui
- * Organized by purpose, not by color name
+ * Semantic color tokens mirroring huginn-webapp's shadcn theme.
+ *
+ * Values come from huginn-webapp/src/app/globals.css (oklch) converted to sRGB
+ * hex — React Native cannot parse oklch().
+ *
+ * Keep in sync when the webapp palette changes.
  */
 
 export const colors = {
   light: {
-    // Backgrounds - warmer, softer whites (Soft Minimal)
-    background: '#FAFBFC',
-    backgroundSecondary: '#F5F7F9',
-    backgroundTertiary: '#EEF1F4',
+    // Warm off-white surfaces (webapp --background / --card)
+    background: '#F8F7F2',
+    backgroundSecondary: '#EFEEE9',
+    backgroundTertiary: '#ECEAE5',
 
-    // Surfaces (cards, modals)
-    surface: '#FFFFFF',
-    surfaceHover: '#F7F9FB',
-    surfaceActive: '#EFF2F5',
+    surface: '#FEFEFC',
+    surfaceHover: '#F3F2ED',
+    surfaceActive: '#ECEAE5',
 
-    // Borders - softer, less harsh
-    border: '#E5E9EF',
-    borderMuted: '#F0F3F6',
-    borderFocus: '#6366F1',
+    // Borders / dividers (webapp --border)
+    border: '#DFDED8',
+    borderMuted: '#EBEAE4',
+    borderFocus: '#1E232D',
 
-    // Text - slightly warmer
-    foreground: '#1A1F2E',
-    foregroundMuted: '#6B7280',
-    foregroundSubtle: '#9CA3AF',
+    // Text (webapp --foreground / --muted-foreground)
+    foreground: '#191B20',
+    foregroundMuted: '#686C74',
+    foregroundSubtle: '#8E929C',
 
-    // Primary - refined indigo (Soft Minimal)
-    primary: '#6366F1',
-    primaryForeground: '#FFFFFF',
-    primaryHover: '#4F46E5',
-    primaryMuted: '#EEF2FF',
+    // Primary = near-black (webapp --primary)
+    primary: '#1E232D',
+    primaryForeground: '#FAFAF9',
+    primaryHover: '#111319',
+    primaryMuted: '#EFEEE9',
 
-    // Secondary
-    secondary: '#F1F5F9',
-    secondaryForeground: '#1A1F2E',
-    secondaryHover: '#E2E8F0',
+    secondary: '#EFEEE9',
+    secondaryForeground: '#1E232D',
+    secondaryHover: '#E4E2DB',
 
-    // Accent
-    accent: '#F1F5F9',
-    accentForeground: '#1A1F2E',
+    accent: '#ECEAE5',
+    accentForeground: '#1E232D',
 
-    // Semantic - muted, gentle
-    success: '#059669',
+    // Semantic — muted, gentle
+    success: '#5F8967',
     successForeground: '#FFFFFF',
-    successMuted: '#D1FAE5',
+    successMuted: '#E4EDE2',
 
-    warning: '#D97706',
+    warning: '#BC9C67',
     warningForeground: '#FFFFFF',
-    warningMuted: '#FEF3C7',
+    warningMuted: '#F3EBDA',
 
-    destructive: '#DC2626',
+    destructive: '#EA3036',
     destructiveForeground: '#FFFFFF',
-    destructiveMuted: '#FEE2E2',
+    destructiveMuted: '#FBE0E1',
 
-    info: '#0284C7',
+    info: '#7DADD7',
     infoForeground: '#FFFFFF',
-    infoMuted: '#E0F2FE',
+    infoMuted: '#E3EDF7',
 
-    // Financial specific - softer tones
-    income: '#059669',
+    // Financial
+    income: '#5F8967',
     incomeForeground: '#FFFFFF',
-    incomeMuted: '#D1FAE5',
+    incomeMuted: '#E4EDE2',
 
-    expense: '#DC2626',
+    expense: '#EA3036',
     expenseForeground: '#FFFFFF',
-    expenseMuted: '#FEE2E2',
+    expenseMuted: '#FBE0E1',
 
-    investment: '#3B82F6',
+    investment: '#7DADD7',
     investmentForeground: '#FFFFFF',
-    investmentMuted: '#DBEAFE',
+    investmentMuted: '#E3EDF7',
 
-    // Card specific
-    card: '#FFFFFF',
-    cardForeground: '#1A1F2E',
+    card: '#FEFEFC',
+    cardForeground: '#191B20',
 
-    // Muted
-    muted: '#F1F5F9',
-    mutedForeground: '#6B7280',
+    muted: '#EFEEE9',
+    mutedForeground: '#686C74',
 
-    // Ring (focus indicator)
-    ring: '#6366F1',
+    ring: '#8E929C',
 
-    // Chart colors - harmonious indigo palette
-    chart1: '#6366F1',
-    chart2: '#059669',
-    chart3: '#D97706',
-    chart4: '#DC2626',
-    chart5: '#3B82F6',
+    // Chart palette (webapp --chart-1..5)
+    chart1: '#7DADD7',
+    chart2: '#6AA29A',
+    chart3: '#5F8967',
+    chart4: '#BC9C67',
+    chart5: '#B06A65',
   },
 
   dark: {
-    // Backgrounds - deep, restful (Zen Depth)
-    background: '#0C0D10',
-    backgroundSecondary: '#141519',
-    backgroundTertiary: '#1E2028',
+    // Deep cool surfaces (webapp dark --background / --card)
+    background: '#0C0E13',
+    backgroundSecondary: '#13161B',
+    backgroundTertiary: '#1E2026',
 
-    // Surfaces (cards, modals)
-    surface: '#16171C',
-    surfaceHover: '#1E2028',
-    surfaceActive: '#282B35',
+    surface: '#13161B',
+    surfaceHover: '#1E2026',
+    surfaceActive: '#272A31',
 
-    // Borders - subtle separation
-    border: '#2A2D38',
-    borderMuted: '#1E2028',
-    borderFocus: '#818CF8',
+    // Translucent-ish borders — flat hex approximation of rgba(255,255,255,0.1)
+    border: '#262A31',
+    borderMuted: '#1A1D23',
+    borderFocus: '#ECEBE9',
 
-    // Text - comfortable contrast
-    foreground: '#F3F4F6',
-    foregroundMuted: '#9CA3AF',
-    foregroundSubtle: '#6B7280',
+    foreground: '#F1F0EE',
+    foregroundMuted: '#9B9EA5',
+    foregroundSubtle: '#828690',
 
-    // Primary - luminous indigo (Soft Minimal dark)
-    primary: '#818CF8',
-    primaryForeground: '#0C0D10',
-    primaryHover: '#6366F1',
-    primaryMuted: '#1E1B4B',
+    // Primary = near-white (webapp dark --primary)
+    primary: '#ECEBE9',
+    primaryForeground: '#0C0E13',
+    primaryHover: '#FFFFFF',
+    primaryMuted: '#1E2026',
 
-    // Secondary
-    secondary: '#1E2028',
-    secondaryForeground: '#F3F4F6',
-    secondaryHover: '#282B35',
+    secondary: '#1E2026',
+    secondaryForeground: '#F1F0EE',
+    secondaryHover: '#272A31',
 
-    // Accent
-    accent: '#1E2028',
-    accentForeground: '#F3F4F6',
+    accent: '#1E2026',
+    accentForeground: '#F1F0EE',
 
-    // Semantic
-    success: '#34D399',
-    successForeground: '#0C0D10',
-    successMuted: '#064E3B',
+    success: '#6AA98F',
+    successForeground: '#0C0E13',
+    successMuted: '#1A2A24',
 
-    warning: '#FBBF24',
-    warningForeground: '#0C0D10',
-    warningMuted: '#78350F',
+    warning: '#D4B078',
+    warningForeground: '#0C0E13',
+    warningMuted: '#2B2318',
 
-    destructive: '#F87171',
-    destructiveForeground: '#0C0D10',
-    destructiveMuted: '#7F1D1D',
+    destructive: '#EF5E61',
+    destructiveForeground: '#0C0E13',
+    destructiveMuted: '#2D1618',
 
-    info: '#38BDF8',
-    infoForeground: '#0C0D10',
-    infoMuted: '#0C4A6E',
+    info: '#8FBDE2',
+    infoForeground: '#0C0E13',
+    infoMuted: '#172533',
 
-    // Financial specific
-    income: '#34D399',
-    incomeForeground: '#0C0D10',
-    incomeMuted: '#064E3B',
+    income: '#6AA98F',
+    incomeForeground: '#0C0E13',
+    incomeMuted: '#1A2A24',
 
-    expense: '#F87171',
-    expenseForeground: '#0C0D10',
-    expenseMuted: '#7F1D1D',
+    expense: '#EF5E61',
+    expenseForeground: '#0C0E13',
+    expenseMuted: '#2D1618',
 
-    investment: '#60A5FA',
-    investmentForeground: '#0C0D10',
-    investmentMuted: '#1E3A8A',
+    investment: '#8FBDE2',
+    investmentForeground: '#0C0E13',
+    investmentMuted: '#172533',
 
-    // Card specific
-    card: '#16171C',
-    cardForeground: '#F3F4F6',
+    card: '#13161B',
+    cardForeground: '#F1F0EE',
 
-    // Muted
-    muted: '#1E2028',
-    mutedForeground: '#9CA3AF',
+    muted: '#1E2026',
+    mutedForeground: '#9B9EA5',
 
-    // Ring (focus indicator)
-    ring: '#818CF8',
+    ring: '#828690',
 
-    // Chart colors
-    chart1: '#818CF8',
-    chart2: '#34D399',
-    chart3: '#FBBF24',
-    chart4: '#F87171',
-    chart5: '#60A5FA',
+    chart1: '#7DADD7',
+    chart2: '#6AA29A',
+    chart3: '#5F8967',
+    chart4: '#BC9C67',
+    chart5: '#B06A65',
   },
 } as const;
 
-// Category colors for charts and badges (Soft Minimal palette)
+// Category colors for charts and badges — muted, harmonious
 export const categoryColors = [
-  '#6366F1', // Indigo (primary)
-  '#059669', // Emerald
-  '#D97706', // Amber
-  '#DC2626', // Red
-  '#3B82F6', // Blue
-  '#DB2777', // Pink
-  '#0891B2', // Cyan
-  '#7C3AED', // Violet
-  '#EA580C', // Orange
-  '#65A30D', // Lime
+  '#7DADD7', // soft blue
+  '#6AA29A', // teal
+  '#5F8967', // sage
+  '#BC9C67', // warm tan
+  '#B06A65', // terracotta
+  '#8E929C', // slate
+  '#A584B5', // muted violet
+  '#C78A6B', // clay
+  '#7FA37F', // moss
+  '#6F8AA8', // dusty blue
 ] as const;
 
 // Create a unified ColorScheme type that works for both light and dark

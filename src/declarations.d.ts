@@ -17,6 +17,7 @@ declare module '@env' {
   export const API_BASE_URL_PROD: string;
   export const WS_URL_DEV: string;
   export const WS_URL_PROD: string;
+  export const HUGINN_API_TOKEN: string;
 }
 
 declare module 'react-native-pell-rich-editor' {

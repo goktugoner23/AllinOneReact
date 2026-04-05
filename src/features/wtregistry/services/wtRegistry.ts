@@ -1,8 +1,16 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { getDb, getStorageInstance as getStorage } from '@shared/services/firebase/firebase';
-import ReactNativeBlobUtil from 'react-native-blob-util';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
+/**
+ * wtregistry service — REST client for huginn-external.
+ *
+ * Replaces the legacy Firestore implementation. All calls go through the
+ * shared Huginn API client (`api`) and uploads go to Cloudflare R2 via
+ * `uploadToR2` / `deleteFromR2`. Envelope unwrapping is handled by httpClient.
+ *
+ * Exported function names and signatures are frozen — screens and the
+ * wtRegistry redux slice depend on them.
+ */
+
+import { api } from '@shared/services/api/httpClient';
+import { uploadToR2, deleteFromR2 } from '@shared/services/storage/r2Storage';
 import { WTStudent, WTRegistration, WTLesson, WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import {
   addTransaction,
@@ -11,37 +19,250 @@ import {
   updateTransaction,
 } from '@features/transactions/services/transactions';
 
-// Helper to convert string | Date to Date for Timestamp.fromDate()
-const toDateObj = (date: Date | string): Date => {
-  if (typeof date === 'string') return new Date(date);
-  return date;
+// ──────────────────────────────────────────────────────────────────────────
+// Backend row shapes (as returned by huginn-external /api/wtregistry)
+// These are intentionally local — the shared `types` folder is frozen.
+// ──────────────────────────────────────────────────────────────────────────
+
+interface ApiStudent {
+  id: number;
+  name: string;
+  phoneNumber: string | null;
+  isActive: boolean;
+  email: string | null;
+  instagram?: string | null;
+  photoUri: string | null;
+  notes: string | null;
+}
+
+interface ApiRegistration {
+  id: number;
+  studentId: number;
+  studentName?: string;
+  studentPhoneNumber?: string | null;
+  studentEmail?: string | null;
+  amount: number;
+  isPaid: boolean;
+  startDate: string;
+  endDate: string;
+  paymentDate: string;
+  notes: string | null;
+  attachmentUri: string | null;
+}
+
+interface ApiLesson {
+  id: number;
+  date: string;
+  description: string | null;
+  createdAt?: string;
+}
+
+interface ApiSeminar {
+  id: number;
+  name: string;
+  description: string;
+  date: string;
+  location: string;
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Mappers
+// ──────────────────────────────────────────────────────────────────────────
+
+function toDateObj(date: Date | string): Date {
+  return typeof date === 'string' ? new Date(date) : date;
+}
+
+function toIso(date: Date | string | undefined): string {
+  if (!date) return new Date().toISOString();
+  return toDateObj(date).toISOString();
+}
+
+function mapStudent(row: ApiStudent): WTStudent {
+  return {
+    id: row.id,
+    name: row.name,
+    phoneNumber: row.phoneNumber ?? undefined,
+    email: row.email ?? undefined,
+    isActive: row.isActive,
+    notes: row.notes ?? undefined,
+    photoUri: row.photoUri ?? undefined,
+  };
+}
+
+function mapRegistration(row: ApiRegistration): WTRegistration {
+  return {
+    id: row.id,
+    studentId: row.studentId,
+    amount: Number(row.amount) || 0,
+    attachmentUri: row.attachmentUri ?? undefined,
+    startDate: row.startDate ? new Date(row.startDate) : undefined,
+    endDate: row.endDate ? new Date(row.endDate) : undefined,
+    paymentDate: row.paymentDate ? new Date(row.paymentDate) : new Date(),
+    notes: row.notes ?? undefined,
+    isPaid: row.isPaid,
+    studentName: row.studentName,
+  };
+}
+
+// ── Lesson encoding ───────────────────────────────────────────────────────
+// Backend stores lessons as { date, description }. The mobile UI uses
+// { dayOfWeek, startHour, startMinute, endHour, endMinute }. We serialise the
+// mobile shape into the `description` as JSON and use a deterministic date.
+// This keeps the file self-contained without touching frozen types or the
+// backend schema.
+
+const LESSON_TAG = 'WT_LESSON_V1:';
+
+function encodeLessonDescription(lesson: Omit<WTLesson, 'id'>): string {
+  return (
+    LESSON_TAG +
+    JSON.stringify({
+      dayOfWeek: lesson.dayOfWeek,
+      startHour: lesson.startHour,
+      startMinute: lesson.startMinute,
+      endHour: lesson.endHour,
+      endMinute: lesson.endMinute,
+    })
+  );
+}
+
+function decodeLessonDescription(description: string | null): Omit<WTLesson, 'id'> | null {
+  if (!description || !description.startsWith(LESSON_TAG)) return null;
+  try {
+    const parsed = JSON.parse(description.slice(LESSON_TAG.length));
+    return {
+      dayOfWeek: Number(parsed.dayOfWeek) || 0,
+      startHour: Number(parsed.startHour) || 0,
+      startMinute: Number(parsed.startMinute) || 0,
+      endHour: Number(parsed.endHour) || 0,
+      endMinute: Number(parsed.endMinute) || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Deterministic date per day-of-week so the backend's ORDER BY date is stable.
+function lessonDateFor(dayOfWeek: number): string {
+  // 1970-01-04 was a Sunday. Add dayOfWeek days.
+  const base = new Date(Date.UTC(1970, 0, 4 + (dayOfWeek % 7)));
+  return base.toISOString();
+}
+
+function mapLesson(row: ApiLesson): WTLesson {
+  const decoded = decodeLessonDescription(row.description);
+  if (decoded) {
+    return { id: row.id, ...decoded };
+  }
+  // Legacy / unknown rows: best-effort fallback.
+  const d = row.date ? new Date(row.date) : new Date();
+  return {
+    id: row.id,
+    dayOfWeek: d.getUTCDay(),
+    startHour: 0,
+    startMinute: 0,
+    endHour: 0,
+    endMinute: 0,
+  };
+}
+
+function mapSeminar(row: ApiSeminar): WTSeminar {
+  return {
+    id: row.id,
+    name: row.name,
+    date: row.date ? new Date(row.date) : new Date(),
+    startHour: Number(row.startHour) || 0,
+    startMinute: Number(row.startMinute) || 0,
+    endHour: Number(row.endHour) || 0,
+    endMinute: Number(row.endMinute) || 0,
+    description: row.description || undefined,
+    location: row.location || undefined,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Storage helpers (R2)
+// ──────────────────────────────────────────────────────────────────────────
+
+const MIME_BY_EXT: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
 };
 
+function guessMime(fileName: string): string {
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+  return MIME_BY_EXT[ext] || 'application/octet-stream';
+}
+
+/**
+ * Upload a local file to R2. Preserves the original call signature used
+ * throughout this service so the existing callers don't need to change.
+ * Returns the R2 object `key` (not a URL) — the UI should resolve it via
+ * `getDisplayUrl` when rendering.
+ */
+export async function uploadFileToStorage(
+  fileUri: string,
+  folderName: string,
+  fileName: string,
+): Promise<string | null> {
+  try {
+    const folder = (folderName as 'registrations' | 'students') || 'registrations';
+    const result = await uploadToR2({
+      uri: fileUri,
+      fileName,
+      mimeType: guessMime(fileName),
+      folder,
+      entityId: fileName.split('.')[0] || null,
+    });
+    return result.key;
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    return null;
+  }
+}
+
+function looksLikeR2Key(value: string): boolean {
+  // R2 keys we generate look like "folder/entityId/uuid.ext" — no scheme.
+  return !/^https?:\/\//i.test(value) && !value.startsWith('file://');
+}
+
+/**
+ * Delete a previously-uploaded file. Accepts an R2 key or a legacy Firebase
+ * URL. Legacy URLs are no-oped (the bucket is gone) — we just log and return.
+ */
+export async function deleteFileFromStorage(fileUrlOrKey: string): Promise<boolean> {
+  try {
+    if (!fileUrlOrKey) return true;
+    if (!looksLikeR2Key(fileUrlOrKey)) {
+      console.log('deleteFileFromStorage: skipping legacy/non-R2 reference', fileUrlOrKey);
+      return true;
+    }
+    await deleteFromR2(fileUrlOrKey);
+    return true;
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return false;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // Students
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function fetchStudents(): Promise<WTStudent[]> {
   try {
-    const db = getDb();
-
-    // Get all students without device filtering
-    const q = query(collection(db, 'students'));
-    const snapshot = await getDocs(q);
-
-    // Sort in memory instead of in the query
-    const students = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: data.id || parseInt(doc.id, 10),
-        name: data.name || '',
-        phoneNumber: data.phoneNumber || '',
-        email: data.email || undefined,
-        isActive: data.isActive !== false,
-        notes: data.notes || undefined,
-        photoUri: data.photoUri || undefined,
-      };
-    });
-
-    // Sort by name ascending in memory
-    return students.sort((a, b) => a.name.localeCompare(b.name));
+    const rows = await api.get<ApiStudent[]>('/api/wtregistry/students');
+    return rows.map(mapStudent).sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.error('Error fetching students:', error);
     return [];
@@ -50,21 +271,15 @@ export async function fetchStudents(): Promise<WTStudent[]> {
 
 export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<WTStudent> {
   try {
-    const db = getDb();
-    const studentId = await firebaseIdManager.getNextId('students');
-
-    const studentData: WTStudent = {
-      id: studentId,
+    const row = await api.post<ApiStudent>('/api/wtregistry/students', {
       name: student.name,
-      phoneNumber: student.phoneNumber || undefined,
-      email: student.email || undefined,
+      phoneNumber: student.phoneNumber ?? '',
+      email: student.email ?? null,
       isActive: student.isActive !== false,
-      notes: student.notes || undefined,
-      photoUri: student.photoUri || undefined,
-    };
-
-    await setDoc(doc(db, 'students', studentId.toString()), studentData);
-    return studentData;
+      notes: student.notes ?? null,
+      photoUri: student.photoUri ?? null,
+    });
+    return mapStudent(row);
   } catch (error) {
     console.error('Error adding student:', error);
     throw error;
@@ -73,19 +288,14 @@ export async function addStudent(student: Omit<WTStudent, 'id'>): Promise<WTStud
 
 export async function updateStudent(student: WTStudent): Promise<void> {
   try {
-    const db = getDb();
-
-    const studentData = {
-      id: student.id,
+    await api.put<ApiStudent>(`/api/wtregistry/students/${student.id}`, {
       name: student.name,
-      phoneNumber: student.phoneNumber || null,
-      email: student.email || null,
+      phoneNumber: student.phoneNumber ?? '',
+      email: student.email ?? null,
       isActive: student.isActive !== false,
-      notes: student.notes || null,
-      photoUri: student.photoUri || null,
-    };
-
-    await setDoc(doc(db, 'students', student.id.toString()), studentData);
+      notes: student.notes ?? null,
+      photoUri: student.photoUri ?? null,
+    });
   } catch (error) {
     console.error('Error updating student:', error);
     throw error;
@@ -94,147 +304,122 @@ export async function updateStudent(student: WTStudent): Promise<void> {
 
 export async function deleteStudent(studentId: number): Promise<void> {
   try {
-    const db = getDb();
-    await deleteDoc(doc(db, 'students', studentId.toString()));
+    await api.delete<{ id: number }>(`/api/wtregistry/students/${studentId}`);
   } catch (error) {
     console.error('Error deleting student:', error);
     throw error;
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Registrations
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function fetchRegistrations(): Promise<WTRegistration[]> {
   try {
-    const db = getDb();
-
-    // Simple query without device filtering
-    const q = query(collection(db, 'registrations'));
-    const snapshot = await getDocs(q);
-
-    // Sort in memory instead of in the query
-    const registrations = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: data.id || parseInt(doc.id, 10),
-        studentId: data.studentId || 0,
-        amount: data.amount || 0,
-        attachmentUri: data.attachmentUri || undefined,
-        startDate: data.startDate ? data.startDate.toDate() : undefined,
-        endDate: data.endDate ? data.endDate.toDate() : undefined,
-        paymentDate: data.paymentDate ? data.paymentDate.toDate() : new Date(),
-        notes: data.notes || undefined,
-        isPaid: data.isPaid !== false,
-        studentName: data.studentName || undefined,
-      };
-    });
-
-    // Sort by paymentDate descending in memory
-    return registrations.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+    const rows = await api.get<ApiRegistration[]>('/api/wtregistry/registrations');
+    return rows
+      .map(mapRegistration)
+      .sort(
+        (a, b) =>
+          new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime(),
+      );
   } catch (error) {
     console.error('Error fetching registrations:', error);
     return [];
   }
 }
 
-// File upload utility function
-export async function uploadFileToStorage(
-  fileUri: string,
-  folderName: string,
-  fileName: string,
+// Normalise the end date to 22:00 local time to match legacy Kotlin/Firestore
+// behaviour — downstream code still expects this.
+function normaliseEndDate(endDate: Date | string | undefined): Date | undefined {
+  if (!endDate) return undefined;
+  const d = new Date(toDateObj(endDate));
+  d.setHours(22, 0, 0, 0);
+  return d;
+}
+
+// Upload an attachment if it's a local URI; pass through cloud keys/URLs.
+async function resolveAttachment(
+  attachmentUri: string | undefined,
+  registrationId: number | string,
 ): Promise<string | null> {
+  if (!attachmentUri) return null;
+  // Already a cloud reference — leave as-is.
+  if (attachmentUri.startsWith('https://') || looksLikeR2KeyForRegistration(attachmentUri)) {
+    return attachmentUri;
+  }
+  const ext = attachmentUri.split('.').pop() || 'file';
+  const fileName = `${registrationId}.${ext}`;
   try {
-    const storage = getStorage();
-    const storageRef = ref(storage, `${folderName}/${fileName}`);
-
-    // Determine content type from file extension
-    const ext = fileName.toLowerCase().split('.').pop() || '';
-    const mimeTypes: Record<string, string> = {
-      pdf: 'application/pdf',
-      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-      gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp',
-    };
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-    // Read file as native Blob via data URI (Hermes can't create Blob from Uint8Array)
-    const base64Data = await ReactNativeBlobUtil.fs.readFile(fileUri, 'base64');
-    const response = await fetch(`data:${contentType};base64,${base64Data}`);
-    const blob = await response.blob();
-
-    // Upload blob with content type metadata
-    const snapshot = await uploadBytes(storageRef, blob, { contentType });
-
-    // Get download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-
-    return downloadURL;
-  } catch (error) {
-    console.error('Error uploading file:', error);
+    const result = await uploadToR2({
+      uri: attachmentUri,
+      fileName,
+      mimeType: guessMime(fileName),
+      folder: 'registrations',
+      entityId: String(registrationId),
+    });
+    return result.key;
+  } catch (err) {
+    console.warn('Failed to upload attachment:', err);
     return null;
   }
 }
 
-// File deletion utility function
-export async function deleteFileFromStorage(fileUrl: string): Promise<boolean> {
-  try {
-    if (!fileUrl.startsWith('https://')) {
-      return true; // Not a cloud URL, nothing to delete
-    }
-
-    const storage = getStorage();
-    const fileRef = ref(storage, fileUrl);
-    await deleteObject(fileRef);
-    return true;
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    return false;
-  }
+function looksLikeR2KeyForRegistration(value: string): boolean {
+  // Heuristic: R2 keys begin with "registrations/" for this feature.
+  return value.startsWith('registrations/');
 }
 
-export async function addRegistration(registration: Omit<WTRegistration, 'id'>): Promise<WTRegistration> {
+function buildRegistrationPayload(reg: Omit<WTRegistration, 'id'>, attachmentKey: string | null, finalEndDate: Date | undefined) {
+  return {
+    studentId: reg.studentId,
+    amount: reg.amount,
+    isPaid: reg.isPaid,
+    startDate: toIso(reg.startDate),
+    endDate: finalEndDate ? finalEndDate.toISOString() : toIso(reg.endDate),
+    paymentDate: toIso(reg.paymentDate),
+    notes: reg.notes ?? null,
+    attachmentUri: attachmentKey,
+  };
+}
+
+export async function addRegistration(
+  registration: Omit<WTRegistration, 'id'>,
+): Promise<WTRegistration> {
   try {
-    const db = getDb();
-    const registrationId = await firebaseIdManager.getNextId('registrations');
+    const finalEndDate = normaliseEndDate(registration.endDate);
 
-    // Ensure end date has time set to 22:00 (10pm) like Kotlin app
-    let finalEndDate = registration.endDate;
-    if (finalEndDate) {
-      const calendar = new Date(finalEndDate);
-      calendar.setHours(22, 0, 0, 0);
-      finalEndDate = calendar;
-    }
+    // Create registration first so we have a stable id for the object key.
+    const created = await api.post<ApiRegistration>(
+      '/api/wtregistry/registrations',
+      buildRegistrationPayload(
+        registration,
+        // Pass the raw attachment if it's already a cloud ref; otherwise null
+        // for now — we'll PUT-update with the uploaded key below.
+        registration.attachmentUri && registration.attachmentUri.startsWith('https://')
+          ? registration.attachmentUri
+          : null,
+        finalEndDate,
+      ),
+    );
 
-    // Handle file upload if there's an attachment
-    let cloudAttachmentUrl: string | null = null;
-    if (registration.attachmentUri && !registration.attachmentUri.startsWith('https://')) {
-      // Upload the file to Firebase Storage using registration ID for subfolder
-      cloudAttachmentUrl = await uploadFileToStorage(
-        registration.attachmentUri,
-        'registrations',
-        `${registrationId}.${registration.attachmentUri.split('.').pop() || 'file'}`,
-      );
-
-      if (cloudAttachmentUrl === null) {
-        console.warn('Failed to upload attachment, but registration will be saved');
+    let attachmentKey: string | null = created.attachmentUri ?? null;
+    if (
+      registration.attachmentUri &&
+      !registration.attachmentUri.startsWith('https://') &&
+      !looksLikeR2KeyForRegistration(registration.attachmentUri)
+    ) {
+      attachmentKey = await resolveAttachment(registration.attachmentUri, created.id);
+      if (attachmentKey) {
+        await api.put<ApiRegistration>(
+          `/api/wtregistry/registrations/${created.id}`,
+          buildRegistrationPayload(registration, attachmentKey, finalEndDate),
+        );
       }
-    } else {
-      cloudAttachmentUrl = registration.attachmentUri || null;
     }
 
-    const registrationData = {
-      id: registrationId,
-      studentId: registration.studentId,
-      amount: registration.amount,
-      attachmentUri: cloudAttachmentUrl || null,
-      startDate: registration.startDate ? Timestamp.fromDate(toDateObj(registration.startDate)) : null,
-      endDate: finalEndDate ? Timestamp.fromDate(toDateObj(finalEndDate)) : null,
-      paymentDate: Timestamp.fromDate(toDateObj(registration.paymentDate)),
-      notes: registration.notes || null,
-      isPaid: registration.isPaid,
-    };
-
-    await setDoc(doc(db, 'registrations', registrationId.toString()), registrationData);
-
-    // If it's marked as paid, also add a transaction like Kotlin app
+    // If it's marked as paid, add a linked transaction (mirrors legacy).
     if (registration.isPaid && registration.amount > 0) {
       await addTransaction({
         amount: registration.amount,
@@ -243,33 +428,15 @@ export async function addRegistration(registration: Omit<WTRegistration, 'id'>):
         isIncome: true,
         date: new Date().toISOString(),
         category: 'Wing Tzun',
-        relatedRegistrationId: registrationId,
+        relatedRegistrationId: created.id,
       });
-    }
-
-    // Add end date to calendar if available like Kotlin app
-    if (finalEndDate) {
-      const students = await fetchStudents();
-      const studentName = students.find((s) => s.id === registration.studentId)?.name || 'Unknown Student';
-      const title = `Registration End: ${studentName}`;
-      const description = `Registration period ending for ${studentName}. Amount: ${registration.amount}`;
-
-      // TODO: Add calendar event creation when calendar functionality is implemented
-      // const event = {
-      //   id: registrationId,
-      //   title,
-      //   description,
-      //   date: finalEndDate,
-      //   type: 'Registration End'
-      // };
-      // await addEvent(event);
     }
 
     return {
       ...registration,
-      id: registrationId,
+      id: created.id,
       endDate: finalEndDate,
-      attachmentUri: cloudAttachmentUrl || registration.attachmentUri,
+      attachmentUri: attachmentKey ?? registration.attachmentUri,
     };
   } catch (error) {
     console.error('Error adding registration:', error);
@@ -279,73 +446,42 @@ export async function addRegistration(registration: Omit<WTRegistration, 'id'>):
 
 export async function updateRegistration(registration: WTRegistration): Promise<void> {
   try {
-    const db = getDb();
-
-    // Get original registration to check if payment status changed
+    // Fetch original so we can diff payment status + attachment.
     const originalRegistrations = await fetchRegistrations();
     const originalRegistration = originalRegistrations.find((r) => r.id === registration.id);
 
-    // Ensure end date has time set to 22:00 (10pm) like Kotlin app
-    let finalEndDate = registration.endDate;
-    if (finalEndDate) {
-      const calendar = new Date(finalEndDate);
-      calendar.setHours(22, 0, 0, 0);
-      finalEndDate = calendar;
-    }
+    const finalEndDate = normaliseEndDate(registration.endDate);
 
-    // Handle file upload if attachment has changed
-    let cloudAttachmentUrl: string | undefined = registration.attachmentUri;
-    const isNewAttachment =
+    // Handle attachment change.
+    let attachmentKey: string | null | undefined = registration.attachmentUri ?? null;
+    const newAttachmentIsLocal =
       originalRegistration &&
       originalRegistration.attachmentUri !== registration.attachmentUri &&
       registration.attachmentUri &&
-      !registration.attachmentUri.startsWith('https://');
+      !registration.attachmentUri.startsWith('https://') &&
+      !looksLikeR2KeyForRegistration(registration.attachmentUri);
 
-    if (isNewAttachment) {
-      // Upload the new file with registration ID for subfolder
-      const uploadedUrl = await uploadFileToStorage(
-        registration.attachmentUri!,
-        'registrations',
-        `${registration.id}.${registration.attachmentUri!.split('.').pop() || 'file'}`,
-      );
-
-      if (uploadedUrl === null) {
-        console.warn('Failed to upload new attachment, continuing with registration update');
-        cloudAttachmentUrl = registration.attachmentUri;
-      } else {
-        cloudAttachmentUrl = uploadedUrl;
-        // Delete the old file if it was a cloud URL
-        if (originalRegistration?.attachmentUri && originalRegistration.attachmentUri.startsWith('https://')) {
+    if (newAttachmentIsLocal) {
+      const uploaded = await resolveAttachment(registration.attachmentUri, registration.id);
+      if (uploaded) {
+        attachmentKey = uploaded;
+        if (originalRegistration?.attachmentUri) {
           await deleteFileFromStorage(originalRegistration.attachmentUri);
         }
+      } else {
+        console.warn('Failed to upload new attachment, keeping existing value');
+        attachmentKey = registration.attachmentUri ?? null;
       }
     }
 
-    const registrationData = {
-      id: registration.id,
-      studentId: registration.studentId,
-      amount: registration.amount,
-      attachmentUri: cloudAttachmentUrl || null,
-      startDate: registration.startDate ? Timestamp.fromDate(toDateObj(registration.startDate)) : null,
-      endDate: finalEndDate ? Timestamp.fromDate(toDateObj(finalEndDate)) : null,
-      paymentDate: Timestamp.fromDate(toDateObj(registration.paymentDate)),
-      notes: registration.notes || '',
-      isPaid: registration.isPaid,
-    };
+    await api.put<ApiRegistration>(
+      `/api/wtregistry/registrations/${registration.id}`,
+      buildRegistrationPayload(registration, attachmentKey ?? null, finalEndDate),
+    );
 
-    await setDoc(doc(db, 'registrations', registration.id.toString()), registrationData);
-
-    // Check for payment status changes and amount changes like Kotlin app
+    // Mirror legacy transaction-sync logic.
     if (originalRegistration) {
-      console.log(
-        `🔍 Registration update - ID: ${registration.id}, Payment: ${originalRegistration.isPaid} → ${registration.isPaid}, Amount: ${originalRegistration.amount} → ${registration.amount}`,
-      );
-
-      // Payment status changed from unpaid to paid
       if (!originalRegistration.isPaid && registration.isPaid && registration.amount > 0) {
-        console.log(
-          `💰 Creating transaction for newly paid registration ${registration.id} - Amount: ${registration.amount}`,
-        );
         await addTransaction({
           amount: registration.amount,
           type: 'Registration',
@@ -355,43 +491,22 @@ export async function updateRegistration(registration: WTRegistration): Promise<
           category: 'Wing Tzun',
           relatedRegistrationId: registration.id,
         });
-      }
-      // Payment status changed from paid to unpaid
-      else if (originalRegistration.isPaid && !registration.isPaid) {
-        console.log(`❌ Removing transaction for unpaid registration ${registration.id}`);
+      } else if (originalRegistration.isPaid && !registration.isPaid) {
         const transactions = await fetchTransactions();
-        const relatedTransactions = transactions.filter((t) => t.relatedRegistrationId === registration.id);
-        for (const tx of relatedTransactions) {
+        const related = transactions.filter((t) => t.relatedRegistrationId === registration.id);
+        for (const tx of related) {
           await deleteTransaction(tx.id);
         }
-      }
-      // Amount changed but payment status remains the same
-      else if (
+      } else if (
         originalRegistration.isPaid &&
         registration.isPaid &&
         originalRegistration.amount !== registration.amount
       ) {
-        console.log(
-          `📊 Amount changed for paid registration ${registration.id} - ${originalRegistration.amount} → ${registration.amount}`,
-        );
-        // Update existing transaction amount if it exists
         const transactions = await fetchTransactions();
-        const existingTransaction = transactions.find((t) => t.relatedRegistrationId === registration.id);
-        if (existingTransaction) {
-          // Update the existing transaction with new amount
-          console.log(
-            `🔄 Updating existing transaction ${existingTransaction.id} amount from ${existingTransaction.amount} to ${registration.amount}`,
-          );
-          await updateTransaction({
-            ...existingTransaction,
-            amount: registration.amount,
-          });
+        const existing = transactions.find((t) => t.relatedRegistrationId === registration.id);
+        if (existing) {
+          await updateTransaction({ ...existing, amount: registration.amount });
         } else {
-          // If no existing transaction but registration is paid, create one
-          // This handles the case where a transaction might have been deleted manually
-          console.log(
-            `➕ Creating new transaction for paid registration ${registration.id} with amount ${registration.amount}`,
-          );
           await addTransaction({
             amount: registration.amount,
             type: 'Registration',
@@ -404,11 +519,6 @@ export async function updateRegistration(registration: WTRegistration): Promise<
         }
       }
     }
-
-    // TODO: Update calendar event if end date changed
-    // if (originalRegistration && originalRegistration.endDate !== finalEndDate) {
-    //   // Update calendar event
-    // }
   } catch (error) {
     console.error('Error updating registration:', error);
     throw error;
@@ -421,20 +531,11 @@ export async function updateRegistrationPaymentStatus(
   oldIsPaid: boolean,
 ): Promise<void> {
   try {
-    const db = getDb();
+    if (newIsPaid === oldIsPaid) return;
 
-    // If payment status didn't change, do nothing
-    if (newIsPaid === oldIsPaid) {
-      return;
-    }
-
-    // Handle transaction changes first
+    // Transaction sync first.
     if (newIsPaid && !oldIsPaid) {
-      // Changed from unpaid to paid - add transaction
       if (registration.amount > 0) {
-        console.log(
-          `💰 Payment status change: Creating transaction for registration ${registration.id} - Amount: ${registration.amount}`,
-        );
         await addTransaction({
           amount: registration.amount,
           type: 'Registration',
@@ -446,29 +547,19 @@ export async function updateRegistrationPaymentStatus(
         });
       }
     } else if (!newIsPaid && oldIsPaid) {
-      // Changed from paid to unpaid - remove transaction
-      console.log(`❌ Payment status change: Removing transaction for registration ${registration.id}`);
       const transactions = await fetchTransactions();
-      const relatedTransaction = transactions.find((t) => t.relatedRegistrationId === registration.id);
-      if (relatedTransaction) {
-        await deleteTransaction(relatedTransaction.id);
-      }
+      const related = transactions.find((t) => t.relatedRegistrationId === registration.id);
+      if (related) await deleteTransaction(related.id);
     }
 
-    // Now update the registration without triggering transaction logic again
-    const registrationData = {
-      id: registration.id,
-      studentId: registration.studentId,
-      amount: registration.amount,
-      attachmentUri: registration.attachmentUri,
-      startDate: registration.startDate ? Timestamp.fromDate(toDateObj(registration.startDate)) : null,
-      endDate: registration.endDate ? Timestamp.fromDate(toDateObj(registration.endDate)) : null,
-      paymentDate: Timestamp.fromDate(toDateObj(registration.paymentDate)),
-      notes: registration.notes || '',
-      isPaid: newIsPaid,
-    };
-
-    await setDoc(doc(db, 'registrations', registration.id.toString()), registrationData);
+    // Patch just the payment status on the server.
+    await api.patch<ApiRegistration>(
+      `/api/wtregistry/registrations/${registration.id}/payment`,
+      {
+        isPaid: newIsPaid,
+        paymentDate: toIso(registration.paymentDate),
+      },
+    );
   } catch (error) {
     console.error('Error updating registration payment status:', error);
     throw error;
@@ -477,83 +568,62 @@ export async function updateRegistrationPaymentStatus(
 
 export async function deleteRegistration(registrationId: number): Promise<void> {
   try {
-    const db = getDb();
-
-    // Get the registration to check for attachments
+    // Fetch so we can clean up the attachment + linked transactions.
     const registrations = await fetchRegistrations();
     const registration = registrations.find((r) => r.id === registrationId);
 
-    // Delete attachment from Firebase Storage if it exists
-    if (registration?.attachmentUri && registration.attachmentUri.startsWith('https://')) {
+    if (registration?.attachmentUri) {
       await deleteFileFromStorage(registration.attachmentUri);
     }
 
-    // Delete related transactions
     const transactions = await fetchTransactions();
-    const relatedTransactions = transactions.filter((t) => t.relatedRegistrationId === registrationId);
-    for (const tx of relatedTransactions) {
+    const related = transactions.filter((t) => t.relatedRegistrationId === registrationId);
+    for (const tx of related) {
       await deleteTransaction(tx.id);
     }
 
-    // Delete the registration
-    await deleteDoc(doc(db, 'registrations', registrationId.toString()));
-
-    // TODO: Delete calendar event if it exists
-    // await deleteEvent(registrationId);
+    await api.delete<{ id: number }>(`/api/wtregistry/registrations/${registrationId}`);
   } catch (error) {
     console.error('Error deleting registration:', error);
     throw error;
   }
 }
 
-export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, 'id'>, isPaid: boolean) {
+export async function addRegistrationWithTransaction(
+  reg: Omit<WTRegistration, 'id'>,
+  isPaid: boolean,
+) {
   try {
-    const db = getDb();
+    const finalEndDate = normaliseEndDate(reg.endDate);
 
-    // Get next registration ID using Firebase ID manager
-    const regId = await firebaseIdManager.getNextId('registrations');
+    // Create registration.
+    const created = await api.post<ApiRegistration>(
+      '/api/wtregistry/registrations',
+      buildRegistrationPayload(
+        reg,
+        reg.attachmentUri && reg.attachmentUri.startsWith('https://')
+          ? reg.attachmentUri
+          : null,
+        finalEndDate,
+      ),
+    );
 
-    // Ensure end date has time set to 22:00 (10pm) like Kotlin app
-    let finalEndDate = reg.endDate;
-    if (finalEndDate) {
-      const calendar = new Date(finalEndDate);
-      calendar.setHours(22, 0, 0, 0);
-      finalEndDate = calendar;
-    }
-
-    // Handle file upload if there's an attachment
-    let cloudAttachmentUrl: string | null = null;
-    if (reg.attachmentUri && !reg.attachmentUri.startsWith('https://')) {
-      // Upload the file to Firebase Storage using registration ID for subfolder
-      cloudAttachmentUrl = await uploadFileToStorage(
-        reg.attachmentUri,
-        'registrations',
-        `${regId}.${reg.attachmentUri.split('.').pop() || 'file'}`,
-      );
-
-      if (cloudAttachmentUrl === null) {
-        console.warn('Failed to upload attachment, but registration will be saved');
+    // Upload attachment (if local) and patch the registration with the key.
+    if (
+      reg.attachmentUri &&
+      !reg.attachmentUri.startsWith('https://') &&
+      !looksLikeR2KeyForRegistration(reg.attachmentUri)
+    ) {
+      const key = await resolveAttachment(reg.attachmentUri, created.id);
+      if (key) {
+        await api.put<ApiRegistration>(
+          `/api/wtregistry/registrations/${created.id}`,
+          buildRegistrationPayload(reg, key, finalEndDate),
+        );
       }
-    } else {
-      cloudAttachmentUrl = reg.attachmentUri || null;
     }
 
-    const registrationData = {
-      id: regId,
-      studentId: reg.studentId,
-      amount: reg.amount,
-      attachmentUri: cloudAttachmentUrl || null,
-      startDate: reg.startDate ? Timestamp.fromDate(toDateObj(reg.startDate)) : null,
-      endDate: finalEndDate ? Timestamp.fromDate(toDateObj(finalEndDate)) : null,
-      paymentDate: Timestamp.fromDate(toDateObj(reg.paymentDate)),
-      notes: reg.notes || null,
-      isPaid: reg.isPaid,
-    };
-
-    // Save registration
-    await setDoc(doc(db, 'registrations', regId.toString()), registrationData);
-
-    // If paid, add a transaction
+    // Linked transaction if paid.
     if (isPaid && reg.amount > 0) {
       await addTransaction({
         amount: reg.amount,
@@ -562,7 +632,7 @@ export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, '
         isIncome: true,
         date: new Date().toISOString(),
         category: 'Wing Tzun',
-        relatedRegistrationId: regId,
+        relatedRegistrationId: created.id,
       });
     }
   } catch (error) {
@@ -573,58 +643,35 @@ export async function addRegistrationWithTransaction(reg: Omit<WTRegistration, '
 
 export async function deleteRegistrationWithTransactions(registrationId: number) {
   try {
-    const db = getDb();
-
-    // First, get the registration to check if it was paid
     const registrations = await fetchRegistrations();
     const registration = registrations.find((r) => r.id === registrationId);
 
-    // Delete all transactions with relatedRegistrationId == registrationId FIRST
+    // Delete linked transactions first.
     const transactions = await fetchTransactions();
     const related = transactions.filter((t) => t.relatedRegistrationId === registrationId);
-
     for (const tx of related) {
       await deleteTransaction(tx.id);
     }
 
-    // Delete attachment from Firebase Storage if it exists
-    if (registration?.attachmentUri && registration.attachmentUri.startsWith('https://')) {
+    if (registration?.attachmentUri) {
       await deleteFileFromStorage(registration.attachmentUri);
     }
 
-    // Finally, delete the registration
-    await deleteDoc(doc(db, 'registrations', registrationId.toString()));
+    await api.delete<{ id: number }>(`/api/wtregistry/registrations/${registrationId}`);
   } catch (error) {
     console.error('Error deleting registration with transactions:', error);
     throw error;
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Lessons
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function fetchLessons(): Promise<WTLesson[]> {
   try {
-    const db = getDb();
-
-    // Simple query without device filtering
-    const q = query(collection(db, 'wtLessons'));
-
-    const snapshot = await getDocs(q);
-
-    // Sort in memory instead of in the query
-    const lessons = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: data.id || parseInt(doc.id, 10),
-        dayOfWeek: data.dayOfWeek || 0,
-        startHour: data.startHour || 0,
-        startMinute: data.startMinute || 0,
-        endHour: data.endHour || 0,
-        endMinute: data.endMinute || 0,
-      };
-    });
-
-    // Sort by dayOfWeek ascending in memory
-    return lessons.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+    const rows = await api.get<ApiLesson[]>('/api/wtregistry/lessons');
+    return rows.map(mapLesson).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
   } catch (error) {
     console.error('Error fetching lessons:', error);
     return [];
@@ -633,24 +680,11 @@ export async function fetchLessons(): Promise<WTLesson[]> {
 
 export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<WTLesson> {
   try {
-    const db = getDb();
-    const lessonId = await firebaseIdManager.getNextId('wtLessons');
-
-    const lessonData = {
-      id: lessonId,
-      dayOfWeek: lesson.dayOfWeek,
-      startHour: lesson.startHour,
-      startMinute: lesson.startMinute,
-      endHour: lesson.endHour,
-      endMinute: lesson.endMinute,
-    };
-
-    await setDoc(doc(db, 'wtLessons', lessonId.toString()), lessonData);
-
-    return {
-      ...lesson,
-      id: lessonId,
-    };
+    const row = await api.post<ApiLesson>('/api/wtregistry/lessons', {
+      date: lessonDateFor(lesson.dayOfWeek),
+      description: encodeLessonDescription(lesson),
+    });
+    return { ...lesson, id: row.id };
   } catch (error) {
     console.error('Error adding lesson:', error);
     throw error;
@@ -659,18 +693,10 @@ export async function addLesson(lesson: Omit<WTLesson, 'id'>): Promise<WTLesson>
 
 export async function updateLesson(lesson: WTLesson): Promise<void> {
   try {
-    const db = getDb();
-
-    const lessonData = {
-      id: lesson.id,
-      dayOfWeek: lesson.dayOfWeek,
-      startHour: lesson.startHour,
-      startMinute: lesson.startMinute,
-      endHour: lesson.endHour,
-      endMinute: lesson.endMinute,
-    };
-
-    await setDoc(doc(db, 'wtLessons', lesson.id.toString()), lessonData);
+    await api.put<ApiLesson>(`/api/wtregistry/lessons/${lesson.id}`, {
+      date: lessonDateFor(lesson.dayOfWeek),
+      description: encodeLessonDescription(lesson),
+    });
   } catch (error) {
     console.error('Error updating lesson:', error);
     throw error;
@@ -679,42 +705,23 @@ export async function updateLesson(lesson: WTLesson): Promise<void> {
 
 export async function deleteLesson(lessonId: number): Promise<void> {
   try {
-    const db = getDb();
-    await deleteDoc(doc(db, 'wtLessons', lessonId.toString()));
+    await api.delete<{ id: number }>(`/api/wtregistry/lessons/${lessonId}`);
   } catch (error) {
     console.error('Error deleting lesson:', error);
     throw error;
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Seminars
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function fetchSeminars(): Promise<WTSeminar[]> {
   try {
-    const db = getDb();
-
-    // Simple query without device filtering
-    const q = query(collection(db, 'seminars'));
-
-    const snapshot = await getDocs(q);
-
-    // Sort in memory instead of in the query
-    const seminars = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: data.id || parseInt(doc.id, 10),
-        name: data.name || '',
-        date: data.date ? data.date.toDate() : new Date(),
-        startHour: data.startHour || 0,
-        startMinute: data.startMinute || 0,
-        endHour: data.endHour || 0,
-        endMinute: data.endMinute || 0,
-        description: data.description || undefined,
-        location: data.location || undefined,
-      };
-    });
-
-    // Sort by date descending in memory
-    return seminars.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const rows = await api.get<ApiSeminar[]>('/api/wtregistry/seminars');
+    return rows
+      .map(mapSeminar)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error('Error fetching seminars:', error);
     return [];
@@ -723,65 +730,35 @@ export async function fetchSeminars(): Promise<WTSeminar[]> {
 
 export async function addSeminar(seminar: Omit<WTSeminar, 'id'>): Promise<WTSeminar> {
   try {
-    const db = getDb();
-    const seminarId = await firebaseIdManager.getNextId('seminars');
-
-    // Create a description that includes time information like Kotlin app
-    const timeInfo = `Time: ${formatTime(seminar.startHour, seminar.startMinute)}-${formatTime(seminar.endHour, seminar.endMinute)}`;
-    const description = seminar.description ? `${timeInfo}, Description: ${seminar.description}` : timeInfo;
-
-    // Convert date to Date object if it's a string
-    const dateObj = typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date;
-
-    const seminarData = {
-      id: seminarId,
+    const row = await api.post<ApiSeminar>('/api/wtregistry/seminars', {
       name: seminar.name,
-      date: Timestamp.fromDate(dateObj),
+      description: seminar.description ?? '',
+      date: toIso(seminar.date),
+      location: seminar.location ?? '',
       startHour: seminar.startHour,
       startMinute: seminar.startMinute,
       endHour: seminar.endHour,
       endMinute: seminar.endMinute,
-      description: description,
-      location: seminar.location || null,
-    };
-
-    await setDoc(doc(db, 'seminars', seminarId.toString()), seminarData);
-
-    return {
-      ...seminar,
-      id: seminarId,
-    };
+    });
+    return { ...seminar, id: row.id };
   } catch (error) {
     console.error('Error adding seminar:', error);
     throw error;
   }
 }
 
-// Helper function to format time like Kotlin app
-function formatTime(hour: number, minute: number): string {
-  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-}
-
 export async function updateSeminar(seminar: WTSeminar): Promise<void> {
   try {
-    const db = getDb();
-
-    // Convert date to Date object if it's a string
-    const dateObj = typeof seminar.date === 'string' ? new Date(seminar.date) : seminar.date;
-
-    const seminarData = {
-      id: seminar.id,
+    await api.put<ApiSeminar>(`/api/wtregistry/seminars/${seminar.id}`, {
       name: seminar.name,
-      date: Timestamp.fromDate(dateObj),
+      description: seminar.description ?? '',
+      date: toIso(seminar.date),
+      location: seminar.location ?? '',
       startHour: seminar.startHour,
       startMinute: seminar.startMinute,
       endHour: seminar.endHour,
       endMinute: seminar.endMinute,
-      description: seminar.description || null,
-      location: seminar.location || null,
-    };
-
-    await setDoc(doc(db, 'seminars', seminar.id.toString()), seminarData);
+    });
   } catch (error) {
     console.error('Error updating seminar:', error);
     throw error;
@@ -790,8 +767,7 @@ export async function updateSeminar(seminar: WTSeminar): Promise<void> {
 
 export async function deleteSeminar(seminarId: number): Promise<void> {
   try {
-    const db = getDb();
-    await deleteDoc(doc(db, 'seminars', seminarId.toString()));
+    await api.delete<{ id: number }>(`/api/wtregistry/seminars/${seminarId}`);
   } catch (error) {
     console.error('Error deleting seminar:', error);
     throw error;

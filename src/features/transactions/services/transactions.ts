@@ -1,272 +1,134 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  setDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit as firestoreLimit,
-  Timestamp,
-  runTransaction,
-  increment,
-} from 'firebase/firestore';
-import { getDb } from '@shared/services/firebase/firebase';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
+/**
+ * Transactions service — talks to huginn-external REST.
+ *
+ * Replaces the former Firestore implementation. Screens import these functions
+ * by name; signatures are preserved. Backend uses numeric ids; mobile uses
+ * string ids, so we coerce at the boundary.
+ */
+
+import { api } from '@shared/services/api/httpClient';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { logger } from '@shared/utils/logger';
 
-// Aggregate totals document path
-const TOTALS_DOC_ID = 'aggregate_totals';
+// ──────────────────────────────────────────────────────────────────────────
+// Backend DTOs (mirror of huginn-external types.ts)
+// ──────────────────────────────────────────────────────────────────────────
 
-/**
- * Update aggregate totals document atomically
- * This maintains pre-calculated totals for instant balance retrieval
- */
-async function updateAggregateTotals(amount: number, isIncome: boolean, operation: 'add' | 'remove'): Promise<void> {
-  try {
-    const db = getDb();
-    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
-
-    const multiplier = operation === 'add' ? 1 : -1;
-    const incomeChange = isIncome ? amount * multiplier : 0;
-    const expenseChange = !isIncome ? amount * multiplier : 0;
-    const countChange = multiplier;
-
-    await runTransaction(db, async (transaction) => {
-      const totalsDoc = await transaction.get(totalsRef);
-
-      if (!totalsDoc.exists()) {
-        // Initialize totals document if it doesn't exist
-        transaction.set(totalsRef, {
-          totalIncome: incomeChange,
-          totalExpense: expenseChange,
-          count: operation === 'add' ? 1 : 0,
-          lastUpdated: Timestamp.now(),
-        });
-      } else {
-        transaction.update(totalsRef, {
-          totalIncome: increment(incomeChange),
-          totalExpense: increment(expenseChange),
-          count: increment(countChange),
-          lastUpdated: Timestamp.now(),
-        });
-      }
-    });
-
-    // Invalidate cache since we updated
-    transactionCache = null;
-  } catch (error) {
-    logger.error('Error updating aggregate totals', error, 'updateAggregateTotals');
-    // Don't throw - totals update failure shouldn't block the transaction
-  }
+interface BackendTransactionAttachment {
+  id: number;
+  transactionId: number | null;
+  bucket: string;
+  objectKey: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
 }
 
-/**
- * Initialize or recalculate aggregate totals from all transactions
- * Call this once to set up the totals document, or to fix inconsistencies
- */
-export async function recalculateAggregateTotals(): Promise<{
-  totalIncome: number;
-  totalExpense: number;
-  count: number;
-}> {
-  try {
-    const db = getDb();
-    const q = query(collection(db, 'transactions'));
-    const snapshot = await getDocs(q);
-
-    let totalIncome = 0;
-    let totalExpense = 0;
-
-    snapshot.docs.forEach((docSnapshot) => {
-      const data = docSnapshot.data();
-      const amount = data.amount ?? 0;
-      const isIncome = data.isIncome ?? false;
-
-      if (isIncome) {
-        totalIncome += amount;
-      } else {
-        totalExpense += amount;
-      }
-    });
-
-    // Save to aggregate document
-    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
-    await setDoc(totalsRef, {
-      totalIncome,
-      totalExpense,
-      count: snapshot.docs.length,
-      lastUpdated: Timestamp.now(),
-    });
-
-    logger.debug(
-      'Recalculated aggregate totals',
-      { totalIncome, totalExpense, count: snapshot.docs.length },
-      'recalculateAggregateTotals',
-    );
-
-    return { totalIncome, totalExpense, count: snapshot.docs.length };
-  } catch (error) {
-    logger.error('Error recalculating aggregate totals', error, 'recalculateAggregateTotals');
-    throw error;
-  }
+interface BackendTransactionEntry {
+  id: number;
+  date: string;
+  amount: number;
+  currency: string;
+  isIncome: boolean;
+  description: string;
+  type: string;
+  category: string;
+  relatedRegistrationId: number | null;
+  relatedInvestmentId: number | null;
+  attachments: BackendTransactionAttachment[];
 }
 
-export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<void> {
-  try {
-    const db = getDb();
-    const transactionId = await firebaseIdManager.getNextId('transactions');
+// ──────────────────────────────────────────────────────────────────────────
+// Caching (preserved from the Firestore version so totals helpers stay fast)
+// ──────────────────────────────────────────────────────────────────────────
 
-    const transactionData = {
-      id: transactionId,
-      amount: transaction.amount,
-      type: transaction.type, // Category name (same as category)
-      description: transaction.description || '', // Ensure not null like Kotlin
-      isIncome: transaction.isIncome,
-      date: transaction.date,
-      category: transaction.category,
-      ...(transaction.relatedRegistrationId !== undefined && {
-        relatedRegistrationId: transaction.relatedRegistrationId,
-      }),
-      ...((transaction as any).relatedInvestmentId && {
-        relatedInvestmentId: (transaction as any).relatedInvestmentId,
-      }),
-    };
-
-    await setDoc(doc(db, 'transactions', transactionId.toString()), transactionData);
-
-    // Update aggregate totals
-    await updateAggregateTotals(transaction.amount, transaction.isIncome, 'add');
-
-    // Clear transaction cache
-    transactionCache = null;
-  } catch (error) {
-    logger.error('Error adding transaction', error, 'addTransaction');
-    throw error;
-  }
-}
-
-export async function updateTransaction(transaction: Transaction): Promise<void> {
-  try {
-    const db = getDb();
-
-    const transactionData = {
-      id: transaction.id,
-      amount: transaction.amount,
-      type: transaction.type, // Category name (same as category)
-      description: transaction.description || '', // Ensure not null like Kotlin
-      isIncome: transaction.isIncome,
-      date: transaction.date,
-      category: transaction.category,
-      ...(transaction.relatedRegistrationId !== undefined && {
-        relatedRegistrationId: transaction.relatedRegistrationId,
-      }),
-      ...((transaction as any).relatedInvestmentId && {
-        relatedInvestmentId: (transaction as any).relatedInvestmentId,
-      }),
-    };
-
-    await setDoc(doc(db, 'transactions', transaction.id), transactionData);
-
-    // Clear transaction cache
-    transactionCache = null;
-  } catch (error) {
-    logger.error('Error updating transaction', error, 'updateTransaction');
-    throw error;
-  }
-}
-
-export async function deleteTransaction(transactionId: string): Promise<void> {
-  try {
-    const db = getDb();
-
-    // Get transaction data before deleting to update totals
-    const transactionRef = doc(db, 'transactions', transactionId);
-    const transactionDoc = await getDoc(transactionRef);
-
-    if (transactionDoc.exists()) {
-      const data = transactionDoc.data();
-      const amount = data.amount ?? 0;
-      const isIncome = data.isIncome ?? false;
-
-      await deleteDoc(transactionRef);
-
-      // Update aggregate totals
-      await updateAggregateTotals(amount, isIncome, 'remove');
-    } else {
-      await deleteDoc(transactionRef);
-    }
-
-    // Clear transaction cache
-    transactionCache = null;
-  } catch (error) {
-    logger.error('Error deleting transaction', error, 'deleteTransaction');
-    throw error;
-  }
-}
-
-// Cache for transaction counts and sums
 let transactionCache: {
   count: number;
   totalIncome: number;
   totalExpense: number;
+  list: Transaction[];
   timestamp: number;
 } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+function invalidateCache() {
+  transactionCache = null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Mapping
+// ──────────────────────────────────────────────────────────────────────────
+
+function mapBackendToMobile(entry: BackendTransactionEntry): Transaction {
+  return {
+    id: String(entry.id),
+    amount: entry.amount,
+    type: entry.type ?? '',
+    description: entry.description ?? '',
+    isIncome: entry.isIncome,
+    date: entry.date,
+    category: entry.category ?? '',
+    relatedRegistrationId: entry.relatedRegistrationId ?? undefined,
+    relatedInvestmentId:
+      entry.relatedInvestmentId !== null && entry.relatedInvestmentId !== undefined
+        ? String(entry.relatedInvestmentId)
+        : undefined,
+  };
+}
+
+function buildTransactionBody(t: Omit<Transaction, 'id'> | Transaction) {
+  const relatedInvestmentRaw = (t as Transaction).relatedInvestmentId;
+  const relatedInvestmentId =
+    relatedInvestmentRaw !== undefined && relatedInvestmentRaw !== null && relatedInvestmentRaw !== ''
+      ? Number(relatedInvestmentRaw)
+      : undefined;
+
+  return {
+    amount: t.amount,
+    currency: 'TRY', // Mobile Transaction has no currency field; default to TRY.
+    description: t.description ?? '',
+    type: t.type,
+    category: t.category,
+    isIncome: t.isIncome,
+    date: t.date,
+    attachmentIds: [] as number[],
+    ...(relatedInvestmentId !== undefined && Number.isFinite(relatedInvestmentId)
+      ? { relatedInvestmentId }
+      : {}),
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Public API (signatures preserved)
+// ──────────────────────────────────────────────────────────────────────────
+
 export async function fetchTransactions(limitCount: number = 50): Promise<Transaction[]> {
   try {
-    const db = getDb();
-
     logger.debug(`Fetching transactions (limit: ${limitCount})`, {}, 'fetchTransactions');
 
-    // Use server-side ordering and limit for better performance
-    // Requires index on 'date' field (DESCENDING)
-    const q = query(collection(db, 'transactions'), orderBy('date', 'desc'), firestoreLimit(limitCount));
-    const snapshot = await getDocs(q);
-
-    logger.debug('Fetched transactions from server', { count: snapshot.docs.length }, 'fetchTransactions');
-
-    // Map data exactly like Kotlin app
-    const transactions = snapshot.docs.map((docSnapshot) => {
-      const data = docSnapshot.data();
-      
-      // Handle date - can be Timestamp, Date, string (ISO), or number (epoch)
-      let dateString: string;
-      if (data.date instanceof Timestamp) {
-        dateString = data.date.toDate().toISOString();
-      } else if (data.date?.toDate) {
-        // Firestore Timestamp-like object
-        dateString = data.date.toDate().toISOString();
-      } else if (typeof data.date === 'string') {
-        // Already an ISO string or date string - validate and use as-is
-        const parsed = new Date(data.date);
-        dateString = isNaN(parsed.getTime()) ? new Date().toISOString() : data.date;
-      } else if (typeof data.date === 'number') {
-        // Epoch timestamp in milliseconds
-        dateString = new Date(data.date).toISOString();
-      } else {
-        // Fallback to current date
-        dateString = new Date().toISOString();
-      }
-      
-      return {
-        id: data.id?.toString() ?? docSnapshot.id,
-        amount: data.amount ?? 0,
-        type: data.type ?? '', // Category name
-        description: data.description ?? '', // Ensure not null like Kotlin
-        isIncome: data.isIncome ?? false,
-        date: dateString,
-        category: data.category ?? '',
-        relatedRegistrationId: data.relatedRegistrationId,
-        relatedInvestmentId: data.relatedInvestmentId?.toString(),
-      };
+    const entries = await api.get<BackendTransactionEntry[]>('/api/transactions', {
+      searchParams: { limit: limitCount },
     });
 
-    logger.debug('Final transactions', { count: transactions.length }, 'fetchTransactions');
+    const transactions = (entries ?? []).map(mapBackendToMobile);
+
+    // Populate cache opportunistically so totals/count helpers can reuse it.
+    const totalIncome = transactions.reduce(
+      (sum: number, t: Transaction) => (t.isIncome ? sum + t.amount : sum),
+      0,
+    );
+    const totalExpense = transactions.reduce(
+      (sum: number, t: Transaction) => (!t.isIncome ? sum + t.amount : sum),
+      0,
+    );
+    transactionCache = {
+      count: transactions.length,
+      totalIncome,
+      totalExpense,
+      list: transactions,
+      timestamp: Date.now(),
+    };
 
     return transactions;
   } catch (error) {
@@ -275,54 +137,64 @@ export async function fetchTransactions(limitCount: number = 50): Promise<Transa
   }
 }
 
+export async function addTransaction(transaction: Omit<Transaction, 'id'>): Promise<void> {
+  try {
+    await api.post<BackendTransactionEntry>('/api/transactions', buildTransactionBody(transaction));
+    invalidateCache();
+  } catch (error) {
+    logger.error('Error adding transaction', error, 'addTransaction');
+    throw error;
+  }
+}
+
+export async function updateTransaction(transaction: Transaction): Promise<void> {
+  try {
+    const id = Number(transaction.id);
+    if (!Number.isFinite(id)) {
+      throw new Error(`Invalid transaction id: ${transaction.id}`);
+    }
+    await api.put<BackendTransactionEntry>(`/api/transactions/${id}`, buildTransactionBody(transaction));
+    invalidateCache();
+  } catch (error) {
+    logger.error('Error updating transaction', error, 'updateTransaction');
+    throw error;
+  }
+}
+
+export async function deleteTransaction(transactionId: string): Promise<void> {
+  try {
+    const id = Number(transactionId);
+    if (!Number.isFinite(id)) {
+      throw new Error(`Invalid transaction id: ${transactionId}`);
+    }
+    await api.delete<{ id: number }>(`/api/transactions/${id}`);
+    invalidateCache();
+  } catch (error) {
+    logger.error('Error deleting transaction', error, 'deleteTransaction');
+    throw error;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Totals/count helpers — no dedicated backend endpoint, compute client-side.
+// ──────────────────────────────────────────────────────────────────────────
+
+async function ensureCache(): Promise<void> {
+  const now = Date.now();
+  if (transactionCache && now - transactionCache.timestamp < CACHE_DURATION) {
+    return;
+  }
+  // fetchTransactions repopulates the cache.
+  await fetchTransactions(1000);
+}
+
 export async function getTransactionTotals(): Promise<{ totalIncome: number; totalExpense: number }> {
   try {
-    const now = Date.now();
-
-    // Check if we have a valid cache
-    if (transactionCache && now - transactionCache.timestamp < CACHE_DURATION) {
-      return {
-        totalIncome: transactionCache.totalIncome,
-        totalExpense: transactionCache.totalExpense,
-      };
-    }
-
-    const db = getDb();
-
-    // Try to get from aggregate document first (instant - single doc read)
-    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
-    const totalsDoc = await getDoc(totalsRef);
-
-    if (totalsDoc.exists()) {
-      const data = totalsDoc.data();
-      const totalIncome = data.totalIncome ?? 0;
-      const totalExpense = data.totalExpense ?? 0;
-
-      // Update cache
-      transactionCache = {
-        count: data.count ?? 0,
-        totalIncome,
-        totalExpense,
-        timestamp: now,
-      };
-
-      logger.debug('Got totals from aggregate document', { totalIncome, totalExpense }, 'getTransactionTotals');
-      return { totalIncome, totalExpense };
-    }
-
-    // Fallback: Calculate from all transactions and initialize aggregate document
-    logger.debug('Aggregate document not found, recalculating...', {}, 'getTransactionTotals');
-    const result = await recalculateAggregateTotals();
-
-    // Update cache
-    transactionCache = {
-      count: result.count,
-      totalIncome: result.totalIncome,
-      totalExpense: result.totalExpense,
-      timestamp: now,
+    await ensureCache();
+    return {
+      totalIncome: transactionCache?.totalIncome ?? 0,
+      totalExpense: transactionCache?.totalExpense ?? 0,
     };
-
-    return { totalIncome: result.totalIncome, totalExpense: result.totalExpense };
   } catch (error) {
     logger.error('Error getting transaction totals', error, 'getTransactionTotals');
     return { totalIncome: 0, totalExpense: 0 };
@@ -331,88 +203,64 @@ export async function getTransactionTotals(): Promise<{ totalIncome: number; tot
 
 export async function getTransactionCount(): Promise<number> {
   try {
-    const now = Date.now();
-
-    // Check if we have a valid cache
-    if (transactionCache && now - transactionCache.timestamp < CACHE_DURATION) {
-      return transactionCache.count;
-    }
-
-    const db = getDb();
-
-    // Try to get from aggregate document first (instant - single doc read)
-    const totalsRef = doc(db, 'transactions_meta', TOTALS_DOC_ID);
-    const totalsDoc = await getDoc(totalsRef);
-
-    if (totalsDoc.exists()) {
-      const data = totalsDoc.data();
-      const count = data.count ?? 0;
-
-      // Update cache
-      transactionCache = {
-        count,
-        totalIncome: data.totalIncome ?? 0,
-        totalExpense: data.totalExpense ?? 0,
-        timestamp: now,
-      };
-
-      return count;
-    }
-
-    // Fallback: recalculate
-    const result = await recalculateAggregateTotals();
-    return result.count;
+    await ensureCache();
+    return transactionCache?.count ?? 0;
   } catch (error) {
     logger.error('Error getting transaction count', error, 'getTransactionCount');
     return 0;
   }
 }
 
-export async function getCurrentMonthTransactionTotals(): Promise<{ totalIncome: number; totalExpense: number }> {
+export async function getCurrentMonthTransactionTotals(): Promise<{
+  totalIncome: number;
+  totalExpense: number;
+}> {
   try {
-    const db = getDb();
-    const q = query(collection(db, 'transactions'));
-    const snapshot = await getDocs(q);
+    await ensureCache();
+    const list = transactionCache?.list ?? [];
 
-    // Get current month start and end dates
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
     let totalIncome = 0;
     let totalExpense = 0;
 
-    // Calculate totals from transactions in current month
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const amount = data.amount ?? 0;
-      const isIncome = data.isIncome ?? false;
-
-      // Parse transaction date
-      let transactionDate: Date;
-      if (data.date instanceof Timestamp) {
-        transactionDate = data.date.toDate();
-      } else if (data.date?.toDate) {
-        transactionDate = data.date.toDate();
-      } else if (typeof data.date === 'string') {
-        transactionDate = new Date(data.date);
-      } else {
-        return; // Skip if date is invalid
-      }
-
-      // Check if transaction is in current month
-      if (transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd) {
-        if (isIncome) {
-          totalIncome += amount;
-        } else {
-          totalExpense += amount;
-        }
-      }
-    });
+    for (const t of list) {
+      const d = new Date(t.date);
+      if (Number.isNaN(d.getTime())) continue;
+      if (d < monthStart || d > monthEnd) continue;
+      if (t.isIncome) totalIncome += t.amount;
+      else totalExpense += t.amount;
+    }
 
     return { totalIncome, totalExpense };
   } catch (error) {
     logger.error('Error getting current month transaction totals', error, 'getCurrentMonthTransactionTotals');
     return { totalIncome: 0, totalExpense: 0 };
+  }
+}
+
+/**
+ * Preserved for backward compatibility with screens that called the old
+ * Firestore-based aggregate rebuild. With the REST backend there is no
+ * separate aggregate document to rebuild — we simply re-fetch and recompute.
+ */
+export async function recalculateAggregateTotals(): Promise<{
+  totalIncome: number;
+  totalExpense: number;
+  count: number;
+}> {
+  try {
+    invalidateCache();
+    await ensureCache();
+    return {
+      totalIncome: transactionCache?.totalIncome ?? 0,
+      totalExpense: transactionCache?.totalExpense ?? 0,
+      count: transactionCache?.count ?? 0,
+    };
+  } catch (error) {
+    logger.error('Error recalculating aggregate totals', error, 'recalculateAggregateTotals');
+    throw error;
   }
 }
