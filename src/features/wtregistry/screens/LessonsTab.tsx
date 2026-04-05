@@ -38,7 +38,7 @@ export function LessonsTab() {
 
   // Load lessons when component mounts
   useEffect(() => {
-    console.log('🔍 Loading lessons from Firebase...');
+    console.log('🔍 Loading lessons...');
     dispatch(loadLessons());
   }, [dispatch]);
 

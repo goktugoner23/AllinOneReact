@@ -295,7 +295,7 @@ function toBackendStatsInput(s: StatsSnapshot): BackendStatsInput {
 }
 
 // ---------------------------------------------------------------------------
-// Local-only storage (active session) — unchanged from Firebase impl.
+// Local-only storage (active session).
 // ---------------------------------------------------------------------------
 const STORAGE_KEYS = {
   activeSession: 'workout_active_session',

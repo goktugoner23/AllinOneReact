@@ -1,7 +1,27 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { getStorageInstance } from '@shared/services/firebase/firebase';
+import {
+  uploadToR2,
+  deleteFromR2,
+  getDisplayUrl,
+  type StorageFolder,
+} from '@shared/services/storage/r2Storage';
 import { MediaType, MediaUploadResult } from '@shared/types/MediaAttachment';
 
+const KNOWN_FOLDERS: ReadonlySet<StorageFolder> = new Set([
+  'notes',
+  'investments',
+  'registrations',
+  'students',
+  'transactions',
+  'workout',
+]);
+
+/**
+ * Media upload/delete facade on top of the R2 storage client.
+ *
+ * Note: callers currently treat the returned `uri` as a display URL. We return
+ * a short-lived signed URL from R2 so existing display code keeps working. The
+ * underlying opaque `key` is also returned for callers that can persist it.
+ */
 export class MediaService {
   private static generateFileName(type: MediaType, originalName?: string): string {
     const timestamp = Date.now();
@@ -46,12 +66,13 @@ export class MediaService {
   }
 
   /**
-   * Read a local file as a Blob using RN's native fetch(),
-   * which handles file://, content://, and other local URIs.
+   * Coerce the legacy free-form `folder` string into a valid R2 StorageFolder.
+   * Unknown folders (e.g. the legacy 'chat-media', 'notes-media') fall back to
+   * 'notes' so uploads still land in a valid bucket prefix.
    */
-  private static async readFileAsBlob(uri: string): Promise<Blob> {
-    const response = await fetch(uri);
-    return response.blob();
+  private static resolveFolder(folder: string): StorageFolder {
+    if (KNOWN_FOLDERS.has(folder as StorageFolder)) return folder as StorageFolder;
+    return 'notes';
   }
 
   static async uploadMedia(
@@ -59,20 +80,25 @@ export class MediaService {
     type: MediaType,
     originalName?: string,
     onProgress?: (progress: number) => void,
-    folder: string = 'notes-media',
+    folder: string = 'notes',
   ): Promise<MediaUploadResult> {
     try {
-      // Generate file name and determine content type
       const fileName = this.generateFileName(type, originalName);
-      const contentType = this.getMimeType(type, originalName || fileName);
-      const storageRef = ref(getStorageInstance(), `${folder}/${fileName}`);
+      const mimeType = this.getMimeType(type, originalName || fileName);
 
-      const blob = await this.readFileAsBlob(uri);
-      const snapshot = await uploadBytes(storageRef, blob, { contentType });
+      const result = await uploadToR2({
+        uri,
+        fileName,
+        mimeType,
+        folder: this.resolveFolder(folder),
+      });
       onProgress?.(100);
 
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      return { success: true, uri: downloadURL };
+      // Return a signed display URL so existing callers that treat `uri` as
+      // an <Image source={{ uri }}> value keep working. The opaque key is the
+      // source of truth for later deletes / re-signing.
+      const displayUrl = await getDisplayUrl(result.key);
+      return { success: true, uri: displayUrl };
     } catch (error) {
       console.error('Media upload error:', error);
       return {
@@ -82,10 +108,19 @@ export class MediaService {
     }
   }
 
-  static async deleteMedia(uri: string): Promise<boolean> {
+  /**
+   * Delete by R2 object key. Callers that still pass a signed URL will hit the
+   * warning branch — those call sites need to be migrated to store the key.
+   */
+  static async deleteMedia(keyOrUrl: string): Promise<boolean> {
     try {
-      const storageRef = ref(getStorageInstance(), uri);
-      await deleteObject(storageRef);
+      if (keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) {
+        console.warn(
+          'MediaService.deleteMedia called with a URL instead of an R2 key; skipping delete.',
+        );
+        return false;
+      }
+      await deleteFromR2(keyOrUrl);
       return true;
     } catch (error) {
       console.error('Delete media error:', error);
@@ -103,7 +138,6 @@ export class MediaService {
 
     for (const uri of uris) {
       const result = await this.uploadMedia(uri, type, undefined, (progress) => {
-        // Calculate overall progress
         const overallProgress = ((completed + progress / 100) / uris.length) * 100;
         onProgress?.(overallProgress);
       });
@@ -112,7 +146,6 @@ export class MediaService {
       completed++;
 
       if (!result.success) {
-        // Stop on first error
         break;
       }
     }

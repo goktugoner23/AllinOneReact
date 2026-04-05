@@ -16,8 +16,8 @@ export function CalendarScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const colors = useColors();
 
-  // TanStack Query for Firebase events
-  const { data: firebaseEvents = [], isLoading: isLoadingEvents } = useCalendarEvents();
+  // TanStack Query for remote events
+  const { data: remoteEvents = [], isLoading: isLoadingEvents } = useCalendarEvents();
   const addEventMutation = useAddCalendarEvent();
   const updateEventMutation = useUpdateCalendarEvent();
   const deleteEventMutation = useDeleteCalendarEvent();
@@ -30,7 +30,7 @@ export function CalendarScreen() {
   const [selectedDate, setSelectedDateState] = useState<string>(new Date().toISOString().split('T')[0]);
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedFirebaseEvent, setSelectedFirebaseEvent] = useState<Event | null>(null);
+  const [selectedRemoteEvent, setSelectedRemoteEvent] = useState<Event | null>(null);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -59,17 +59,17 @@ export function CalendarScreen() {
     dispatch(generateCalendarEvents());
   }, [dispatch, students, registrations, lessons, seminars]);
 
-  // Convert Firebase events (already Event objects) and WTRegistry events
+  // Combine remote events (already Event objects) with WTRegistry events
   const allEvents = [
-    ...firebaseEvents.map((event) => ({
-      id: `firebase-${event.id}`,
+    ...remoteEvents.map((event) => ({
+      id: `remote-${event.id}`,
       title: event.title,
       description: event.description,
       date: event.date,
       endDate: event.endDate,
       type: event.type as CalendarEvent['type'],
-      isFirebaseEvent: true,
-      firebaseEvent: event as Event | undefined,
+      isRemoteEvent: true,
+      remoteEvent: event as Event | undefined,
     })),
     ...wtRegistrySerializableEvents.map((serializableEvent) => {
       const event = serializableToEvent(serializableEvent);
@@ -80,8 +80,8 @@ export function CalendarScreen() {
         date: event.date,
         endDate: event.endDate,
         type: event.type as CalendarEvent['type'],
-        isFirebaseEvent: false,
-        firebaseEvent: undefined as Event | undefined,
+        isRemoteEvent: false,
+        remoteEvent: undefined as Event | undefined,
       };
     }),
   ];
@@ -90,12 +90,12 @@ export function CalendarScreen() {
     setSelectedDateState(day.dateString);
     // Clear any selected events when date changes
     setSelectedEvent(null);
-    setSelectedFirebaseEvent(null);
+    setSelectedRemoteEvent(null);
   };
 
   const handleEventPress = (event: (typeof allEvents)[0]) => {
-    if (event.isFirebaseEvent && event.firebaseEvent) {
-      setSelectedFirebaseEvent(event.firebaseEvent);
+    if (event.isRemoteEvent && event.remoteEvent) {
+      setSelectedRemoteEvent(event.remoteEvent);
       setSelectedEvent(null);
     } else {
       setSelectedEvent({
@@ -106,7 +106,7 @@ export function CalendarScreen() {
         endDate: event.endDate,
         type: event.type,
       });
-      setSelectedFirebaseEvent(null);
+      setSelectedRemoteEvent(null);
     }
     setShowEventModal(true);
   };
@@ -153,11 +153,11 @@ export function CalendarScreen() {
       return;
     }
 
-    if (!selectedFirebaseEvent) return;
+    if (!selectedRemoteEvent) return;
 
     try {
       await updateEventMutation.mutateAsync({
-        eventId: selectedFirebaseEvent.id,
+        eventId: selectedRemoteEvent.id,
         eventData: formData,
       });
       setShowEditDialog(false);
@@ -168,7 +168,7 @@ export function CalendarScreen() {
   };
 
   const handleDeleteEvent = async () => {
-    if (!selectedFirebaseEvent) return;
+    if (!selectedRemoteEvent) return;
 
     Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
       { text: 'Cancel', style: 'cancel' },
@@ -177,9 +177,9 @@ export function CalendarScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteEventMutation.mutateAsync(selectedFirebaseEvent.id);
+            await deleteEventMutation.mutateAsync(selectedRemoteEvent.id);
             setShowEventModal(false);
-            setSelectedFirebaseEvent(null);
+            setSelectedRemoteEvent(null);
           } catch (error) {
             Alert.alert('Error', 'Failed to delete event');
           }
@@ -226,7 +226,7 @@ export function CalendarScreen() {
 
       let color = '#FFD700'; // yellow for other events (default)
 
-      // Handle Firebase events and WTRegistry events (both use string types)
+      // Handle remote events and WTRegistry events (both use string types)
       if (typeof event.type === 'string') {
         if (event.type.includes('Registration Start')) {
           color = '#4CAF50'; // green for registration start
@@ -429,7 +429,7 @@ export function CalendarScreen() {
       {/* Event Details Modal */}
       <Dialog visible={showEventModal} onClose={() => setShowEventModal(false)} title="Event Details">
         {(() => {
-          const event = selectedFirebaseEvent || selectedEvent;
+          const event = selectedRemoteEvent || selectedEvent;
           if (!event) return null;
           return (
             <View>
@@ -461,9 +461,9 @@ export function CalendarScreen() {
           );
         })()}
         <View style={styles.dialogActions}>
-          {selectedFirebaseEvent && (
+          {selectedRemoteEvent && (
             <>
-              <Button variant="ghost" onPress={() => handleEditEvent(selectedFirebaseEvent)}>
+              <Button variant="ghost" onPress={() => handleEditEvent(selectedRemoteEvent)}>
                 Edit
               </Button>
               <Button variant="destructive" onPress={handleDeleteEvent} loading={deleteEventMutation.isPending}>
@@ -476,7 +476,7 @@ export function CalendarScreen() {
             onPress={() => {
               setShowEventModal(false);
               setSelectedEvent(null);
-              setSelectedFirebaseEvent(null);
+              setSelectedRemoteEvent(null);
             }}
           >
             Close

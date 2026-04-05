@@ -1,5 +1,5 @@
 /**
- * Notes service — talks to huginn-external REST API (no Firebase).
+ * Notes service — talks to huginn-external REST API.
  *
  * - CRUD goes through `api.*` which auto-unwraps the `{ success, data }` envelope
  *   and attaches the shared bearer token.
@@ -259,7 +259,7 @@ export const uploadAttachmentsWithProgress = async (
 
 /**
  * Delete a single attachment.
- * Accepts R2 keys (or legacy Firebase URLs — those are ignored / handled by the
+ * Accepts R2 keys (or legacy storage URLs — those are ignored / handled by the
  * server). Local `file://` URIs are also ignored.
  */
 export const deleteAttachmentByUri = async (uri: string): Promise<void> => {
@@ -277,7 +277,7 @@ export const deleteAttachmentByUri = async (uri: string): Promise<void> => {
 
 /**
  * Delete multiple attachments.
- * Accepts R2 keys (or legacy Firebase URLs — those are ignored / handled by the
+ * Accepts R2 keys (or legacy storage URLs — those are ignored / handled by the
  * server).
  */
 export const deleteAttachmentsByUris = async (uris: string[]): Promise<void> => {

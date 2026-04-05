@@ -10,7 +10,6 @@ import {
   subscribeToTasks,
   subscribeToTaskGroups,
 } from '@features/tasks/services/tasks';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 
 // Async thunks
 export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
@@ -20,7 +19,7 @@ export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
 export const addTask = createAsyncThunk(
   'tasks/addTask',
   async (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
-    const id = await firebaseIdManager.getNextId('tasks');
+    const id = Date.now();
     const task: Task = {
       id: id.toString(),
       name: taskData.name,
@@ -58,7 +57,7 @@ export const fetchTaskGroups = createAsyncThunk('tasks/fetchTaskGroups', async (
 export const addTaskGroup = createAsyncThunk(
   'tasks/addTaskGroup',
   async (groupData: { title: string; description?: string; color: string }) => {
-    const id = await firebaseIdManager.getNextId('taskGroups');
+    const id = Date.now();
     const taskGroup: TaskGroup = {
       id: id.toString(),
       title: groupData.title,

@@ -1,9 +1,9 @@
 import store from '@shared/store/rootStore';
 import { updateBalanceIncrementally, setStale } from '@features/transactions/store/balanceSlice';
 import {
-  addTransaction as addTransactionToFirebase,
-  deleteTransaction as deleteTransactionFromFirebase,
-  updateTransaction as updateTransactionInFirebase,
+  addTransaction as addTransactionRemote,
+  deleteTransaction as deleteTransactionRemote,
+  updateTransaction as updateTransactionRemote,
 } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { logger } from '@shared/utils/logger';
@@ -17,13 +17,13 @@ export class TransactionService {
    */
   static async addTransaction(transaction: Omit<Transaction, 'id'>): Promise<void> {
     try {
-      // Add transaction to Firebase
-      await addTransactionToFirebase(transaction);
+      // Add transaction via REST
+      await addTransactionRemote(transaction);
 
       // Update balance cache incrementally
       const newTransaction: Transaction = {
         ...transaction,
-        id: 'temp', // This will be replaced by the actual ID from Firebase
+        id: 'temp', // Replaced by server-assigned ID
       };
 
       // Mark balance as stale and update incrementally
@@ -52,8 +52,8 @@ export class TransactionService {
       // Get the old transaction to calculate the difference
       const oldTransaction = await this.getTransactionById(transaction.id);
 
-      // Update transaction in Firebase
-      await updateTransactionInFirebase(transaction);
+      // Update transaction via REST
+      await updateTransactionRemote(transaction);
 
       if (oldTransaction) {
         // Calculate the difference and update balance
@@ -99,8 +99,8 @@ export class TransactionService {
       const transaction = await this.getTransactionById(transactionId);
 
       if (transaction) {
-        // Delete transaction from Firebase
-        await deleteTransactionFromFirebase(transactionId);
+        // Delete transaction via REST
+        await deleteTransactionRemote(transactionId);
 
         // Create a reverse transaction for balance update
         const reverseTransaction: Transaction = {
@@ -122,8 +122,8 @@ export class TransactionService {
           'TransactionService',
         );
       } else {
-        // If transaction not found, just delete from Firebase
-        await deleteTransactionFromFirebase(transactionId);
+        // If transaction not found, delete anyway
+        await deleteTransactionRemote(transactionId);
       }
     } catch (error) {
       logger.error('Error in deleteTransaction service', error, 'TransactionService');
