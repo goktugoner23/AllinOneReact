@@ -62,28 +62,32 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const handleSend = () => {
     if (!canSend) return;
 
-    // NOTE: we send signed URLs rather than R2 keys because the backend
-    // (huginn-external muninn.service) fetches these URLs externally for
-    // vision + audio transcription. Signed URLs expire ~10 min after upload,
-    // which means historical messages persisted server-side will have dead
-    // URLs — that's a backend schema issue (it should store keys and re-sign
-    // on read). The client captures `uploadedKey` on each upload so it's
-    // ready to switch once the backend accepts keys.
+    // Send R2 object keys, not signed URLs. The backend stores keys and
+    // re-signs to short-lived URLs at use time (OpenAI dispatch, GET response).
+    // This keeps persisted conversations valid indefinitely regardless of the
+    // 10-min signature expiry. Falls back to uploadedUrl only if key capture
+    // failed for some reason (legacy path).
     const imageUrls = pendingAttachments
-      .filter(a => a.type === 'image' && a.uploadedUrl)
-      .map(a => a.uploadedUrl!);
+      .filter(a => a.type === 'image' && (a.uploadedKey || a.uploadedUrl))
+      .map(a => a.uploadedKey || a.uploadedUrl!);
 
     const fileAttachments: FileAttachment[] = pendingAttachments
-      .filter(a => a.type === 'file' && a.uploadedUrl)
-      .map(a => ({ url: a.uploadedUrl!, name: a.name || 'file', mimeType: a.mimeType || 'application/octet-stream' }));
+      .filter(a => a.type === 'file' && (a.uploadedKey || a.uploadedUrl))
+      .map(a => ({
+        url: a.uploadedKey || a.uploadedUrl!,
+        name: a.name || 'file',
+        mimeType: a.mimeType || 'application/octet-stream',
+      }));
 
-    const audioAttachment = pendingAttachments.find(a => a.type === 'audio' && a.uploadedUrl);
+    const audioAttachment = pendingAttachments.find(
+      a => a.type === 'audio' && (a.uploadedKey || a.uploadedUrl),
+    );
 
     onSend(
       text.trim(),
       imageUrls.length > 0 ? imageUrls : undefined,
       fileAttachments.length > 0 ? fileAttachments : undefined,
-      audioAttachment?.uploadedUrl,
+      audioAttachment ? audioAttachment.uploadedKey || audioAttachment.uploadedUrl : undefined,
     );
     setText('');
     setPendingAttachments([]);
