@@ -87,6 +87,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
         if (successfulResults.length > 0) {
           const newAttachments: MediaAttachment[] = successfulResults.map((result, index) => ({
             id: `attachment_${Date.now()}_${index}`,
+            key: result.key,
             uri: result.uri!,
             type,
             name: `Media ${state.attachments.length + index + 1}`,
@@ -120,8 +121,9 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            // Remove from storage
-            await MediaService.deleteMedia(attachment.uri);
+            // Remove from storage. Prefer the opaque R2 key; fall back to
+            // the uri only for legacy attachments that never got a key.
+            await MediaService.deleteMedia(attachment.key ?? attachment.uri);
 
             // Remove from local state
             const newAttachments = state.attachments.filter((_, i) => i !== index);

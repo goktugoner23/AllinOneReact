@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Image, TouchableOpacity, Alert, Text, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
 import AudioPlayer from '@shared/components/ui/AudioPlayer';
+import { getDisplayUrl, buildLegacyRedirectUrl } from '@shared/services/storage/r2Storage';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -18,10 +19,38 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ attachment, onClose }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // If this attachment has an R2 key, re-sign for a fresh display URL on
+  // mount. Signed URLs live 10 minutes and `attachment.uri` may already be
+  // stale (e.g. the user is returning to a viewer after a long idle). Falls
+  // back to the legacy redirect, then the raw attachment.uri.
+  const [displayUri, setDisplayUri] = useState<string>(attachment.uri);
+  useEffect(() => {
+    let cancelled = false;
+    setDisplayUri(attachment.uri);
+    if (!attachment.key) return;
+    (async () => {
+      try {
+        const url = await getDisplayUrl(attachment.key!);
+        if (!cancelled) setDisplayUri(url);
+      } catch {
+        if (!cancelled) {
+          try {
+            setDisplayUri(buildLegacyRedirectUrl(attachment.key!));
+          } catch {
+            /* keep initial attachment.uri */
+          }
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attachment.key, attachment.uri]);
+
   const renderMediaContent = () => {
     switch (attachment.type) {
       case MediaType.IMAGE:
-        return <Image source={{ uri: attachment.uri }} style={styles.image} resizeMode="contain" />;
+        return <Image source={{ uri: displayUri }} style={styles.image} resizeMode="contain" />;
 
       case MediaType.VIDEO:
         return (

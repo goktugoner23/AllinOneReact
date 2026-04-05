@@ -554,7 +554,7 @@ const config = __DEV__ ? developmentConfig : productionConfig;
 - **Flipper**: Development debugging
 - **Reactotron**: State and API monitoring
 - **React DevTools**: Component profiling
-- **Firebase Performance**: Production monitoring
+- **Sentry / custom backend metrics**: Production monitoring
 
 ---
 
@@ -1110,7 +1110,7 @@ const config = __DEV__ ? developmentConfig : productionConfig;
 - **Flipper**: Development debugging
 - **Reactotron**: State and API monitoring
 - **React DevTools**: Component profiling
-- **Firebase Performance**: Production monitoring
+- **Sentry / custom backend metrics**: Production monitoring
 
 ---
 

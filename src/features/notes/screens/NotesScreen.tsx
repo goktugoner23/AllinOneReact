@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { AddFab } from '@shared/components';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNotes, useDeleteNote } from '@shared/hooks';
+import { useNotes, useDeleteNote, useResolvedUri } from '@shared/hooks';
 import { Note } from '@features/notes/types/Note';
 import { formatDate, stripHtmlTags } from '@shared/utils/formatters';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
@@ -14,6 +14,51 @@ import { NavigationProps, NotesStackParamList } from '@shared/types/navigation';
 import { Video } from 'react-native-video';
 import { Card, CardContent, IconButton, Button, Skeleton, SkeletonCard, EmptyState, Searchbar, Chip } from '@shared/components/ui';
 import { useAppTheme } from '@shared/theme';
+
+/**
+ * Thumbnail for a single attachment in the note list. CSV values on notes are
+ * R2 object keys — this resolves each one to a short-lived signed display URL
+ * via `useResolvedUri` so <Image> / <Video> get a currently-valid src.
+ */
+const NoteAttachmentThumb: React.FC<{
+  value: string;
+  kind: 'image' | 'video' | 'audio';
+  muted: string;
+  surfaceHover: string;
+  primaryMuted: string;
+  primary: string;
+  radiusMd: number;
+  onPress: () => void;
+}> = ({ value, kind, muted, surfaceHover, primaryMuted, primary, radiusMd, onPress }) => {
+  const resolvedUri = useResolvedUri(value);
+  return (
+    <TouchableOpacity
+      style={[styles.attachmentPreview, { backgroundColor: muted, borderRadius: radiusMd }]}
+      onPress={onPress}
+    >
+      {kind === 'image' ? (
+        <Image source={{ uri: resolvedUri }} style={styles.previewImage} />
+      ) : kind === 'video' ? (
+        <View style={[styles.previewVideo, { backgroundColor: surfaceHover }]}>
+          <Video
+            source={{ uri: resolvedUri ?? '' }}
+            style={styles.previewVideoThumbnail}
+            resizeMode="cover"
+            paused={true}
+            muted={true}
+          />
+          <View style={styles.playOverlay}>
+            <Icon name="play-arrow" size={16} color="white" />
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.previewAudio, { backgroundColor: primaryMuted }]}>
+          <Icon name="music-note" size={20} color={primary} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 const NotesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProps<NotesStackParamList>>();
@@ -97,15 +142,16 @@ const NotesScreen: React.FC = () => {
       // Find the index of the clicked attachment
       const clickedIndex = allAttachments.findIndex((att) => att === uri);
 
-      // Create attachments array for the gallery
+      // Create attachments array for the gallery. CSV values are R2 keys —
+      // pass them as `key` so the viewer can re-sign for a fresh display URL.
       const attachments: MediaAttachment[] = allAttachments.map((att, idx) => {
         const isImage = imageUris.includes(att);
         const isVideo = videoUris.includes(att);
-        const isAudio = voiceUris.includes(att);
 
         return {
           id: `${item.id}_${idx}`,
-          uri: att,
+          key: att,
+          uri: att, // placeholder; MediaViewer will re-sign via `key`
           type: isImage ? MediaType.IMAGE : isVideo ? MediaType.VIDEO : MediaType.AUDIO,
           name: `${isImage ? 'Image' : isVideo ? 'Video' : 'Audio'} attachment`,
         };
@@ -154,37 +200,23 @@ const NotesScreen: React.FC = () => {
         {allAttachments.length > 0 && (
           <View style={[styles.attachmentPreviews, { gap: spacing[2], marginBottom: spacing[3] }]}>
             {allAttachments.slice(0, 3).map((uri, index) => {
-              const isImage = imageUris.includes(uri);
-              const isVideo = videoUris.includes(uri);
-              const isAudio = voiceUris.includes(uri);
-
+              const kind: 'image' | 'video' | 'audio' = imageUris.includes(uri)
+                ? 'image'
+                : videoUris.includes(uri)
+                  ? 'video'
+                  : 'audio';
               return (
-                <TouchableOpacity
+                <NoteAttachmentThumb
                   key={index}
-                  style={[styles.attachmentPreview, { backgroundColor: colors.muted, borderRadius: radius.md }]}
+                  value={uri}
+                  kind={kind}
+                  muted={colors.muted}
+                  surfaceHover={colors.surfaceHover}
+                  primaryMuted={colors.primaryMuted}
+                  primary={colors.primary}
+                  radiusMd={radius.md}
                   onPress={() => handleAttachmentPress(uri)}
-                >
-                  {isImage ? (
-                    <Image source={{ uri }} style={styles.previewImage} />
-                  ) : isVideo ? (
-                    <View style={[styles.previewVideo, { backgroundColor: colors.surfaceHover }]}>
-                      <Video
-                        source={{ uri }}
-                        style={styles.previewVideoThumbnail}
-                        resizeMode="cover"
-                        paused={true}
-                        muted={true}
-                      />
-                      <View style={styles.playOverlay}>
-                        <Icon name="play-arrow" size={16} color="white" />
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={[styles.previewAudio, { backgroundColor: colors.primaryMuted }]}>
-                      <Icon name="music-note" size={20} color={colors.primary} />
-                    </View>
-                  )}
-                </TouchableOpacity>
+                />
               );
             })}
             {allAttachments.length > 3 && (

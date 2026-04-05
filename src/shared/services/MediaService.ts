@@ -96,9 +96,10 @@ export class MediaService {
 
       // Return a signed display URL so existing callers that treat `uri` as
       // an <Image source={{ uri }}> value keep working. The opaque key is the
-      // source of truth for later deletes / re-signing.
+      // source of truth for later deletes / re-signing — callers should
+      // persist `key`, not `uri`.
       const displayUrl = await getDisplayUrl(result.key);
-      return { success: true, uri: displayUrl };
+      return { success: true, key: result.key, uri: displayUrl };
     } catch (error) {
       console.error('Media upload error:', error);
       return {
