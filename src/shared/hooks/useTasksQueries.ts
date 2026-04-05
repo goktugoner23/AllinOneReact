@@ -9,7 +9,6 @@ import {
   deleteTaskGroup as deleteTaskGroupService,
 } from '@features/tasks/services/tasks';
 import { Task, TaskGroup } from '@features/tasks/types/Task';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 
 // Hook for fetching tasks
 export function useTasks() {
@@ -35,7 +34,7 @@ export function useAddTask() {
 
   return useMutation({
     mutationFn: async (taskData: { name: string; description?: string; dueDate?: Date; groupId?: string }) => {
-      const id = await firebaseIdManager.getNextId('tasks');
+      const id = Date.now();
       const task: Task = {
         id: id.toString(),
         name: taskData.name,
@@ -147,7 +146,7 @@ export function useAddTaskGroup() {
 
   return useMutation({
     mutationFn: async (groupData: { title: string; description?: string; color: string }) => {
-      const id = await firebaseIdManager.getNextId('taskGroups');
+      const id = Date.now();
       const group: TaskGroup = {
         id: id.toString(),
         title: groupData.title,

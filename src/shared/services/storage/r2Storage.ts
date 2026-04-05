@@ -5,7 +5,7 @@
  *   POST   /api/storage/upload       multipart: file, folder, entityId?
  *   GET    /api/storage/sign?key=... → { url, expiresIn }  (10 min presigned)
  *   DELETE /api/storage/object?key=...
- *   GET    /api/storage/legacy?sourceUrl=...   (redirects, for old Firebase URLs)
+ *   GET    /api/storage/legacy?sourceUrl=...   (redirects, for legacy storage URLs)
  *
  * Security model: we store only the opaque object `key` in the database/state.
  * Every time the UI wants to display an image/file we call `getDisplayUrl(key)`
@@ -111,12 +111,12 @@ export function clearSignCache(): void {
 }
 
 /**
- * Build a /api/storage/legacy redirect URL for old Firebase download URLs
- * embedded in legacy notes/attachments. huginn-external resolves them to the
- * matching R2 object and redirects to a signed URL.
+ * Build a /api/storage/legacy redirect URL for a legacy storage URL embedded
+ * in old notes/attachments. huginn-external resolves it to the matching R2
+ * object and redirects to a signed URL.
  */
-export function buildLegacyRedirectUrl(firebaseUrl: string): string {
-  return `${API_BASE_URL}/api/storage/legacy?sourceUrl=${encodeURIComponent(firebaseUrl)}`;
+export function buildLegacyRedirectUrl(legacyUrl: string): string {
+  return `${API_BASE_URL}/api/storage/legacy?sourceUrl=${encodeURIComponent(legacyUrl)}`;
 }
 
 export { HuginnApiError };

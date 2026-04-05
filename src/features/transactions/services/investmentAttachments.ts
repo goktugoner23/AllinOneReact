@@ -122,7 +122,7 @@ export async function uploadInvestmentAttachments(
       else if (att.type === MediaType.AUDIO) result.voiceNoteUris.push(uploaded.key);
     } catch {
       // Fall back to the original local URI so the caller still sees something;
-      // matches the behavior of the previous Firebase implementation.
+      // matches the previous implementation.
       if (att.type === MediaType.IMAGE) result.imageUris.push(att.uri);
       else if (att.type === MediaType.VIDEO) result.videoUris.push(att.uri);
       else if (att.type === MediaType.AUDIO) result.voiceNoteUris.push(att.uri);

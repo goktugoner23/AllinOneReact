@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { workoutService } from '@features/workout/services/workout';
 import {
   CompletedSet,
@@ -98,7 +97,7 @@ export const initializeSession = createAsyncThunk('workout/initialize', async ()
 });
 
 export const startWorkout = createAsyncThunk('workout/start', async (program?: Program) => {
-  const id = await firebaseIdManager.getNextId('workouts');
+  const id = Date.now();
   const session = buildSessionFromProgram(id, program);
   await workoutService.saveActiveSession(session);
   return session;

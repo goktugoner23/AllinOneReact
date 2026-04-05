@@ -12,7 +12,7 @@ export interface WTRegistration {
   id: number;
   studentId: number; // Reference to WTStudent id
   amount: number;
-  attachmentUri?: string; // Can be local URI or Firebase Storage URL
+  attachmentUri?: string; // Can be local URI or remote storage URL
   startDate?: Date | string; // Can be Date object or ISO string for Redux serialization
   endDate?: Date | string; // Can be Date object or ISO string for Redux serialization
   paymentDate: Date | string; // Can be Date object or ISO string for Redux serialization

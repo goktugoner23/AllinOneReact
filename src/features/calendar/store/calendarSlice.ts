@@ -12,49 +12,49 @@ import { RootState } from '@shared/store/rootStore';
 
 interface CalendarState {
   events: SerializableEvent[];
-  firebaseEvents: SerializableEvent[];
+  remoteEvents: SerializableEvent[];
   selectedDate: string; // YYYY-MM-DD format
   showEventModal: boolean;
   selectedEvent: SerializableEvent | null;
-  selectedFirebaseEvent: SerializableEvent | null;
+  selectedRemoteEvent: SerializableEvent | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: CalendarState = {
   events: [],
-  firebaseEvents: [],
+  remoteEvents: [],
   selectedDate: new Date().toISOString().split('T')[0],
   showEventModal: false,
   selectedEvent: null,
-  selectedFirebaseEvent: null,
+  selectedRemoteEvent: null,
   loading: false,
   error: null,
 };
 
-// Fetch events from Firebase
-export const fetchFirebaseEvents = createAsyncThunk('calendar/fetchFirebaseEvents', async () => {
+// Fetch events from remote REST API
+export const fetchRemoteEvents = createAsyncThunk('calendar/fetchRemoteEvents', async () => {
   const events = await getEvents();
   return events.map(eventToSerializable);
 });
 
-// Add new event to Firebase
-export const addFirebaseEvent = createAsyncThunk('calendar/addFirebaseEvent', async (eventData: EventFormData) => {
+// Add new event via remote REST API
+export const addRemoteEvent = createAsyncThunk('calendar/addRemoteEvent', async (eventData: EventFormData) => {
   const newEvent = await addEvent(eventData);
   return eventToSerializable(newEvent);
 });
 
-// Update existing event in Firebase
-export const updateFirebaseEvent = createAsyncThunk(
-  'calendar/updateFirebaseEvent',
+// Update existing event via remote REST API
+export const updateRemoteEvent = createAsyncThunk(
+  'calendar/updateRemoteEvent',
   async ({ eventId, eventData }: { eventId: string; eventData: Partial<EventFormData> }) => {
     await updateEvent(eventId, eventData);
     return { eventId, eventData };
   },
 );
 
-// Delete event from Firebase
-export const deleteFirebaseEvent = createAsyncThunk('calendar/deleteFirebaseEvent', async (eventId: string) => {
+// Delete event via remote REST API
+export const deleteRemoteEvent = createAsyncThunk('calendar/deleteRemoteEvent', async (eventId: string) => {
   await deleteEvent(eventId);
   return eventId;
 });
@@ -154,9 +154,9 @@ export const generateCalendarEvents = createAsyncThunk('calendar/generateEvents'
   return events;
 });
 
-// Add custom calendar event (legacy - now use addFirebaseEvent)
+// Add custom calendar event (legacy - now use addRemoteEvent)
 export const addCalendarEvent = createAsyncThunk('calendar/addEvent', async (event: Omit<CalendarEvent, 'id'>) => {
-  // For now, just create a local event. Could be extended to save to Firebase
+  // For now, just create a local event. Could be extended to persist remotely
   const newEvent: SerializableEvent = {
     ...event,
     id: `custom-${Date.now()}`,
@@ -179,8 +179,8 @@ const calendarSlice = createSlice({
     setSelectedEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
       state.selectedEvent = action.payload;
     },
-    setSelectedFirebaseEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
-      state.selectedFirebaseEvent = action.payload;
+    setSelectedRemoteEvent: (state, action: PayloadAction<SerializableEvent | null>) => {
+      state.selectedRemoteEvent = action.payload;
     },
     addEventLocal: (state, action: PayloadAction<SerializableEvent>) => {
       state.events.push(action.payload);
@@ -203,27 +203,27 @@ const calendarSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Firebase events
-      .addCase(fetchFirebaseEvents.pending, (state) => {
+      // Remote events
+      .addCase(fetchRemoteEvents.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchFirebaseEvents.fulfilled, (state, action) => {
+      .addCase(fetchRemoteEvents.fulfilled, (state, action) => {
         state.loading = false;
-        state.firebaseEvents = action.payload;
+        state.remoteEvents = action.payload;
       })
-      .addCase(fetchFirebaseEvents.rejected, (state, action) => {
+      .addCase(fetchRemoteEvents.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch events from Firebase';
+        state.error = action.error.message || 'Failed to fetch events';
       })
-      .addCase(addFirebaseEvent.fulfilled, (state, action) => {
-        state.firebaseEvents.push(action.payload);
+      .addCase(addRemoteEvent.fulfilled, (state, action) => {
+        state.remoteEvents.push(action.payload);
       })
-      .addCase(updateFirebaseEvent.fulfilled, (state, action) => {
-        const index = state.firebaseEvents.findIndex((e) => e.id === action.payload.eventId);
+      .addCase(updateRemoteEvent.fulfilled, (state, action) => {
+        const index = state.remoteEvents.findIndex((e) => e.id === action.payload.eventId);
         if (index !== -1) {
           // Update the serializable event with new data
-          const updatedEvent = { ...state.firebaseEvents[index] };
+          const updatedEvent = { ...state.remoteEvents[index] };
           if (action.payload.eventData.title !== undefined) updatedEvent.title = action.payload.eventData.title;
           if (action.payload.eventData.description !== undefined)
             updatedEvent.description = action.payload.eventData.description;
@@ -232,11 +232,11 @@ const calendarSlice = createSlice({
           if (action.payload.eventData.endDate !== undefined)
             updatedEvent.endDate = action.payload.eventData.endDate?.toISOString();
           if (action.payload.eventData.type !== undefined) updatedEvent.type = action.payload.eventData.type;
-          state.firebaseEvents[index] = updatedEvent;
+          state.remoteEvents[index] = updatedEvent;
         }
       })
-      .addCase(deleteFirebaseEvent.fulfilled, (state, action) => {
-        state.firebaseEvents = state.firebaseEvents.filter((e) => e.id !== action.payload);
+      .addCase(deleteRemoteEvent.fulfilled, (state, action) => {
+        state.remoteEvents = state.remoteEvents.filter((e) => e.id !== action.payload);
       })
       // WTRegistry events
       .addCase(generateCalendarEvents.pending, (state) => {
@@ -261,7 +261,7 @@ export const {
   setSelectedDate,
   setShowEventModal,
   setSelectedEvent,
-  setSelectedFirebaseEvent,
+  setSelectedRemoteEvent,
   addEventLocal,
   updateEventLocal,
   deleteEventLocal,

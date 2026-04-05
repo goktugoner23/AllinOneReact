@@ -120,7 +120,7 @@ const MediaAttachmentManager: React.FC<MediaAttachmentManagerProps> = ({ state, 
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            // Remove from Firebase Storage
+            // Remove from storage
             await MediaService.deleteMedia(attachment.uri);
 
             // Remove from local state

@@ -17,7 +17,6 @@ import {
 } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
 import { Program, ProgramExerciseSpec } from '@features/workout/types/Workout';
-import { firebaseIdManager } from '@shared/services/firebase/firebaseIdManager';
 import { useColors, spacing, textStyles } from '@shared/theme';
 
 export default function WorkoutPrograms() {
@@ -61,7 +60,7 @@ export default function WorkoutPrograms() {
   const handleSaveProgram = async () => {
     if (!newName.trim()) return;
     let id = editOpen?.id;
-    if (!id) id = await firebaseIdManager.getNextId('programs');
+    if (!id) id = Date.now();
     const program: Program = { id, name: newName.trim(), exercises: newExercises };
     await workoutService.saveProgram(program);
     const fresh = await workoutService.getPrograms();

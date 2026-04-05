@@ -237,7 +237,7 @@ function looksLikeR2Key(value: string): boolean {
 }
 
 /**
- * Delete a previously-uploaded file. Accepts an R2 key or a legacy Firebase
+ * Delete a previously-uploaded file. Accepts an R2 key or a legacy storage
  * URL. Legacy URLs are no-oped (the bucket is gone) — we just log and return.
  */
 export async function deleteFileFromStorage(fileUrlOrKey: string): Promise<boolean> {

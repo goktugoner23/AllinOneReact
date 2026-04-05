@@ -40,7 +40,7 @@ export function SeminarsTab() {
 
   // Load seminars when component mounts
   useEffect(() => {
-    console.log('🔍 Loading seminars from Firebase...');
+    console.log('🔍 Loading seminars...');
     dispatch(loadSeminars());
   }, [dispatch]);
 

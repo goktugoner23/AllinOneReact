@@ -57,16 +57,16 @@ export const logger = {
     addToHistory('info', `NETWORK: ${method} ${url}`, 'network', { status, duration });
   },
 
-  firebase(operation: string, collection: string, success: boolean, error?: any) {
+  data(operation: string, resource: string, success: boolean, error?: any) {
     if (!shouldLog()) return;
-    const emoji = success ? '🔥✅' : '🔥❌';
-    const message = `[FIREBASE] ${operation} on ${collection}`;
+    const emoji = success ? '📦✅' : '📦❌';
+    const message = `[DATA] ${operation} on ${resource}`;
     if (success) {
       console.log(`${emoji} ${message}`);
-      addToHistory('info', `FIREBASE: ${message}`, 'firebase');
+      addToHistory('info', `DATA: ${message}`, 'data');
     } else {
       console.error(`${emoji} ${message}`, error);
-      addToHistory('error', `FIREBASE: ${message}`, 'firebase', error);
+      addToHistory('error', `DATA: ${message}`, 'data', error);
     }
   },
 

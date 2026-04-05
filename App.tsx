@@ -35,24 +35,6 @@ import StopwatchScreen from '@features/workout/screens/StopwatchScreen';
 import { ThemeProvider, useAppTheme, useColors } from '@shared/theme';
 import { CurrencyContext, useCurrencyProvider } from '@shared/hooks/useCurrency';
 
-// Initialize Firebase
-import '@shared/services/firebase/firebase';
-
-// Global error handler to suppress Firestore assertion errors
-const setupGlobalErrorHandler = () => {
-  const originalConsoleError = console.error;
-  console.error = (...args) => {
-    const message = args.join(' ');
-    if (message.includes('INTERNAL ASSERTION FAILED')) {
-      console.warn('⚠️ Suppressing Firestore assertion error:', message);
-      return;
-    }
-    originalConsoleError.apply(console, args);
-  };
-};
-
-// Balance preloader removed to avoid initialization issues
-
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -210,7 +192,6 @@ function CurrencyWrapper() {
 
 export default function App() {
   useEffect(() => {
-    setupGlobalErrorHandler();
     try { enableFreeze(true); } catch (_) {}
   }, []);
 
