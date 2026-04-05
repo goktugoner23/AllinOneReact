@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
-import { PendingChoice } from '../types/GPT';
+import { PendingChoice } from '../types/Muninn';
 
 interface UserChoiceCardProps {
   choice: PendingChoice;

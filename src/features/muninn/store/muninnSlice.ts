@@ -1,15 +1,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { gptApiService } from '../services/gptApiService';
+import { muninnApiService } from '../services/muninnApiService';
 import {
   ChatMessage,
   ConversationMeta,
   PendingChoice,
   PendingConfirmation,
-  AIChatAction,
+  MuninnAction,
   FileAttachment,
-} from '../types/GPT';
+} from '../types/Muninn';
 
-interface GPTState {
+interface MuninnState {
   activeConversationId: string | null;
   conversations: ConversationMeta[];
   messages: ChatMessage[];
@@ -18,10 +18,10 @@ interface GPTState {
   error: string | null;
   pendingChoice: PendingChoice | null;
   pendingConfirmation: PendingConfirmation | null;
-  lastActions: AIChatAction[];
+  lastActions: MuninnAction[];
 }
 
-const initialState: GPTState = {
+const initialState: MuninnState = {
   activeConversationId: null,
   conversations: [],
   messages: [],
@@ -34,10 +34,10 @@ const initialState: GPTState = {
 };
 
 export const fetchConversations = createAsyncThunk(
-  'gpt/fetchConversations',
+  'muninn/fetchConversations',
   async (_, { rejectWithValue }) => {
     try {
-      return await gptApiService.getConversations();
+      return await muninnApiService.getConversations();
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch conversations');
     }
@@ -45,10 +45,10 @@ export const fetchConversations = createAsyncThunk(
 );
 
 export const loadConversation = createAsyncThunk(
-  'gpt/loadConversation',
+  'muninn/loadConversation',
   async (id: string, { rejectWithValue }) => {
     try {
-      const conversation = await gptApiService.getConversation(id);
+      const conversation = await muninnApiService.getConversation(id);
       // Convert conversation messages to ChatMessages (only user/assistant with content)
       const chatMessages: ChatMessage[] = conversation.messages
         .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content)
@@ -69,7 +69,7 @@ export const loadConversation = createAsyncThunk(
 );
 
 export const sendMessage = createAsyncThunk(
-  'gpt/sendMessage',
+  'muninn/sendMessage',
   async (
     { message, conversationId, imageUrls, fileAttachments, audioUrl }: {
       message: string;
@@ -81,7 +81,7 @@ export const sendMessage = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await gptApiService.sendMessage({ message, conversationId, imageUrls, fileAttachments, audioUrl });
+      const response = await muninnApiService.sendMessage({ message, conversationId, imageUrls, fileAttachments, audioUrl });
       return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to send message');
@@ -90,13 +90,13 @@ export const sendMessage = createAsyncThunk(
 );
 
 export const sendChoiceResponse = createAsyncThunk(
-  'gpt/sendChoiceResponse',
+  'muninn/sendChoiceResponse',
   async (
     { conversationId, choiceId, selectedOption }: { conversationId: string; choiceId: string; selectedOption: string },
     { rejectWithValue },
   ) => {
     try {
-      const response = await gptApiService.sendChoiceResponse(conversationId, choiceId, selectedOption);
+      const response = await muninnApiService.sendChoiceResponse(conversationId, choiceId, selectedOption);
       return response;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to send choice');
@@ -105,10 +105,10 @@ export const sendChoiceResponse = createAsyncThunk(
 );
 
 export const deleteConversation = createAsyncThunk(
-  'gpt/deleteConversation',
+  'muninn/deleteConversation',
   async (id: string, { rejectWithValue }) => {
     try {
-      await gptApiService.deleteConversation(id);
+      await muninnApiService.deleteConversation(id);
       return id;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete conversation');
@@ -116,8 +116,8 @@ export const deleteConversation = createAsyncThunk(
   },
 );
 
-const gptSlice = createSlice({
-  name: 'gpt',
+const muninnSlice = createSlice({
+  name: 'muninn',
   initialState,
   reducers: {
     startNewConversation(state) {
@@ -259,5 +259,5 @@ const gptSlice = createSlice({
   },
 });
 
-export const { startNewConversation, clearError, clearPendingInteraction } = gptSlice.actions;
-export default gptSlice.reducer;
+export const { startNewConversation, clearError, clearPendingInteraction } = muninnSlice.actions;
+export default muninnSlice.reducer;

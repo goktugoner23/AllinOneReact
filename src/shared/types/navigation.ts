@@ -19,7 +19,7 @@ export type MainDrawerParamList = {
   History: undefined;
   Notes: undefined;
   Tasks: undefined;
-  GPT: undefined;
+  Muninn: undefined;
 };
 
 // Transactions Tab Parameter List

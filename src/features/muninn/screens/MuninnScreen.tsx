@@ -13,8 +13,8 @@ import {
   loadConversation,
   deleteConversation,
   startNewConversation,
-} from '../store/gptSlice';
-import { ChatMessage, FileAttachment } from '../types/GPT';
+} from '../store/muninnSlice';
+import { ChatMessage, FileAttachment } from '../types/Muninn';
 import {
   ChatBubble,
   ChatInput,
@@ -24,7 +24,7 @@ import {
   ConversationList,
 } from '../components';
 
-export default function GPTScreen() {
+export default function MuninnScreen() {
   const colors = useColors();
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
@@ -40,7 +40,7 @@ export default function GPTScreen() {
     pendingChoice,
     pendingConfirmation,
     lastActions,
-  } = useSelector((state: RootState) => state.gpt);
+  } = useSelector((state: RootState) => state.muninn);
 
   // Load conversations on mount
   useEffect(() => {

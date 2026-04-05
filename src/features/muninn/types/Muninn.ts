@@ -1,4 +1,4 @@
-export interface AIChatAction {
+export interface MuninnAction {
   type: 'navigate' | 'user_choice' | 'confirmation' | 'data_updated';
   screen?: string;
   params?: Record<string, any>;
@@ -9,11 +9,11 @@ export interface AIChatAction {
   collection?: string;
 }
 
-export interface AIChatResponse {
+export interface MuninnChatResponse {
   success: boolean;
   conversationId: string;
   message: string;
-  actions: AIChatAction[];
+  actions: MuninnAction[];
   model: string;
 }
 
@@ -23,7 +23,7 @@ export interface FileAttachment {
   mimeType: string;
 }
 
-export interface AIChatMessageRequest {
+export interface MuninnChatMessageRequest {
   message: string;
   conversationId?: string;
   imageUrls?: string[];
@@ -31,7 +31,7 @@ export interface AIChatMessageRequest {
   audioUrl?: string;
 }
 
-export interface AIChatChoiceResponseRequest {
+export interface MuninnChatChoiceResponseRequest {
   conversationId: string;
   choiceId: string;
   selectedOption: string;

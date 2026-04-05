@@ -5,7 +5,7 @@ import balanceReducer from '@features/transactions/store/balanceSlice';
 import notesReducer from '@features/notes/store/notesSlice';
 import tasksReducer from '@features/tasks/store/tasksSlice';
 import workoutReducer from '@features/workout/store/workoutSlice';
-import gptReducer from '@features/gpt/store/gptSlice';
+import muninnReducer from '@features/muninn/store/muninnSlice';
 
 const store = configureStore({
   reducer: {
@@ -15,7 +15,7 @@ const store = configureStore({
     notes: notesReducer,
     tasks: tasksReducer,
     workout: workoutReducer,
-    gpt: gptReducer,
+    muninn: muninnReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
