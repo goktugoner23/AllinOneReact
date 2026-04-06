@@ -31,13 +31,14 @@ import ViewShot from 'react-native-view-shot';
 import RNFS from 'react-native-fs';
 
 interface RouteParams {
-  noteId?: number;
+  noteId?: string | number;
 }
 
 const EditNoteScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { noteId } = (route.params as RouteParams) || {};
+  const rawNoteId = (route.params as RouteParams)?.noteId;
+  const noteId = rawNoteId != null ? Number(rawNoteId) : undefined;
   const { colors, spacing, textStyles, radius } = useAppTheme();
 
   // TanStack Query hooks
