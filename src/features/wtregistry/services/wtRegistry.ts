@@ -5,8 +5,7 @@
  * shared Huginn API client (`api`) and uploads go to Cloudflare R2 via
  * `uploadToR2` / `deleteFromR2`. Envelope unwrapping is handled by httpClient.
  *
- * Exported function names and signatures are frozen — screens and the
- * wtRegistry redux slice depend on them.
+ * Exported function names and signatures are frozen — screens depend on them.
  */
 
 import { api } from '@shared/services/api/httpClient';

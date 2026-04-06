@@ -31,7 +31,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import VoiceRecorder from '@shared/components/ui/VoiceRecorder';
 import { uploadInvestmentAttachments } from '@features/transactions/services/investmentAttachments';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
-import { TransactionService } from '@features/transactions/services/transactionService';
+import { addTransaction } from '@features/transactions/services/transactions';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
 import { useResolvedUri } from '@shared/hooks/useResolvedUri';
 
@@ -573,7 +573,7 @@ function InvestmentsContent() {
                       addAttachments,
                     );
                     if (!addIsPast) {
-                      await TransactionService.addTransaction({
+                      await addTransaction({
                         amount: parseFloat(addForm.amount || '0'),
                         type: 'Investment',
                         description: `Investment in ${addForm.name}`,

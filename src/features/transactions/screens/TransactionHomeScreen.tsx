@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, StyleSheet, RefreshControl } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
@@ -6,36 +6,90 @@ import { Transaction } from '@features/transactions/types/Transaction';
 import { BalanceCard } from '@features/transactions/components/BalanceCard';
 import { TransactionForm } from '@features/transactions/components/TransactionForm';
 import { SpendingPieChart } from '@features/transactions/components/SpendingPieChart';
-import { useTransactions } from '@shared/hooks/useTransactionsQueries';
+import {
+  fetchTransactions,
+  addTransaction,
+  getCurrentMonthTransactionTotals,
+} from '@features/transactions/services/transactions';
+import { fetchInvestments } from '@features/transactions/services/investments';
+import { Investment } from '@features/transactions/types/Investment';
 import { useColors, spacing } from '@shared/theme';
+
+interface BalanceData {
+  income: number;
+  expense: number;
+  balance: number;
+}
 
 type ListItem =
   | {
       type: 'balance';
-      data: { showLoading?: boolean };
+      data: { showLoading?: boolean; balance: BalanceData };
     }
   | { type: 'chart'; data: { transactions: Transaction[] } }
-  | { type: 'form'; data: Record<string, never> };
+  | { type: 'form'; data: { investments: Investment[] } };
 
 export const TransactionHomeScreen: React.FC = () => {
   const colors = useColors();
-  // Use TanStack Query for transactions
-  const { data: transactions = [], isLoading, isFetching, refetch } = useTransactions();
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    const [txns, invs] = await Promise.all([
+      fetchTransactions(1000),
+      fetchInvestments(100),
+    ]);
+    setTransactions(txns);
+    setInvestments(invs);
+  }, []);
+
+  useEffect(() => {
+    fetchAll().finally(() => setLoading(false));
+  }, [fetchAll]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAll();
+    setRefreshing(false);
+  }, [fetchAll]);
 
   // Sort transactions by date descending
-  const sortedTransactions = React.useMemo(
+  const sortedTransactions = useMemo(
     () => [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [transactions],
   );
 
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  // Calculate current month balance from transactions
+  const balanceData = useMemo<BalanceData>(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    let income = 0;
+    let expense = 0;
+
+    for (const t of transactions) {
+      const d = new Date(t.date);
+      if (Number.isNaN(d.getTime())) continue;
+      if (d < monthStart || d > monthEnd) continue;
+      if (t.isIncome) income += t.amount;
+      else expense += t.amount;
+    }
+
+    return { income, expense, balance: income - expense };
+  }, [transactions]);
+
+  const handleTransactionAdded = useCallback(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const listData: ListItem[] = [
-    { type: 'balance', data: { showLoading: isLoading || isFetching } },
+    { type: 'balance', data: { showLoading: loading, balance: balanceData } },
     { type: 'chart', data: { transactions: sortedTransactions } },
-    { type: 'form', data: {} },
+    { type: 'form', data: { investments } },
   ];
 
   return (
@@ -46,18 +100,30 @@ export const TransactionHomeScreen: React.FC = () => {
         renderItem={({ item }) => {
           switch (item.type) {
             case 'balance':
-              return <BalanceCard showLoading={item.data.showLoading} />;
+              return (
+                <BalanceCard
+                  showLoading={item.data.showLoading}
+                  income={item.data.balance.income}
+                  expense={item.data.balance.expense}
+                  balance={item.data.balance.balance}
+                />
+              );
             case 'chart':
               return <SpendingPieChart transactions={item.data.transactions} />;
             case 'form':
-              return <TransactionForm />;
+              return (
+                <TransactionForm
+                  investments={item.data.investments}
+                  onTransactionAdded={handleTransactionAdded}
+                />
+              );
             default:
               return null;
           }
         }}
         refreshControl={
           <RefreshControl
-            refreshing={isFetching}
+            refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}

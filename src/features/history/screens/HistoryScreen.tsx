@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, RefreshControl, Alert, Image } from 'react-native';
 import { useResolvedUri } from '@shared/hooks/useResolvedUri';
 import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
-import { TransactionService } from '@features/transactions/services/transactionService';
 import { updateInvestment, fetchInvestments, deleteInvestment } from '@features/transactions/services/investments';
 import { FlashList } from '@shopify/flash-list';
 import {
@@ -213,7 +212,7 @@ export const HistoryScreen: React.FC = () => {
               }
 
               try {
-                await TransactionService.deleteTransaction(item.id);
+                await deleteTransaction(item.id);
               } catch (deleteError) {
                 if (investmentReverted) {
                   Alert.alert(

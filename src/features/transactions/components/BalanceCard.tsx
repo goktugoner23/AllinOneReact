@@ -1,67 +1,70 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Card, CardHeader, CardContent } from '@shared/components/ui';
-import { useBalance } from '@shared/hooks/useTransactionsQueries';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useCurrency, CurrencyCode } from '@shared/hooks/useCurrency';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 interface BalanceCardProps {
   showLoading?: boolean;
+  income: number;
+  expense: number;
+  balance: number;
 }
 
-export const BalanceCard: React.FC<BalanceCardProps> = React.memo(({ showLoading = false }) => {
-  const colors = useColors();
-  const { income, expense, balance } = useBalance();
-  const { selectedCurrency, setSelectedCurrency, format } = useCurrency();
+export const BalanceCard: React.FC<BalanceCardProps> = React.memo(
+  ({ showLoading = false, income, expense, balance }) => {
+    const colors = useColors();
+    const { selectedCurrency, setSelectedCurrency } = useCurrency();
 
-  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  const toggleCurrency = () => {
-    setSelectedCurrency(selectedCurrency === 'TRY' ? 'AED' : 'TRY');
-  };
+    const toggleCurrency = () => {
+      setSelectedCurrency(selectedCurrency === 'TRY' ? 'AED' : 'TRY');
+    };
 
-  return (
-    <Card variant="elevated" style={styles.card}>
-      <CardHeader style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>{currentMonthName}</Text>
-        <TouchableOpacity
-          onPress={toggleCurrency}
-          style={[styles.currencyToggle, { backgroundColor: colors.primaryMuted }]}
-        >
-          <Text style={[styles.badgeText, { color: colors.primary }]}>{selectedCurrency}</Text>
-          <Ionicons name="swap-horizontal" size={12} color={colors.primary} style={{ marginLeft: 4 }} />
-        </TouchableOpacity>
-      </CardHeader>
+    return (
+      <Card variant="elevated" style={styles.card}>
+        <CardHeader style={styles.header}>
+          <Text style={[styles.title, { color: colors.foreground }]}>{currentMonthName}</Text>
+          <TouchableOpacity
+            onPress={toggleCurrency}
+            style={[styles.currencyToggle, { backgroundColor: colors.primaryMuted }]}
+          >
+            <Text style={[styles.badgeText, { color: colors.primary }]}>{selectedCurrency}</Text>
+            <Ionicons name="swap-horizontal" size={12} color={colors.primary} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
+        </CardHeader>
 
-      <CardContent>
-        {showLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading balance...</Text>
-          </View>
-        ) : (
-          <View style={styles.content}>
-            {/* Balance Items Row */}
-            <View style={styles.balanceRow}>
-              <BalanceItem label="Income" amount={income} icon="arrow-down-circle" variant="income" />
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <BalanceItem label="Expense" amount={expense} icon="arrow-up-circle" variant="expense" />
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <BalanceItem
-                label="Balance"
-                amount={balance}
-                icon="wallet"
-                variant={balance >= 0 ? 'income' : 'expense'}
-                isBalance
-              />
+        <CardContent>
+          {showLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading balance...</Text>
             </View>
-          </View>
-        )}
-      </CardContent>
-    </Card>
-  );
-});
+          ) : (
+            <View style={styles.content}>
+              {/* Balance Items Row */}
+              <View style={styles.balanceRow}>
+                <BalanceItem label="Income" amount={income} icon="arrow-down-circle" variant="income" />
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <BalanceItem label="Expense" amount={expense} icon="arrow-up-circle" variant="expense" />
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <BalanceItem
+                  label="Balance"
+                  amount={balance}
+                  icon="wallet"
+                  variant={balance >= 0 ? 'income' : 'expense'}
+                  isBalance
+                />
+              </View>
+            </View>
+          )}
+        </CardContent>
+      </Card>
+    );
+  },
+);
 
 interface BalanceItemProps {
   label: string;

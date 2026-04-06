@@ -12,8 +12,8 @@ import {
   Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useNotes, useAddNote, useUpdateNote } from '@shared/hooks';
-import { NoteFormData } from '@features/notes/types/Note';
+import { Note, NoteFormData } from '@features/notes/types/Note';
+import { getNotes, addNote as addNoteApi, updateNote as updateNoteApi } from '@features/notes/services/notes';
 import RichTextEditor from '@features/notes/components/RichTextEditor';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import DrawingScreen from '@features/notes/components/DrawingScreen';
@@ -41,12 +41,23 @@ const EditNoteScreen: React.FC = () => {
   const noteId = rawNoteId != null ? Number(rawNoteId) : undefined;
   const { colors, spacing, textStyles, radius } = useAppTheme();
 
-  // TanStack Query hooks
-  const { data: notes = [], isLoading } = useNotes();
-  const addNoteMutation = useAddNote();
-  const updateNoteMutation = useUpdateNote();
-
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [isLoading, setIsLoading] = useState(!!noteId);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!noteId) return;
+    let cancelled = false;
+    getNotes().then((data) => {
+      if (!cancelled) {
+        setNotes(data);
+        setIsLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [noteId]);
 
   const clearError = () => setError(null);
 
@@ -295,14 +306,10 @@ const EditNoteScreen: React.FC = () => {
         }, 800);
       }
 
-      // Save note using TanStack Query mutations
       if (noteId && existingNote) {
-        await updateNoteMutation.mutateAsync({
-          noteId: existingNote.id,
-          noteData,
-        });
+        await updateNoteApi(existingNote.id, noteData);
       } else {
-        await addNoteMutation.mutateAsync(noteData);
+        await addNoteApi(noteData);
       }
 
       // Navigate back immediately after saving
@@ -695,9 +702,6 @@ const EditNoteScreen: React.FC = () => {
     setShowDrawingScreen(false);
   };
 
-  // Check if any mutation is in progress
-  const isMutating = addNoteMutation.isPending || updateNoteMutation.isPending;
-
   if (isLoading && noteId) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -711,12 +715,12 @@ const EditNoteScreen: React.FC = () => {
       <Appbar
         title={noteId ? 'Edit Note' : 'New Note'}
         leading="back"
-        onLeadingPress={saving || isMutating ? undefined : handleBackPress}
+        onLeadingPress={saving ? undefined : handleBackPress}
         trailing={
           <AppbarAction
-            icon={saving || isMutating ? 'hourglass-outline' : 'save-outline'}
+            icon={saving ? 'hourglass-outline' : 'save-outline'}
             onPress={handleSave}
-            disabled={!hasUnsavedChanges || saving || isMutating}
+            disabled={!hasUnsavedChanges || saving}
           />
         }
       />
@@ -911,7 +915,7 @@ const EditNoteScreen: React.FC = () => {
           <Button variant="outline" onPress={handleKeepEditing}>
             Keep Editing
           </Button>
-          <Button variant="primary" onPress={handleSave} loading={isMutating}>
+          <Button variant="primary" onPress={handleSave} loading={saving}>
             Save
           </Button>
         </View>

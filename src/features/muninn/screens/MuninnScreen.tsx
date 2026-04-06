@@ -1,20 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch, useSelector } from 'react-redux';
-import { useQueryClient } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useColors } from '@shared/theme';
-import { RootState, AppDispatch } from '@shared/store/rootStore';
+import { muninnApiService } from '../services/muninnApiService';
 import {
-  sendMessage,
-  sendChoiceResponse,
-  fetchConversations,
-  loadConversation,
-  deleteConversation,
-  startNewConversation,
-} from '../store/muninnSlice';
-import { ChatMessage, FileAttachment } from '../types/Muninn';
+  ChatMessage,
+  ConversationMeta,
+  FileAttachment,
+  MuninnAction,
+  PendingChoice,
+  PendingConfirmation,
+} from '../types/Muninn';
 import {
   ChatBubble,
   ChatInput,
@@ -27,103 +24,206 @@ import {
 export default function MuninnScreen() {
   const colors = useColors();
   const navigation = useNavigation<any>();
-  const dispatch = useDispatch<AppDispatch>();
-  const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
-  const [showConversations, setShowConversations] = useState(false);
 
-  const {
-    activeConversationId,
-    conversations,
-    messages,
-    isSending,
-    pendingChoice,
-    pendingConfirmation,
-    lastActions,
-  } = useSelector((state: RootState) => state.muninn);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationMeta[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [pendingChoice, setPendingChoice] = useState<PendingChoice | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [showConversations, setShowConversations] = useState(false);
 
   // Load conversations on mount
   useEffect(() => {
-    dispatch(fetchConversations());
-  }, [dispatch]);
+    muninnApiService.getConversations().then(setConversations).catch(() => {});
+  }, []);
 
-  // Handle navigation and data_updated actions
-  useEffect(() => {
-    if (!lastActions.length) return;
-
-    for (const action of lastActions) {
-      if (action.type === 'navigate' && action.screen) {
-        navigation.navigate(action.screen, action.params);
+  const handleActions = useCallback(
+    (actions: MuninnAction[]) => {
+      for (const action of actions) {
+        if (action.type === 'navigate' && action.screen) {
+          navigation.navigate(action.screen, action.params);
+        }
+        if (action.type === 'data_updated') {
+          // Screens fetch fresh data on mount/focus — no global cache to invalidate
+        }
+        if (action.type === 'user_choice' && action.choiceId) {
+          setPendingChoice({
+            choiceId: action.choiceId,
+            question: action.question || '',
+            options: action.options || [],
+            allowFreeText: action.allowFreeText,
+          });
+        }
+        if (action.type === 'confirmation' && action.choiceId) {
+          setPendingConfirmation({
+            choiceId: action.choiceId,
+            question: action.question || '',
+          });
+        }
       }
-      if (action.type === 'data_updated' && action.collection) {
-        queryClient.invalidateQueries({ queryKey: [action.collection] });
-      }
-    }
-  }, [lastActions, navigation, queryClient]);
+    },
+    [navigation],
+  );
 
   const handleSend = useCallback(
-    (text: string, imageUrls?: string[], fileAttachments?: FileAttachment[], audioUrl?: string) => {
-      dispatch(sendMessage({
-        message: text,
-        conversationId: activeConversationId || undefined,
+    async (text: string, imageUrls?: string[], fileAttachments?: FileAttachment[], audioUrl?: string) => {
+      // Optimistically add user message
+      const userMsg: ChatMessage = {
+        id: `temp-${Date.now()}`,
+        role: 'user',
+        content: text,
         imageUrls,
         fileAttachments,
         audioUrl,
-      }));
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsSending(true);
+
+      try {
+        const response = await muninnApiService.sendMessage({
+          message: text,
+          conversationId: activeConversationId || undefined,
+          imageUrls,
+          fileAttachments,
+          audioUrl,
+        });
+        setActiveConversationId(response.conversationId);
+        const assistantMsg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: response.message,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        handleActions(response.actions);
+      } catch {
+        // Remove optimistic user message on failure
+        setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
+      } finally {
+        setIsSending(false);
+      }
     },
-    [dispatch, activeConversationId],
+    [activeConversationId, handleActions],
   );
 
   const handleChoiceSelect = useCallback(
-    (option: string) => {
+    async (option: string) => {
       if (!activeConversationId || !pendingChoice) return;
-      dispatch(
-        sendChoiceResponse({
-          conversationId: activeConversationId,
-          choiceId: pendingChoice.choiceId,
-          selectedOption: option,
-        }),
-      );
+      setIsSending(true);
+      setPendingChoice(null);
+      setPendingConfirmation(null);
+
+      try {
+        const response = await muninnApiService.sendChoiceResponse(
+          activeConversationId,
+          pendingChoice.choiceId,
+          option,
+        );
+        const assistantMsg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: response.message,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        handleActions(response.actions);
+      } catch {
+        // Silently fail — user can retry
+      } finally {
+        setIsSending(false);
+      }
     },
-    [dispatch, activeConversationId, pendingChoice],
+    [activeConversationId, pendingChoice, handleActions],
   );
 
   const handleConfirmation = useCallback(
-    (answer: string) => {
+    async (answer: string) => {
       if (!activeConversationId || !pendingConfirmation) return;
-      dispatch(
-        sendChoiceResponse({
-          conversationId: activeConversationId,
-          choiceId: pendingConfirmation.choiceId,
-          selectedOption: answer,
-        }),
-      );
+      setIsSending(true);
+      setPendingChoice(null);
+      setPendingConfirmation(null);
+
+      try {
+        const response = await muninnApiService.sendChoiceResponse(
+          activeConversationId,
+          pendingConfirmation.choiceId,
+          answer,
+        );
+        const assistantMsg: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: response.message,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        handleActions(response.actions);
+      } catch {
+        // Silently fail
+      } finally {
+        setIsSending(false);
+      }
     },
-    [dispatch, activeConversationId, pendingConfirmation],
+    [activeConversationId, pendingConfirmation, handleActions],
   );
 
-  const handleSelectConversation = useCallback(
-    (id: string) => {
-      dispatch(loadConversation(id));
-    },
-    [dispatch],
-  );
+  const handleSelectConversation = useCallback(async (id: string) => {
+    try {
+      const conversation = await muninnApiService.getConversation(id);
+      const chatMessages: ChatMessage[] = conversation.messages
+        .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content)
+        .map((m, idx) => ({
+          id: `${conversation.id}-${idx}`,
+          role: m.role as 'user' | 'assistant',
+          content: m.content!,
+          imageUrls: m.imageUrls,
+          fileAttachments: m.fileAttachments,
+          audioUrl: m.audioUrl,
+          createdAt: m.createdAt,
+        }));
+      setActiveConversationId(conversation.id);
+      setMessages(chatMessages);
+      setPendingChoice(null);
+      setPendingConfirmation(null);
+    } catch {
+      // Failed to load conversation
+    }
+  }, []);
 
   const handleDeleteConversation = useCallback(
-    (id: string) => {
-      dispatch(deleteConversation(id));
+    async (id: string) => {
+      try {
+        await muninnApiService.deleteConversation(id);
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+        if (activeConversationId === id) {
+          setActiveConversationId(null);
+          setMessages([]);
+        }
+      } catch {
+        // Failed to delete
+      }
     },
-    [dispatch],
+    [activeConversationId],
   );
 
   const handleNewChat = useCallback(() => {
-    dispatch(startNewConversation());
-  }, [dispatch]);
+    setActiveConversationId(null);
+    setMessages([]);
+    setPendingChoice(null);
+    setPendingConfirmation(null);
+  }, []);
 
-  const openConversations = useCallback(() => {
-    dispatch(fetchConversations());
+  const openConversations = useCallback(async () => {
+    try {
+      const convos = await muninnApiService.getConversations();
+      setConversations(convos);
+    } catch {
+      // Failed to fetch
+    }
     setShowConversations(true);
-  }, [dispatch]);
+  }, []);
 
   const handleExportConversation = useCallback(async () => {
     if (messages.length === 0) return;

@@ -1,3 +1,1 @@
-// Shared Store - Barrel Export
-export * from './rootStore';
-export * from './hooks';
+// Store directory preserved for module-specific contexts (Phase 3+)

@@ -1,30 +1,140 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Alert, ScrollView, ActivityIndicator, Text } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '@shared/store/rootStore';
-import { generateCalendarEvents } from '@features/calendar/store/calendarSlice';
-import { loadStudents, loadRegistrations, loadLessons, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
-import { CalendarEvent } from '@features/wtregistry/types/WTRegistry';
-import { Event, EventFormData, serializableToEvent } from '@features/calendar/types/Event';
+import { Event, EventFormData, SerializableEvent } from '@features/calendar/types/Event';
+import { getEvents, addEvent, updateEvent, deleteEvent } from '@features/calendar/services/events';
+import { fetchStudents, fetchRegistrations, fetchLessons, fetchSeminars } from '@features/wtregistry/services/wtRegistry';
+import { WTStudent, WTRegistration, WTLesson, WTSeminar, CalendarEvent } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useCalendarEvents, useAddCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent } from '@shared/hooks';
 import { Card, CardContent, Button, Input, Chip, EmptyState, Dialog, IconButton } from '@shared/components/ui';
 import { useColors, spacing, radius, textStyles } from '@shared/theme';
+import { logger } from '@shared/utils/logger';
+
+// ── WTRegistry event generation (moved from calendarSlice) ────────────
+
+function generateWTRegistryEvents(
+  students: WTStudent[],
+  registrations: WTRegistration[],
+  lessons: WTLesson[],
+  seminars: WTSeminar[],
+): SerializableEvent[] {
+  const events: SerializableEvent[] = [];
+
+  // Registration start/end events
+  registrations.forEach((registration) => {
+    const student = students.find((s) => s.id === registration.studentId);
+    const studentName = student?.name || 'Unknown Student';
+
+    if (registration.startDate) {
+      events.push({
+        id: `reg-start-${registration.id}`,
+        title: `${studentName} - Registration Start`,
+        description: `Registration period starts for ${studentName}. Amount: ${new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}`,
+        date: new Date(registration.startDate).toISOString(),
+        type: 'Registration Start',
+        relatedId: registration.id,
+      });
+    }
+
+    if (registration.endDate) {
+      events.push({
+        id: `reg-end-${registration.id}`,
+        title: `${studentName} - Registration End`,
+        description: `Registration period ends for ${studentName}. Amount: ${new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(registration.amount)}`,
+        date: new Date(registration.endDate).toISOString(),
+        type: 'Registration End',
+        relatedId: registration.id,
+      });
+    }
+  });
+
+  // Recurring lesson events for current + next 2 months
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
+    const targetMonth = currentMonth + monthOffset;
+    const targetYear = currentYear + Math.floor(targetMonth / 12);
+    const actualMonth = targetMonth % 12;
+
+    lessons.forEach((lesson) => {
+      const daysInMonth = new Date(targetYear, actualMonth + 1, 0).getDate();
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(targetYear, actualMonth, day);
+
+        if (date.getDay() === lesson.dayOfWeek) {
+          const lessonDate = new Date(date);
+          lessonDate.setHours(lesson.startHour, lesson.startMinute, 0, 0);
+
+          const endDate = new Date(date);
+          endDate.setHours(lesson.endHour, lesson.endMinute, 0, 0);
+
+          events.push({
+            id: `lesson-${lesson.id}-${date.toISOString().split('T')[0]}`,
+            title: 'Wing Tzun Lesson',
+            description: `Lesson from ${lesson.startHour.toString().padStart(2, '0')}:${lesson.startMinute.toString().padStart(2, '0')} to ${lesson.endHour.toString().padStart(2, '0')}:${lesson.endMinute.toString().padStart(2, '0')}`,
+            date: lessonDate.toISOString(),
+            endDate: endDate.toISOString(),
+            type: 'lesson',
+            relatedId: lesson.id,
+          });
+        }
+      }
+    });
+  }
+
+  // Seminar events
+  seminars.forEach((seminar) => {
+    const seminarDate = new Date(seminar.date);
+    seminarDate.setHours(seminar.startHour, seminar.startMinute, 0, 0);
+
+    const endDate = new Date(seminar.date);
+    endDate.setHours(seminar.endHour, seminar.endMinute, 0, 0);
+
+    events.push({
+      id: `seminar-${seminar.id}`,
+      title: seminar.name,
+      description: `${seminar.description || 'Wing Tzun Seminar'} ${seminar.location ? `at ${seminar.location}` : ''}`,
+      date: seminarDate.toISOString(),
+      endDate: endDate.toISOString(),
+      type: 'seminar',
+      relatedId: seminar.id,
+    });
+  });
+
+  return events;
+}
+
+// ── Serializable → Event helper ───────────────────────────────────────
+
+function serializableToEvent(se: SerializableEvent): Event {
+  return {
+    id: se.id,
+    title: se.title,
+    description: se.description,
+    date: new Date(se.date),
+    endDate: se.endDate ? new Date(se.endDate) : undefined,
+    type: se.type,
+  };
+}
+
+// ── Screen ────────────────────────────────────────────────────────────
 
 export function CalendarScreen() {
-  const dispatch = useDispatch<AppDispatch>();
   const colors = useColors();
 
-  // TanStack Query for remote events
-  const { data: remoteEvents = [], isLoading: isLoadingEvents } = useCalendarEvents();
-  const addEventMutation = useAddCalendarEvent();
-  const updateEventMutation = useUpdateCalendarEvent();
-  const deleteEventMutation = useDeleteCalendarEvent();
+  // Remote calendar events
+  const [remoteEvents, setRemoteEvents] = useState<Event[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
-  // Redux state for WTRegistry events (different domain)
-  const { events: wtRegistrySerializableEvents } = useSelector((state: RootState) => state.calendar);
-  const { students, registrations, lessons, seminars } = useSelector((state: RootState) => state.wtRegistry);
+  // WTRegistry-derived events
+  const [wtRegistryEvents, setWtRegistryEvents] = useState<SerializableEvent[]>([]);
+
+  // Mutation loading flags
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Local UI state
   const [selectedDate, setSelectedDateState] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -46,20 +156,39 @@ export function CalendarScreen() {
     type: 'Event',
   });
 
-  useEffect(() => {
-    // Load WTRegistry data on component mount
-    dispatch(loadStudents());
-    dispatch(loadRegistrations());
-    dispatch(loadLessons());
-    dispatch(loadSeminars());
-  }, [dispatch]);
+  // Fetch remote events
+  const loadRemoteEvents = useCallback(async () => {
+    try {
+      const events = await getEvents();
+      setRemoteEvents(events);
+    } catch (error) {
+      logger.error('Failed to load remote events:', error);
+    }
+  }, []);
+
+  // Fetch WTRegistry data and generate calendar events
+  const loadWTRegistryEvents = useCallback(async () => {
+    try {
+      const [students, registrations, lessons, seminars] = await Promise.all([
+        fetchStudents(),
+        fetchRegistrations(),
+        fetchLessons(),
+        fetchSeminars(),
+      ]);
+      const generated = generateWTRegistryEvents(students, registrations, lessons, seminars);
+      setWtRegistryEvents(generated);
+    } catch (error) {
+      logger.error('Failed to load WTRegistry events:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    // Regenerate WTRegistry events whenever WTRegistry data changes
-    dispatch(generateCalendarEvents());
-  }, [dispatch, students, registrations, lessons, seminars]);
+    Promise.all([loadRemoteEvents(), loadWTRegistryEvents()]).finally(() =>
+      setIsLoadingEvents(false),
+    );
+  }, [loadRemoteEvents, loadWTRegistryEvents]);
 
-  // Combine remote events (already Event objects) with WTRegistry events
+  // Combine remote events with WTRegistry events
   const allEvents = [
     ...remoteEvents.map((event) => ({
       id: `remote-${event.id}`,
@@ -71,8 +200,8 @@ export function CalendarScreen() {
       isRemoteEvent: true,
       remoteEvent: event as Event | undefined,
     })),
-    ...wtRegistrySerializableEvents.map((serializableEvent) => {
-      const event = serializableToEvent(serializableEvent);
+    ...wtRegistryEvents.map((se) => {
+      const event = serializableToEvent(se);
       return {
         id: `wtregistry-${event.id}`,
         title: event.title,
@@ -88,7 +217,6 @@ export function CalendarScreen() {
 
   const handleDayPress = (day: DateData) => {
     setSelectedDateState(day.dateString);
-    // Clear any selected events when date changes
     setSelectedEvent(null);
     setSelectedRemoteEvent(null);
   };
@@ -139,11 +267,15 @@ export function CalendarScreen() {
       return;
     }
 
+    setIsSaving(true);
     try {
-      await addEventMutation.mutateAsync(formData);
+      await addEvent(formData);
+      await loadRemoteEvents();
       setShowAddDialog(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to add event');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -155,15 +287,16 @@ export function CalendarScreen() {
 
     if (!selectedRemoteEvent) return;
 
+    setIsSaving(true);
     try {
-      await updateEventMutation.mutateAsync({
-        eventId: selectedRemoteEvent.id,
-        eventData: formData,
-      });
+      await updateEvent(selectedRemoteEvent.id, formData);
+      await loadRemoteEvents();
       setShowEditDialog(false);
       setShowEventModal(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to update event');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -176,12 +309,16 @@ export function CalendarScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          setIsDeleting(true);
           try {
-            await deleteEventMutation.mutateAsync(selectedRemoteEvent.id);
+            await deleteEvent(selectedRemoteEvent.id);
+            await loadRemoteEvents();
             setShowEventModal(false);
             setSelectedRemoteEvent(null);
           } catch (error) {
             Alert.alert('Error', 'Failed to delete event');
+          } finally {
+            setIsDeleting(false);
           }
         },
       },
@@ -463,7 +600,7 @@ export function CalendarScreen() {
               <Button variant="ghost" onPress={() => handleEditEvent(selectedRemoteEvent)}>
                 Edit
               </Button>
-              <Button variant="destructive" onPress={handleDeleteEvent} loading={deleteEventMutation.isPending}>
+              <Button variant="destructive" onPress={handleDeleteEvent} loading={isDeleting}>
                 Delete
               </Button>
             </>
@@ -537,7 +674,7 @@ export function CalendarScreen() {
             <Button
               variant="primary"
               onPress={showEditDialog ? handleUpdateEvent : handleSaveEvent}
-              loading={showEditDialog ? updateEventMutation.isPending : addEventMutation.isPending}
+              loading={isSaving}
             >
               {showEditDialog ? 'Update Event' : 'Add Event'}
             </Button>

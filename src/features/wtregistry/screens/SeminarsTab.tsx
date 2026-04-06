@@ -10,19 +10,22 @@ import {
   Input,
   Chip,
 } from '@shared/components/ui';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '@shared/store/rootStore';
-import { addSeminar, deleteSeminar, updateSeminar, loadSeminars } from '@features/wtregistry/store/wtRegistrySlice';
+import {
+  fetchSeminars,
+  addSeminar as addSeminarRemote,
+  updateSeminar as updateSeminarRemote,
+  deleteSeminar as deleteSeminarRemote,
+} from '@features/wtregistry/services/wtRegistry';
 import { WTSeminar } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export function SeminarsTab() {
-  const dispatch = useDispatch<AppDispatch>();
   const { colors } = useAppTheme();
-  const { seminars, loading } = useSelector((state: RootState) => state.wtRegistry);
 
+  const [seminars, setSeminars] = useState<WTSeminar[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<'start' | 'end' | null>(null);
@@ -40,9 +43,11 @@ export function SeminarsTab() {
 
   // Load seminars when component mounts
   useEffect(() => {
-    console.log('🔍 Loading seminars...');
-    dispatch(loadSeminars());
-  }, [dispatch]);
+    setLoading(true);
+    fetchSeminars()
+      .then(setSeminars)
+      .finally(() => setLoading(false));
+  }, []);
 
   const sortedSeminars = [...seminars].sort((a, b) => {
     const dateA = typeof a.date === 'string' ? new Date(a.date) : a.date;
@@ -115,14 +120,12 @@ export function SeminarsTab() {
       };
 
       if (editingSeminar) {
-        await dispatch(
-          updateSeminar({
-            ...editingSeminar,
-            ...seminarData,
-          }),
-        ).unwrap();
+        const updated = { ...editingSeminar, ...seminarData };
+        await updateSeminarRemote(updated);
+        setSeminars(prev => prev.map(s => s.id === updated.id ? updated : s));
       } else {
-        await dispatch(addSeminar(seminarData)).unwrap();
+        const created = await addSeminarRemote(seminarData);
+        setSeminars(prev => [...prev, created]);
       }
       handleCloseDialog();
     } catch (error) {
@@ -138,7 +141,8 @@ export function SeminarsTab() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await dispatch(deleteSeminar(seminar.id)).unwrap();
+            await deleteSeminarRemote(seminar.id);
+            setSeminars(prev => prev.filter(s => s.id !== seminar.id));
           } catch (error) {
             Alert.alert('Error', 'Failed to delete seminar');
           }

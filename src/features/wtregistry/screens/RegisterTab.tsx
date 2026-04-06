@@ -16,7 +16,6 @@ import {
 } from '@features/wtregistry/services/wtRegistry';
 import { WTStudent, WTRegistration } from '@features/wtregistry/types/WTRegistry';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useBalance } from '@features/transactions/store/balanceHooks';
 import { AddRegistrationDialog } from '@features/wtregistry/components/AddRegistrationDialog';
 import { EditRegistrationDialog } from '@features/wtregistry/components/EditRegistrationDialog';
 
@@ -35,7 +34,6 @@ export const RegisterTab: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const { refreshBalance } = useBalance();
 
   const monthNames = [
     'All Months',
@@ -163,7 +161,6 @@ export const RegisterTab: React.FC = () => {
       const newIsPaid = !registration.isPaid;
       await updateRegistrationPaymentStatus(registration, newIsPaid, registration.isPaid);
       await loadData();
-      refreshBalance();
     } catch (error) {
       console.error('Error toggling payment status:', error);
       Alert.alert('Error', 'Failed to update payment status');

@@ -4,7 +4,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Card, CardHeader, CardContent, Input } from '@shared/components/ui';
 import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import { TransactionCategories } from '@features/transactions/config/TransactionCategories';
-import { useAddTransaction, useInvestments, useUpdateInvestment } from '@shared/hooks/useTransactionsQueries';
+import { addTransaction } from '@features/transactions/services/transactions';
+import { updateInvestment } from '@features/transactions/services/investments';
 import { logger } from '@shared/utils/logger';
 import { Investment } from '@features/transactions/types/Investment';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
@@ -14,12 +15,17 @@ import { TransactionCurrency, TRANSACTION_CURRENCIES } from '@features/transacti
 type TransactionType = 'income' | 'expense';
 
 const CURRENCY_SYMBOLS: Record<TransactionCurrency, string> = {
-  TRY: '₺',
-  AED: 'د.إ',
+  TRY: '\u20BA',
+  AED: '\u062F.\u0625',
   USD: '$',
 };
 
-export const TransactionForm: React.FC = () => {
+interface TransactionFormProps {
+  investments: Investment[];
+  onTransactionAdded: () => void;
+}
+
+export const TransactionForm: React.FC<TransactionFormProps> = ({ investments, onTransactionAdded }) => {
   const colors = useColors();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -30,11 +36,7 @@ export const TransactionForm: React.FC = () => {
   const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [pendingDescription, setPendingDescription] = useState<string>('');
   const [pendingType, setPendingType] = useState<TransactionType>('expense');
-
-  // TanStack Query mutations and queries
-  const addTransactionMutation = useAddTransaction();
-  const updateInvestmentMutation = useUpdateInvestment();
-  const { data: investmentOptions = [] } = useInvestments();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get categories for Dropdown component
   const categoryItems: DropdownItem[] = useMemo(
@@ -64,8 +66,6 @@ export const TransactionForm: React.FC = () => {
     [colors.investment],
   );
 
-  const isSubmitting = addTransactionMutation.isPending || updateInvestmentMutation.isPending;
-
   const handleSubmit = async (type: TransactionType) => {
     const isIncome = type === 'income';
 
@@ -91,8 +91,9 @@ export const TransactionForm: React.FC = () => {
     }
 
     // Regular non-investment flow
+    setIsSubmitting(true);
     try {
-      await addTransactionMutation.mutateAsync({
+      await addTransaction({
         amount: amountValue,
         currency: selectedCurrency,
         type: isIncome ? 'income' : 'expense',
@@ -102,15 +103,19 @@ export const TransactionForm: React.FC = () => {
         isIncome,
       });
       resetForm();
+      onTransactionAdded();
     } catch (error) {
       logger.error('Error adding transaction', error, 'TransactionForm');
       Alert.alert('Error', 'Failed to add transaction');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSelectInvestment = async (investment: Investment) => {
     const isIncome = pendingType === 'income';
 
+    setIsSubmitting(true);
     try {
       const txDescription = isIncome
         ? pendingDescription
@@ -120,7 +125,7 @@ export const TransactionForm: React.FC = () => {
           ? `Investment in ${investment.name} - ${pendingDescription}`
           : `Investment in ${investment.name}`;
 
-      await addTransactionMutation.mutateAsync({
+      await addTransaction({
         amount: pendingAmount,
         currency: selectedCurrency,
         type: isIncome ? 'income' : 'expense',
@@ -132,7 +137,7 @@ export const TransactionForm: React.FC = () => {
 
       const adjustedAmount = isIncome ? investment.amount - pendingAmount : investment.amount + pendingAmount;
 
-      await updateInvestmentMutation.mutateAsync({
+      await updateInvestment({
         ...investment,
         amount: adjustedAmount,
         currentValue: typeof investment.currentValue === 'number' ? investment.currentValue : adjustedAmount,
@@ -140,9 +145,12 @@ export const TransactionForm: React.FC = () => {
 
       setShowInvestmentPicker(false);
       resetForm();
+      onTransactionAdded();
     } catch (error) {
       logger.error('Error applying investment transaction', error, 'TransactionForm');
       Alert.alert('Error', 'Failed to apply investment change');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -307,7 +315,7 @@ export const TransactionForm: React.FC = () => {
           <View style={[styles.modalContent, { backgroundColor: colors.card }, shadow.xl]}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Select Investment</Text>
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator>
-              {investmentOptions.map((inv) => (
+              {investments.map((inv) => (
                 <TouchableOpacity
                   key={inv.id}
                   style={[styles.modalItem, { borderBottomColor: colors.border }]}
