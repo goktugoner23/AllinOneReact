@@ -50,7 +50,7 @@ export function useCurrencyProvider(): CurrencyState {
     async function fetchRate() {
       // Check cache first (valid for 6 hours)
       const cached = await StorageService.getItem<{ rates: Record<string, number>; timestamp: number }>(RATE_CACHE_KEY);
-      if (cached && Date.now() - cached.timestamp < 6 * 60 * 60 * 1000) {
+      if (cached?.rates && typeof cached.rates === 'object' && Date.now() - cached.timestamp < 6 * 60 * 60 * 1000) {
         if (!cancelled) setRates(cached.rates);
         return;
       }
@@ -85,7 +85,7 @@ export function useCurrencyProvider(): CurrencyState {
 
   const rateForCurrency = useMemo(() => {
     if (selectedCurrency === 'TRY') return 1;
-    return rates[selectedCurrency.toLowerCase()] ?? null;
+    return (rates ?? {})[selectedCurrency.toLowerCase()] ?? null;
   }, [selectedCurrency, rates]);
 
   const convert = useCallback(
