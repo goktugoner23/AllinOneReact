@@ -8,10 +8,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
-import { Search } from 'lucide-react-native';
+import { Search, Sun, Moon } from 'lucide-react-native';
 import { useAppTheme } from '@shared/theme';
+import { useCurrency, type CurrencyCode } from '@shared/hooks/useCurrency';
 import { radius } from '@shared/theme/spacing';
 import { navigationGroups } from './navigation-config';
+
+const CURRENCIES: CurrencyCode[] = ['TRY', 'AED', 'USD'];
 
 // Huginn raven SVG is not portable to RN easily — use text logo instead
 function LogoIcon({ color }: { color: string }) {
@@ -23,7 +26,8 @@ function LogoIcon({ color }: { color: string }) {
 }
 
 export function DrawerContent({ navigation, state }: DrawerContentComponentProps) {
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, toggleTheme } = useAppTheme();
+  const { selectedCurrency, setSelectedCurrency } = useCurrency();
   const [query, setQuery] = useState('');
 
   const activeRoute = state.routes[state.index]?.name;
@@ -172,6 +176,43 @@ export function DrawerContent({ navigation, state }: DrawerContentComponentProps
           </View>
         ))}
       </ScrollView>
+
+      {/* Footer: currency + theme */}
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <View style={[styles.currencyPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: colors.border }]}>
+          {CURRENCIES.map((code) => (
+            <TouchableOpacity
+              key={code}
+              onPress={() => setSelectedCurrency(code)}
+              style={[
+                styles.currencyButton,
+                code === selectedCurrency && { backgroundColor: colors.primary },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.currencyText,
+                  {
+                    color: code === selectedCurrency ? colors.primaryForeground : colors.foregroundMuted,
+                    fontWeight: code === selectedCurrency ? '600' : '500',
+                  },
+                ]}
+              >
+                {code}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={[styles.themeButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: colors.border }]}
+          activeOpacity={0.7}
+        >
+          {isDark ? <Moon size={16} color={colors.foreground} /> : <Sun size={16} color={colors.foreground} />}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -280,5 +321,34 @@ const styles = StyleSheet.create({
   navBlurb: {
     fontSize: 12,
     marginTop: 2,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  currencyPill: {
+    flexDirection: 'row',
+    borderRadius: 9999,
+    borderWidth: 1,
+    padding: 3,
+  },
+  currencyButton: {
+    borderRadius: 9999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  currencyText: {
+    fontSize: 12,
+  },
+  themeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 9999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

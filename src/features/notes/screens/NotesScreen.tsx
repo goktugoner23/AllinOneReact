@@ -138,11 +138,11 @@ const NotesScreen: React.FC = () => {
   };
 
   const handleNotePress = (note: Note) => {
-    navigation.navigate({ name: 'EditNote', params: { noteId: String(note.id) } });
+    (navigation as any).push('EditNote', { noteId: String(note.id) });
   };
 
   const handleCreateNote = () => {
-    navigation.navigate({ name: 'EditNote', params: {} });
+    (navigation as any).push('EditNote', {});
   };
 
   const renderNoteCard = ({ item }: { item: Note }) => {

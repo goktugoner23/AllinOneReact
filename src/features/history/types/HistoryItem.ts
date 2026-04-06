@@ -6,6 +6,7 @@ export interface HistoryItem {
   description: string;
   date: string; // ISO string
   amount?: number;
+  currency?: 'TRY' | 'AED' | 'USD';
   type: string;
   imageUri?: string;
   itemType: HistoryItemType;

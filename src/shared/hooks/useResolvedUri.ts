@@ -26,6 +26,13 @@ export function useResolvedUri(keyOrUrl: string | undefined | null): string | un
       return;
     }
     let cancelled = false;
+
+    // If it's already a full URL, use it directly — no signing needed.
+    if (keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) {
+      setResolved(keyOrUrl);
+      return;
+    }
+
     // Seed with the raw value so there's always something to render while
     // we wait for the signed URL.
     setResolved(keyOrUrl);

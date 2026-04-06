@@ -46,6 +46,7 @@ function transactionToHistoryItem(tx: Transaction): HistoryItem {
     description: tx.description,
     date: tx.date,
     amount: tx.amount,
+    currency: tx.currency,
     type: tx.isIncome ? 'Income' : 'Expense',
     itemType: tx.isIncome ? 'TRANSACTION_INCOME' : 'TRANSACTION_EXPENSE',
   };
@@ -86,7 +87,7 @@ function investmentToHistoryItem(inv: any): HistoryItem {
 
 export const HistoryScreen: React.FC = () => {
   const colors = useColors();
-  const { format: formatCurrency } = useCurrency();
+  const { convertFrom, formatConverted } = useCurrency();
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<HistoryItemType[]>([]);
@@ -272,7 +273,7 @@ export const HistoryScreen: React.FC = () => {
           </View>
           {item.amount !== undefined && (
             <Text style={[textStyles.amountSmall, { color: config.color }]}>
-              {formatCurrency(item.amount)}
+              {formatConverted(convertFrom(item.amount, item.currency ?? 'TRY'))}
             </Text>
           )}
         </View>

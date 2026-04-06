@@ -6,12 +6,16 @@ export type CurrencyCode = 'TRY' | 'AED' | 'USD';
 interface CurrencyState {
   selectedCurrency: CurrencyCode;
   setSelectedCurrency: (currency: CurrencyCode) => void;
-  exchangeRate: number | null; // AED→TRY rate
+  exchangeRate: number | null;
   isLoading: boolean;
   /** Convert amount from TRY to selected currency */
   convert: (amountInTRY: number) => number;
-  /** Format amount in the selected currency */
+  /** Convert amount from any source currency to selected currency */
+  convertFrom: (amount: number, from: CurrencyCode) => number;
+  /** Format amount in the selected currency (assumes TRY input) */
   format: (amountInTRY: number) => string;
+  /** Format an already-converted amount in the selected currency */
+  formatConverted: (amount: number) => string;
 }
 
 const STORAGE_KEY = 'selected_currency';
@@ -25,7 +29,9 @@ export const CurrencyContext = createContext<CurrencyState>({
   exchangeRate: null,
   isLoading: false,
   convert: (a) => a,
+  convertFrom: (a) => a,
   format: (a) => `₺${a.toFixed(2)}`,
+  formatConverted: (a) => `₺${a.toFixed(2)}`,
 });
 
 export function useCurrencyProvider(): CurrencyState {
@@ -96,6 +102,22 @@ export function useCurrencyProvider(): CurrencyState {
     [selectedCurrency, rateForCurrency],
   );
 
+  // Convert from any source currency to the selected currency
+  // Path: source → TRY (divide by source rate) → selected (multiply by selected rate)
+  const convertFrom = useCallback(
+    (amount: number, from: CurrencyCode): number => {
+      if (!Number.isFinite(amount)) return 0;
+      if (from === selectedCurrency) return amount;
+      // source → TRY
+      const fromRate = from === 'TRY' ? 1 : (rates ?? {})[from.toLowerCase()];
+      const toRate = selectedCurrency === 'TRY' ? 1 : rateForCurrency;
+      if (!fromRate || !toRate) return amount;
+      const inTRY = from === 'TRY' ? amount : amount / fromRate;
+      return selectedCurrency === 'TRY' ? inTRY : inTRY * toRate;
+    },
+    [selectedCurrency, rateForCurrency, rates],
+  );
+
   const localeMap: Record<CurrencyCode, string> = { TRY: 'tr-TR', AED: 'en-AE', USD: 'en-US' };
 
   const format = useCallback(
@@ -111,9 +133,21 @@ export function useCurrencyProvider(): CurrencyState {
     [selectedCurrency, rateForCurrency],
   );
 
+  const formatConverted = useCallback(
+    (amount: number): string => {
+      return new Intl.NumberFormat(localeMap[selectedCurrency], {
+        style: 'currency',
+        currency: selectedCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    },
+    [selectedCurrency],
+  );
+
   return useMemo(
-    () => ({ selectedCurrency, setSelectedCurrency, exchangeRate: rateForCurrency, isLoading, convert, format }),
-    [selectedCurrency, setSelectedCurrency, rateForCurrency, isLoading, convert, format],
+    () => ({ selectedCurrency, setSelectedCurrency, exchangeRate: rateForCurrency, isLoading, convert, convertFrom, format, formatConverted }),
+    [selectedCurrency, setSelectedCurrency, rateForCurrency, isLoading, convert, convertFrom, format, formatConverted],
   );
 }
 
