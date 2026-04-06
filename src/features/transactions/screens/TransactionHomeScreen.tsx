@@ -8,12 +8,11 @@ import { TransactionForm } from '@features/transactions/components/TransactionFo
 import { SpendingPieChart } from '@features/transactions/components/SpendingPieChart';
 import {
   fetchTransactions,
-  addTransaction,
-  getCurrentMonthTransactionTotals,
 } from '@features/transactions/services/transactions';
 import { fetchInvestments } from '@features/transactions/services/investments';
 import { Investment } from '@features/transactions/types/Investment';
 import { useColors, spacing } from '@shared/theme';
+import { useCurrency } from '@shared/hooks/useCurrency';
 
 interface BalanceData {
   income: number;
@@ -31,6 +30,7 @@ type ListItem =
 
 export const TransactionHomeScreen: React.FC = () => {
   const colors = useColors();
+  const { convertFrom } = useCurrency();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -62,7 +62,7 @@ export const TransactionHomeScreen: React.FC = () => {
     [transactions],
   );
 
-  // Calculate current month balance from transactions
+  // Calculate current month balance, converting all currencies to selected
   const balanceData = useMemo<BalanceData>(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -75,12 +75,13 @@ export const TransactionHomeScreen: React.FC = () => {
       const d = new Date(t.date);
       if (Number.isNaN(d.getTime())) continue;
       if (d < monthStart || d > monthEnd) continue;
-      if (t.isIncome) income += t.amount;
-      else expense += t.amount;
+      const converted = convertFrom(t.amount, t.currency);
+      if (t.isIncome) income += converted;
+      else expense += converted;
     }
 
     return { income, expense, balance: income - expense };
-  }, [transactions]);
+  }, [transactions, convertFrom]);
 
   const handleTransactionAdded = useCallback(() => {
     fetchAll();

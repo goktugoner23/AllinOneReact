@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -39,8 +39,10 @@ export function Snackbar({
 
   const translateY = useSharedValue(100);
   const opacity = useSharedValue(0);
+  const [rendered, setRendered] = useState(visible);
 
   const handleDismiss = useCallback(() => {
+    setRendered(false);
     onDismiss();
   }, [onDismiss]);
 
@@ -63,6 +65,7 @@ export function Snackbar({
       return;
     }
 
+    setRendered(true);
     translateY.value = withSpring(0, {
       damping: 20,
       stiffness: 300,
@@ -126,7 +129,7 @@ export function Snackbar({
     hideSnackbar();
   };
 
-  if (!visible && opacity.value === 0) {
+  if (!visible && !rendered) {
     return null;
   }
 

@@ -8,10 +8,12 @@ interface TaskGroupHeaderProps {
   group: TaskGroup;
   taskCount: number;
   completedCount: number;
+  collapsed?: boolean;
+  onPress?: () => void;
   onLongPress: (group: TaskGroup) => void;
 }
 
-const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({ group, taskCount, completedCount, onLongPress }) => {
+const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({ group, taskCount, completedCount, collapsed, onPress, onLongPress }) => {
   const colors = useColors();
 
   const completionPercentage = taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0;
@@ -23,10 +25,12 @@ const TaskGroupHeader: React.FC<TaskGroupHeaderProps> = ({ group, taskCount, com
   return (
     <Pressable
       style={[styles.card, shadow.sm, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      onPress={onPress}
       onLongPress={() => onLongPress(group)}
     >
       <View style={styles.content}>
         <View style={styles.leftSection}>
+          <Text style={{ fontSize: 12, color: colors.foregroundMuted }}>{collapsed ? '▸' : '▾'}</Text>
           <View style={[styles.colorIndicator, { backgroundColor: getGroupColor() }]} />
         </View>
 

@@ -1,15 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@shared/theme';
 import { DrawerContent } from './DrawerContent';
-import { Header } from './Header';
 import { DashboardScreen } from '@features/dashboard';
 import TasksScreen from '@features/tasks/screens/TasksScreen';
-import { TransactionHomeScreen } from '@features/transactions/screens/TransactionHomeScreen';
-import NotesScreen from '@features/notes/screens/NotesScreen';
+import TransactionTabs from '@features/transactions/screens/TransactionTabs';
+import NotesStack from '@features/notes/screens/NotesStack';
 import { CalendarScreen } from '@features/calendar/screens/CalendarScreen';
-import WorkoutTabs from '@features/workout/screens/WorkoutTabs';
+import WorkoutStack from '@features/workout/screens/WorkoutStack';
 import { WTRegistryScreen } from '@features/wtregistry/screens/WTRegistryScreen';
 import { HistoryScreen } from '@features/history/screens/HistoryScreen';
 import MuninnScreen from '@features/muninn/screens/MuninnScreen';
@@ -33,11 +33,11 @@ const SCREENS: Array<{
   component: React.ComponentType<any>;
 }> = [
   { name: 'Dashboard', component: DashboardScreen },
-  { name: 'Transactions', component: TransactionHomeScreen },
+  { name: 'Transactions', component: TransactionTabs },
   { name: 'Tasks', component: TasksScreen },
-  { name: 'Notes', component: NotesScreen },
+  { name: 'Notes', component: NotesStack },
   { name: 'Calendar', component: CalendarScreen },
-  { name: 'Workout', component: WorkoutTabs },
+  { name: 'Workout', component: WorkoutStack },
   { name: 'WTRegistry', component: WTRegistryScreen },
   { name: 'History', component: HistoryScreen },
   { name: 'Muninn', component: MuninnScreen },
@@ -45,6 +45,7 @@ const SCREENS: Array<{
 
 export function AppNavigator() {
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <NavigationContainer
@@ -70,19 +71,17 @@ export function AppNavigator() {
       <Drawer.Navigator
         initialRouteName="Dashboard"
         drawerContent={(props) => <DrawerContent {...props} />}
-        screenOptions={({ navigation, route }) => ({
+        screenOptions={{
           drawerStyle: {
             backgroundColor: colors.sidebar,
             width: 292,
           },
-          header: () => (
-            <Header
-              routeName={route.name}
-              onMenuPress={() => navigation.toggleDrawer()}
-              onMuninnPress={() => navigation.navigate('Muninn')}
-            />
-          ),
-        })}
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.foreground,
+          headerShadowVisible: false,
+          sceneStyle: {},
+        }}
       >
         {SCREENS.map(({ name, component }) => (
           <Drawer.Screen key={name} name={name} component={component} />

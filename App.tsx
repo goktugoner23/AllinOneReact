@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { enableFreeze } from 'react-native-screens';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@shared/theme';
 import { CurrencyContext, useCurrencyProvider } from '@shared/hooks/useCurrency';
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -19,8 +20,10 @@ export default function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <CurrencyWrapper />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <CurrencyWrapper />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

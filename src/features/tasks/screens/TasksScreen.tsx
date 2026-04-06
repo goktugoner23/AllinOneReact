@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, Text, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, RefreshControl, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Appbar, AppbarAction } from '@shared/components/ui';
 import { AddFab } from '@shared/components';
@@ -22,7 +22,8 @@ const TasksScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [isGroupedView, setIsGroupedView] = useState(false);
+  const [isGroupedView, setIsGroupedView] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   type DialogType = 'none' | 'addTask' | 'addGroup' | 'editTask' | 'deleteTask' | 'deleteGroup';
   const [activeDialog, setActiveDialog] = useState<DialogType>('none');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -164,16 +165,27 @@ const TasksScreen: React.FC = () => {
     [handleToggleTaskComplete, handleEditTask],
   );
 
+  const toggleCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
   const renderGroupedTasks = () => {
     const items: any[] = [];
 
     Object.entries(groupedTasks).forEach(([groupId, groupTasks]) => {
       if (groupId === 'ungrouped') {
         if (groupTasks.length > 0) {
-          items.push({ type: 'header', title: 'Ungrouped Tasks', id: 'ungrouped-header' });
-          groupTasks.forEach((task) => {
-            items.push({ type: 'task', data: task, id: `task-${task.id}` });
-          });
+          items.push({ type: 'header', title: 'Ungrouped Tasks', id: 'ungrouped-header', groupId: 'ungrouped' });
+          if (!collapsedGroups.has('ungrouped')) {
+            groupTasks.forEach((task) => {
+              items.push({ type: 'task', data: task, id: `task-${task.id}` });
+            });
+          }
         }
       } else {
         const group = taskGroups.find((g) => g.id === groupId);
@@ -184,10 +196,13 @@ const TasksScreen: React.FC = () => {
             taskCount: groupTasks.length,
             completedCount: groupTasks.filter((t) => t.completed).length,
             id: `group-${groupId}`,
+            collapsed: collapsedGroups.has(groupId),
           });
-          groupTasks.forEach((task) => {
-            items.push({ type: 'task', data: task, id: `task-${task.id}`, groupId });
-          });
+          if (!collapsedGroups.has(groupId)) {
+            groupTasks.forEach((task) => {
+              items.push({ type: 'task', data: task, id: `task-${task.id}`, groupId });
+            });
+          }
         }
       }
     });
@@ -212,14 +227,18 @@ const TasksScreen: React.FC = () => {
                 group={item.data}
                 taskCount={item.taskCount}
                 completedCount={item.completedCount}
+                collapsed={item.collapsed}
+                onPress={() => toggleCollapse(item.data.id)}
                 onLongPress={handleEditGroup}
               />
             );
           } else if (item.type === 'header') {
             return (
-              <View style={styles.ungroupedHeader}>
-                <Text style={[textStyles.label, { color: colors.foregroundMuted }]}>{item.title}</Text>
-              </View>
+              <TouchableOpacity style={styles.ungroupedHeader} onPress={() => toggleCollapse('ungrouped')}>
+                <Text style={[textStyles.label, { color: colors.foregroundMuted }]}>
+                  {collapsedGroups.has('ungrouped') ? '▸ ' : '▾ '}{item.title}
+                </Text>
+              </TouchableOpacity>
             );
           }
           return null;

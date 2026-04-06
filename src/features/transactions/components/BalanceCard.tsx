@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Card, CardHeader, CardContent } from '@shared/components/ui';
 import { useColors, spacing, textStyles, radius } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -15,25 +15,12 @@ interface BalanceCardProps {
 export const BalanceCard: React.FC<BalanceCardProps> = React.memo(
   ({ showLoading = false, income, expense, balance }) => {
     const colors = useColors();
-    const { selectedCurrency, setSelectedCurrency } = useCurrency();
-
     const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-    const toggleCurrency = () => {
-      setSelectedCurrency(selectedCurrency === 'TRY' ? 'AED' : 'TRY');
-    };
 
     return (
       <Card variant="elevated" style={styles.card}>
         <CardHeader style={styles.header}>
           <Text style={[styles.title, { color: colors.foreground }]}>{currentMonthName}</Text>
-          <TouchableOpacity
-            onPress={toggleCurrency}
-            style={[styles.currencyToggle, { backgroundColor: colors.primaryMuted }]}
-          >
-            <Text style={[styles.badgeText, { color: colors.primary }]}>{selectedCurrency}</Text>
-            <Ionicons name="swap-horizontal" size={12} color={colors.primary} style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
         </CardHeader>
 
         <CardContent>
@@ -76,7 +63,7 @@ interface BalanceItemProps {
 
 const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant, isBalance }) => {
   const colors = useColors();
-  const { format } = useCurrency();
+  const { formatConverted } = useCurrency();
 
   const getColors = () => {
     if (variant === 'income') {
@@ -107,7 +94,7 @@ const BalanceItem: React.FC<BalanceItemProps> = ({ label, amount, icon, variant,
         adjustsFontSizeToFit
       >
         {isBalance && amount < 0 ? '-' : ''}
-        {format(Math.abs(amount))}
+        {formatConverted(Math.abs(amount))}
       </Text>
     </View>
   );
