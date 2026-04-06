@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Card, CardContent, CardHeader, CardTitle, Button, Divider } from '@shared/components/ui';
-import { fetchTransactions } from '@features/transactions/services/transactions';
+import { fetchTransactions, deleteTransaction } from '@features/transactions/services/transactions';
 import { Transaction } from '@features/transactions/types/Transaction';
 import { LineChart } from 'react-native-chart-kit';
 import { format, subDays, startOfYear, startOfDay } from 'date-fns';
 import { TransactionCard } from '@features/transactions/components/TransactionCard';
-import { TransactionService } from '@features/transactions/services/transactionService';
 import { useColors, useIsDark, spacing, textStyles, radius, shadow } from '@shared/theme';
 import { Dropdown, DropdownItem } from '@shared/components/Dropdown';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -223,7 +222,7 @@ export const ReportsTab: React.FC = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await TransactionService.deleteTransaction(transaction.id);
+            await deleteTransaction(transaction.id);
             const fresh = await fetchTransactions(1000);
             setTransactions(fresh);
             setCurrentPage(0);

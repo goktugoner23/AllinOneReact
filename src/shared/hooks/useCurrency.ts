@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { StorageService } from '@shared/services/storage/asyncStorage';
 
-export type CurrencyCode = 'TRY' | 'AED';
+export type CurrencyCode = 'TRY' | 'AED' | 'USD';
 
 interface CurrencyState {
   selectedCurrency: CurrencyCode;
@@ -30,13 +30,14 @@ export const CurrencyContext = createContext<CurrencyState>({
 
 export function useCurrencyProvider(): CurrencyState {
   const [selectedCurrency, setSelectedCurrencyState] = useState<CurrencyCode>('TRY');
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null); // TRY→AED
+  const [rates, setRates] = useState<Record<string, number>>({}); // TRY→X rates
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null); // TRY→selected
   const [isLoading, setIsLoading] = useState(false);
 
   // Load saved preference
   useEffect(() => {
     StorageService.getItem<CurrencyCode>(STORAGE_KEY).then((saved) => {
-      if (saved === 'AED' || saved === 'TRY') {
+      if (saved === 'AED' || saved === 'TRY' || saved === 'USD') {
         setSelectedCurrencyState(saved);
       }
     });
@@ -48,9 +49,9 @@ export function useCurrencyProvider(): CurrencyState {
 
     async function fetchRate() {
       // Check cache first (valid for 6 hours)
-      const cached = await StorageService.getItem<{ rate: number; timestamp: number }>(RATE_CACHE_KEY);
+      const cached = await StorageService.getItem<{ rates: Record<string, number>; timestamp: number }>(RATE_CACHE_KEY);
       if (cached && Date.now() - cached.timestamp < 6 * 60 * 60 * 1000) {
-        if (!cancelled) setExchangeRate(cached.rate);
+        if (!cancelled) setRates(cached.rates);
         return;
       }
 
@@ -59,11 +60,12 @@ export function useCurrencyProvider(): CurrencyState {
         let res = await fetch(RATE_API_URL);
         if (!res.ok) res = await fetch(RATE_FALLBACK_URL);
         const data = await res.json();
-        // data.try.aed gives TRY→AED rate
-        const tryToAed = data?.try?.aed;
-        if (tryToAed && !cancelled) {
-          setExchangeRate(tryToAed);
-          await StorageService.setItem(RATE_CACHE_KEY, { rate: tryToAed, timestamp: Date.now() });
+        const fetched: Record<string, number> = {};
+        if (data?.try?.aed) fetched.aed = data.try.aed;
+        if (data?.try?.usd) fetched.usd = data.try.usd;
+        if (!cancelled && Object.keys(fetched).length > 0) {
+          setRates(fetched);
+          await StorageService.setItem(RATE_CACHE_KEY, { rates: fetched, timestamp: Date.now() });
         }
       } catch (err) {
         console.warn('Failed to fetch exchange rate:', err);
@@ -81,30 +83,37 @@ export function useCurrencyProvider(): CurrencyState {
     StorageService.setItem(STORAGE_KEY, currency);
   }, []);
 
+  const rateForCurrency = useMemo(() => {
+    if (selectedCurrency === 'TRY') return 1;
+    return rates[selectedCurrency.toLowerCase()] ?? null;
+  }, [selectedCurrency, rates]);
+
   const convert = useCallback(
     (amountInTRY: number): number => {
-      if (selectedCurrency === 'TRY' || !exchangeRate) return amountInTRY;
-      return amountInTRY * exchangeRate;
+      if (selectedCurrency === 'TRY' || !rateForCurrency) return amountInTRY;
+      return amountInTRY * rateForCurrency;
     },
-    [selectedCurrency, exchangeRate],
+    [selectedCurrency, rateForCurrency],
   );
+
+  const localeMap: Record<CurrencyCode, string> = { TRY: 'tr-TR', AED: 'en-AE', USD: 'en-US' };
 
   const format = useCallback(
     (amountInTRY: number): string => {
-      const converted = selectedCurrency === 'TRY' || !exchangeRate ? amountInTRY : amountInTRY * exchangeRate;
-      return new Intl.NumberFormat(selectedCurrency === 'TRY' ? 'tr-TR' : 'en-AE', {
+      const converted = selectedCurrency === 'TRY' || !rateForCurrency ? amountInTRY : amountInTRY * rateForCurrency;
+      return new Intl.NumberFormat(localeMap[selectedCurrency], {
         style: 'currency',
         currency: selectedCurrency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(converted);
     },
-    [selectedCurrency, exchangeRate],
+    [selectedCurrency, rateForCurrency],
   );
 
   return useMemo(
-    () => ({ selectedCurrency, setSelectedCurrency, exchangeRate, isLoading, convert, format }),
-    [selectedCurrency, setSelectedCurrency, exchangeRate, isLoading, convert, format],
+    () => ({ selectedCurrency, setSelectedCurrency, exchangeRate: rateForCurrency, isLoading, convert, format }),
+    [selectedCurrency, setSelectedCurrency, rateForCurrency, isLoading, convert, format],
   );
 }
 

@@ -9,17 +9,20 @@
 
 export const colors = {
   light: {
-    // Warm off-white surfaces (webapp --background / --card)
-    background: '#F8F7F2',
+    // Page-level background (webapp bg-[#efede7])
+    background: '#efede7',
     backgroundSecondary: '#EFEEE9',
     backgroundTertiary: '#ECEAE5',
+
+    // Sidebar background (webapp bg-[#f4f1ea])
+    sidebar: '#f4f1ea',
 
     surface: '#FEFEFC',
     surfaceHover: '#F3F2ED',
     surfaceActive: '#ECEAE5',
 
-    // Borders / dividers (webapp --border)
-    border: '#DFDED8',
+    // Borders / dividers (webapp border-black/6)
+    border: 'rgba(0,0,0,0.06)',
     borderMuted: '#EBEAE4',
     borderFocus: '#1E232D',
 
@@ -28,9 +31,9 @@ export const colors = {
     foregroundMuted: '#686C74',
     foregroundSubtle: '#8E929C',
 
-    // Primary = near-black (webapp --primary)
-    primary: '#1E232D',
-    primaryForeground: '#FAFAF9',
+    // Primary = near-black (webapp --primary / bg-neutral-900)
+    primary: '#171717',
+    primaryForeground: '#FFFFFF',
     primaryHover: '#111319',
     primaryMuted: '#EFEEE9',
 
@@ -71,8 +74,17 @@ export const colors = {
     investmentForeground: '#FFFFFF',
     investmentMuted: '#E3EDF7',
 
-    card: '#FEFEFC',
+    // Card (webapp bg-white/90 in sidebar header, #faf6ee general)
+    card: '#faf6ee',
     cardForeground: '#191B20',
+    cardIconBg: '#f2ede3',
+
+    // Header (webapp bg-white/85 backdrop-blur)
+    headerBg: 'rgba(255,255,255,0.85)',
+    headerBorder: 'rgba(0,0,0,0.06)',
+
+    // Currency/action pill bg (webapp bg-[#f5f2eb])
+    pillBg: '#f5f2eb',
 
     muted: '#EFEEE9',
     mutedForeground: '#686C74',
@@ -86,22 +98,24 @@ export const colors = {
     chart4: '#BC9C67',
     chart5: '#B06A65',
 
-    // Modal scrim / backdrop (used behind fullscreen overlays)
     overlay: 'rgba(0, 0, 0, 0.5)',
   },
 
   dark: {
-    // Deep cool surfaces (webapp dark --background / --card)
-    background: '#0C0E13',
+    // Page-level background (webapp dark:bg-[#0b0d10])
+    background: '#0b0d10',
     backgroundSecondary: '#13161B',
     backgroundTertiary: '#1E2026',
 
-    surface: '#13161B',
+    // Sidebar background (webapp dark:bg-[#0f1114])
+    sidebar: '#0f1114',
+
+    surface: '#151920',
     surfaceHover: '#1E2026',
     surfaceActive: '#272A31',
 
-    // Translucent-ish borders — flat hex approximation of rgba(255,255,255,0.1)
-    border: '#262A31',
+    // Borders (webapp dark:border-white/10)
+    border: 'rgba(255,255,255,0.1)',
     borderMuted: '#1A1D23',
     borderFocus: '#ECEBE9',
 
@@ -109,10 +123,10 @@ export const colors = {
     foregroundMuted: '#9B9EA5',
     foregroundSubtle: '#828690',
 
-    // Primary = near-white (webapp dark --primary)
-    primary: '#ECEBE9',
-    primaryForeground: '#0C0E13',
-    primaryHover: '#FFFFFF',
+    // Primary = near-white (webapp dark:bg-white / dark:text-neutral-950)
+    primary: '#FFFFFF',
+    primaryForeground: '#0a0a0a',
+    primaryHover: '#e5e5e5',
     primaryMuted: '#1E2026',
 
     secondary: '#1E2026',
@@ -150,8 +164,17 @@ export const colors = {
     investmentForeground: '#0C0E13',
     investmentMuted: '#172533',
 
-    card: '#13161B',
+    // Card (webapp dark surface)
+    card: '#151920',
     cardForeground: '#F1F0EE',
+    cardIconBg: '#171b21',
+
+    // Header (webapp dark:bg-[#0f1114]/88)
+    headerBg: 'rgba(15,17,20,0.88)',
+    headerBorder: 'rgba(255,255,255,0.1)',
+
+    // Currency/action pill bg (webapp dark:bg-white/5)
+    pillBg: 'rgba(255,255,255,0.05)',
 
     muted: '#1E2026',
     mutedForeground: '#9B9EA5',
@@ -164,7 +187,6 @@ export const colors = {
     chart4: '#BC9C67',
     chart5: '#B06A65',
 
-    // Modal scrim / backdrop (used behind fullscreen overlays)
     overlay: 'rgba(0, 0, 0, 0.6)',
   },
 } as const;
@@ -188,6 +210,7 @@ export interface ColorScheme {
   background: string;
   backgroundSecondary: string;
   backgroundTertiary: string;
+  sidebar: string;
   surface: string;
   surfaceHover: string;
   surfaceActive: string;
@@ -229,6 +252,10 @@ export interface ColorScheme {
   investmentMuted: string;
   card: string;
   cardForeground: string;
+  cardIconBg: string;
+  headerBg: string;
+  headerBorder: string;
+  pillBg: string;
   muted: string;
   mutedForeground: string;
   ring: string;

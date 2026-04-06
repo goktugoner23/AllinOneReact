@@ -32,15 +32,18 @@ export const spacing = {
   32: 128,
 } as const;
 
-// Border radius scale - larger for softer corners (Soft Minimal)
+// Border radius scale — matches webapp's rounded-* tokens
 export const radius = {
   none: 0,
   sm: 6,
+  base: 10,       // webapp --radius (0.625rem)
   md: 10,
   lg: 14,
+  '2xl': 16,      // nav items (rounded-2xl)
+  icon: 18,       // icon containers (rounded-[18px])
   xl: 20,
-  '2xl': 24,
-  '3xl': 28,
+  '3xl': 28,      // cards (rounded-[28px])
+  card: 28,
   full: 9999,
 } as const;
 

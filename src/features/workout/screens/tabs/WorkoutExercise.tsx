@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, ScrollView, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAppDispatch, useAppSelector } from '@shared/store/hooks';
-import { startWorkout, deleteWorkout } from '@features/workout/store/workoutSlice';
 import {
   Card,
   CardHeader,
@@ -18,8 +16,9 @@ import {
   Input,
 } from '@shared/components/ui';
 import { workoutService } from '@features/workout/services/workout';
-import { Program } from '@features/workout/types/Workout';
+import { CompletedWorkout, Program, WorkoutSession } from '@features/workout/types/Workout';
 import { useColors, spacing, textStyles } from '@shared/theme';
+import { buildSessionFromProgram } from '@features/workout/utils/buildSession';
 
 type Period = 'ALL' | 'DAY_1' | 'DAYS_7' | 'DAYS_30' | 'DAYS_90';
 
@@ -34,9 +33,8 @@ const PERIOD_OPTIONS = [
 export default function WorkoutExercise() {
   const colors = useColors();
   const nav = useNavigation<any>();
-  const dispatch = useAppDispatch();
-  const active = useAppSelector((s) => s.workout.activeSession);
-  const history = useAppSelector((s) => s.workout.history);
+  const [active, setActive] = React.useState<WorkoutSession | null>(null);
+  const [history, setHistory] = React.useState<CompletedWorkout[]>([]);
   const [selectorOpen, setSelectorOpen] = React.useState(false);
   const [programs, setPrograms] = React.useState<Program[]>([]);
   const [search, setSearch] = React.useState('');
@@ -49,10 +47,21 @@ export default function WorkoutExercise() {
 
   React.useEffect(() => {
     workoutService.getPrograms().then(setPrograms);
-    // initial history load
-    // lazy import to avoid circular
-    import('../../store/workoutSlice').then((m) => dispatch(m.loadHistory()));
+    workoutService.getWorkoutHistory().then(setHistory);
+    workoutService.getActiveSession().then(setActive);
   }, []);
+
+  const handleStartWorkout = async (program?: Program) => {
+    const session = buildSessionFromProgram(Date.now(), program);
+    await workoutService.saveActiveSession(session);
+    setSelectorOpen(false);
+    nav.navigate('Stopwatch' as never);
+  };
+
+  const handleDeleteWorkout = async (workoutId: number) => {
+    await workoutService.deleteWorkout(workoutId);
+    setHistory((prev) => prev.filter((w) => w.id !== workoutId));
+  };
 
   // Filter workouts based on search and period
   const filteredHistory = history
@@ -111,11 +120,7 @@ export default function WorkoutExercise() {
               key={p.id}
               variant="outlined"
               padding="sm"
-              onPress={() => {
-                setSelectorOpen(false);
-                dispatch(startWorkout(p));
-                nav.navigate('Stopwatch' as never);
-              }}
+              onPress={() => handleStartWorkout(p)}
             >
               <CardContent>
                 <Text style={[textStyles.label, { color: colors.foreground }]}>{p.name}</Text>
@@ -128,11 +133,7 @@ export default function WorkoutExercise() {
           <Button
             variant="outline"
             fullWidth
-            onPress={() => {
-              setSelectorOpen(false);
-              dispatch(startWorkout(undefined));
-              nav.navigate('Stopwatch' as never);
-            }}
+            onPress={() => handleStartWorkout(undefined)}
           >
             Start Custom Workout
           </Button>
@@ -232,7 +233,7 @@ export default function WorkoutExercise() {
         onClose={() => setConfirmDelete({ visible: false, workoutId: null })}
         onConfirm={async () => {
           if (confirmDelete.workoutId != null) {
-            await dispatch(deleteWorkout(confirmDelete.workoutId));
+            await handleDeleteWorkout(confirmDelete.workoutId);
           }
           setConfirmDelete({ visible: false, workoutId: null });
         }}

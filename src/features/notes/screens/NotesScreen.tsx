@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, Alert, Image, Share } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { AddFab } from '@shared/components';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNotes, useDeleteNote, useResolvedUri } from '@shared/hooks';
+import { useResolvedUri } from '@shared/hooks';
 import { Note } from '@features/notes/types/Note';
+import { getNotes, deleteNote as deleteNoteApi } from '@features/notes/services/notes';
 import { formatDate, stripHtmlTags } from '@shared/utils/formatters';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import { MediaAttachment, MediaType } from '@shared/types/MediaAttachment';
@@ -65,11 +66,19 @@ const NotesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProps<NotesStackParamList>>();
   const { colors, spacing, textStyles, radius } = useAppTheme();
 
-  // TanStack Query hooks
-  const { data: notes = [], isLoading, error, refetch } = useNotes();
-  const deleteNoteMutation = useDeleteNote();
-
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    const data = await getNotes();
+    setNotes(data);
+  }, []);
+
+  useEffect(() => {
+    fetchAll().finally(() => setLoading(false));
+  }, [fetchAll]);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAttachmentGallery, setShowAttachmentGallery] = useState(false);
@@ -85,22 +94,33 @@ const NotesScreen: React.FC = () => {
     );
   }, [notes, searchQuery]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await fetchAll();
     setRefreshing(false);
-  };
+  }, [fetchAll]);
 
-  const handleDeleteNote = (note: Note) => {
+  const handleDeleteNote = useCallback((note: Note) => {
     Alert.alert('Delete Note', `Are you sure you want to delete "${note.title}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteNoteMutation.mutate(note.id),
+        onPress: async () => {
+          setDeletingId(note.id);
+          try {
+            await deleteNoteApi(note.id);
+            setNotes((prev) => prev.filter((n) => n.id !== note.id));
+          } catch (err) {
+            console.error('Error deleting note:', err);
+            Alert.alert('Error', 'Failed to delete note.');
+          } finally {
+            setDeletingId(null);
+          }
+        },
       },
     ]);
-  };
+  }, []);
 
   const handleShareNote = async (note: Note) => {
     try {
@@ -185,7 +205,7 @@ const NotesScreen: React.FC = () => {
               variant="ghost"
               color={colors.destructive}
               onPress={() => handleDeleteNote(item)}
-              loading={deleteNoteMutation.isPending}
+              loading={deletingId === item.id}
             />
           </View>
         </View>
@@ -267,7 +287,7 @@ const NotesScreen: React.FC = () => {
     </View>
   );
 
-  if (isLoading && !refreshing) {
+  if (loading && !refreshing) {
     return <View style={[styles.container, { backgroundColor: colors.background }]}>{renderLoadingState()}</View>;
   }
 

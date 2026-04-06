@@ -9,19 +9,22 @@ import {
   Dialog,
   SegmentedControl,
 } from '@shared/components/ui';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '@shared/store/rootStore';
-import { addLesson, updateLesson, deleteLesson, loadLessons } from '@features/wtregistry/store/wtRegistrySlice';
+import {
+  fetchLessons,
+  addLesson as addLessonRemote,
+  updateLesson as updateLessonRemote,
+  deleteLesson as deleteLessonRemote,
+} from '@features/wtregistry/services/wtRegistry';
 import { WTLesson } from '@features/wtregistry/types/WTRegistry';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export function LessonsTab() {
-  const dispatch = useDispatch<AppDispatch>();
   const { colors } = useAppTheme();
-  const { lessons, loading } = useSelector((state: RootState) => state.wtRegistry);
 
+  const [lessons, setLessons] = useState<WTLesson[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [editingLesson, setEditingLesson] = useState<WTLesson | null>(null);
   const [showTimePicker, setShowTimePicker] = useState<'start' | 'end' | null>(null);
@@ -38,9 +41,11 @@ export function LessonsTab() {
 
   // Load lessons when component mounts
   useEffect(() => {
-    console.log('🔍 Loading lessons...');
-    dispatch(loadLessons());
-  }, [dispatch]);
+    setLoading(true);
+    fetchLessons()
+      .then(setLessons)
+      .finally(() => setLoading(false));
+  }, []);
 
   const sortedLessons = [...lessons].sort((a, b) => {
     if (a.dayOfWeek === b.dayOfWeek) {
@@ -98,14 +103,12 @@ export function LessonsTab() {
       };
 
       if (editingLesson) {
-        await dispatch(
-          updateLesson({
-            ...editingLesson,
-            ...lessonData,
-          }),
-        ).unwrap();
+        const updated = { ...editingLesson, ...lessonData };
+        await updateLessonRemote(updated);
+        setLessons(prev => prev.map(l => l.id === updated.id ? updated : l));
       } else {
-        await dispatch(addLesson(lessonData)).unwrap();
+        const created = await addLessonRemote(lessonData);
+        setLessons(prev => [...prev, created]);
       }
       handleCloseDialog();
     } catch (error) {
@@ -121,7 +124,8 @@ export function LessonsTab() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await dispatch(deleteLesson(lesson.id)).unwrap();
+            await deleteLessonRemote(lesson.id);
+            setLessons(prev => prev.filter(l => l.id !== lesson.id));
           } catch (error) {
             Alert.alert('Error', 'Failed to delete lesson');
           }
