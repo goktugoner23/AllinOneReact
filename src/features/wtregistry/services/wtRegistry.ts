@@ -429,6 +429,7 @@ export async function addRegistration(
         date: new Date().toISOString(),
         category: 'Wing Tzun',
         relatedRegistrationId: created.id,
+        currency: 'TRY' as const,
       });
     }
 
@@ -490,6 +491,7 @@ export async function updateRegistration(registration: WTRegistration): Promise<
           date: new Date().toISOString(),
           category: 'Wing Tzun',
           relatedRegistrationId: registration.id,
+          currency: 'TRY' as const,
         });
       } else if (originalRegistration.isPaid && !registration.isPaid) {
         const transactions = await fetchTransactions();
@@ -515,6 +517,7 @@ export async function updateRegistration(registration: WTRegistration): Promise<
             date: new Date().toISOString(),
             category: 'Wing Tzun',
             relatedRegistrationId: registration.id,
+            currency: 'TRY' as const,
           });
         }
       }
@@ -544,6 +547,7 @@ export async function updateRegistrationPaymentStatus(
           date: new Date().toISOString(),
           category: 'Wing Tzun',
           relatedRegistrationId: registration.id,
+          currency: 'TRY' as const,
         });
       }
     } else if (!newIsPaid && oldIsPaid) {
@@ -633,6 +637,7 @@ export async function addRegistrationWithTransaction(
         date: new Date().toISOString(),
         category: 'Wing Tzun',
         relatedRegistrationId: created.id,
+        currency: 'TRY' as const,
       });
     }
   } catch (error) {

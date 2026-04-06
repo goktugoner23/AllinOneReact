@@ -69,6 +69,7 @@ export class TransactionService {
           description: transaction.description,
           date: transaction.date,
           category: transaction.category,
+          currency: transaction.currency || 'TRY',
         };
 
         // Mark balance as stale and update incrementally

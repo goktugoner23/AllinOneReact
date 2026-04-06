@@ -9,8 +9,15 @@ import { logger } from '@shared/utils/logger';
 import { Investment } from '@features/transactions/types/Investment';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { TransactionCurrency, TRANSACTION_CURRENCIES } from '@features/transactions/types/Transaction';
 
 type TransactionType = 'income' | 'expense';
+
+const CURRENCY_SYMBOLS: Record<TransactionCurrency, string> = {
+  TRY: '₺',
+  AED: 'د.إ',
+  USD: '$',
+};
 
 export const TransactionForm: React.FC = () => {
   const colors = useColors();
@@ -18,6 +25,7 @@ export const TransactionForm: React.FC = () => {
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedInvestmentType, setSelectedInvestmentType] = useState('');
+  const [selectedCurrency, setSelectedCurrency] = useState<TransactionCurrency>('TRY');
   const [showInvestmentPicker, setShowInvestmentPicker] = useState(false);
   const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [pendingDescription, setPendingDescription] = useState<string>('');
@@ -86,6 +94,7 @@ export const TransactionForm: React.FC = () => {
     try {
       await addTransactionMutation.mutateAsync({
         amount: amountValue,
+        currency: selectedCurrency,
         type: isIncome ? 'income' : 'expense',
         description: description.trim() || '',
         date: new Date().toISOString(),
@@ -113,6 +122,7 @@ export const TransactionForm: React.FC = () => {
 
       await addTransactionMutation.mutateAsync({
         amount: pendingAmount,
+        currency: selectedCurrency,
         type: isIncome ? 'income' : 'expense',
         description: selectedInvestmentType ? `${txDescription} [${selectedInvestmentType}]` : txDescription,
         date: new Date().toISOString(),
@@ -140,6 +150,7 @@ export const TransactionForm: React.FC = () => {
     setAmount('');
     setDescription('');
     setSelectedCategory('');
+    setSelectedCurrency('TRY');
     setSelectedInvestmentType('');
     setPendingAmount(0);
     setPendingDescription('');
@@ -161,16 +172,48 @@ export const TransactionForm: React.FC = () => {
       </CardHeader>
 
       <CardContent style={styles.formContainer}>
-        {/* Amount Input */}
-        <Input
-          label="Amount"
-          placeholder="0"
-          value={amount}
-          onChangeText={(text) => setAmount(formatCurrency(text))}
-          keyboardType="numeric"
-          editable={!isSubmitting}
-          leftIcon={<Text style={[styles.currencySymbol, { color: colors.mutedForeground }]}>₺</Text>}
-        />
+        {/* Amount + Currency */}
+        <View style={styles.amountRow}>
+          <View style={{ flex: 1 }}>
+            <Input
+              label="Amount"
+              placeholder="0"
+              value={amount}
+              onChangeText={(text) => setAmount(formatCurrency(text))}
+              keyboardType="numeric"
+              editable={!isSubmitting}
+              leftIcon={<Text style={[styles.currencySymbol, { color: colors.mutedForeground }]}>{CURRENCY_SYMBOLS[selectedCurrency]}</Text>}
+            />
+          </View>
+          <View style={styles.currencySelector}>
+            <Text style={[styles.inputLabel, { color: colors.foreground }]}>Currency</Text>
+            <View style={[styles.currencyChips, { borderColor: colors.border }]}>
+              {TRANSACTION_CURRENCIES.map((cur) => (
+                <TouchableOpacity
+                  key={cur}
+                  style={[
+                    styles.currencyChip,
+                    {
+                      backgroundColor: selectedCurrency === cur ? colors.primary : 'transparent',
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedCurrency(cur)}
+                  disabled={isSubmitting}
+                >
+                  <Text
+                    style={[
+                      styles.currencyChipText,
+                      { color: selectedCurrency === cur ? colors.primaryForeground : colors.foreground },
+                    ]}
+                  >
+                    {cur}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
 
         {/* Submit Buttons - Expense (Red) / Income (Green) */}
         <View style={styles.typeButtonsContainer}>
@@ -276,7 +319,7 @@ export const TransactionForm: React.FC = () => {
                   <View style={styles.modalItemContent}>
                     <Text style={[styles.modalItemText, { color: colors.foreground }]}>{inv.name}</Text>
                     <Text style={[styles.modalItemSubtext, { color: colors.mutedForeground }]}>
-                      {inv.type} • ₺{inv.amount.toLocaleString()}
+                      {inv.type} • {CURRENCY_SYMBOLS[inv.currency || 'TRY']}{inv.amount.toLocaleString()}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
@@ -377,5 +420,29 @@ const styles = StyleSheet.create({
   modalItemSubtext: {
     ...textStyles.caption,
     marginTop: 2,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    alignItems: 'flex-start',
+  },
+  currencySelector: {
+    width: 120,
+  },
+  currencyChips: {
+    flexDirection: 'row',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  currencyChip: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currencyChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

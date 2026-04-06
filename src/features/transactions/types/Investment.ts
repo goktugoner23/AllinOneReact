@@ -1,7 +1,10 @@
+export type InvestmentCurrency = 'TRY' | 'AED' | 'USD';
+
 export interface Investment {
   id: string;
   name: string;
   amount: number;
+  currency: InvestmentCurrency;
   type: string;
   description?: string;
   imageUri?: string;

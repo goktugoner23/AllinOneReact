@@ -7,7 +7,7 @@
  */
 
 import { api } from '@shared/services/api/httpClient';
-import { Transaction } from '@features/transactions/types/Transaction';
+import { Transaction, TransactionCurrency } from '@features/transactions/types/Transaction';
 import { logger } from '@shared/utils/logger';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -64,6 +64,7 @@ function mapBackendToMobile(entry: BackendTransactionEntry): Transaction {
   return {
     id: String(entry.id),
     amount: entry.amount,
+    currency: (entry.currency as TransactionCurrency) || 'TRY',
     type: entry.type ?? '',
     description: entry.description ?? '',
     isIncome: entry.isIncome,
@@ -86,7 +87,7 @@ function buildTransactionBody(t: Omit<Transaction, 'id'> | Transaction) {
 
   return {
     amount: t.amount,
-    currency: 'TRY', // Mobile Transaction has no currency field; default to TRY.
+    currency: (t as Transaction).currency ?? 'TRY',
     description: t.description ?? '',
     type: t.type,
     category: t.category,
