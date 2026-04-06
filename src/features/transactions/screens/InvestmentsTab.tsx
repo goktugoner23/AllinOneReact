@@ -219,10 +219,11 @@ function InvestmentsContent() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
+  const formatCurrency = (amount: number, currency: string = 'TRY') => {
+    const locale = currency === 'TRY' ? 'tr-TR' : currency === 'AED' ? 'ar-AE' : 'en-US';
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'TRY',
+      currency,
     }).format(amount);
   };
 
@@ -243,7 +244,7 @@ function InvestmentsContent() {
               {(item.type || '').toUpperCase()}
             </Chip>
           </View>
-          <Text style={[styles.amount, { color: colors.investment }]}>{formatCurrency(item.amount)}</Text>
+          <Text style={[styles.amount, { color: colors.investment }]}>{formatCurrency(item.amount, item.currency)}</Text>
           {item.description ? (
             <Text style={[styles.description, { color: colors.mutedForeground }]}>{item.description}</Text>
           ) : null}
@@ -318,10 +319,10 @@ function InvestmentsContent() {
                 style={[styles.profitLoss, { color: (item.profitLoss || 0) >= 0 ? colors.income : colors.expense }]}
               >
                 {(item.profitLoss || 0) >= 0 ? '+' : ''}
-                {formatCurrency(item.profitLoss || 0)}
+                {formatCurrency(item.profitLoss || 0, item.currency)}
               </Text>
               <Text style={[styles.currentValue, { color: colors.mutedForeground }]}>
-                Current: {formatCurrency(item.currentValue || item.amount)}
+                Current: {formatCurrency(item.currentValue || item.amount, item.currency)}
               </Text>
             </View>
           )}
@@ -567,6 +568,7 @@ function InvestmentsContent() {
                         profitLoss: 0,
                         currentValue: parseFloat(addForm.amount || '0'),
                         imageUri: '',
+                        currency: 'TRY',
                       },
                       addAttachments,
                     );
@@ -578,6 +580,7 @@ function InvestmentsContent() {
                         isIncome: false,
                         date: new Date().toISOString(),
                         category: addForm.type,
+                        currency: 'TRY',
                       });
                     }
                     setAddModalVisible(false);

@@ -7,7 +7,7 @@
  */
 
 import { api } from '@shared/services/api/httpClient';
-import { Investment } from '../types/Investment';
+import { Investment, InvestmentCurrency } from '../types/Investment';
 import { MediaAttachment } from '@shared/types/MediaAttachment';
 import { uploadInvestmentAttachments } from './investmentAttachments';
 
@@ -57,6 +57,7 @@ function mapBackendToMobile(entry: BackendInvestmentEntry): Investment {
     id: String(entry.id),
     name: entry.name ?? '',
     amount: entry.amount ?? 0,
+    currency: (entry.currency as InvestmentCurrency) || 'TRY',
     type: entry.type ?? '',
     description: entry.description ?? '',
     // Backend now persists attachment keys on investments (see
@@ -86,9 +87,7 @@ function buildInvestmentBody(
     name: investment.name,
     type: investment.type,
     amount: investment.amount,
-    // Mobile's Investment type doesn't carry currency; the backend requires
-    // one of TRY/AED/USD and validates it. Default to TRY.
-    currency: 'TRY',
+    currency: investment.currency ?? 'TRY',
     description: investment.description || '',
     date: investment.date,
     isPast: investment.isPast ?? false,
