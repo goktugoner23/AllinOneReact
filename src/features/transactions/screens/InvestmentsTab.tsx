@@ -22,6 +22,7 @@ import {
 } from '@features/transactions/services/investments';
 import { Investment } from '@features/transactions/types/Investment';
 import { FuturesTab } from './FuturesTab';
+import { TradingLogTab } from './TradingLogTab';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import { Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -868,48 +869,50 @@ function InvestmentsContent() {
 
 export const InvestmentsTab: React.FC = () => {
   const colors = useColors();
-  const [activeTab, setActiveTab] = useState<'investments' | 'futures'>('investments');
+  const [activeTab, setActiveTab] = useState<'investments' | 'futures' | 'tradelog'>('investments');
+
+  const tabs = [
+    { key: 'investments' as const, label: 'Investments' },
+    { key: 'futures' as const, label: 'Futures' },
+    { key: 'tradelog' as const, label: 'Trade Log' },
+  ];
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
       {/* Custom Tab Bar */}
       <View style={[styles.tabBar, { backgroundColor: colors.card }, shadow.sm]}>
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            { borderBottomColor: activeTab === 'investments' ? colors.primary : 'transparent' },
-          ]}
-          onPress={() => setActiveTab('investments')}
-        >
-          <Text
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
             style={[
-              styles.tabButtonText,
-              { color: activeTab === 'investments' ? colors.primary : colors.mutedForeground },
-              activeTab === 'investments' && styles.activeTabButtonText,
+              styles.tabButton,
+              { borderBottomColor: activeTab === tab.key ? colors.primary : 'transparent' },
             ]}
+            onPress={() => setActiveTab(tab.key)}
           >
-            Investments
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabButton, { borderBottomColor: activeTab === 'futures' ? colors.primary : 'transparent' }]}
-          onPress={() => setActiveTab('futures')}
-        >
-          <Text
-            style={[
-              styles.tabButtonText,
-              { color: activeTab === 'futures' ? colors.primary : colors.mutedForeground },
-              activeTab === 'futures' && styles.activeTabButtonText,
-            ]}
-          >
-            Futures
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.tabButtonText,
+                { color: activeTab === tab.key ? colors.primary : colors.mutedForeground },
+                activeTab === tab.key && styles.activeTabButtonText,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Tab Content */}
-      <View style={styles.tabContent}>{activeTab === 'investments' ? <InvestmentsContent /> : <FuturesTab />}</View>
+      <View style={styles.tabContent}>
+        {activeTab === 'investments' ? (
+          <InvestmentsContent />
+        ) : activeTab === 'futures' ? (
+          <FuturesTab />
+        ) : (
+          <TradingLogTab />
+        )}
+      </View>
     </View>
   );
 };
