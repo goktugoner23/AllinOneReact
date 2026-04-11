@@ -14,4 +14,13 @@ export interface TradeLogEntry {
   close_time: string | null;
   notes: string | null;
   created_at: string;
+  // Bot/SMC discrimination fields. Mode is the live/paper switch the
+  // strategy validation card relies on.
+  opened_by?: 'USER' | 'BOT';
+  strategy_id?: number | null;
+  signal_source?: string | null;
+  client_order_id?: string | null;
+  mode?: 'live' | 'paper';
+  stop_loss?: number | null;
+  take_profit?: number | null;
 }

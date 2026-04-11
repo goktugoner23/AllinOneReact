@@ -3,3 +3,5 @@ export * from './Transaction';
 export * from './Investment';
 export * from './BinanceApiModels';
 export * from './BinanceFutures';
+export * from './TradeLog';
+export * from './Trader';

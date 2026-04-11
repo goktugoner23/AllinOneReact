@@ -23,6 +23,7 @@ import {
 import { Investment } from '@features/transactions/types/Investment';
 import { FuturesTab } from './FuturesTab';
 import { TradingLogTab } from './TradingLogTab';
+import { TraderTab } from './TraderTab';
 import AttachmentGallery from '@features/notes/components/AttachmentGallery';
 import { Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -869,12 +870,15 @@ function InvestmentsContent() {
 
 export const InvestmentsTab: React.FC = () => {
   const colors = useColors();
-  const [activeTab, setActiveTab] = useState<'investments' | 'futures' | 'tradelog'>('investments');
+  const [activeTab, setActiveTab] = useState<
+    'investments' | 'futures' | 'tradelog' | 'trader'
+  >('investments');
 
   const tabs = [
     { key: 'investments' as const, label: 'Investments' },
     { key: 'futures' as const, label: 'Futures' },
     { key: 'tradelog' as const, label: 'Trade Log' },
+    { key: 'trader' as const, label: 'Trader' },
   ];
 
   return (
@@ -909,8 +913,10 @@ export const InvestmentsTab: React.FC = () => {
           <InvestmentsContent />
         ) : activeTab === 'futures' ? (
           <FuturesTab />
-        ) : (
+        ) : activeTab === 'tradelog' ? (
           <TradingLogTab />
+        ) : (
+          <TraderTab />
         )}
       </View>
     </View>
