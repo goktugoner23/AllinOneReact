@@ -40,7 +40,9 @@ export const TradingLogTab: React.FC = () => {
   const fetchTrades = useCallback(async () => {
     try {
       const status = filter === 'ALL' ? undefined : filter;
-      const data = await getTradeLog(status);
+      // Filter out paper rows so this user-facing log shows only real
+      // Binance fills. Paper trades live in the Trader tab strategy card.
+      const data = await getTradeLog(status, 50, 0, 'live');
       setTrades(data);
     } catch (err) {
       console.error('Failed to fetch trade log:', err);

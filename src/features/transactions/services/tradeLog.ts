@@ -4,10 +4,12 @@ import { TradeLogEntry } from '../types/TradeLog';
 export async function getTradeLog(
   status?: string,
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
+  mode?: 'live' | 'paper'
 ): Promise<TradeLogEntry[]> {
   const params: Record<string, string | number> = { limit, offset };
   if (status) params.status = status;
+  if (mode) params.mode = mode;
   return api.get<TradeLogEntry[]>('/api/binance/trade-log', { searchParams: params });
 }
 
