@@ -14,13 +14,13 @@ A comprehensive personal finance and life management mobile application built wi
 
 ### Investment Portfolio
 - **Investment Tracking**: Monitor your investment portfolio with attachments
-- **USD-M Futures Trading**: Real-time Binance USD-M futures data with WebSocket
+- **USD-M Futures Trading**: Real-time Binance USD-M futures data over the bearer-authenticated legacy `/ws` feed
 - **COIN-M Futures Trading**: Coin-margined futures with USD value estimates
 - **Balance Monitoring**: Track account balances and positions
 - **P&L Analysis**: Profit and loss calculations with liquidation distance
 - **Media Attachments**: Support for images, videos, and audio notes on investments
 
-### GPT AI Assistant
+### Muninn AI Assistant
 - **AI-Powered Chat**: Full conversational AI assistant powered by OpenAI GPT-5.2
 - **App Control**: AI can read, create, update, and delete data across all features
 - **Multi-Conversation**: Persistent chat history with conversation management (like ChatGPT)
@@ -43,7 +43,7 @@ A comprehensive personal finance and life management mobile application built wi
 - **Month Filtering**: Filter registrations by month with totals
 
 ### Calendar & Events
-- **Event Management**: Create, edit, and delete custom events in Firestore
+- **Event Management**: Create, edit, and delete custom events through huginn-external
 - **Smart Calendar Display**: Visual calendar with colored dots indicating event types
 - **Event Type Prioritization**: Red (Registration End) > Green (Registration Start) > Yellow (Other) > Blue (Lessons)
 - **Auto-Generated Events**: Automatic lesson, registration, and seminar events from WT Registry data
@@ -68,6 +68,12 @@ A comprehensive personal finance and life management mobile application built wi
 - **Category Breakdown**: Spending analysis by category
 - **Date Range Filtering**: Custom period analysis with pagination
 - **Visual Charts**: Interactive charts and graphs
+
+## Recent Updates
+
+- **Authenticated futures websocket**: The mobile Binance websocket handshake now sends `Authorization: Bearer <HUGINN_API_TOKEN>`, matching the backend requirement on `/ws`.
+- **Correct paginated totals**: Dashboard and shared transaction-count helpers now use the backend `total` field from `/api/transactions` instead of the current page length.
+- **Still backend-first**: Persistence stays on huginn-external REST + Cloudflare R2; the websocket is only for live trading data.
 
 ## Architecture
 
@@ -106,7 +112,7 @@ src/
 │   ├── history/                # History feature
 │   │   ├── screens/
 │   │   └── types/
-│   ├── gpt/                   # GPT AI Assistant
+│   ├── muninn/                # Muninn AI Assistant
 │   │   ├── screens/
 │   │   ├── components/
 │   │   ├── services/
@@ -212,7 +218,7 @@ import { useAppTheme } from '@App';
    HUGINN_API_TOKEN=your_huginn_api_token
    ```
 
-   The mobile app talks exclusively to the huginn-external REST API for persistence, and media attachments are uploaded through `/api/storage` (backed by Cloudflare R2).
+   The mobile app talks exclusively to the huginn-external REST API for persistence, and media attachments are uploaded through `/api/storage` (backed by Cloudflare R2). The futures websocket handshake also uses `HUGINN_API_TOKEN`, so leaving it unset will break live futures updates even if REST calls work.
 
 4. **Install iOS dependencies** (iOS only)
    ```bash
@@ -251,7 +257,7 @@ All data is persisted through huginn-external REST endpoints. Primary resources:
 - `tasks` - Task items
 - `taskGroups` - Task group definitions
 - `workouts` - Workout session data
-- `ai_conversations` - GPT AI chat conversations (with message subresources)
+- `muninn conversations` - AI chat conversations and message history
 
 Media attachments (images, videos, voice notes, drawings) are uploaded via `/api/storage`, which is backed by Cloudflare R2.
 
@@ -346,6 +352,7 @@ cd android && ./gradlew clean && cd ..
 - Verify `API_BASE_URL_DEV` / `API_BASE_URL_PROD` point at a running huginn-external instance
 - Verify `HUGINN_API_TOKEN` matches the token configured on the server
 - Check server logs in huginn-external for auth/CORS errors
+- If futures tabs stay disconnected, verify `WS_URL_DEV` / `WS_URL_PROD` point at the protected legacy `/ws` endpoint and that the websocket handshake is sending the same Bearer token
 
 **Icons not displaying**
 ```bash
@@ -365,7 +372,11 @@ npx react-native link react-native-vector-icons
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Current Version: Unreleased (2026-04-05)
+### Current Version: Unreleased (2026-04-17)
+- **Authenticated futures websocket**: Legacy `/ws` connections now use the shared Bearer token during the handshake.
+- **Paginated totals alignment**: Dashboard history/transaction cards and cached count helpers now honor `/api/transactions` `{ items, total }` responses.
+
+### Previous Version: Unreleased (2026-04-05)
 - **Firebase Eradication**: Full removal of firebase/firestore code, `firebase` npm package, and all related configs/docs. Mobile talks exclusively to huginn-external + Cloudflare R2.
 - **R2 Key-Based Media**: New `useResolvedUri` hook resolves opaque R2 keys to short-lived signed URLs at render time. Notes, investments, history, wtregistry, and muninn chat all consume keys.
 - **Muninn R2 Persistence**: ChatInput sends R2 keys instead of signed URLs; backend re-signs on use, so historical conversations stay valid indefinitely.
