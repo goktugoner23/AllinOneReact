@@ -120,6 +120,7 @@ export async function fetchTransactions(limitCount: number = 50): Promise<Transa
     const entries: BackendTransactionEntry[] = Array.isArray(raw)
       ? raw
       : raw?.items ?? [];
+    const totalCount = Array.isArray(raw) ? entries.length : raw?.total ?? entries.length;
 
     const transactions = entries.map(mapBackendToMobile);
 
@@ -133,7 +134,7 @@ export async function fetchTransactions(limitCount: number = 50): Promise<Transa
       0,
     );
     transactionCache = {
-      count: transactions.length,
+      count: totalCount,
       totalIncome,
       totalExpense,
       list: transactions,
