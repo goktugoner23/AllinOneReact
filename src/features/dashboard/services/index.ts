@@ -76,9 +76,10 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
           const rows: BackendTransaction[] = Array.isArray(raw)
             ? raw
             : raw?.items ?? [];
+          const totalCount = Array.isArray(raw) ? rows.length : raw?.total ?? rows.length;
           return {
             todayCount: rows.filter((t) => t.date?.slice(0, 10) === todayStr).length,
-            totalCount: rows.length,
+            totalCount,
           };
         },
         EMPTY.transactions,
