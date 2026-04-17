@@ -5,6 +5,17 @@ All notable changes to the Huginn React Native project are documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-04-17
+
+### Changed
+- **Authenticated Binance websocket handshake** — The legacy futures websocket now sends `Authorization: Bearer <HUGINN_API_TOKEN>` during the `/ws` handshake, matching the backend auth gate.
+
+### Fixed
+- **Dashboard transaction totals** — Dashboard transaction and derived history totals now use the backend-provided paginated `total` instead of capping at the fetched page length.
+- **Transaction cache counts** — Shared transaction count helpers now honor `/api/transactions` responses shaped as `{ items, total }`.
+
+---
+
 ## [Unreleased] - 2026-04-05
 
 ### Added
