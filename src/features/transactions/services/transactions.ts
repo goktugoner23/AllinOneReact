@@ -108,11 +108,20 @@ export async function fetchTransactions(limitCount: number = 50): Promise<Transa
   try {
     logger.debug(`Fetching transactions (limit: ${limitCount})`, {}, 'fetchTransactions');
 
-    const entries = await api.get<BackendTransactionEntry[]>('/api/transactions', {
+    // Backend wraps the list in { items, total } for the webapp's pagination.
+    // Tolerate both shapes (bare array OR envelope) so older deploys keep
+    // working if anyone rolls back.
+    const raw = await api.get<
+      BackendTransactionEntry[] | { items: BackendTransactionEntry[]; total?: number }
+    >('/api/transactions', {
       searchParams: { limit: limitCount },
     });
 
-    const transactions = (entries ?? []).map(mapBackendToMobile);
+    const entries: BackendTransactionEntry[] = Array.isArray(raw)
+      ? raw
+      : raw?.items ?? [];
+
+    const transactions = entries.map(mapBackendToMobile);
 
     // Populate cache opportunistically so totals/count helpers can reuse it.
     const totalIncome = transactions.reduce(

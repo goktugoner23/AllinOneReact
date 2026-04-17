@@ -66,11 +66,21 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
   const [transactions, tasks, notes, calendar, workout, students, registrations] =
     await Promise.all([
       safe(
-        () => api.get<BackendTransaction[]>('/api/transactions', { searchParams: { limit: 500 } }),
-        (rows) => ({
-          todayCount: (rows ?? []).filter((t) => t.date?.slice(0, 10) === todayStr).length,
-          totalCount: (rows ?? []).length,
-        }),
+        () =>
+          api.get<
+            BackendTransaction[] | { items: BackendTransaction[]; total?: number }
+          >('/api/transactions', { searchParams: { limit: 500 } }),
+        (raw) => {
+          // Backend wraps the list in { items, total } for pagination.
+          // Tolerate both shapes (bare array OR envelope).
+          const rows: BackendTransaction[] = Array.isArray(raw)
+            ? raw
+            : raw?.items ?? [];
+          return {
+            todayCount: rows.filter((t) => t.date?.slice(0, 10) === todayStr).length,
+            totalCount: rows.length,
+          };
+        },
         EMPTY.transactions,
       ),
       safe(
