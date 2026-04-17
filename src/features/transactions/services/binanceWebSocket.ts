@@ -1,5 +1,5 @@
 import { logger } from '@shared/utils/logger';
-import { WS_URL_DEV, WS_URL_PROD } from '@env';
+import { HUGINN_API_TOKEN, WS_URL_DEV, WS_URL_PROD } from '@env';
 
 export interface WebSocketMessage {
   type: string;
@@ -35,9 +35,14 @@ class BinanceWebSocketService {
     try {
       logger.debug('Connecting to Binance WebSocket', {}, 'BinanceWebSocket');
 
-      this.ws = new WebSocket(this.BASE_WS_URL);
+      const ws = HUGINN_API_TOKEN
+        ? new (WebSocket as any)(this.BASE_WS_URL, undefined, {
+            headers: { Authorization: `Bearer ${HUGINN_API_TOKEN}` },
+          })
+        : new WebSocket(this.BASE_WS_URL);
+      this.ws = ws;
 
-      this.ws.onopen = () => {
+      ws.onopen = () => {
         logger.debug('WebSocket connected successfully', {}, 'BinanceWebSocket');
         this.isConnected = true;
         this.reconnectAttempts = 0;
@@ -46,7 +51,7 @@ class BinanceWebSocketService {
         this.sendWelcomeMessage();
       };
 
-      this.ws.onmessage = (event) => {
+      ws.onmessage = (event: MessageEvent) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
           logger.debug('WebSocket message received', { type: message.type }, 'BinanceWebSocket');
@@ -58,7 +63,7 @@ class BinanceWebSocketService {
         }
       };
 
-      this.ws.onclose = (event) => {
+      ws.onclose = (event: CloseEvent) => {
         logger.debug('WebSocket closed', { code: event.code, reason: event.reason }, 'BinanceWebSocket');
         this.isConnected = false;
         this.callbacks.onConnectionChange?.(false);
@@ -69,7 +74,7 @@ class BinanceWebSocketService {
         }
       };
 
-      this.ws.onerror = () => {
+      ws.onerror = () => {
         // Log as warning instead of error for connection issues
         // This is expected when the server is unreachable
         logger.warn('WebSocket connection failed - server may be unavailable', {}, 'BinanceWebSocket');
