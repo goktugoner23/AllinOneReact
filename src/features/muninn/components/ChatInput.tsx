@@ -95,11 +95,11 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   const handlePickImage = async () => {
     const imageCount = pendingAttachments.filter(a => a.type === 'image').length;
-    if (disabled || imageCount >= 3) return;
+    if (disabled || imageCount >= 5) return;
 
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      selectionLimit: 3 - imageCount,
+      selectionLimit: 5 - imageCount,
       quality: 0.7,
     });
 

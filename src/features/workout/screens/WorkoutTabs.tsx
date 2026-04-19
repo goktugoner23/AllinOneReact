@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import WorkoutPrograms from './tabs/WorkoutPrograms';
 import WorkoutExercise from './tabs/WorkoutExercise';
 import WorkoutStats from './tabs/WorkoutStats';
+import { DietLogScreen } from '@features/diet';
 import { useColors } from '@shared/theme';
 
 const Tab = createBottomTabNavigator();
@@ -26,7 +27,9 @@ export default function WorkoutTabs() {
               ? 'barbell-outline'
               : route.name === 'Program'
                 ? 'list-outline'
-                : 'stats-chart-outline';
+                : route.name === 'Stats'
+                  ? 'stats-chart-outline'
+                  : 'restaurant-outline';
           return <Ionicons name={icon} size={size} color={color} />;
         },
         tabBarActiveTintColor: colors.primary,
@@ -36,6 +39,7 @@ export default function WorkoutTabs() {
       <Tab.Screen name="Exercise" component={WorkoutExercise} />
       <Tab.Screen name="Program" component={WorkoutPrograms} />
       <Tab.Screen name="Stats" component={WorkoutStats} />
+      <Tab.Screen name="Diet" component={DietLogScreen} />
     </Tab.Navigator>
   );
 }
