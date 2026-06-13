@@ -161,30 +161,36 @@ function InvestmentsContent() {
   };
 
   const confirmDelete = async () => {
-    if (selectedInvestment) {
-      try {
-        await deleteInvestment(selectedInvestment.id);
-        setDeleteDialogVisible(false);
-        setSelectedInvestment(null);
-        loadInvestments();
-        Alert.alert('Deleted', 'Investment deleted successfully');
-      } catch (error) {
-        Alert.alert('Error', 'Failed to delete investment');
-      }
+    // Re-entrancy guard: a rapid double-tap otherwise fires deleteInvestment
+    // twice; the second hits an already-deleted id and pops a spurious error.
+    if (!selectedInvestment || isSaving) return;
+    setIsSaving(true);
+    try {
+      await deleteInvestment(selectedInvestment.id);
+      setDeleteDialogVisible(false);
+      setSelectedInvestment(null);
+      loadInvestments();
+      Alert.alert('Deleted', 'Investment deleted successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete investment');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const confirmLiquidate = async () => {
-    if (selectedInvestment) {
-      try {
-        await deleteInvestment(selectedInvestment.id); // Same as delete, but different message
-        setLiquidateDialogVisible(false);
-        setSelectedInvestment(null);
-        loadInvestments();
-        Alert.alert('Liquidated', 'Investment liquidated successfully');
-      } catch (error) {
-        Alert.alert('Error', 'Failed to liquidate investment');
-      }
+    if (!selectedInvestment || isSaving) return;
+    setIsSaving(true);
+    try {
+      await deleteInvestment(selectedInvestment.id); // Same as delete, but different message
+      setLiquidateDialogVisible(false);
+      setSelectedInvestment(null);
+      loadInvestments();
+      Alert.alert('Liquidated', 'Investment liquidated successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to liquidate investment');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -200,7 +206,7 @@ function InvestmentsContent() {
         await updateInvestment({
           ...selectedInvestment,
           name: editForm.name,
-          amount: parseFloat(editForm.amount),
+          amount: parseFloat(editForm.amount.replace(',', '.')),
           type: editForm.type,
           description: editForm.description,
           imageUris,
@@ -562,13 +568,13 @@ function InvestmentsContent() {
                     await addInvestmentWithAttachments(
                       {
                         name: addForm.name,
-                        amount: parseFloat(addForm.amount || '0'),
+                        amount: parseFloat((addForm.amount || '0').replace(',', '.')),
                         type: addForm.type,
                         description: addForm.description,
                         date: new Date().toISOString(),
                         isPast: addIsPast,
                         profitLoss: 0,
-                        currentValue: parseFloat(addForm.amount || '0'),
+                        currentValue: parseFloat((addForm.amount || '0').replace(',', '.')),
                         imageUri: '',
                         currency: 'TRY',
                       },
@@ -576,8 +582,11 @@ function InvestmentsContent() {
                     );
                     if (!addIsPast) {
                       await addTransaction({
-                        amount: parseFloat(addForm.amount || '0'),
-                        type: 'Investment',
+                        amount: parseFloat((addForm.amount || '0').replace(',', '.')),
+                        // type mirrors category everywhere else (Transaction.type
+                        // is "same as category"); use the investment type, not a
+                        // literal 'Investment', so it doesn't diverge.
+                        type: addForm.type,
                         description: `Investment in ${addForm.name}`,
                         isIncome: false,
                         date: new Date().toISOString(),
@@ -618,10 +627,15 @@ function InvestmentsContent() {
           <View style={[styles.editModal, { backgroundColor: colors.card }, shadow.xl]}>
             <VoiceRecorder
               onRecordingComplete={(filePath: string) => {
-                setEditAttachments((prev) => [
-                  ...prev,
-                  { id: `aud_${Date.now()}`, uri: filePath, type: MediaType.AUDIO, name: 'Voice Recording' },
-                ]);
+                const att = { id: `aud_${Date.now()}`, uri: filePath, type: MediaType.AUDIO, name: 'Voice Recording' };
+                // The recorder is shared by the Add and Edit modals; route to the
+                // open one. It was previously hardcoded to Edit, so a voice note
+                // from the Add modal was dropped and polluted Edit's attachments.
+                if (addModalVisible) {
+                  setAddAttachments((prev) => [...prev, att]);
+                } else {
+                  setEditAttachments((prev) => [...prev, att]);
+                }
                 setShowVoiceRecorder(false);
               }}
               onCancel={() => setShowVoiceRecorder(false)}

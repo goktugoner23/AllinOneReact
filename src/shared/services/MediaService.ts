@@ -26,7 +26,11 @@ export class MediaService {
   private static generateFileName(type: MediaType, originalName?: string): string {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 15);
-    const extension = originalName ? originalName.split('.').pop() : this.getDefaultExtension(type);
+    // Only treat originalName as carrying an extension if it actually has a dot
+    // — otherwise "voicenote".split('.').pop() returns the whole name and the
+    // file ends up named "...voicenote" (bogus extension → wrong MIME on display).
+    const ext = originalName?.includes('.') ? originalName.split('.').pop() : undefined;
+    const extension = ext || this.getDefaultExtension(type);
     return `${type.toLowerCase()}_${timestamp}_${randomId}.${extension}`;
   }
 

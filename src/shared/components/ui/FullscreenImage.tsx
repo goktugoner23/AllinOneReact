@@ -31,7 +31,11 @@ export const FullscreenImage: React.FC<FullscreenImageProps> = ({ uri, onClose }
         setScale(newScale);
         setIsZoomed(newScale > 1);
       }
-    } else if (touches.length === 1) {
+    } else {
+      // Fewer than 2 touches (incl. the two-finger lift that fires with 0
+      // touches) — end the pinch. Previously only `=== 1` reset, so a normal
+      // two-finger release left isPinching/initialDistance stale and the next
+      // pinch jumped scale mid-gesture.
       setIsPinching(false);
       setInitialDistance(0);
     }

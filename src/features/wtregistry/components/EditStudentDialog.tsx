@@ -7,6 +7,7 @@ import { FullscreenImage } from '@shared/components/ui/FullscreenImage';
 import { useAppTheme, spacing, textStyles } from '@shared/theme';
 import { useResolvedUri } from '@shared/hooks/useResolvedUri';
 import { WTStudent } from '@features/wtregistry/types/WTRegistry';
+import { uploadFileToStorage } from '@features/wtregistry/services/wtRegistry';
 
 interface EditStudentDialogProps {
   visible: boolean;
@@ -59,9 +60,18 @@ export const EditStudentDialog: React.FC<EditStudentDialogProps> = ({ visible, s
         quality: 0.8,
       });
 
-      if (result.assets && result.assets[0]) {
-        setPhotoUri(result.assets[0].uri || null);
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      // Upload to R2 immediately and store the returned KEY — not the raw
+      // file:// URI. Persisting the local path (the old behaviour) saved a
+      // photo that resolves nowhere on any other device/session.
+      const ext = (asset.fileName?.split('.').pop() || asset.uri.split('.').pop() || 'jpg').toLowerCase();
+      const uploadedKey = await uploadFileToStorage(asset.uri, 'students', `${student.id}.${ext}`);
+      if (!uploadedKey) {
+        Alert.alert('Error', 'Failed to upload photo');
+        return;
       }
+      setPhotoUri(uploadedKey);
     } catch (error) {
       Alert.alert('Error', 'Failed to pick image');
     }

@@ -21,7 +21,12 @@ function getExtensionFromUri(uri: string): string {
 }
 
 function isRemoteUri(uri: string): boolean {
-  return uri.startsWith('http://') || uri.startsWith('https://');
+  if (!uri) return false;
+  // http(s) URLs AND bare R2 keys (e.g. "investments/123/x.jpg") are already
+  // stored — pass them through. Only genuine local picker URIs (file://,
+  // content://) need uploading. Previously bare keys fell through and got
+  // re-uploaded as a doomed "upload" of a non-existent local file every edit.
+  return !uri.startsWith('file://') && !uri.startsWith('content://');
 }
 
 function mimeTypeFor(att: MediaAttachment, ext: string): string {

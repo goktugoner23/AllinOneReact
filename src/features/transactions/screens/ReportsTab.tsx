@@ -58,7 +58,7 @@ function getStartDateForRange(range: string): number | null {
 export const ReportsTab: React.FC = () => {
   const colors = useColors();
   const isDark = useIsDark();
-  const { format: formatCurrency } = useCurrency();
+  const { convertFrom, formatConverted } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dateRange, setDateRange] = useState('30d');
   const [category, setCategory] = useState('All');
@@ -127,17 +127,19 @@ export const ReportsTab: React.FC = () => {
     let income = 0;
     let expense = 0;
 
-    // Single pass through filtered transactions
+    // Single pass — convert each amount to the selected currency before
+    // summing; transaction amounts can be TRY/AED/USD and must not be added raw.
     for (const t of filteredTransactions) {
+      const amt = convertFrom(t.amount, t.currency);
       if (t.isIncome) {
-        income += t.amount;
+        income += amt;
       } else {
-        expense += t.amount;
+        expense += amt;
       }
     }
 
     return { totalIncome: income, totalExpense: expense, balance: income - expense };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, convertFrom]);
 
   // Memoize chart data
   const chartData = useMemo(() => {
@@ -146,7 +148,7 @@ export const ReportsTab: React.FC = () => {
     for (const t of filteredTransactions) {
       if (!t.isIncome) {
         const d = format(new Date(t.date), 'MM-dd');
-        map[d] = (map[d] || 0) + t.amount;
+        map[d] = (map[d] || 0) + convertFrom(t.amount, t.currency);
       }
     }
 
@@ -164,7 +166,7 @@ export const ReportsTab: React.FC = () => {
         },
       ],
     };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, convertFrom]);
 
   // Memoize category breakdown
   const categorySpending = useMemo(() => {
@@ -172,12 +174,12 @@ export const ReportsTab: React.FC = () => {
 
     for (const t of filteredTransactions) {
       if (!t.isIncome) {
-        map[t.category] = (map[t.category] || 0) + t.amount;
+        map[t.category] = (map[t.category] || 0) + convertFrom(t.amount, t.currency);
       }
     }
 
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [filteredTransactions]);
+  }, [filteredTransactions, convertFrom]);
 
   // Memoize insights
   const { avgTransaction, mostFrequentCategory } = useMemo(() => {
@@ -189,7 +191,7 @@ export const ReportsTab: React.FC = () => {
     const categoryCount: { [cat: string]: number } = {};
 
     for (const t of filteredTransactions) {
-      totalAmount += t.amount;
+      totalAmount += convertFrom(t.amount, t.currency);
       categoryCount[t.category] = (categoryCount[t.category] || 0) + 1;
     }
 
@@ -197,7 +199,7 @@ export const ReportsTab: React.FC = () => {
     const mostFrequent = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
     return { avgTransaction: avg, mostFrequentCategory: mostFrequent };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, convertFrom]);
 
   // Pagination for transactions list (apply on filtered & sorted list)
   const PAGE_SIZE = 5;
@@ -290,18 +292,18 @@ export const ReportsTab: React.FC = () => {
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Income</Text>
-              <Text style={[styles.summaryValue, { color: colors.income }]}>{formatCurrency(totalIncome)}</Text>
+              <Text style={[styles.summaryValue, { color: colors.income }]}>{formatConverted(totalIncome)}</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Total Expense</Text>
-              <Text style={[styles.summaryValue, { color: colors.expense }]}>{formatCurrency(totalExpense)}</Text>
+              <Text style={[styles.summaryValue, { color: colors.expense }]}>{formatConverted(totalExpense)}</Text>
             </View>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Balance</Text>
               <Text style={[styles.summaryValue, { color: balance >= 0 ? colors.income : colors.expense }]}>
-                {formatCurrency(balance)}
+                {formatConverted(balance)}
               </Text>
             </View>
             <View style={styles.summaryItem}>
@@ -344,7 +346,7 @@ export const ReportsTab: React.FC = () => {
               <View key={cat}>
                 <View style={styles.categoryRow}>
                   <Text style={[styles.categoryText, { color: colors.foreground }]}>{cat}</Text>
-                  <Text style={[styles.categoryAmount, { color: colors.expense }]}>{formatCurrency(amt)}</Text>
+                  <Text style={[styles.categoryAmount, { color: colors.expense }]}>{formatConverted(amt)}</Text>
                 </View>
                 {i < categorySpending.length - 1 && (
                   <Divider style={[styles.categoryDivider, { backgroundColor: colors.border }]} />
@@ -365,7 +367,7 @@ export const ReportsTab: React.FC = () => {
         <CardContent style={styles.insightsContent}>
           <View style={styles.insightRow}>
             <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Average Transaction</Text>
-            <Text style={[styles.insightValue, { color: colors.foreground }]}>{formatCurrency(avgTransaction)}</Text>
+            <Text style={[styles.insightValue, { color: colors.foreground }]}>{formatConverted(avgTransaction)}</Text>
           </View>
           <View style={styles.insightRow}>
             <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Most Frequent Category</Text>

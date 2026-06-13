@@ -187,18 +187,24 @@ export function calculatePositionMetrics(
 /**
  * Format number with appropriate precision
  */
-export function formatNumber(value: number, decimals: number = 4): string {
-  return value.toFixed(decimals);
+export function formatNumber(value: number | null | undefined, decimals: number = 4): string {
+  const v = Number.isFinite(value) ? (value as number) : 0;
+  return v.toFixed(decimals);
 }
 
 /**
  * Format currency with appropriate precision
  */
 export function formatCurrency(value: number, currency: string = 'USDT', decimalsAbove1: number = 2): string {
-  if (value >= 1) {
-    return `${currency} ${value.toFixed(decimalsAbove1)}`;
+  // Coerce non-finite (NaN/Infinity/null from upstream div-by-zero) to 0 so we
+  // never render "USDT NaN" as a balance.
+  const v = Number.isFinite(value) ? value : 0;
+  // Branch on MAGNITUDE — otherwise negatives (value < 1) fell into the
+  // 6-decimal path and every loss rendered as "USDT -123.450000".
+  if (Math.abs(v) >= 1) {
+    return `${currency} ${v.toFixed(decimalsAbove1)}`;
   } else {
-    return `${currency} ${value.toFixed(6)}`;
+    return `${currency} ${v.toFixed(6)}`;
   }
 }
 
@@ -206,8 +212,9 @@ export function formatCurrency(value: number, currency: string = 'USDT', decimal
  * Format percentage
  */
 export function formatPercentage(value: number, decimals: number = 2): string {
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${value.toFixed(decimals)}%`;
+  const v = Number.isFinite(value) ? value : 0;
+  const sign = v >= 0 ? '+' : '';
+  return `${sign}${v.toFixed(decimals)}%`;
 }
 
 /**

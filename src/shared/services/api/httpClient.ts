@@ -130,14 +130,17 @@ async function request<T>(
     }
   }
 
-  if (!res.ok || !payload || payload.success === false) {
+  // A 2xx with an empty body (e.g. a DELETE that returns no envelope) leaves
+  // payload null — that is success, not failure. Only treat it as an error on a
+  // bad status or an explicit success:false envelope.
+  if (!res.ok || payload?.success === false) {
     const message =
       payload?.error ||
       `huginn-external ${method} ${path} failed (${res.status} ${res.statusText || ''})`.trim();
     throw new HuginnApiError(message, res.status);
   }
 
-  return (payload.data as T);
+  return (payload?.data as T);
 }
 
 export const api = {

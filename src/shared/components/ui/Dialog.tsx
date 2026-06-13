@@ -93,7 +93,10 @@ export function AlertDialog({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
+        {/* Block backdrop-dismiss while an action is in flight, mirroring the
+            buttons' disabled={loading} — otherwise a destructive confirm can be
+            tapped-away mid-submit. */}
+        <Pressable style={styles.backdrop} onPress={loading ? undefined : onClose} />
         <View style={[styles.alertDialog, { backgroundColor: colors.card }]}>
           <Text style={[styles.alertTitle, { color: colors.foreground }]}>{title}</Text>
           {description && (

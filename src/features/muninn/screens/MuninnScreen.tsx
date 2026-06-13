@@ -19,6 +19,7 @@ import {
   UserChoiceCard,
   ConfirmationCard,
   ConversationList,
+  ConversationTabs,
 } from '../components';
 
 export default function MuninnScreen() {
@@ -40,8 +41,11 @@ export default function MuninnScreen() {
   }, []);
 
   const handleActions = useCallback(
-    (actions: MuninnAction[]) => {
-      for (const action of actions) {
+    (actions: MuninnAction[] | undefined | null) => {
+      // Guard: a response without `actions` (or null) would throw here, and in
+      // handleSend the throw lands in catch and wrongly removes the user's
+      // already-succeeded message.
+      for (const action of actions ?? []) {
         if (action.type === 'navigate' && action.screen) {
           navigation.navigate(action.screen, action.params);
         }
@@ -68,13 +72,21 @@ export default function MuninnScreen() {
   );
 
   const handleSend = useCallback(
-    async (text: string, imageUrls?: string[], fileAttachments?: FileAttachment[], audioUrl?: string) => {
-      // Optimistically add user message
+    async (
+      text: string,
+      imageUrls?: string[],
+      fileAttachments?: FileAttachment[],
+      audioUrl?: string,
+      imageDisplayUris?: string[],
+    ) => {
+      // Optimistic bubble uses local-device URIs (always displayable).
+      // Backend gets R2 keys via the sendMessage call below — historical
+      // fetches resolve them back to signed URLs server-side.
       const userMsg: ChatMessage = {
         id: `temp-${Date.now()}`,
         role: 'user',
         content: text,
-        imageUrls,
+        imageUrls: imageDisplayUris ?? imageUrls,
         fileAttachments,
         audioUrl,
         createdAt: new Date().toISOString(),
@@ -83,6 +95,7 @@ export default function MuninnScreen() {
       setIsSending(true);
 
       try {
+        const wasNewConversation = !activeConversationId;
         const response = await muninnApiService.sendMessage({
           message: text,
           conversationId: activeConversationId || undefined,
@@ -92,13 +105,18 @@ export default function MuninnScreen() {
         });
         setActiveConversationId(response.conversationId);
         const assistantMsg: ChatMessage = {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           role: 'assistant',
           content: response.message,
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         handleActions(response.actions);
+        // Refresh the tab strip after a brand-new conversation lands so
+        // the new thread immediately shows up as a chip.
+        if (wasNewConversation) {
+          muninnApiService.getConversations().then(setConversations).catch(() => {});
+        }
       } catch {
         // Remove optimistic user message on failure
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
@@ -123,7 +141,7 @@ export default function MuninnScreen() {
           option,
         );
         const assistantMsg: ChatMessage = {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           role: 'assistant',
           content: response.message,
           createdAt: new Date().toISOString(),
@@ -153,7 +171,7 @@ export default function MuninnScreen() {
           answer,
         );
         const assistantMsg: ChatMessage = {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           role: 'assistant',
           content: response.message,
           createdAt: new Date().toISOString(),
@@ -170,6 +188,12 @@ export default function MuninnScreen() {
   );
 
   const handleSelectConversation = useCallback(async (id: string) => {
+    // Refuse to switch conversations while a send is in flight — replacing
+    // `messages` here while the assistant response is still pending would
+    // wipe the optimistic user bubble (and the user thinks the convo
+    // vanished). The tab strip already disables itself, this guards
+    // against the modal/full-list path.
+    if (isSending) return;
     try {
       const conversation = await muninnApiService.getConversation(id);
       const chatMessages: ChatMessage[] = conversation.messages
@@ -190,7 +214,7 @@ export default function MuninnScreen() {
     } catch {
       // Failed to load conversation
     }
-  }, []);
+  }, [isSending]);
 
   const handleDeleteConversation = useCallback(
     async (id: string) => {
@@ -209,11 +233,14 @@ export default function MuninnScreen() {
   );
 
   const handleNewChat = useCallback(() => {
+    // Same guard as handleSelectConversation: clearing messages mid-send
+    // wipes the in-flight user bubble.
+    if (isSending) return;
     setActiveConversationId(null);
     setMessages([]);
     setPendingChoice(null);
     setPendingConfirmation(null);
-  }, []);
+  }, [isSending]);
 
   const openConversations = useCallback(async () => {
     try {
@@ -273,6 +300,15 @@ export default function MuninnScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
+      <ConversationTabs
+        conversations={conversations}
+        activeId={activeConversationId}
+        onSelect={handleSelectConversation}
+        onNewChat={handleNewChat}
+        onOpenFullList={openConversations}
+        disabled={isSending}
+      />
+
       <FlatList
         ref={flatListRef}
         data={messages}

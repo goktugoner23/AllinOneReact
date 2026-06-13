@@ -40,7 +40,17 @@ interface PendingAttachment {
 }
 
 interface ChatInputProps {
-  onSend: (message: string, imageUrls?: string[], fileAttachments?: FileAttachment[], audioUrl?: string) => void;
+  // imageUrls → R2 keys (persist-safe, sent to backend).
+  // imageDisplayUris → local device URIs (immediately displayable in the
+  // optimistic user bubble). Historical messages get signed URLs from the
+  // backend; only the just-sent message needs this parallel channel.
+  onSend: (
+    message: string,
+    imageUrls?: string[],
+    fileAttachments?: FileAttachment[],
+    audioUrl?: string,
+    imageDisplayUris?: string[],
+  ) => void;
   disabled?: boolean;
 }
 
@@ -71,6 +81,13 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
       .filter(a => a.type === 'image' && (a.uploadedKey || a.uploadedUrl))
       .map(a => a.uploadedKey || a.uploadedUrl!);
 
+    // Parallel local-URI list for the optimistic bubble. localUri is set
+    // the moment the picker returns — always safe to render with
+    // <Image source={{ uri }} />. Backend still receives the R2 keys.
+    const imageDisplayUris = pendingAttachments
+      .filter(a => a.type === 'image' && (a.uploadedKey || a.uploadedUrl))
+      .map(a => a.localUri);
+
     const fileAttachments: FileAttachment[] = pendingAttachments
       .filter(a => a.type === 'file' && (a.uploadedKey || a.uploadedUrl))
       .map(a => ({
@@ -88,6 +105,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
       imageUrls.length > 0 ? imageUrls : undefined,
       fileAttachments.length > 0 ? fileAttachments : undefined,
       audioAttachment ? audioAttachment.uploadedKey || audioAttachment.uploadedUrl : undefined,
+      imageDisplayUris.length > 0 ? imageDisplayUris : undefined,
     );
     setText('');
     setPendingAttachments([]);

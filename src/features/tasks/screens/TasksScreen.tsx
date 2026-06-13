@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, RefreshControl, Text, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Appbar, AppbarAction } from '@shared/components/ui';
 import { AddFab } from '@shared/components';
@@ -83,8 +83,12 @@ const TasksScreen: React.FC = () => {
       };
       setActiveDialog('none');
       setSelectedTask(null);
-      const saved = await saveTask(updated);
-      setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? saved : t)));
+      try {
+        const saved = await saveTask(updated);
+        setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? saved : t)));
+      } catch {
+        Alert.alert('Error', 'Failed to update task.');
+      }
     },
     [selectedTask],
   );
@@ -110,8 +114,12 @@ const TasksScreen: React.FC = () => {
         dueDate: taskData.dueDate?.toISOString(),
         groupId: taskData.groupId,
       };
-      const saved = await saveTask(newTask);
-      setTasks((prev) => [...prev, saved]);
+      try {
+        const saved = await saveTask(newTask);
+        setTasks((prev) => [...prev, saved]);
+      } catch {
+        Alert.alert('Error', 'Failed to add task.');
+      }
     },
     [],
   );
@@ -143,8 +151,12 @@ const TasksScreen: React.FC = () => {
         createdAt: new Date().toISOString(),
         isCompleted: false,
       };
-      const saved = await saveTaskGroup(newGroup);
-      setTaskGroups((prev) => [...prev, saved]);
+      try {
+        const saved = await saveTaskGroup(newGroup);
+        setTaskGroups((prev) => [...prev, saved]);
+      } catch {
+        Alert.alert('Error', 'Failed to add group.');
+      }
     },
     [],
   );

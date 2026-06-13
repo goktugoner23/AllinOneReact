@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Chip, Divider } from '@shared/components/ui';
 import { PositionData } from '../types/BinanceApiModels';
@@ -17,6 +17,17 @@ export const TPSLModal: React.FC<TPSLModalProps> = ({ visible, position, onDismi
   const colors = useColors();
   const [takeProfit, setTakeProfit] = useState('');
   const [stopLoss, setStopLoss] = useState('');
+
+  // FuturesTab keeps this modal mounted and just toggles `visible`, so the
+  // input state survives across opens. Clear it whenever the modal opens or
+  // targets a different position — otherwise Confirm would submit the PREVIOUS
+  // position's prices as a real Binance TP/SL order at the wrong price.
+  useEffect(() => {
+    if (visible) {
+      setTakeProfit('');
+      setStopLoss('');
+    }
+  }, [visible, position?.symbol]);
 
   if (!position) return null;
 

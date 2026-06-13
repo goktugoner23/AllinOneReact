@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle, LayoutAnimation, Platform, UIManager } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useColors, radius, spacing, textStyles, shadow } from '@shared/theme';
 
 // Enable LayoutAnimation on Android

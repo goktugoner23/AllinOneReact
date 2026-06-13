@@ -4,3 +4,4 @@ export { default as TypingIndicator } from './TypingIndicator';
 export { default as UserChoiceCard } from './UserChoiceCard';
 export { default as ConfirmationCard } from './ConfirmationCard';
 export { default as ConversationList } from './ConversationList';
+export { default as ConversationTabs } from './ConversationTabs';

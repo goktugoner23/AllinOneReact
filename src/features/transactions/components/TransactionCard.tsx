@@ -13,7 +13,7 @@ interface TransactionCardProps {
 
 export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({ transaction, onLongPress }) => {
   const colors = useColors();
-  const { format: formatCurrency } = useCurrency();
+  const { convertFrom, formatConverted } = useCurrency();
 
   const amountColor = transaction.isIncome ? colors.income : colors.expense;
   const iconName = transaction.isIncome ? 'arrow-down-circle' : 'arrow-up-circle';
@@ -52,7 +52,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = React.memo(({ tra
         <View style={styles.rightColumn}>
           <Text style={[styles.amountText, { color: amountColor }]}>
             {transaction.isIncome ? '+' : '-'}
-            {formatCurrency(transaction.amount)}
+            {formatConverted(convertFrom(transaction.amount, transaction.currency))}
           </Text>
         </View>
       </View>

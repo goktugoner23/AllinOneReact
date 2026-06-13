@@ -5,7 +5,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dialog, Input, Button, Switch } from '@shared/components/ui';
 import { useAppTheme, spacing, radius, textStyles } from '@shared/theme';
 import { WTStudent, WTRegistration } from '@features/wtregistry/types/WTRegistry';
-import { updateRegistrationPaymentStatus } from '@features/wtregistry/services/wtRegistry';
 import { pickDocument, isValidReceiptFile } from '@shared/utils/documentPicker';
 
 // Helper to convert string | Date to Date
@@ -83,44 +82,28 @@ export const EditRegistrationDialog: React.FC<EditRegistrationDialogProps> = ({
       return;
     }
 
-    const amountValue = parseFloat(amount);
+    // Normalize comma decimal separator (Turkish locale: "1500,50") before parsing.
+    const amountValue = parseFloat(amount.replace(',', '.'));
     if (isNaN(amountValue) || amountValue <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
 
     try {
-      // Check if payment status changed
-      const paymentStatusChanged = registration.isPaid !== isPaid;
-
-      if (paymentStatusChanged) {
-        await updateRegistrationPaymentStatus(
-          {
-            ...registration,
-            studentId,
-            amount: amountValue,
-            startDate: startDate ? new Date(startDate) : undefined,
-            endDate: endDate ? new Date(endDate) : undefined,
-            notes: notes.trim() || undefined,
-            attachmentUri: attachmentUri || undefined,
-            isPaid,
-          },
-          isPaid,
-          registration.isPaid,
-        );
-        onDismiss();
-      } else {
-        onSave({
-          ...registration,
-          studentId,
-          amount: amountValue,
-          startDate: startDate ? new Date(startDate) : undefined,
-          endDate: endDate ? new Date(endDate) : undefined,
-          notes: notes.trim() || undefined,
-          attachmentUri: attachmentUri || undefined,
-          isPaid,
-        });
-      }
+      // onSave → handleUpdateRegistration → updateRegistration persists every
+      // field AND syncs the paid↔unpaid income transaction, then refreshes the
+      // list. The old paymentStatusChanged branch only PATCHed isPaid+date — it
+      // dropped amount/date/notes edits and skipped the refresh. Removed.
+      onSave({
+        ...registration,
+        studentId,
+        amount: amountValue,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        notes: notes.trim() || undefined,
+        attachmentUri: attachmentUri || undefined,
+        isPaid,
+      });
     } catch (error) {
       console.error('Error saving registration:', error);
       Alert.alert('Error', 'Failed to save registration');

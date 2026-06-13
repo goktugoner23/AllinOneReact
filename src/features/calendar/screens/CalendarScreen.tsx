@@ -10,6 +10,21 @@ import { Card, CardContent, Button, Input, Chip, EmptyState, Dialog, IconButton 
 import { useColors, spacing, radius, textStyles } from '@shared/theme';
 import { logger } from '@shared/utils/logger';
 
+// react-native-calendars day strings ("YYYY-MM-DD") are LOCAL days, so events
+// must be keyed/parsed in local time. Using UTC (toISOString) bucketed
+// early-morning / late-night events onto the wrong calendar day.
+function toLocalDayKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function parseLocalDay(dayKey: string): Date {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 // ── WTRegistry event generation (moved from calendarSlice) ────────────
 
 function generateWTRegistryEvents(
@@ -137,7 +152,7 @@ export function CalendarScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Local UI state
-  const [selectedDate, setSelectedDateState] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDateState] = useState<string>(toLocalDayKey(new Date()));
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedRemoteEvent, setSelectedRemoteEvent] = useState<Event | null>(null);
@@ -243,8 +258,8 @@ export function CalendarScreen() {
     setFormData({
       title: '',
       description: '',
-      date: new Date(selectedDate),
-      endDate: new Date(selectedDate),
+      date: parseLocalDay(selectedDate),
+      endDate: parseLocalDay(selectedDate),
       type: 'Event',
     });
     setShowAddDialog(true);
@@ -355,7 +370,7 @@ export function CalendarScreen() {
       >,
       event,
     ) => {
-      const dateKey = event.date.toISOString().split('T')[0];
+      const dateKey = toLocalDayKey(event.date);
 
       if (!marks[dateKey]) {
         marks[dateKey] = { dots: [], colors: [] };
@@ -435,7 +450,7 @@ export function CalendarScreen() {
     };
   }
 
-  const selectedDateEvents = allEvents.filter((event) => event.date.toISOString().split('T')[0] === selectedDate);
+  const selectedDateEvents = allEvents.filter((event) => toLocalDayKey(event.date) === selectedDate);
 
   const EVENT_TYPE_CONFIG: Record<string, { color: string; chip: 'success' | 'error' | 'primary' | 'warning' | 'default'; label: string }> = {
     'Registration Start': { color: colors.success, chip: 'success', label: 'Start' },
@@ -482,7 +497,7 @@ export function CalendarScreen() {
       <Card variant="elevated" padding="md" style={styles.eventsContainer}>
         <View style={styles.eventsHeader}>
           <Text style={[textStyles.h4, { color: colors.foreground }]}>
-            Events for {new Date(selectedDate).toLocaleDateString()}
+            Events for {parseLocalDay(selectedDate).toLocaleDateString()}
           </Text>
           <IconButton icon="add" size="sm" variant="filled" onPress={handleAddEvent} />
         </View>

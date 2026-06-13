@@ -48,6 +48,14 @@ class BinanceWebSocketService {
         this.reconnectAttempts = 0;
         this.callbacks.onConnectionChange?.(true);
         this.startHeartbeat();
+        // Replay subscriptions: a reconnected socket has NO server-side
+        // subscriptions, so without this the UI flips back to "connected" while
+        // positions/orders/balance silently stop updating. isConnected is set
+        // above, so send() goes through.
+        this.subscribedChannels.forEach((ch) => {
+          const [channel, symbol] = ch.split(':');
+          this.send(symbol ? { type: 'subscribe', channel, symbol } : { type: 'subscribe', channel });
+        });
         this.sendWelcomeMessage();
       };
 
@@ -111,6 +119,7 @@ class BinanceWebSocketService {
   }
 
   private startHeartbeat() {
+    this.stopHeartbeat(); // guard against a double-start leaking the old timer
     this.heartbeatInterval = setInterval(() => {
       if (this.isConnected) {
         this.send({
@@ -136,7 +145,9 @@ class BinanceWebSocketService {
     }
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    // Cap the backoff at 30s — uncapped, attempt 10 waited ~42 min, leaving the
+    // trading screen dark long after the network recovered.
+    const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
 
     logger.debug('Attempting reconnection', { attempt: this.reconnectAttempts, delay }, 'BinanceWebSocket');
 

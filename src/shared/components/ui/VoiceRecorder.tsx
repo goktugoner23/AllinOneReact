@@ -45,7 +45,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
+  // Lazy single-init: useRef evaluates its arg every render, so the old form
+  // constructed a throwaway native player on each render. Construct once.
+  const audioRecorderPlayer = useRef<AudioRecorderPlayer>(undefined as unknown as AudioRecorderPlayer);
+  if (!audioRecorderPlayer.current) {
+    audioRecorderPlayer.current = new AudioRecorderPlayer();
+  }
+  // End-of-playback timer — tracked so unmount can cancel it.
+  const endTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     checkPermission();
@@ -185,7 +192,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
 
         // Check if playback has ended (within 500ms of duration to account for timing differences)
         if (e.duration > 0 && e.currentPosition >= e.duration - 500) {
-          setTimeout(() => {
+          endTimeoutRef.current = setTimeout(() => {
             setState((prev) => ({
               ...prev,
               isPlaying: false,
@@ -247,6 +254,10 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCa
   };
 
   const cleanup = async () => {
+    if (endTimeoutRef.current) {
+      clearTimeout(endTimeoutRef.current);
+      endTimeoutRef.current = null;
+    }
     try {
       await audioRecorderPlayer.current.stopRecorder();
       await audioRecorderPlayer.current.stopPlayer();

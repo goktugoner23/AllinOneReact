@@ -79,6 +79,9 @@ function investmentToHistoryItem(inv: any): HistoryItem {
     description: inv.description || 'Investment',
     date: inv.date,
     amount: inv.amount,
+    // Investments can be USD/AED — carry the currency so the History row
+    // converts correctly instead of defaulting to TRY at the render site.
+    currency: inv.currency,
     type: inv.type,
     imageUri: inv.imageUri,
     itemType: 'INVESTMENT',
@@ -335,7 +338,7 @@ export const HistoryScreen: React.FC = () => {
       {/* History List */}
       <FlashList
         data={filteredItems}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => `${item.itemType}-${item.id}`}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadHistory} tintColor={colors.primary} />}
         contentContainerStyle={styles.listContent}

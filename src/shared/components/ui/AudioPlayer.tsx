@@ -32,7 +32,16 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
     error: null,
   });
 
-  const audioRecorderPlayer = useRef<AudioRecorderPlayer>(new AudioRecorderPlayer());
+  // Lazy single-init: useRef evaluates its argument on EVERY render, so passing
+  // `new AudioRecorderPlayer()` constructed (and discarded) a fresh native
+  // player each render. Construct exactly once.
+  const audioRecorderPlayer = useRef<AudioRecorderPlayer>(undefined as unknown as AudioRecorderPlayer);
+  if (!audioRecorderPlayer.current) {
+    audioRecorderPlayer.current = new AudioRecorderPlayer();
+  }
+  // End-of-playback timer — tracked so unmount can cancel it (otherwise it
+  // fires setState on an unmounted component).
+  const endTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (attachment.type === MediaType.AUDIO) {
@@ -107,7 +116,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
 
         // Check if playback has ended (within 500ms of duration to account for timing differences)
         if (e.duration > 0 && e.currentPosition >= e.duration - 500) {
-          setTimeout(() => {
+          endTimeoutRef.current = setTimeout(() => {
             setState((prev) => ({
               ...prev,
               isPlaying: false,
@@ -178,6 +187,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ attachment, style }) => {
   };
 
   const cleanup = async () => {
+    // Cancel the pending end-of-playback timer synchronously so it can't fire
+    // setState after unmount.
+    if (endTimeoutRef.current) {
+      clearTimeout(endTimeoutRef.current);
+      endTimeoutRef.current = null;
+    }
     try {
       await audioRecorderPlayer.current.stopPlayer();
       audioRecorderPlayer.current.removePlayBackListener();

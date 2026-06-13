@@ -50,9 +50,11 @@ export const pickDocument = async (): Promise<DocumentPickerResult | null> => {
 
     // Only log and show alert for actual errors, not cancellations
     console.error('❌ Error picking document:', error);
+    // No in-alert "Try Again": this function has already returned null to the
+    // caller, so a file picked from a retry here would be silently dropped. The
+    // user re-taps the attach control to retry cleanly.
     Alert.alert('File Selection Error', 'Failed to open file picker. Please try again.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Try Again', onPress: () => pickDocument() },
+      { text: 'OK', style: 'cancel' },
     ]);
     return null;
   }

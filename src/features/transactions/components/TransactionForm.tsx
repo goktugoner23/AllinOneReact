@@ -10,6 +10,7 @@ import { logger } from '@shared/utils/logger';
 import { Investment } from '@features/transactions/types/Investment';
 import { InvestmentCategories } from '@features/transactions/config/InvestmentCategories';
 import { useColors, spacing, textStyles, radius, shadow } from '@shared/theme';
+import { useCurrency } from '@shared/hooks/useCurrency';
 import { TransactionCurrency, TRANSACTION_CURRENCIES } from '@features/transactions/types/Transaction';
 
 type TransactionType = 'income' | 'expense';
@@ -27,6 +28,7 @@ interface TransactionFormProps {
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ investments, onTransactionAdded }) => {
   const colors = useColors();
+  const { convertBetween } = useCurrency();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -135,7 +137,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ investments, o
         isIncome,
       });
 
-      const adjustedAmount = isIncome ? investment.amount - pendingAmount : investment.amount + pendingAmount;
+      // The contribution is entered in selectedCurrency (the chip); the
+      // investment principal is in investment.currency. Convert before combining
+      // — adding them raw silently corrupted the stored principal when they
+      // differed (e.g. a USD chip contribution into a TRY investment).
+      const contribution = convertBetween(pendingAmount, selectedCurrency, investment.currency);
+      const adjustedAmount = isIncome ? investment.amount - contribution : investment.amount + contribution;
 
       await updateInvestment({
         ...investment,

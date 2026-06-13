@@ -12,6 +12,8 @@ interface CurrencyState {
   convert: (amountInTRY: number) => number;
   /** Convert amount from any source currency to selected currency */
   convertFrom: (amount: number, from: CurrencyCode) => number;
+  /** Convert amount between two arbitrary currencies (TRY pivot) */
+  convertBetween: (amount: number, from: CurrencyCode, to: CurrencyCode) => number;
   /** Format amount in the selected currency (assumes TRY input) */
   format: (amountInTRY: number) => string;
   /** Format an already-converted amount in the selected currency */
@@ -30,6 +32,7 @@ export const CurrencyContext = createContext<CurrencyState>({
   isLoading: false,
   convert: (a) => a,
   convertFrom: (a) => a,
+  convertBetween: (a) => a,
   format: (a) => `₺${a.toFixed(2)}`,
   formatConverted: (a) => `₺${a.toFixed(2)}`,
 });
@@ -118,6 +121,22 @@ export function useCurrencyProvider(): CurrencyState {
     [selectedCurrency, rateForCurrency, rates],
   );
 
+  // Convert between two arbitrary currencies via a TRY pivot — independent of
+  // the globally-selected display currency. Returns the input unchanged when
+  // from===to or when a rate is missing (never silently corrupt an amount).
+  const convertBetween = useCallback(
+    (amount: number, from: CurrencyCode, to: CurrencyCode): number => {
+      if (!Number.isFinite(amount)) return 0;
+      if (from === to) return amount;
+      const fromRate = from === 'TRY' ? 1 : (rates ?? {})[from.toLowerCase()];
+      const toRate = to === 'TRY' ? 1 : (rates ?? {})[to.toLowerCase()];
+      if (!fromRate || !toRate) return amount;
+      const inTRY = from === 'TRY' ? amount : amount / fromRate;
+      return to === 'TRY' ? inTRY : inTRY * toRate;
+    },
+    [rates],
+  );
+
   const localeMap: Record<CurrencyCode, string> = { TRY: 'tr-TR', AED: 'en-AE', USD: 'en-US' };
 
   const format = useCallback(
@@ -146,8 +165,8 @@ export function useCurrencyProvider(): CurrencyState {
   );
 
   return useMemo(
-    () => ({ selectedCurrency, setSelectedCurrency, exchangeRate: rateForCurrency, isLoading, convert, convertFrom, format, formatConverted }),
-    [selectedCurrency, setSelectedCurrency, rateForCurrency, isLoading, convert, convertFrom, format, formatConverted],
+    () => ({ selectedCurrency, setSelectedCurrency, exchangeRate: rateForCurrency, isLoading, convert, convertFrom, convertBetween, format, formatConverted }),
+    [selectedCurrency, setSelectedCurrency, rateForCurrency, isLoading, convert, convertFrom, convertBetween, format, formatConverted],
   );
 }
 

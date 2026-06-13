@@ -12,6 +12,7 @@ import {
   getCoinMPositions,
   getUsdMAccount,
   getCoinMAccount,
+  getCoinMPrice,
   setTakeProfitStopLoss,
   setCoinMTakeProfitStopLoss,
 } from '@features/transactions/services/binanceApi';
@@ -187,25 +188,38 @@ function FuturesPositionCard({
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Liquidation Price:</Text>
             <Text style={[styles.value, { color: colors.warning }]}>
-              {formatCurrency(calculations.liquidationPrice, 'USDT', 2)}
+              {/* COIN-M: Binance's authoritative liq price (inverse-contract correct).
+                  USD-M: the linear calc. */}
+              {formatCurrency(
+                isCoinMFutures ? position.liquidationPrice ?? 0 : calculations.liquidationPrice,
+                'USDT',
+                2,
+              )}
             </Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>Distance to Liquidation:</Text>
-            <Text style={[styles.value, { color: riskColor }]}>
-              {formatPercentage(calculations.distanceToLiquidation)}
-            </Text>
-          </View>
+          {/* Distance-to-liq and margin ratio come from the linear (USD-M) risk
+              model, which is wrong for COIN-M inverse contracts and has no
+              authoritative backend value — hide rather than show wrong numbers. */}
+          {!isCoinMFutures && (
+            <>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>Distance to Liquidation:</Text>
+                <Text style={[styles.value, { color: riskColor }]}>
+                  {formatPercentage(calculations.distanceToLiquidation)}
+                </Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>Margin Ratio:</Text>
-            <View style={styles.marginRatioContainer}>
-              <Text style={[styles.value, { color: riskColor }]}>
-                {formatPercentage(calculations.marginRatio)}
-              </Text>
-            </View>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>Margin Ratio:</Text>
+                <View style={styles.marginRatioContainer}>
+                  <Text style={[styles.value, { color: riskColor }]}>
+                    {formatPercentage(calculations.marginRatio)}
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         <Divider style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -215,23 +229,34 @@ function FuturesPositionCard({
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Notional Value:</Text>
             <Text style={[styles.value, { color: colors.foreground }]}>
-              {formatCurrency(calculations.notionalValue, 'USDT', 2)}
+              {/* COIN-M: backend |contracts|*contractSize USD. USD-M: linear calc. */}
+              {formatCurrency(
+                isCoinMFutures ? position.notional ?? 0 : calculations.notionalValue,
+                'USDT',
+                2,
+              )}
             </Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>Initial Margin:</Text>
-            <Text style={[styles.value, { color: colors.foreground }]}>
-              {formatCurrency(calculations.initialMargin, 'USDT', 2)}
-            </Text>
-          </View>
+          {/* Initial/maintenance margin come from the linear model — wrong for
+              COIN-M inverse contracts, no authoritative source — so hide them. */}
+          {!isCoinMFutures && (
+            <>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>Initial Margin:</Text>
+                <Text style={[styles.value, { color: colors.foreground }]}>
+                  {formatCurrency(calculations.initialMargin, 'USDT', 2)}
+                </Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>Maintenance Margin:</Text>
-            <Text style={[styles.value, { color: colors.foreground }]}>
-              {formatCurrency(calculations.maintMargin, 'USDT', 2)}
-            </Text>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>Maintenance Margin:</Text>
+                <Text style={[styles.value, { color: colors.foreground }]}>
+                  {formatCurrency(calculations.maintMargin, 'USDT', 2)}
+                </Text>
+              </View>
+            </>
+          )}
 
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Margin Type:</Text>
@@ -272,7 +297,6 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
   const totalBalance = account.totalWalletBalance;
   const unrealizedPnL = account.totalUnrealizedProfit;
   const marginBalance = account.totalMarginBalance;
-  const availableBalance = totalBalance + unrealizedPnL;
 
   return (
     <Card style={[styles.accountCard, { backgroundColor: colors.card }, shadow.sm]} variant="elevated">
@@ -301,13 +325,6 @@ function FuturesAccountCard({ account }: { account: AccountData | null }) {
               {formatCurrency(marginBalance)}
             </Text>
           </View>
-
-          <View style={styles.accountItem}>
-            <Text style={[styles.accountLabel, { color: colors.mutedForeground }]}>Available</Text>
-            <Text style={[styles.accountValue, { color: availableBalance >= 0 ? colors.income : colors.expense }]}>
-              {formatCurrency(availableBalance)}
-            </Text>
-          </View>
         </View>
       </CardContent>
     </Card>
@@ -324,31 +341,59 @@ function CoinMFuturesAccountCard({
 }) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Live USD price per coin (e.g. BTC) from COIN-M perpetual tickers — replaces
+  // the old hardcoded estimates. Empty until the fetch resolves; an unknown
+  // coin contributes 0 rather than a fabricated value.
+  const [coinPrices, setCoinPrices] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const prices = await getCoinMPrice(); // all COIN-M tickers
+        if (cancelled || !Array.isArray(prices)) return;
+        const map: Record<string, number> = {};
+        for (const p of prices as Array<{ symbol?: string; price?: number }>) {
+          // BTCUSD_PERP -> BTC; a perpetual's price is the coin's USD price.
+          if (typeof p?.symbol === 'string' && p.symbol.endsWith('_PERP')) {
+            const coin = p.symbol.split('USD')[0];
+            if (coin) map[coin] = Number(p.price) || 0;
+          }
+        }
+        setCoinPrices(map);
+      } catch {
+        // Leave prices empty — valuations read 0, never fabricated.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const priceFor = (coin: string): number => coinPrices[coin] ?? 0;
+
   if (!account) return null;
 
-  // Calculate total USD value from coin balances
+  // Total USD value from coin balances, using live per-coin prices.
   const totalCoinValue =
     account.assets?.reduce((total, asset) => {
       if (asset.walletBalance > 0) {
-        // For COIN-M, we need to get the current price to convert to USD
-        // Since we don't have real-time prices here, we'll use a rough estimate
-        // In a real app, you'd fetch current prices for each coin
-        const estimatedPrice = getEstimatedCoinPrice(asset.asset);
-        return total + asset.walletBalance * estimatedPrice;
+        return total + asset.walletBalance * priceFor(asset.asset);
       }
       return total;
     }, 0) || 0;
 
-  // Calculate total position value (contracts * $1 for COIN-M)
+  // Total position value in USD. COIN-M contracts are NOT $1 each (BTC pairs
+  // are $100, others $10); the backend already computes the correct
+  // |contracts| * contractSize USD notional into pos.notional, so use that.
   const totalPositionValue = positions.reduce((total, pos) => {
-    return total + Math.abs(pos.positionAmount); // Each contract = $1
+    return total + Math.abs(pos.notional ?? 0);
   }, 0);
 
   // Calculate total unrealized PnL in USD
   const totalUnrealizedPnL = positions.reduce((total, pos) => {
     // For COIN-M, unrealized PnL is in the coin itself, convert to USD
-    const estimatedPrice = getEstimatedCoinPrice(pos.symbol.replace('USD_PERP', ''));
-    return total + pos.unrealizedProfit * estimatedPrice;
+    return total + pos.unrealizedProfit * priceFor(pos.symbol.replace('USD_PERP', ''));
   }, 0);
 
   const totalValue = totalCoinValue + totalPositionValue + totalUnrealizedPnL;
@@ -397,24 +442,13 @@ function CoinMFuturesAccountCard({
               <Text style={[styles.coinSymbol, { color: colors.foreground }]}>{asset.asset}</Text>
               <Text style={[styles.coinAmount, { color: colors.investment }]}>{asset.walletBalance.toFixed(6)}</Text>
               <Text style={[styles.coinValue, { color: colors.income }]}>
-                {formatCurrency(asset.walletBalance * getEstimatedCoinPrice(asset.asset))}
+                {formatCurrency(asset.walletBalance * priceFor(asset.asset))}
               </Text>
             </View>
           ))}
       </CardContent>
     </Card>
   );
-}
-
-// Helper function to get estimated coin prices (in a real app, fetch from API)
-function getEstimatedCoinPrice(symbol: string): number {
-  const prices: { [key: string]: number } = {
-    SOL: 188.37, // Current SOL price
-    BTC: 117349.5, // Current BTC price
-    ETH: 4412.87, // Current ETH price
-    // Add more coins as needed
-  };
-  return prices[symbol] || 1; // Default to $1 if unknown
 }
 
 // USD-M Futures Screen with WebSocket integration for live updates - UNIQUE_IDENTIFIER_USDM_FUNCTION_SPECIFIC
@@ -823,10 +857,6 @@ const createStyles = (colors: ColorScheme) =>
       alignItems: 'center',
       justifyContent: 'flex-end',
       flex: 1,
-    },
-    riskChip: {
-      height: 20,
-      marginLeft: 8,
     },
     accountGrid: {
       flexDirection: 'row',

@@ -18,7 +18,7 @@ interface CategoryData {
 
 export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions }) => {
   const colors = useColors();
-  const { format: formatCurrency } = useCurrency();
+  const { convertFrom, formatConverted } = useCurrency();
 
   // Get current month boundaries
   const now = new Date();
@@ -54,7 +54,9 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
   const categoryTotals = expenses.reduce(
     (acc, transaction) => {
       const category = transaction.category || 'Uncategorized';
-      acc[category] = (acc[category] || 0) + transaction.amount;
+      // Convert each expense to the selected currency before summing —
+      // amounts can be TRY/AED/USD and must not be added raw.
+      acc[category] = (acc[category] || 0) + convertFrom(transaction.amount, transaction.currency);
       return acc;
     },
     {} as Record<string, number>,
@@ -92,7 +94,7 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
     <Card variant="elevated" style={styles.card}>
       <CardHeader style={styles.header}>
         <Text style={[styles.title, { color: colors.foreground }]}>{monthName} Spending</Text>
-        <Text style={[styles.totalAmount, { color: colors.expense }]}>{formatCurrency(totalExpenses)}</Text>
+        <Text style={[styles.totalAmount, { color: colors.expense }]}>{formatConverted(totalExpenses)}</Text>
       </CardHeader>
       <CardContent>
         <View style={styles.categoryList}>
@@ -107,7 +109,7 @@ export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ transactions
                 </View>
                 <View style={styles.categoryRight}>
                   <Text style={[styles.categoryAmount, { color: colors.foreground }]}>
-                    {formatCurrency(item.amount)}
+                    {formatConverted(item.amount)}
                   </Text>
                   <Text style={[styles.categoryPercentage, { color: colors.mutedForeground }]}>
                     {item.percentage.toFixed(1)}%
