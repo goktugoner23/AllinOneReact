@@ -29,6 +29,7 @@
     "date-fns": "^4.1.0",
     "expo-file-system": "^18.1.11",
     "expo-intent-launcher": "^12.1.5",
+    "expo-location": "^18.0.10",
     "expo-sharing": "^13.1.5",
     "lucide-react-native": "^0.562.0",
     "nativewind": "^4.2.1",
