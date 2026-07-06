@@ -33,6 +33,13 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Your location is shared privately with your partner in Manifest so they can find you.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Your location is shared privately with your partner in Manifest 24/7 so they can find you even when the app is closed.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to select student photos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
